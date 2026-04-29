@@ -1539,14 +1539,13 @@
                 <div class="rounded-3xl border border-oly-border bg-oly-bg p-4">
                    <div class="font-extrabold">Resumo</div>
                    <div class="mt-3 rounded-2xl border border-oly-border bg-white p-4">
-                     <div class="flex items-start justify-between gap-3">
+                     <div class="flex items-start gap-3">
                        <div>
                          <div class="text-xs font-bold text-oly-muted">Total de pares</div>
                          <div id="cartTotalQty" class="mt-1 text-2xl font-extrabold">0</div>
                        </div>
-                       <div class="text-right">
-                         <div class="text-xs font-bold text-oly-muted">Valor (custo)</div>
-                         <div id="cartTotalValue" class="mt-1 text-lg font-extrabold text-oly-blue">R$ 0,00</div>
+                       <div style="display:none">
+                         <div id="cartTotalValue" class="hidden">R$ 0,00</div>
                        </div>
                      </div>
                      <div class="mt-4 space-y-2 text-sm">
@@ -1640,8 +1639,12 @@
               <div>
                 <label class="order-field-label" for="oxCommission">Comissionista</label>
                 <select id="oxCommission" class="order-field-control">
-                  <option value="3616654">3616654</option>
-                  <option value="114611">114611</option>
+                  <option value="114611">114611 – JORGE</option>
+                  <option value="109839">109839 – MARIANA</option>
+                  <option value="1333497">1333497 – RAFAEL</option>
+                  <option value="25471">25471 – WILLAME</option>
+                  <option value="25745">25745 – LEANDRO</option>
+                  <option value="3616654">3616654 – MARCOS</option>
                 </select>
               </div>
               <div>
@@ -1664,6 +1667,7 @@
               <div>
                 <label class="order-field-label" for="oxCampaign">Campanha</label>
                 <select id="oxCampaign" class="order-field-control">
+                  <option value="">— Sem campanha —</option>
                   <option value="CO681 +28DD OLY">CO681 +28DD OLY</option>
                   <option value="CO689 +56DD OLY">CO689 +56DD OLY</option>
                   <option value="CO684 +28DD UA">CO684 +28DD UA</option>
@@ -1708,6 +1712,16 @@
                   <option value="N: Não">N: Não</option>
                   <option value="S: Sim">S: Sim</option>
                 </select>
+              </div>
+
+              <div>
+                <label class="order-field-label" for="oxDataDesejada">Data Desejada</label>
+                <input id="oxDataDesejada" type="date" class="order-field-control" />
+              </div>
+
+              <div style="grid-column: 1 / -1;">
+                <label class="order-field-label" for="oxPedidoCliente">Pedido do Cliente</label>
+                <input id="oxPedidoCliente" type="text" class="order-field-control" placeholder="Número ou referência do pedido do cliente" />
               </div>
             </div>
           </div>
@@ -4645,12 +4659,14 @@ const ORDER_EXPORT_DEFAULTS = {
   clientCode: "",
   payment: "Z35 - 63/91/119 D",
   priceTable: "OL025",
-  campaign: "CO689 +56DD OLY",
+  campaign: "",
   packing: "M: Musical",
   deliveryType: "3: Total Artigo/Cor",
   dataFirme: "S: Sim",
   pedidoMae: "N: Não",
-  antecipacao: "N: Não"
+  antecipacao: "N: Não",
+  dataDesejada: "",
+  pedidoCliente: ""
 };
 
 function populateOrderPaymentSelect(){
@@ -4685,6 +4701,8 @@ function getOrderExportFormData(){
     dataFirme: $("oxDataFirme")?.value || ORDER_EXPORT_DEFAULTS.dataFirme,
     pedidoMae: $("oxPedidoMae")?.value || ORDER_EXPORT_DEFAULTS.pedidoMae,
     antecipacao: $("oxAntecipacao")?.value || ORDER_EXPORT_DEFAULTS.antecipacao,
+    dataDesejada: $("oxDataDesejada")?.value || "",
+    pedidoCliente: $("oxPedidoCliente")?.value?.trim() || "",
   };
 }
 function fillOrderExportForm(cfg){
@@ -4699,6 +4717,9 @@ function fillOrderExportForm(cfg){
   if($("oxDataFirme")) $("oxDataFirme").value = data.dataFirme;
   if($("oxPedidoMae")) $("oxPedidoMae").value = data.pedidoMae;
   if($("oxAntecipacao")) $("oxAntecipacao").value = data.antecipacao;
+  if($("oxCampaign")) $("oxCampaign").value = "";  // sempre abre em branco
+  if($("oxDataDesejada")) $("oxDataDesejada").value = "";  // sempre abre em branco
+  if($("oxPedidoCliente")) $("oxPedidoCliente").value = data.pedidoCliente || "";
 }
 
 function openOrderExportModal(){
@@ -4783,12 +4804,14 @@ function buildOrderExportRows(cfg){
     row[idx["Tabela de Preço"]] = cfg.priceTable;
     row[idx["Prazo Médio"]] = pay.prazoMedio;
     row[idx["Número de Parcelas"]] = pay.parcelas;
-    row[idx["Campanha"]] = extractLeadingCode(cfg.campaign, 5);
+    row[idx["Campanha"]] = cfg.campaign ? extractLeadingCode(cfg.campaign, 5) : "";
     row[idx["Forma de Embalar"]] = extractLeadingToken(cfg.packing);
     row[idx["Tipo de Entrega"]] = Number(extractLeadingToken(cfg.deliveryType)) || extractLeadingToken(cfg.deliveryType);
     row[idx["Data Firme"]] = extractLeadingToken(cfg.dataFirme);
     row[idx["Pedido Mãe"]] = extractLeadingToken(cfg.pedidoMae);
     row[idx["Aceita Antecipação?"]] = extractLeadingToken(cfg.antecipacao);
+    if(cfg.dataDesejada && idx["Data Desejada"] !== undefined) row[idx["Data Desejada"]] = cfg.dataDesejada;
+    if(cfg.pedidoCliente && idx["Pedido do Cliente"] !== undefined) row[idx["Pedido do Cliente"]] = cfg.pedidoCliente;
 
     row[idx["Artigo"]] = String(it.codigo || "").trim();
     row[idx["Descrição"]] = String(it.produto || "").trim();
