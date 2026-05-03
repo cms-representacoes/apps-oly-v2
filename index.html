@@ -1208,6 +1208,8 @@
               <i class="fa-solid fa-arrow-up-wide-short text-oly-blue"></i>
               <select id="sortBy" class="focus-ring bg-transparent text-sm font-semibold w-full">
                 <option value="default">Ordenar: Padrão</option>
+                <option value="lanc_first">🚀 Lançamentos primeiro</option>
+                <option value="only_lanc">⭐ Somente lançamentos</option>
                 <option value="priceAsc">Menor preço</option>
                 <option value="priceDesc">Maior preço</option>
                 <option value="az">A–Z</option>
@@ -2751,10 +2753,29 @@ function refreshView(resetPaging){
   }
 
   const sort = state.filters.sort;
-  if(sort === "priceAsc") state.productsView.sort((a,b)=>getPriceNum(a)-getPriceNum(b));
+  if(sort === "only_lanc"){
+    state.productsView = state.productsView.filter(v => {
+      if(v._type === "group") return v.items && v.items.some(i => i.isLanc || i.isNewColor || i.isNew);
+      return v.isLanc || v.isNewColor || v.isNew;
+    });
+  } else if(sort === "lanc_first"){
+    state.productsView.sort((a,b)=>{
+      const aL = (a._type === "group") ? (a.items && a.items.some(i=>i.isLanc||i.isNew) ? 1 : 0) : ((a.isLanc||a.isNew) ? 1 : 0);
+      const bL = (b._type === "group") ? (b.items && b.items.some(i=>i.isLanc||i.isNew) ? 1 : 0) : ((b.isLanc||b.isNew) ? 1 : 0);
+      return bL - aL;
+    });
+  } else if(sort === "priceAsc") state.productsView.sort((a,b)=>getPriceNum(a)-getPriceNum(b));
   else if(sort === "priceDesc") state.productsView.sort((a,b)=>getPriceNum(b)-getPriceNum(a));
   else if(sort === "az") state.productsView.sort((a,b)=>String(getTitle(a)).localeCompare(String(getTitle(b)),"pt-BR",{sensitivity:"base"}));
   else if(sort === "za") state.productsView.sort((a,b)=>String(getTitle(b)).localeCompare(String(getTitle(a)),"pt-BR",{sensitivity:"base"}));
+  else {
+    // default: lançamentos sempre primeiro
+    state.productsView.sort((a,b)=>{
+      const aL = (a._type === "group") ? (a.items && a.items.some(i=>i.isLanc||i.isNew) ? 1 : 0) : ((a.isLanc||a.isNew) ? 1 : 0);
+      const bL = (b._type === "group") ? (b.items && b.items.some(i=>i.isLanc||i.isNew) ? 1 : 0) : ((b.isLanc||b.isNew) ? 1 : 0);
+      return bL - aL;
+    });
+  }
 
   if(resetPaging) state.pagination.shown = Math.min(state.pagination.pageSize, state.productsView.length);
 
