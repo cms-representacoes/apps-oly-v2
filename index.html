@@ -6333,18 +6333,26 @@ function openGradeModal(item, opts={}){
   if(confirmSpan && !opts.keepBulk) confirmSpan.textContent = "Adicionar Grade à Sacola";
 
   const sizes = expandTam(item.tam);
-  // Modo "outra grade": começa sempre limpo (não recupera grade da sacola)
+  // Só recupera grade existente quando editando uma linha específica (cartKey explícito).
+  // Em modo "novo" ou "+ outra grade", começa sempre LIMPO.
   let existingGrade = {};
-  if(!opts.keepGrades){
-    // Recupera qtds já salvas na sacola se existir grade
-    const existing = state.cart.get(cartKeyFor(item));
+  let existingDate = "";
+  if(opts.cartKey && state.cart.has(opts.cartKey)){
+    const existing = state.cart.get(opts.cartKey);
     existingGrade = existing?.grade || {};
+    existingDate = existing?.dataDesejada || "";
   }
 
   gradeState.sizes = sizes.map(tam => ({
     tam,
     qty: Number(existingGrade[tam] || 0)
   }));
+
+  // Preenche o input de data (se houver data salva da edição)
+  if(!opts.keepGrades){
+    const dataInput = $("gradeDataDesejada");
+    if(dataInput) dataInput.value = existingDate || "";
+  }
 
   // Header do modal
   $("gradeProduto").textContent = item.produto || "Produto";
@@ -6404,9 +6412,8 @@ function _updateGradeUIVisibility(){
     else labelEl.classList.add("hidden");
   }
   if(addAnotherBtn){
-    // Aparece a partir da 1ª grade montada (após primeira adição já fica visível)
-    addAnotherBtn.classList.toggle("hidden", false); // sempre visível pra o vendedor saber que pode adicionar +
-    if(!hasPrevious) addAnotherBtn.classList.add("hidden"); // mas oculto até ele ter adicionado a 1ª
+    // Sempre visível — vendedor sabe desde o início que pode adicionar mais
+    addAnotherBtn.classList.remove("hidden");
   }
   if(accRow){
     const total = (gradeState.addedGrades||[]).reduce((a,g)=> a + (g.totalQty||0), 0);
@@ -6519,11 +6526,20 @@ function gradeToCartEntry(){
 
   // Gera linhaId único só se já houver outras grades do mesmo produto na sacola
   // OU se está em modo "outra grade" (gradeState.addedGrades > 0)
+  // EXCEÇÃO: se está editando uma linha existente, mantém a chave dela
   const baseKey = cartKeyBaseFor(item);
-  const hasOtherLines = (gradeState.addedGrades || []).length > 0 ||
-                        [...state.cart.keys()].some(k => k.startsWith(baseKey + "||"));
-  const linhaId = hasOtherLines ? _genLinhaId() : null;
-  const key = linhaId ? `${baseKey}||${linhaId}` : baseKey;
+  let key, linhaId;
+  if(gradeState.cartKey && state.cart.has(gradeState.cartKey)){
+    // Edição de linha existente
+    key = gradeState.cartKey;
+    const existing = state.cart.get(key);
+    linhaId = existing?.linhaId;
+  } else {
+    const hasOtherLines = (gradeState.addedGrades || []).length > 0 ||
+                          [...state.cart.keys()].some(k => k.startsWith(baseKey + "||"));
+    linhaId = hasOtherLines ? _genLinhaId() : null;
+    key = linhaId ? `${baseKey}||${linhaId}` : baseKey;
+  }
 
   // Data desejada (do input no modal)
   const dataInputVal = $("gradeDataDesejada")?.value || "";
