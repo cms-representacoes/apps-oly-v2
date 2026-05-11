@@ -6002,22 +6002,19 @@ const viewerState = { open:false, variants:[], index:0, returnToProductModal:fal
 
 // Abre viewer navegando por ÂNGULOS (multi-ângulo do mesmo produto/cor)
 function openImageViewerAngles(angleGroups, startIndex, item, opts={}){
-  // ── Modo HÍBRIDO ──
-  // Se o produto tem APENAS 1 grupo de ângulos (uma imagem só), entra em modo "cores"
-  // mostrando as outras cores do mesmo produto/gênero. Se tem múltiplos ângulos, mantém comportamento atual.
-  const validGroups = (angleGroups || []).filter(g => Array.isArray(g) && g.length > 0);
-  if(validGroups.length <= 1 && item){
-    // Tenta encontrar variantes do mesmo produto (mesmo código, gêneros possivelmente diferentes ou mesma cor base)
-    let variants = [];
+  // ── Sempre modo CORES ──
+  // Tenta abrir com as variantes do produto. Se não tiver variantes, abre só com a imagem atual.
+  let variants = [];
+  if(item){
     try{
       if(typeof getVariantsFor === "function"){
         variants = getVariantsFor(item) || [];
       }
     }catch(_){}
-    // Filtra: mesma combinação produto+gênero, cores distintas (preserva a cor atual em 1º lugar)
-    if(variants && variants.length > 1){
+    // Filtra: mesmo gênero, cores distintas
+    if(variants && variants.length){
       const sameGender = variants.filter(v => String(v.genero||"") === String(item.genero||""));
-      const list = sameGender.length > 1 ? sameGender : variants;
+      const list = sameGender.length ? sameGender : variants;
       // Desduplica por cor
       const seen = new Set();
       const uniq = [];
@@ -6025,26 +6022,17 @@ function openImageViewerAngles(angleGroups, startIndex, item, opts={}){
         const k = String(v.cor || v.corCodigo || "").trim().toUpperCase();
         if(!seen.has(k)){ seen.add(k); uniq.push(v); }
       }
-      if(uniq.length > 1){
-        const idx = Math.max(0, uniq.findIndex(v =>
-          String(v.cor || v.corCodigo || "").trim().toUpperCase() === String(item.cor || item.corCodigo || "").trim().toUpperCase()
-        ));
-        return openImageViewer(uniq, idx, opts);
-      }
+      variants = uniq;
     }
   }
-  // Caminho normal: múltiplos ângulos da mesma cor
-  viewerState.open = true;
-  viewerState.mode = 'angles';
-  viewerState.angleGroups = angleGroups || [];
-  viewerState.angleIndex = Math.max(0, Math.min(startIndex||0, (angleGroups||[]).length-1));
-  viewerState.angleItem = item || null;
-  viewerState.returnToProductModal = !!opts.returnToProductModal;
-  renderImageViewer();
-  _showSwipeHint();
-  $("imageViewer").classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  trapFocus("imageViewer");
+  // Fallback: se não achou variantes, usa só o item atual
+  if(!variants || !variants.length){
+    variants = item ? [item] : [];
+  }
+  const idx = Math.max(0, variants.findIndex(v =>
+    String(v.cor || v.corCodigo || "").trim().toUpperCase() === String(item?.cor || item?.corCodigo || "").trim().toUpperCase()
+  ));
+  return openImageViewer(variants, idx >= 0 ? idx : 0, opts);
 }
 
 function openImageViewer(variants, currentIndex, opts={}){
@@ -6054,7 +6042,6 @@ function openImageViewer(variants, currentIndex, opts={}){
   viewerState.index = Math.max(0, Math.min(currentIndex || 0, viewerState.variants.length-1));
   viewerState.returnToProductModal = !!opts.returnToProductModal;
   renderImageViewer();
-  _showSwipeHint();
   $("imageViewer").classList.remove("hidden");
   document.body.style.overflow = "hidden";
   trapFocus("imageViewer");
@@ -6179,22 +6166,13 @@ function _renderViewerThumbs(){
   }).join("");
 }
 
-// Botão "Adicionar à sacola" da lupa
+// Botão "Adicionar à sacola" da lupa — mesmo comportamento do "+" do card
 function _viewerAddToCart(){
   let item = null;
   if(viewerState.mode === 'angles') item = viewerState.angleItem;
   else item = viewerState.variants[viewerState.index];
   if(!item){ toast("Produto inválido ⚠️"); return; }
 
-  // Se precisa de grade, abre modal de grade
-  const needsGrade = (typeof tamNeedsGrade === "function") && tamNeedsGrade(item.categoria, item.tam);
-  if(needsGrade){
-    closeImageViewer();
-    setTimeout(() => openGradeModal(item, { fromCart: false }), 200);
-    return;
-  }
-
-  // Sem grade: adiciona 1 unidade direto
   if(typeof addToCart === "function"){
     addToCart(item, 1);
     toast("Adicionado à sacola ✅");
