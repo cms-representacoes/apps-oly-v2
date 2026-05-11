@@ -5333,11 +5333,6 @@ function fillOrderExportForm(cfg){
   if($("oxPedidoCliente")) $("oxPedidoCliente").value = data.pedidoCliente || "";
 }
 
-// ═══════════ OVERRIDE DE DATA DESEJADA POR PRODUTO ═══════════
-// Estado em memória: Map<cartKey, { date:string, touched:boolean }>
-// Resetado a cada abertura do modal de export.
-let _orderDateOverride = { open:false, byKey:new Map() };
-
 // ═══════════ DATA DESEJADA ═══════════
 // A data desejada agora vive APENAS no item da sacola (preenchida no modal de grade).
 // Mantida a função antiga só por compatibilidade com chamadas existentes.
