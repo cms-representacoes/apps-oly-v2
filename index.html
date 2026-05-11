@@ -1412,9 +1412,9 @@
             <button type="button" class="tier-pill" data-tier="sg2" data-tip="Sporting Goods · Tier 2">SG·2</button>
             <button type="button" class="tier-pill" data-tier="sg3" data-tip="Sporting Goods · Tier 3">SG·3</button>
             <div class="tier-bar-divider"></div>
-            <button type="button" class="tier-pill fam" data-tier="ftw1" data-tip="Family FTW · Tier 1">FTW·1</button>
-            <button type="button" class="tier-pill fam" data-tier="ftw2" data-tip="Family FTW · Tier 2">FTW·2</button>
-            <button type="button" class="tier-pill fam" data-tier="ftw3" data-tip="Family FTW · Tier 3">FTW·3</button>
+            <button type="button" class="tier-pill fam" data-tier="ftw1" data-tip="Family FTW · Tier 1">FF·1</button>
+            <button type="button" class="tier-pill fam" data-tier="ftw2" data-tip="Family FTW · Tier 2">FF·2</button>
+            <button type="button" class="tier-pill fam" data-tier="ftw3" data-tip="Family FTW · Tier 3">FF·3</button>
           </div>
         </div>
       </div>
@@ -7173,6 +7173,7 @@ function abrirModalImagensCategorias(){
       <div class="ci-info">
         <div class="ci-name">${cat.nome}</div>
         <div class="ci-meta">${cat.sub}</div>
+        <div class="ci-status text-[10px] font-bold mt-1" style="color:var(--muted);min-height:14px"></div>
       </div>
       <input type="file" accept="image/*" class="hidden" data-cat-input="${cat.id}">
       <button class="ci-btn" data-cat-trocar="${cat.id}">
@@ -7224,16 +7225,25 @@ async function uploadImagemCategoria(catId, file){
   const row = document.querySelector(`.ci-row[data-cat-id="${catId}"]`);
   const btn = row?.querySelector(`[data-cat-trocar="${catId}"]`);
   const thumb = row?.querySelector(".ci-thumb");
+  const status = row?.querySelector(".ci-status");
+  const catNome = CAT_IMG_CATEGORIES.find(c=>c.id===catId)?.nome || catId;
+
   if(!file){ return; }
   if(!file.type.startsWith("image/")){
+    if(status){ status.textContent = "❌ Arquivo precisa ser imagem"; status.style.color = "#dc2626"; }
     toast("Arquivo precisa ser uma imagem ⚠️");
     return;
   }
+  console.log(`[CategoryImg] Upload de ${catNome} (${catId}) iniciado — arquivo: ${file.name} (${(file.size/1024).toFixed(0)}KB)`);
   if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...'; }
   if(thumb) thumb.classList.add("loading");
+  if(status){ status.textContent = "⏳ Comprimindo..."; status.style.color = "var(--muted)"; }
 
   try{
     const base64 = await _comprimirImagemBase64(file, 800);
+    console.log(`[CategoryImg] Comprimido — base64 size: ${(base64.length/1024).toFixed(0)}KB`);
+    if(status){ status.textContent = "📤 Enviando ao Worker..."; }
+
     const res = await fetch(WORKER_URL, {
       method: "PATCH",
       headers: {
@@ -7242,12 +7252,14 @@ async function uploadImagemCategoria(catId, file){
       },
       body: JSON.stringify({ action: "saveCategoryImage", categoria: catId, base64 })
     });
+    console.log(`[CategoryImg] Worker response: ${res.status}`);
     if(!res.ok){
       const errTxt = await res.text();
-      throw new Error(`Worker falhou: ${res.status} ${errTxt.slice(0,80)}`);
+      throw new Error(`HTTP ${res.status}: ${errTxt.slice(0,120)}`);
     }
     const data = await res.json();
-    if(!data.success) throw new Error(data.error || "Falha desconhecida");
+    if(!data.success) throw new Error(data.error || "Worker retornou success:false");
+    console.log(`[CategoryImg] ✅ Salvo no GitHub:`, data);
 
     // Atualiza visualmente (com cache-buster)
     const bust = Date.now();
@@ -7267,10 +7279,18 @@ async function uploadImagemCategoria(catId, file){
       const ph = document.getElementById(`home-cat-ph-${catId}`);
       if(ph) ph.style.display = "none";
     }
-    toast(`Imagem de ${CAT_IMG_CATEGORIES.find(c=>c.id===catId)?.nome} atualizada ✅`);
+    if(status){
+      status.textContent = `✅ Atualizado às ${new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
+      status.style.color = "#16a34a";
+    }
+    toast(`${catNome}: imagem atualizada ✅`);
   }catch(err){
-    console.error("Upload categoria:", err);
-    toast(`Falha ao enviar: ${err.message || "tente novamente"} ⚠️`);
+    console.error("[CategoryImg] ❌ Erro:", err);
+    if(status){
+      status.textContent = `❌ Erro: ${err.message || "tente novamente"}`;
+      status.style.color = "#dc2626";
+    }
+    toast(`${catNome}: falha no envio ⚠️`);
   }finally{
     if(btn){ btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-upload"></i> Trocar'; }
     if(thumb) thumb.classList.remove("loading");
@@ -7375,7 +7395,8 @@ function buildPedidoSnapshot(cfg){
       totalQty,
       preco,
       colecao: it.colecao || "",
-      imagem: it.imagem || ""
+      imagem: it.imagem || "",
+      imgSrc: it.imgSrc || ""
     });
   }
   return {
@@ -7572,6 +7593,20 @@ function _mpFindPedidoById(id){
 
 // Converte item do histórico de volta pra item da sacola
 function _mpPedidoItemToCartItem(it){
+  // Tenta achar o produto original no catálogo pra recuperar imagem/preço corretos
+  let original = null;
+  try{
+    original = (state.productsRaw || []).find(p =>
+      String(p.codigo) === String(it.codigo) &&
+      String(p.cor || p.corCodigo || "") === String(it.cor || it.corCodigo || "") &&
+      String(p.genero || "") === String(it.genero || "")
+    ) || null;
+  }catch(_){}
+  const imagemBase = it.imagem || original?.imagem || "";
+  // imgSrc pode vir salvo no histórico (pedidos novos) OU ser resolvido agora
+  const imgSrcResolved = it.imgSrc
+    || (typeof resolveImageSrc === "function" ? resolveImageSrc(imagemBase) : "")
+    || "";
   return {
     codigo: it.codigo,
     produto: it.produto,
@@ -7581,9 +7616,12 @@ function _mpPedidoItemToCartItem(it){
     tam: it.tam || "",
     categoria: it.categoria || "",
     colecao: it.colecao || "",
-    imagem: it.imagem || "",
-    preco: it.preco || 0,
-    precoRaw: it.preco || 0
+    imagem: imagemBase,
+    imgSrc: imgSrcResolved,
+    preco: it.preco || original?.preco || 0,
+    precoRaw: it.preco || original?.precoRaw || 0,
+    precoNum: Number(it.preco || original?.preco || 0),
+    precoFmt: (typeof moneyBR === "function") ? moneyBR(Number(it.preco || 0)) : `R$ ${Number(it.preco || 0).toFixed(2)}`
   };
 }
 
