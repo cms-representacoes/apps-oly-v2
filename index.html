@@ -186,6 +186,26 @@
     /* ── Image viewer ── */
     .dark-mode #imageViewer .bg-black\/40,
     .dark-mode #imageViewer .bg-black\/90     { background:rgba(0,0,0,.85)!important; }
+    /* Miniaturas das cores no viewer */
+    #viewerThumbs::-webkit-scrollbar { height:4px; }
+    #viewerThumbs::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:99px; }
+    .viewer-thumb {
+      width:38px; height:38px;
+      border-radius:8px;
+      border:2px solid rgba(255,255,255,.25);
+      background:#fff;
+      overflow:hidden;
+      flex-shrink:0;
+      cursor:pointer;
+      transition: all .15s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .viewer-thumb img { width:100%; height:100%; object-fit:contain; }
+    .viewer-thumb:hover { border-color:rgba(255,255,255,.6); transform:translateY(-2px); }
+    .viewer-thumb.active {
+      border-color:#a78bfa;
+      box-shadow:0 0 0 2px rgba(167,139,250,.4);
+    }
 
     /* ── Bulk grade button ── */
     #btnBulkGrade {
@@ -2202,15 +2222,24 @@
           <button id="viewerPrev" class="focus-ring absolute left-6 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xl font-extrabold" aria-label="Cor anterior">←</button>
           <button id="viewerNext" class="focus-ring absolute right-6 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xl font-extrabold" aria-label="Próxima cor">→</button>
 
-          <div class="absolute left-4 bottom-4 right-4 flex flex-wrap items-center justify-between gap-2 text-white/90">
-            <div class="min-w-0">
+          <div class="absolute left-4 bottom-4 right-4 z-30 flex items-end justify-between gap-3 text-white/90">
+            <div class="min-w-0 flex-shrink">
               <div id="viewerTitle" class="truncate font-extrabold">—</div>
               <div class="text-xs text-white/70">
                 <span id="viewerColor">—</span>
               </div>
+              <div class="text-xs text-white/70 mt-0.5">
+                <span id="viewerIndex">—</span>
+              </div>
             </div>
-            <div class="text-xs text-white/70">
-              <span id="viewerIndex">—</span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <!-- Miniaturas das cores (só visível no modo cores) -->
+              <div id="viewerThumbs" class="hidden flex items-center gap-1.5 overflow-x-auto max-w-[55vw] sm:max-w-md pb-1" style="scrollbar-width:thin"></div>
+              <!-- Botão Adicionar à Sacola -->
+              <button id="viewerAddCart" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full bg-oly-blue hover:opacity-90 text-white text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 shadow-lg" aria-label="Adicionar à sacola">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="hidden sm:inline">Sacola</span>
+              </button>
             </div>
           </div>
 
@@ -5296,8 +5325,14 @@ function loadOrderExportConfig(){
   try{
     const raw = lsGet("olympikus_order_export_cfg_v1");
     if(!raw) return { ...ORDER_EXPORT_DEFAULTS };
-    const parsed = JSON.parse(raw);
-    return { ...ORDER_EXPORT_DEFAULTS, ...(parsed || {}) };
+    const parsed = JSON.parse(raw) || {};
+    // Limpa dados específicos do cliente — sempre começa em branco
+    // Mantém só: comissionista, padrões operacionais (forma embalar, tipo entrega, etc)
+    delete parsed.clientCode;
+    delete parsed.payment;
+    delete parsed.campaign;
+    delete parsed.pedidoCliente;
+    return { ...ORDER_EXPORT_DEFAULTS, ...parsed };
   }catch(e){
     return { ...ORDER_EXPORT_DEFAULTS };
   }
@@ -5967,6 +6002,38 @@ const viewerState = { open:false, variants:[], index:0, returnToProductModal:fal
 
 // Abre viewer navegando por ÂNGULOS (multi-ângulo do mesmo produto/cor)
 function openImageViewerAngles(angleGroups, startIndex, item, opts={}){
+  // ── Modo HÍBRIDO ──
+  // Se o produto tem APENAS 1 grupo de ângulos (uma imagem só), entra em modo "cores"
+  // mostrando as outras cores do mesmo produto/gênero. Se tem múltiplos ângulos, mantém comportamento atual.
+  const validGroups = (angleGroups || []).filter(g => Array.isArray(g) && g.length > 0);
+  if(validGroups.length <= 1 && item){
+    // Tenta encontrar variantes do mesmo produto (mesmo código, gêneros possivelmente diferentes ou mesma cor base)
+    let variants = [];
+    try{
+      if(typeof getVariantsFor === "function"){
+        variants = getVariantsFor(item) || [];
+      }
+    }catch(_){}
+    // Filtra: mesma combinação produto+gênero, cores distintas (preserva a cor atual em 1º lugar)
+    if(variants && variants.length > 1){
+      const sameGender = variants.filter(v => String(v.genero||"") === String(item.genero||""));
+      const list = sameGender.length > 1 ? sameGender : variants;
+      // Desduplica por cor
+      const seen = new Set();
+      const uniq = [];
+      for(const v of list){
+        const k = String(v.cor || v.corCodigo || "").trim().toUpperCase();
+        if(!seen.has(k)){ seen.add(k); uniq.push(v); }
+      }
+      if(uniq.length > 1){
+        const idx = Math.max(0, uniq.findIndex(v =>
+          String(v.cor || v.corCodigo || "").trim().toUpperCase() === String(item.cor || item.corCodigo || "").trim().toUpperCase()
+        ));
+        return openImageViewer(uniq, idx, opts);
+      }
+    }
+  }
+  // Caminho normal: múltiplos ângulos da mesma cor
   viewerState.open = true;
   viewerState.mode = 'angles';
   viewerState.angleGroups = angleGroups || [];
@@ -6005,15 +6072,47 @@ function _showSwipeHint(){
   }catch(e){}
 }
 function closeImageViewer(){
+  // Se está em modo "cores", lembra qual variante estava sendo vista
+  const wasColors = viewerState.mode === 'colors';
+  const currentVariant = wasColors ? viewerState.variants[viewerState.index] : null;
+
   viewerState.open = false;
   $("imageViewer").classList.add("hidden");
 
   if(viewerState.returnToProductModal && state.productModal.open){
     document.body.style.overflow = "hidden";
     trapFocus("productModal");
+    // Atualiza o modal pra mostrar a cor que estava sendo vista na lupa
+    if(currentVariant && typeof openProductModal === "function"){
+      try{
+        const isDifferent = String(currentVariant.cor || currentVariant.corCodigo || "") !==
+                            String(state.productModal.item?.cor || state.productModal.item?.corCodigo || "");
+        if(isDifferent){
+          openProductModal({ item: currentVariant, group: null, fromCart: false, editing: false, editKey: null });
+        }
+      }catch(_){}
+    }
   } else {
     document.body.style.overflow = "";
     releaseFocusTrap();
+    // Se a lupa foi aberta direto do card de produto (sem modal aberto)
+    // e mudou de cor, dá um scroll suave até o card da nova cor
+    if(currentVariant && !state.productModal.open){
+      try{
+        const newKey = (typeof cartKeyBaseFor === "function") ? cartKeyBaseFor(currentVariant) : null;
+        if(newKey){
+          // Procura o card visível com essa chave
+          setTimeout(() => {
+            const card = document.querySelector(`[data-product-key="${CSS.escape(newKey)}"]`);
+            if(card){
+              card.scrollIntoView({ behavior:"smooth", block:"center" });
+              card.classList.add("ring-2","ring-purple-400");
+              setTimeout(()=> card.classList.remove("ring-2","ring-purple-400"), 1500);
+            }
+          }, 100);
+        }
+      }catch(_){}
+    }
   }
   viewerState.returnToProductModal = false;
 }
@@ -6044,6 +6143,8 @@ function renderImageViewer(){
     $("viewerIndex").textContent = total > 1 ? `${idx+1}/${total}` : "";
     $("viewerPrev").style.display = total > 1 ? "inline-flex" : "none";
     $("viewerNext").style.display = total > 1 ? "inline-flex" : "none";
+    // Modo ângulos: esconde thumbs de cores
+    $("viewerThumbs")?.classList.add("hidden");
   } else {
     const it = viewerState.variants[viewerState.index];
     if(!it) return;
@@ -6053,6 +6154,52 @@ function renderImageViewer(){
     $("viewerIndex").textContent = viewerState.variants.length > 1 ? `${viewerState.index+1}/${viewerState.variants.length}` : "";
     $("viewerPrev").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
     $("viewerNext").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
+    // Modo cores: renderiza thumbs
+    _renderViewerThumbs();
+  }
+}
+
+function _renderViewerThumbs(){
+  const wrap = $("viewerThumbs");
+  if(!wrap) return;
+  const variants = viewerState.variants || [];
+  if(variants.length <= 1){
+    wrap.classList.add("hidden");
+    wrap.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+  wrap.innerHTML = variants.map((v, i) => {
+    const src = resolveImageSrc(v.imagem);
+    const isActive = i === viewerState.index;
+    const corLabel = v.cor || v.corCodigo || `Cor ${i+1}`;
+    return `<button class="viewer-thumb ${isActive ? "active" : ""}" data-viewer-thumb-idx="${i}" title="${(corLabel+"").replace(/"/g,'&quot;')}" aria-label="Ver cor ${corLabel}">
+      <img src="${src}" alt="" onerror="this.style.display='none'">
+    </button>`;
+  }).join("");
+}
+
+// Botão "Adicionar à sacola" da lupa
+function _viewerAddToCart(){
+  let item = null;
+  if(viewerState.mode === 'angles') item = viewerState.angleItem;
+  else item = viewerState.variants[viewerState.index];
+  if(!item){ toast("Produto inválido ⚠️"); return; }
+
+  // Se precisa de grade, abre modal de grade
+  const needsGrade = (typeof tamNeedsGrade === "function") && tamNeedsGrade(item.categoria, item.tam);
+  if(needsGrade){
+    closeImageViewer();
+    setTimeout(() => openGradeModal(item, { fromCart: false }), 200);
+    return;
+  }
+
+  // Sem grade: adiciona 1 unidade direto
+  if(typeof addToCart === "function"){
+    addToCart(item, 1);
+    toast("Adicionado à sacola ✅");
+  } else {
+    toast("Função indisponível ⚠️");
   }
 }
 function viewerPrev(){
@@ -6078,11 +6225,23 @@ function viewerNext(){
   renderImageViewer();
 }
 $("imageViewer").addEventListener("click", (e)=>{
+  // Click em miniatura de cor: pula direto para essa cor
+  const thumb = e.target?.closest?.("[data-viewer-thumb-idx]");
+  if(thumb){
+    e.stopPropagation();
+    const i = parseInt(thumb.dataset.viewerThumbIdx, 10);
+    if(!isNaN(i) && viewerState.mode === 'colors' && viewerState.variants[i]){
+      viewerState.index = i;
+      renderImageViewer();
+    }
+    return;
+  }
   const closeEl = e.target?.closest?.('[data-close-viewer="true"]');
   if(closeEl) closeImageViewer();
 });
 $("viewerPrev").addEventListener("click", (e)=>{ e.stopPropagation(); viewerPrev(); });
 $("viewerNext").addEventListener("click", (e)=>{ e.stopPropagation(); viewerNext(); });
+$("viewerAddCart")?.addEventListener("click", (e)=>{ e.stopPropagation(); _viewerAddToCart(); });
 
 // ✅ Swipe (mobile): arraste esquerda/direita para trocar cor
 (function initViewerSwipe(){
