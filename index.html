@@ -186,6 +186,21 @@
     /* ── Image viewer ── */
     .dark-mode #imageViewer .bg-black\/40,
     .dark-mode #imageViewer .bg-black\/90     { background:rgba(0,0,0,.85)!important; }
+    /* Toggle switch (preferências) */
+    .pref-switch{
+      width:44px;height:26px;border-radius:99px;
+      background:#CBD5E1;position:relative;cursor:pointer;
+      transition:background .15s;flex-shrink:0;border:none;padding:0;
+    }
+    .pref-switch::after{
+      content:'';position:absolute;width:20px;height:20px;border-radius:50%;
+      background:#fff;top:3px;left:3px;transition:left .15s;
+      box-shadow:0 1px 3px rgba(0,0,0,.2);
+    }
+    .pref-switch.on{ background:#7c3aed; }
+    .pref-switch.on::after{ left:21px; }
+    /* Quando a preferência "Exibir preços" está OFF, esconde TUDO marcado como preço */
+    body.prefs-hide-prices [data-price-display]{ display:none !important; }
     /* Miniaturas das cores no viewer */
     #viewerThumbs::-webkit-scrollbar { height:4px; }
     #viewerThumbs::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:99px; }
@@ -1390,7 +1405,10 @@
           <div class="text-[10px] font-bold text-oly-muted leading-none">Catálogo Digital</div>
           <div class="text-base font-extrabold leading-tight text-oly-text">Olympikus</div>
         </div>
-        <div class="ml-auto">
+        <div class="ml-auto flex items-center gap-2">
+          <button id="btnPreferences" class="focus-ring h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-oly-border bg-white hover:bg-oly-bg flex items-center justify-center transition" title="Minhas preferências" aria-label="Preferências do vendedor">
+            <i class="fa-solid fa-sliders text-oly-muted text-sm"></i>
+          </button>
           <button id="btnCatImagesConfig" class="focus-ring h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-oly-border bg-white hover:bg-oly-bg flex items-center justify-center transition" title="Configurar imagens das categorias" aria-label="Configurações de imagens">
             <i class="fa-solid fa-gear text-oly-muted text-sm"></i>
           </button>
@@ -1867,7 +1885,7 @@
                       <i id="pmGenderIcon" class="fa-solid fa-user text-oly-blue"></i>
                     </div>
 
-                    <div class="flex-1 min-w-0">
+                    <div data-price-display class="flex-1 min-w-0">
                       <div class="text-xs text-oly-muted font-bold">Preço</div>
                       <div id="pmPrecoMain" class="whitespace-nowrap text-base sm:text-xl md:text-2xl font-extrabold tracking-tight leading-tight tabular-nums">—</div>
                     </div>
@@ -2503,6 +2521,80 @@ function isTruthy(v){
   const s = normalizeName(String(v));
   return s === "sim" || s === "yes" || s === "1" || s === "true" || s === "x" || s === "s";
 }
+
+// ═══════════ PREÇOS POR PRAZO ═══════════
+// Helper: converte célula do XLSX em número (vazio/null → 0)
+function _toNumOrZero(v){
+  if(v === null || v === undefined || v === "") return 0;
+  const n = Number(typeof v === "string" ? v.replace(",",".") : v);
+  return isNaN(n) ? 0 : n;
+}
+
+// Recebe condição (ex: "Z35 - 63/91/119 D") e devolve o prazo médio em dias.
+// Z01-Z17 = 1 duplicata (À Vista até 119D)
+// Z18-Z28 = 2 duplicatas (média de 2 prazos)
+// Z29-Z35 = 3 duplicatas (média de 3 prazos)
+function getPrazoMedio(condicaoZ){
+  if(!condicaoZ) return null;
+  const s = String(condicaoZ);
+  // Caso especial: À Vista (Z01)
+  if(/A\s*VISTA|\bÀ\s*VISTA\b/i.test(s)) return 0;
+  // Extrai os números antes do "D" final. Ex: "Z35 - 63/91/119 D" → [63, 91, 119]
+  const m = s.match(/([\d\/]+)\s*D\b/);
+  if(!m) return null;
+  const nums = m[1].split("/").map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+  if(!nums.length) return null;
+  const soma = nums.reduce((a,b) => a+b, 0);
+  return Math.round(soma / nums.length);
+}
+
+// Converte prazo médio (dias) em chave da coluna de preço.
+// Tenta o exato; se não existir, escolhe o mais próximo.
+function getColunaPrazo(dias){
+  if(dias === null || dias === undefined) return null;
+  if(dias === 0) return "AV";
+  const colunas = [
+    { key:"AV",   dias:0   },
+    { key:"14D",  dias:14  },
+    { key:"21D",  dias:21  },
+    { key:"28D",  dias:28  },
+    { key:"35D",  dias:35  },
+    { key:"42D",  dias:42  },
+    { key:"49D",  dias:49  },
+    { key:"56D",  dias:56  },
+    { key:"63D",  dias:63  },
+    { key:"70D",  dias:70  },
+    { key:"77D",  dias:77  },
+    { key:"84D",  dias:84  },
+    { key:"91D",  dias:91  },
+    { key:"98D",  dias:98  },
+    { key:"105D", dias:105 },
+    { key:"112D", dias:112 },
+    { key:"119D", dias:119 },
+  ];
+  // Match exato
+  const exato = colunas.find(c => c.dias === dias);
+  if(exato) return exato.key;
+  // Mais próximo
+  let menor = colunas[0]; let melhorDiff = Math.abs(dias - menor.dias);
+  for(const c of colunas){
+    const diff = Math.abs(dias - c.dias);
+    if(diff < melhorDiff){ melhorDiff = diff; menor = c; }
+  }
+  return menor.key;
+}
+
+// Devolve o preço de um item segundo o prazo médio. Fallback no PDV cheio.
+function getPrecoPorPrazo(item, dias){
+  if(!item) return 0;
+  const col = getColunaPrazo(dias);
+  if(col && item.precosPrazo && item.precosPrazo[col] > 0){
+    return item.precosPrazo[col];
+  }
+  // Fallback: PDV cheio
+  return toNumberBR(item.precoRaw ?? item.preco ?? 0);
+}
+
 // Gera HTML dos badges de status de um produto/variante
 function renderBadges(item, { cls="", abs=false } = {}){
   if(!item) return "";
@@ -2826,6 +2918,26 @@ async function loadCatalog({ cacheBust=false } = {}){
       ftw1:       isTruthy(r["FAMILY FTW - 1"] ?? r["Family FTW - 1"] ?? r["family ftw - 1"] ?? ""),
       ftw2:       isTruthy(r["FAMILY FTW - 2"] ?? r["Family FTW - 2"] ?? r["family ftw - 2"] ?? ""),
       ftw3:       isTruthy(r["FAMILY FTW - 3"] ?? r["Family FTW - 3"] ?? r["family ftw - 3"] ?? ""),
+      // Preços por prazo (À Vista, 14D, 21D, ..., 119D) — adicionados pelo script atualizar_precos.py
+      precosPrazo: {
+        AV:   _toNumOrZero(r["AV"]),
+        "14D":  _toNumOrZero(r["14D"]),
+        "21D":  _toNumOrZero(r["21D"]),
+        "28D":  _toNumOrZero(r["28D"]),
+        "35D":  _toNumOrZero(r["35D"]),
+        "42D":  _toNumOrZero(r["42D"]),
+        "49D":  _toNumOrZero(r["49D"]),
+        "56D":  _toNumOrZero(r["56D"]),
+        "63D":  _toNumOrZero(r["63D"]),
+        "70D":  _toNumOrZero(r["70D"]),
+        "77D":  _toNumOrZero(r["77D"]),
+        "84D":  _toNumOrZero(r["84D"]),
+        "91D":  _toNumOrZero(r["91D"]),
+        "98D":  _toNumOrZero(r["98D"]),
+        "105D": _toNumOrZero(r["105D"]),
+        "112D": _toNumOrZero(r["112D"]),
+        "119D": _toNumOrZero(r["119D"]),
+      },
     }));
 
     state.productsRaw = rows.filter(x => x.produto || x.codigo || x.categoria || x.imagem);
@@ -4090,7 +4202,7 @@ function renderCards(){
         </div>
         <div class="min-w-0 flex-1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug truncate">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div data-price-display class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           ${badgesHtml}
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-2 h-9 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
@@ -4143,7 +4255,7 @@ function renderCards(){
         </div>
         <div class="px-2.5 py-2 flex flex-col gap-1.5">
           <div class="font-extrabold text-sm sm:text-[15px] leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-sm sm:text-[15px] font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div data-price-display class="text-sm sm:text-[15px] font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-1 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -4189,7 +4301,7 @@ function renderCards(){
         </div>
         <div class="px-2 py-1.5 flex flex-col gap-1">
           <div class="font-extrabold text-[11px] sm:text-xs leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-[11px] sm:text-xs font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div data-price-display class="text-[11px] sm:text-xs font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"xs" })}</div>
           <button class="btnAdd focus-ring mt-0.5 h-8 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -4241,7 +4353,7 @@ function renderCards(){
         <div class="grid-thumbs flex gap-1 px-2 pt-1.5 pb-0.5 overflow-x-auto" style="min-height:44px;scrollbar-width:none"></div>
         <div class="px-3 py-2 cursor-pointer" data-gridopen="1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div data-price-display class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-2 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -8060,6 +8172,62 @@ document.addEventListener("keydown", e => {
   }
 });
 
+// ═══════════ PREFERÊNCIAS DO VENDEDOR ═══════════
+// Estado em memória + persistência em localStorage
+const PREFS_KEY = "olympikus_vendor_prefs_v1";
+const prefs = {
+  showPrices: false   // padrão: OFF (vendedor habilita)
+};
+function loadPrefs(){
+  try{
+    const raw = lsGet(PREFS_KEY);
+    if(!raw) return;
+    const parsed = JSON.parse(raw);
+    if(typeof parsed.showPrices === "boolean") prefs.showPrices = parsed.showPrices;
+  }catch(_){}
+}
+function savePrefs(){
+  lsSet(PREFS_KEY, JSON.stringify(prefs));
+}
+function syncPrefUI(){
+  const sw = $("prefTogglePrices");
+  if(sw){
+    sw.classList.toggle("on", prefs.showPrices);
+    sw.setAttribute("aria-checked", String(prefs.showPrices));
+  }
+  // Aplica/remove classe no body para CSS controlar visibilidade de preços
+  document.body.classList.toggle("prefs-hide-prices", !prefs.showPrices);
+}
+function openPrefsModal(){
+  loadPrefs();
+  syncPrefUI();
+  $("prefModal").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+function closePrefsModal(){
+  $("prefModal").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+function togglePref(name){
+  if(name === "showPrices"){
+    prefs.showPrices = !prefs.showPrices;
+    savePrefs();
+    syncPrefUI();
+    // Re-renderiza sacola pra refletir mudança imediata
+    if(typeof renderCartUI === "function") renderCartUI();
+    // Re-renderiza cards (preço aparece/some)
+    if(typeof renderProducts === "function") renderProducts();
+  }
+}
+// Eventos
+document.addEventListener("click", (e) => {
+  if(e.target.closest("#btnPreferences")){ openPrefsModal(); return; }
+  if(e.target.closest("#btnClosePref") || e.target.closest("#prefBackdrop")){ closePrefsModal(); return; }
+  if(e.target.closest("#prefTogglePrices")){ togglePref("showPrices"); return; }
+});
+loadPrefs();
+syncPrefUI();
+
 // ════════════════════════════════════════════════════
 // BOOT — loadCatalog chamado AQUI, após _onCatalogReady
 // estar definido pelo initHomeScreen acima
@@ -8164,6 +8332,44 @@ loadCatalog({ cacheBust:false });
       <div class="flex gap-2">
         <button id="catImgPwdCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Cancelar</button>
         <button id="catImgPwdOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white" style="background:var(--primary)">Entrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL DE PREFERÊNCIAS DO VENDEDOR ═══════════ -->
+<div id="prefModal" class="hidden fixed inset-0 z-[90]">
+  <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="prefBackdrop"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+    <div class="rounded-3xl bg-white max-w-sm w-full overflow-hidden shadow-lift" style="background:var(--card-bg,#fff)">
+      <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-oly-border">
+        <div class="min-w-0">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider" style="color:#7c3aed">Personalizar</div>
+          <div class="text-base font-extrabold flex items-center gap-1.5" style="color:var(--text)">
+            <i class="fa-solid fa-sliders text-sm"></i> Minhas preferências
+          </div>
+        </div>
+        <button id="btnClosePref" class="focus-ring h-9 w-9 rounded-full border border-oly-border bg-white hover:bg-oly-bg" aria-label="Fechar">
+          <i class="fa-solid fa-xmark text-oly-blue"></i>
+        </button>
+      </div>
+      <div class="px-5 py-4 space-y-1">
+        <!-- Toggle Exibir Preços -->
+        <div class="flex items-start gap-3 py-3 border-b border-oly-border">
+          <div class="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style="background:#F5F3FF;color:#7c3aed">
+            <i class="fa-solid fa-dollar-sign"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-extrabold" style="color:var(--text)">Exibir preços</div>
+            <div class="text-xs mt-0.5" style="color:var(--muted);line-height:1.4">
+              Mostra preço no card, modal e sacola. <strong>PDF respeita esta escolha</strong>; Excel nunca tem preço.
+            </div>
+          </div>
+          <button id="prefTogglePrices" class="pref-switch" role="switch" aria-checked="false"></button>
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-oly-border text-[11px]" style="background:#F8FAFC;color:var(--muted);line-height:1.5">
+        💡 As preferências são salvas <strong>neste dispositivo</strong>. Cada vendedor tem as próprias configurações.
       </div>
     </div>
   </div>
