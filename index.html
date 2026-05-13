@@ -1885,7 +1885,7 @@
                       <i id="pmGenderIcon" class="fa-solid fa-user text-oly-blue"></i>
                     </div>
 
-                    <div data-price-display class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0">
                       <div class="text-xs text-oly-muted font-bold">Preço</div>
                       <div id="pmPrecoMain" class="whitespace-nowrap text-base sm:text-xl md:text-2xl font-extrabold tracking-tight leading-tight tabular-nums">—</div>
                     </div>
@@ -2025,13 +2025,15 @@
                 <div class="rounded-3xl border border-oly-border bg-oly-bg p-4">
                    <div class="font-extrabold">Resumo</div>
                    <div class="mt-3 rounded-2xl border border-oly-border bg-white p-4">
-                     <div class="flex items-start gap-3">
+                     <div class="flex items-start justify-between gap-3">
                        <div>
                          <div class="text-xs font-bold text-oly-muted">Total de pares</div>
                          <div id="cartTotalQty" class="mt-1 text-2xl font-extrabold">0</div>
                        </div>
-                       <div style="display:none">
-                         <div id="cartTotalValue" class="hidden">R$ 0,00</div>
+                       <div id="cartTotalValueWrap" data-price-display class="text-right hidden">
+                         <div class="text-xs font-bold text-oly-muted">Valor total</div>
+                         <div id="cartTotalValue" class="mt-1 text-2xl font-extrabold text-oly-blue tabular-nums">R$ 0,00</div>
+                         <div id="cartTotalValueHint" class="text-[10px] font-bold text-oly-muted mt-0.5">—</div>
                        </div>
                      </div>
                      <div class="mt-4 space-y-2 text-sm">
@@ -2441,6 +2443,8 @@ const state = {
   cartBulkSelectMode: false,
   cartBulkSelected: new Set(),
   favsSelected: new Set(), // variant keys
+  // Cond. Pagamento guardada após gerar Excel (vale até limpar sacola)
+  lastOrderCfg: null,
 };
 
 const $ = (id)=>document.getElementById(id);
@@ -2686,7 +2690,7 @@ function loadCartFromStorage(){
     if(!raw) return;
     const arr = JSON.parse(raw);
     if(!Array.isArray(arr)) return;
-    state.cart.clear();
+    state.cart.clear(); state.lastOrderCfg = null;
     for(const it of arr){
       if(it && it.key) state.cart.set(it.key, it);
     }
@@ -4202,7 +4206,7 @@ function renderCards(){
         </div>
         <div class="min-w-0 flex-1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug truncate">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div data-price-display class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           ${badgesHtml}
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-2 h-9 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
@@ -4255,7 +4259,7 @@ function renderCards(){
         </div>
         <div class="px-2.5 py-2 flex flex-col gap-1.5">
           <div class="font-extrabold text-sm sm:text-[15px] leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div data-price-display class="text-sm sm:text-[15px] font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div class="text-sm sm:text-[15px] font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-1 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -4301,7 +4305,7 @@ function renderCards(){
         </div>
         <div class="px-2 py-1.5 flex flex-col gap-1">
           <div class="font-extrabold text-[11px] sm:text-xs leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div data-price-display class="text-[11px] sm:text-xs font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div class="text-[11px] sm:text-xs font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"xs" })}</div>
           <button class="btnAdd focus-ring mt-0.5 h-8 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -4353,7 +4357,7 @@ function renderCards(){
         <div class="grid-thumbs flex gap-1 px-2 pt-1.5 pb-0.5 overflow-x-auto" style="min-height:44px;scrollbar-width:none"></div>
         <div class="px-3 py-2 cursor-pointer" data-gridopen="1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div data-price-display class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-2 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -4860,7 +4864,7 @@ $("cartModal").addEventListener("click", (e)=>{
   if(closeEl) closeCartModal();
 });
 $("btnClearCart").addEventListener("click", ()=>{
-  state.cart.clear();
+  state.cart.clear(); state.lastOrderCfg = null;
   saveCartToStorage();
   // reset card statuses
   for(const k of state.cardAddStatus.keys()) state.cardAddStatus.set(k,"idle");
@@ -4872,14 +4876,25 @@ $("btnClearCart").addEventListener("click", ()=>{
 function cartTotals(){
   let items = 0;
   let cartSize = 0;
-  let totalCost = 0;
+  let totalCost = 0;   // mantido por compat (usado em outros lugares como custo)
+  let totalValue = 0;  // valor real (preço × qty)
   const by = { masc:0, fem:0, inf:0, uni:0, acess:0, vest:0 };
   const norm = (s)=> String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+
+  // Se já gerou Excel, sabemos a Cond. Pagamento → calcula preço por prazo médio
+  const cfg = state.lastOrderCfg;
+  const dias = cfg && typeof getPrazoMedio === "function" ? getPrazoMedio(cfg.payment) : null;
+
   for(const it of state.cart.values()){
     cartSize++;
     const q = (Number(it.qty)||0);
     items += q;
     totalCost += costFromPrice(it.precoNum||0)*(q||1);
+    // Preço unitário: se temos prazo definido, usa coluna correspondente; senão fica em 0 (sacola pré-export)
+    const precoUnit = (dias !== null && typeof getPrecoPorPrazo === "function")
+      ? getPrecoPorPrazo(it, dias)
+      : 0;
+    totalValue += precoUnit * (q||1);
 
     const g = norm(it.genero);
     const seg = norm(it.segmento);
@@ -4895,7 +4910,7 @@ function cartTotals(){
       else if(seg.includes("vest") || cat.includes("vest") || seg.includes("roup") || cat.includes("roup") || cat === "v&a") by.vest += countQ;
     }
   }
-  return { items, cartSize, by, totalCost };
+  return { items, cartSize, by, totalCost, totalValue };
 }
 function closeBulkGradeModeModal(){
   const modal = $("bulkGradeModeModal");
@@ -4992,11 +5007,25 @@ function startBulkGradeBySelection(){
 
 function renderCartUI(){
   syncCardAddStatusFromCart();
-  const { items, cartSize, by, totalCost } = cartTotals();
+  const { items, cartSize, by, totalCost, totalValue } = cartTotals();
 
   // ✅ Atualiza resumo (se existir)
   if($("cartTotalQty")) $("cartTotalQty").textContent = String(items);
-  if($("cartTotalValue")) $("cartTotalValue").textContent = moneyBR(totalCost);
+  if($("cartTotalValue")) $("cartTotalValue").textContent = moneyBR(totalValue);
+
+  // Mostra/oculta o bloco de Valor total:
+  // - Aparece SÓ se: sacola tem itens + Cond. Pagamento já foi definida (após gerar Excel)
+  // - O toggle de preferências controla via CSS body.prefs-hide-prices
+  const valWrap = $("cartTotalValueWrap");
+  const hasOrder = !!(state.lastOrderCfg && state.lastOrderCfg.payment);
+  if(valWrap) valWrap.classList.toggle("hidden", !hasOrder || cartSize === 0);
+  // Dica do prazo (ex: "Z35 · prazo médio 91 dias")
+  const hint = $("cartTotalValueHint");
+  if(hint && hasOrder){
+    const dias = (typeof getPrazoMedio === "function") ? getPrazoMedio(state.lastOrderCfg.payment) : null;
+    const zLabel = String(state.lastOrderCfg.payment).split(" - ")[0] || state.lastOrderCfg.payment;
+    hint.textContent = dias !== null ? `${zLabel} · prazo médio ${dias} dias` : zLabel;
+  }
 
   const setRow = (rowId, valId, val)=>{
     const row = $(rowId); const el = $(valId);
@@ -5750,6 +5779,9 @@ function exportOrderXlsxFromModal(){
 function _doExportXlsx(salvarHist){
   const cfg = getOrderExportFormData();
   saveOrderExportConfig(cfg);
+  // Guarda a Cond. de Pagamento (e dados do cliente) em memória — vale até limpar a sacola.
+  // Isso permite que o PDF e o resumo da sacola calculem preços conforme o prazo médio.
+  state.lastOrderCfg = { ...cfg, _generatedAt: Date.now() };
   const { aoa, warnings } = buildOrderExportRows(cfg);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = ORDER_EXPORT_COLS;
@@ -5763,6 +5795,9 @@ function _doExportXlsx(salvarHist){
   const fileName = `pedido_layout_operacional_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
   XLSX.writeFile(wb, fileName);
   closeOrderExportModal();
+
+  // Re-renderiza a sacola pra mostrar valor total (se toggle ON)
+  if(typeof renderCartUI === "function") renderCartUI();
 
   // Salva no histórico se o usuário confirmou
   if(salvarHist && typeof salvarPedidoNoHistorico === "function"){
@@ -5887,194 +5922,405 @@ async function exportOrderPdf(showGrade = true){
   if(state.cart.size === 0){ toast("Sacola vazia ✅"); return; }
   saveCustomerToStorage();
 
+  // Estado/decisões
+  const cfg = state.lastOrderCfg || null;
+  const dias = (cfg && typeof getPrazoMedio === "function") ? getPrazoMedio(cfg.payment) : null;
+  const showPrices = !!(prefs && prefs.showPrices && cfg && dias !== null);
+  // Aviso quando PDF é gerado SEM Z (cliente ainda não tem valores)
+  if(!cfg){
+    const ok = confirm("⚠ Você ainda não gerou o Excel do pedido.\n\nO PDF será gerado SEM preços (cliente verá apenas grades e datas).\n\nDeseja continuar?");
+    if(!ok) return;
+  }
+
   const { jsPDF } = window.jspdf;
-  // Paisagem A4
-  const doc = new jsPDF({ unit:"pt", format:"a4", orientation:"landscape" });
+  // Vertical A4: 595 × 842 pt
+  const doc = new jsPDF({ unit:"pt", format:"a4", orientation:"portrait" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 28;
+  const contentW = pageW - margin * 2;
 
   const now = new Date();
   const pad = (n)=>String(n).padStart(2,"0");
   const dateStr = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   const items = Array.from(state.cart.values());
-  // A4 paisagem: 842 × 595 pt
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 28;
-  const contentW = pageW - margin * 2;
 
-  // ── Cores e helpers ──────────────────────────────────────────
+  // Cores
   const C = {
-    blue:   [40, 54, 212],
-    text:   [17, 24, 39],
-    muted:  [107, 114, 128],
-    border: [229, 231, 235],
-    bg:     [246, 247, 251],
-    white:  [255, 255, 255],
-  };
-  const setColor = (rgb, type="text") => {
-    if(type==="fill") doc.setFillColor(...rgb);
-    else if(type==="draw") doc.setDrawColor(...rgb);
-    else doc.setTextColor(...rgb);
+    purple:[124,58,237], purpleLight:[245,243,255], purpleDk:[88,28,135],
+    text:[15,23,42], muted:[107,114,128], border:[229,231,235],
+    soft:[248,250,252], green:[22,163,74], dark:[15,23,42], white:[255,255,255]
   };
 
-  // ── Cabeçalho da página (paisagem) ───────────────────────────
-  const headerH = 38;
-  function drawPageHeader(){
-    setColor(C.blue,"fill");
-    doc.rect(0, 0, pageW, headerH, "F");
-    doc.setFont("helvetica","bold"); doc.setFontSize(13);
-    doc.setTextColor(255,255,255);
-    doc.text("Catálogo Olympikus", margin, 24);
-    doc.setFont("helvetica","normal"); doc.setFontSize(9);
-    doc.setTextColor(187, 197, 255);
-    doc.text(dateStr, pageW - margin, 24, { align:"right" });
-    setColor(C.text);
+  // Helpers
+  const setFill = c => doc.setFillColor(c[0],c[1],c[2]);
+  const setText = c => doc.setTextColor(c[0],c[1],c[2]);
+  const setStroke = c => doc.setDrawColor(c[0],c[1],c[2]);
+  const moneyFmt = v => moneyBR(Number(v)||0);
+  const fmtDataBR = iso => {
+    if(!iso) return "—";
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+  };
+  // Quebra texto em N caracteres (truncate suave)
+  const cut = (s, n) => { s = String(s||""); return s.length>n ? s.slice(0,n-1)+"…" : s; };
+
+  // Imagem helper
+  async function loadDataUrl(src){
+    return new Promise(resolve => {
+      try{
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const cv = document.createElement("canvas");
+          cv.width = img.naturalWidth || 200; cv.height = img.naturalHeight || 200;
+          const ctx = cv.getContext("2d");
+          ctx.fillStyle = "#fff"; ctx.fillRect(0,0,cv.width,cv.height);
+          ctx.drawImage(img, 0, 0);
+          resolve(cv.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+      }catch(_){ resolve(null); }
+    });
   }
 
-  // ── Desenha um produto (card paisagem) ───────────────────────
-  // Layout: imagem à esquerda (560pt), info à direita (~202pt)
-  const imgAreaW = 560;
-  const infoAreaX = margin + imgAreaW + 14;
-  const infoAreaW = contentW - imgAreaW - 14;
+  // ─────────── CABEÇALHO (1ª página) ───────────
+  function drawHeader(){
+    // Faixa colorida
+    setFill(C.purple);
+    doc.rect(margin, margin, contentW, 3, "F");
+    let y = margin + 14;
 
-  async function drawCard(it, cardY, cardH){
-    const cardX = margin;
+    // Logo CMS (quadrado roxo com texto)
+    setFill(C.purple);
+    doc.roundedRect(margin, y, 48, 48, 8, 8, "F");
+    setText(C.white); doc.setFont("helvetica","bold"); doc.setFontSize(15);
+    doc.text("CMS", margin + 24, y + 30, { align:"center" });
 
-    // Fundo do card
-    setColor(C.border,"draw"); doc.setLineWidth(0.4);
-    setColor(C.bg,"fill");
-    doc.roundedRect(cardX, cardY, contentW, cardH, 6, 6, "FD");
+    // Nome + sub
+    setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(14);
+    doc.text("CMS Representações", margin + 58, y + 14);
+    setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(8);
+    doc.text("OLYMPIKUS · UNDER ARMOUR", margin + 58, y + 26);
+    // Tag
+    setFill(C.purple);
+    doc.roundedRect(margin + 58, y + 32, 100, 11, 5, 5, "F");
+    setText(C.white); doc.setFont("helvetica","bold"); doc.setFontSize(7);
+    doc.text("REPRESENTANTE AUTORIZADO", margin + 108, y + 40, { align:"center" });
 
-    // Área da imagem — padding mínimo para a foto preencher quase tudo
-    const imgPad = 6;
-    const imgBoxX = cardX + imgPad;
-    const imgBoxY = cardY + imgPad;
-    const imgBoxW = imgAreaW - imgPad * 2;
-    const imgBoxH = cardH - imgPad * 2;
-
-    setColor(C.white,"fill"); setColor(C.border,"draw");
-    doc.roundedRect(imgBoxX, imgBoxY, imgBoxW, imgBoxH, 4, 4, "FD");
-
-    const img = it.imgSrc ? await loadImgForPdf(it.imgSrc) : null;
-    if(img?.dataUrl){
-      // margem interna de apenas 4pt — produto ocupa ~97% do box
-      const margin4 = 4;
-      const fit = fitRect(img.w, img.h, imgBoxW - margin4 * 2, imgBoxH - margin4 * 2);
-      doc.addImage(img.dataUrl, "PNG",
-        imgBoxX + margin4 + fit.x, imgBoxY + margin4 + fit.y,
-        fit.w, fit.h, undefined, "FAST");
+    // Lateral direita: título doc
+    setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+    doc.text("PEDIDO DE COMPRA", pageW - margin, y + 14, { align:"right" });
+    setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(8);
+    doc.text(`Emitido em ${dateStr}`, pageW - margin, y + 26, { align:"right" });
+    if(cfg && cfg.pedidoCliente){
+      doc.text(`Ref. cliente: ${cfg.pedidoCliente}`, pageW - margin, y + 36, { align:"right" });
     }
 
-    // ── Informações à direita ────────────────────────────────
-    const tx = infoAreaX;
-    let ty = cardY + 20;
+    return y + 70; // próxima Y
+  }
 
-    // Nome do produto
-    setColor(C.text);
-    doc.setFont("helvetica","bold"); doc.setFontSize(13);
-    const prodName = String(it.produto || "Produto");
-    const prodLines = doc.splitTextToSize(prodName, infoAreaW - 4);
-    doc.text(prodLines.slice(0,2), tx, ty);
-    ty += prodLines.slice(0,2).length * 15 + 4;
+  // ─────────── BLOCO DE INFO ───────────
+  function drawInfoBlock(yStart){
+    // Caixa cinza claro
+    setFill(C.soft);
+    doc.roundedRect(margin, yStart, contentW, 56, 6, 6, "F");
+    setStroke(C.border); doc.setLineWidth(0.5);
+    doc.roundedRect(margin, yStart, contentW, 56, 6, 6, "S");
 
-    // Preço de venda — mesma fonte do nome, azul
-    if(it.precoFmt){
-      setColor(C.blue);
-      doc.setFont("helvetica","bold"); doc.setFontSize(13);
-      doc.text(String(it.precoFmt), tx, ty);
-      ty += 18;
-    }
+    // 3 colunas × 2 linhas
+    const labels = [
+      ["Cliente",            cfg?.clientCode || "—"],
+      ["Comissionista",      (cfg?.commission || "—").toString().split(" - ").join(" · ")],
+      ["Tabela de Preço",    cfg?.priceTable || "—"],
+      ["Cond. Pagamento",    cfg?.payment || "—"],
+      ["Prazo Médio",        dias !== null ? `${dias} dias` : "—"],
+      ["Pedido do Cliente",  cfg?.pedidoCliente || "—"],
+    ];
+    const colW = contentW / 3;
+    labels.forEach((pair, i) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const x = margin + col * colW + 8;
+      const y = yStart + 12 + row * 22;
+      setText(C.muted); doc.setFont("helvetica","bold"); doc.setFontSize(7);
+      doc.text(pair[0].toUpperCase(), x, y);
+      setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text(cut(pair[1], 30), x, y + 10);
+    });
+    return yStart + 56 + 10;
+  }
 
-    // Código
-    doc.setFont("helvetica","normal"); doc.setFontSize(9);
-    setColor(C.muted); doc.text("Código:", tx, ty);
-    setColor(C.text); doc.text(String(it.codigo || "-"), tx + 40, ty);
-    ty += 14;
+  // ─────────── TÍTULO DE SEÇÃO ───────────
+  function drawSectionTitle(yStart, title){
+    setText(C.purple); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+    doc.text(title.toUpperCase(), margin, yStart);
+    setStroke(C.border); doc.setLineWidth(0.5);
+    const tw = doc.getTextWidth(title.toUpperCase());
+    doc.line(margin + tw + 6, yStart - 3, margin + contentW, yStart - 3);
+    return yStart + 8;
+  }
 
-    // Cor
-    setColor(C.muted); doc.text("Cor:", tx, ty);
-    setColor(C.text);
-    const corTxt = `${it.cor||"-"}${it.corCodigo ? " ("+it.corCodigo+")" : ""}`;
-    doc.text(corTxt.slice(0, 36), tx + 24, ty);
-    ty += 18;
+  // ─────────── CARD DE PRODUTO ───────────
+  // Cada card ocupa ~92pt vertical
+  async function drawProductCard(it, yStart){
+    const cardH = 92;
+    // Linha divisória superior
+    setStroke(C.border); doc.setLineWidth(0.4);
+    doc.line(margin, yStart, margin + contentW, yStart);
 
-    // ── Grade ou total ────────────────────────────────────────
-    if(showGrade && it.grade && Object.keys(it.grade).length > 0){
-      // Label
-      setColor(C.muted); doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
-      doc.text("GRADE", tx, ty);
-      ty += 10;
+    const padY = 7;
+    let y = yStart + padY;
 
-      const cellW = 34, cellH = 24, cellGap = 4;
-      const cellsPerRow = Math.floor((infoAreaW) / (cellW + cellGap));
-      let cx = tx, col = 0;
-
-      for(const [tam, qty] of Object.entries(it.grade)){
-        if(col >= cellsPerRow){ col = 0; cx = tx; ty += cellH + cellGap; }
-        setColor(C.border,"draw"); setColor(C.white,"fill");
-        doc.roundedRect(cx, ty, cellW, cellH, 3, 3, "FD");
-        // tamanho
-        doc.setFont("helvetica","bold"); doc.setFontSize(7);
-        setColor(C.muted);
-        const tStr = String(tam);
-        doc.text(tStr, cx + (cellW - doc.getTextWidth(tStr))/2, ty + 9);
-        // qtd
-        doc.setFontSize(9.5); setColor(C.blue);
-        const qStr = String(qty);
-        doc.text(qStr, cx + (cellW - doc.getTextWidth(qStr))/2, ty + 20);
-        cx += cellW + cellGap; col++;
+    // Imagem (78×78)
+    const imgX = margin;
+    const imgY = y;
+    const imgSize = 78;
+    setFill([243,244,246]);
+    doc.roundedRect(imgX, imgY, imgSize, imgSize, 6, 6, "F");
+    setStroke(C.border); doc.setLineWidth(0.4);
+    doc.roundedRect(imgX, imgY, imgSize, imgSize, 6, 6, "S");
+    try{
+      const src = it.imgSrc || (typeof resolveImageSrc==="function" ? resolveImageSrc(it.imagem) : "");
+      if(src){
+        const data = await loadDataUrl(src);
+        if(data) doc.addImage(data, "JPEG", imgX+2, imgY+2, imgSize-4, imgSize-4);
       }
-      ty += cellH + 10;
+    }catch(_){}
 
-      // Total
-      doc.setFont("helvetica","bold"); doc.setFontSize(9);
-      setColor(C.muted); doc.text("Total:", tx, ty);
-      setColor(C.text); doc.text(`${it.qty} pares`, tx + 32, ty);
+    // Bloco direito: info + preço (se ON)
+    const infoX = imgX + imgSize + 10;
+    const priceColW = showPrices ? 110 : 0;
+    const infoW = contentW - imgSize - 10 - priceColW - (priceColW ? 10 : 0);
 
+    // Nome + código
+    setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(11);
+    doc.text(cut(`${it.produto || "—"} · ${it.codigo || ""}`, 48), infoX, y + 10);
+    // Meta (cor, gênero, coleção)
+    setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(8);
+    const meta = [it.cor, it.genero, it.colecao ? `Coleção ${it.colecao}` : null].filter(Boolean).join(" · ");
+    doc.text(cut(meta, 60), infoX, y + 22);
+
+    // Grade (se showGrade)
+    if(showGrade && it.grade){
+      const gradeTxt = Object.entries(it.grade).map(([t,q]) => `${t}→${q}`).join(" · ");
+      setFill(C.soft);
+      doc.roundedRect(infoX, y + 28, Math.min(infoW, 290), 14, 4, 4, "F");
+      setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(7);
+      doc.text("Grade: ", infoX + 5, y + 37);
+      setText(C.text); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+      doc.text(cut(gradeTxt, 65), infoX + 28, y + 37);
     } else {
-      // Apenas total de pares — número grande + "pares" na mesma baseline
-      const baseline = ty + 28;
-      // mede largura do número ANTES de mudar a fonte
-      doc.setFont("helvetica","bold"); doc.setFontSize(32);
-      const numStr = String(it.qty);
-      const numW = doc.getTextWidth(numStr);
-      setColor(C.blue);
-      doc.text(numStr, tx, baseline);
-      // "pares" alinhado à direita do número, fonte menor, baseline igual
-      doc.setFont("helvetica","normal"); doc.setFontSize(13);
-      setColor(C.muted);
-      doc.text("pares", tx + numW + 5, baseline);
+      setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(8);
+      doc.text(`${it.qty || 0} pares · ${it.tam || "—"}`, infoX, y + 34);
     }
 
-    // Obs (se houver)
-    if(it.obs){
-      const obsY = cardY + cardH - 14;
-      doc.setFont("helvetica","normal"); doc.setFontSize(8);
-      setColor(C.muted); doc.text("Obs:", tx, obsY);
-      setColor(C.text); doc.text(String(it.obs).slice(0,60), tx + 22, obsY);
+    // Data desejada (pílula roxa)
+    if(it.dataDesejada){
+      setFill(C.purpleLight);
+      doc.roundedRect(infoX, y + 48, 105, 13, 6, 6, "F");
+      setStroke([196,181,253]); doc.setLineWidth(0.4);
+      doc.roundedRect(infoX, y + 48, 105, 13, 6, 6, "S");
+      setText(C.purple); doc.setFont("helvetica","bold"); doc.setFontSize(7);
+      const diasPrazo = dias !== null ? ` · ${dias}d` : "";
+      doc.text(`Faturar: ${fmtDataBR(it.dataDesejada)}${diasPrazo}`, infoX + 5, y + 57);
     }
+
+    // Coluna do preço (direita)
+    if(showPrices){
+      const priceX = margin + contentW - priceColW;
+      // separador vertical
+      setStroke(C.border); doc.setLineWidth(0.3);
+      doc.line(priceX - 6, y + 4, priceX - 6, y + cardH - 8);
+      const precoUnit = (typeof getPrecoPorPrazo === "function") ? getPrecoPorPrazo(it, dias) : 0;
+      const qty = Number(it.qty) || 0;
+      const subtotal = precoUnit * qty;
+      setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+      doc.text("Unitário", priceX, y + 10);
+      setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+      doc.text(moneyFmt(precoUnit), priceX, y + 22);
+      setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+      doc.text(`× ${qty} pares`, priceX, y + 32);
+      // Linha tracejada
+      setStroke(C.border); doc.setLineWidth(0.4);
+      doc.setLineDashPattern([2,2], 0);
+      doc.line(priceX, y + 38, priceX + priceColW - 4, y + 38);
+      doc.setLineDashPattern([], 0);
+      // Subtotal verde
+      setText(C.green); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+      doc.text(moneyFmt(subtotal), priceX, y + 54);
+    }
+
+    return yStart + cardH;
   }
 
-  // ── Renderização principal — 2 produtos por página ───────────
-  const bodyY = headerH + 10;
-  const bodyH = pageH - bodyY - 10;
-  const cardH = Math.floor((bodyH - 8) / 2);  // gap de 8pt entre os 2 cards
+  // ─────────── RESUMO POR DATA ───────────
+  function drawResumoPorData(yStart){
+    // Agrupa itens por data desejada
+    const byDate = new Map();
+    for(const it of items){
+      const k = it.dataDesejada || "_sem_data";
+      if(!byDate.has(k)) byDate.set(k, { date:it.dataDesejada || "", count:0, qty:0, value:0 });
+      const entry = byDate.get(k);
+      entry.count++;
+      const qty = Number(it.qty) || 0;
+      entry.qty += qty;
+      if(showPrices){
+        const precoUnit = (typeof getPrecoPorPrazo === "function") ? getPrecoPorPrazo(it, dias) : 0;
+        entry.value += precoUnit * qty;
+      }
+    }
+    // Se só 1 data, não mostra resumo (regra: só quando 2+)
+    if(byDate.size < 2) return yStart;
 
-  let pageIndex = 0;
-  for(let i = 0; i < items.length; i += 2){
-    if(i > 0){ doc.addPage(); }
-    drawPageHeader();
+    let y = drawSectionTitle(yStart + 4, "🗓 Resumo por data de faturamento");
 
-    const it1 = items[i];
-    const it2 = items[i + 1] || null;
+    // Caixa
+    const rows = Array.from(byDate.values()).sort((a,b) => (a.date||"").localeCompare(b.date||""));
+    const boxH = rows.length * 18 + 16 + (showPrices ? 22 : 0);
+    setFill(C.purpleLight);
+    doc.roundedRect(margin, y, contentW, boxH, 8, 8, "F");
+    setStroke([196,181,253]); doc.setLineWidth(0.5);
+    doc.roundedRect(margin, y, contentW, boxH, 8, 8, "S");
 
-    await drawCard(it1, bodyY, cardH);
-    if(it2) await drawCard(it2, bodyY + cardH + 8, cardH);
+    let yRow = y + 12;
+    let totalGeral = 0;
+    rows.forEach((r, i) => {
+      // Bolinha numerada
+      setFill(C.purple);
+      doc.circle(margin + 14, yRow + 5, 7, "F");
+      setText(C.white); doc.setFont("helvetica","bold"); doc.setFontSize(8);
+      doc.text(String(i+1), margin + 14, yRow + 8, { align:"center" });
+      // Data
+      setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text(fmtDataBR(r.date), margin + 28, yRow + 8);
+      // Detalhe
+      setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(8);
+      const detail = `${r.count} produto${r.count!==1?"s":""} · ${r.qty} pares`;
+      doc.text(detail, margin + 110, yRow + 8);
+      // Valor
+      if(showPrices){
+        setText(C.purple); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+        doc.text(moneyFmt(r.value), margin + contentW - 8, yRow + 8, { align:"right" });
+        totalGeral += r.value;
+      }
+      yRow += 18;
+    });
 
-    pageIndex++;
+    // Total da soma
+    if(showPrices){
+      setStroke(C.purple); doc.setLineWidth(0.8);
+      doc.line(margin + 8, yRow + 2, margin + contentW - 8, yRow + 2);
+      setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text(`Soma das ${rows.length} faturas`, margin + 14, yRow + 14);
+      setText(C.purple); doc.setFont("helvetica","bold"); doc.setFontSize(12);
+      doc.text(moneyFmt(totalGeral), margin + contentW - 8, yRow + 14, { align:"right" });
+      yRow += 22;
+    }
+
+    return y + boxH + 10;
   }
 
-  doc.save(`catalogo_olympikus_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
+  // ─────────── TOTAL GERAL ───────────
+  function drawGrandTotal(yStart){
+    let totalQty = 0, totalProd = 0, totalValor = 0;
+    const datasSet = new Set();
+    for(const it of items){
+      totalProd++;
+      const qty = Number(it.qty) || 0;
+      totalQty += qty;
+      if(showPrices){
+        const precoUnit = (typeof getPrecoPorPrazo === "function") ? getPrecoPorPrazo(it, dias) : 0;
+        totalValor += precoUnit * qty;
+      }
+      if(it.dataDesejada) datasSet.add(it.dataDesejada);
+    }
+    const boxH = 42;
+    setFill(C.dark);
+    doc.roundedRect(margin, yStart, contentW, boxH, 8, 8, "F");
+
+    setText(C.white); doc.setFont("helvetica","bold"); doc.setFontSize(8);
+    doc.text("VALOR TOTAL DO PEDIDO", margin + 14, yStart + 16);
+
+    setText([200,200,200]); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+    const subTxt = `${totalQty} pares · ${totalProd} itens` + (datasSet.size > 1 ? ` · ${datasSet.size} faturamentos` : "");
+    doc.text(subTxt, margin + 14, yStart + 30);
+
+    if(showPrices){
+      setText(C.white); doc.setFont("helvetica","bold"); doc.setFontSize(18);
+      doc.text(moneyFmt(totalValor), margin + contentW - 14, yStart + 28, { align:"right" });
+    } else {
+      setText(C.white); doc.setFont("helvetica","bold"); doc.setFontSize(14);
+      doc.text(`${totalQty} pares`, margin + contentW - 14, yStart + 28, { align:"right" });
+    }
+    return yStart + boxH + 14;
+  }
+
+  // ─────────── ASSINATURA ───────────
+  function drawSignature(yStart){
+    const colW = (contentW - 30) / 2;
+    setStroke(C.border); doc.setLineWidth(0.5);
+    doc.setLineDashPattern([3,3], 0);
+    doc.line(margin, yStart, margin + contentW, yStart);
+    doc.setLineDashPattern([], 0);
+
+    // Linha 1
+    setStroke([100,116,139]); doc.setLineWidth(0.6);
+    doc.line(margin, yStart + 36, margin + colW, yStart + 36);
+    doc.line(margin + colW + 30, yStart + 36, margin + contentW, yStart + 36);
+
+    setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(8);
+    doc.text(cut(cfg?.clientCode || "Cliente", 36), margin + colW/2, yStart + 46, { align:"center" });
+    setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+    doc.text("Cliente", margin + colW/2, yStart + 54, { align:"center" });
+
+    setText(C.text); doc.setFont("helvetica","bold"); doc.setFontSize(8);
+    const comissNome = (cfg?.commission || "Comissionista").toString().split(" - ").pop();
+    doc.text(cut(comissNome, 36), margin + colW + 30 + colW/2, yStart + 46, { align:"center" });
+    setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+    doc.text("Comissionista — CMS Representações", margin + colW + 30 + colW/2, yStart + 54, { align:"center" });
+
+    return yStart + 70;
+  }
+
+  // ─────────── RODAPÉ ───────────
+  function drawFooter(){
+    setText(C.muted); doc.setFont("helvetica","normal"); doc.setFontSize(7);
+    doc.text(`Documento gerado pelo Catálogo Digital Olympikus · CMS Representações · ${dateStr}`, pageW/2, pageH - 16, { align:"center" });
+  }
+
+  // ─────────── MONTAGEM ───────────
+  let yPos = drawHeader();
+  yPos = drawInfoBlock(yPos);
+  yPos = drawSectionTitle(yPos + 2, "📦 Produtos do pedido");
+  yPos += 2;
+
+  for(let i = 0; i < items.length; i++){
+    // Verifica espaço (precisa 92pt do card + buffer 100pt p/ resumo+total+sig)
+    if(yPos + 92 > pageH - 30){
+      drawFooter();
+      doc.addPage();
+      yPos = margin + 14;
+      yPos = drawSectionTitle(yPos, "📦 Produtos do pedido (continuação)");
+      yPos += 2;
+    }
+    yPos = await drawProductCard(items[i], yPos);
+  }
+
+  // Resumo por data + total + assinatura (verifica se cabem; senão nova página)
+  if(yPos + 200 > pageH - 30){
+    drawFooter();
+    doc.addPage();
+    yPos = margin + 14;
+  }
+
+  yPos = drawResumoPorData(yPos);
+  yPos = drawGrandTotal(yPos);
+  yPos = drawSignature(yPos);
+  drawFooter();
+
+  doc.save(`pedido_cliente_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
   toast("PDF gerado ✅");
 }
 
@@ -7971,7 +8217,7 @@ function mpReordenar(id){
   if(!pedido) return;
   const sacolaAtual = state.cart.size;
   const fazReordenar = () => {
-    state.cart.clear();
+    state.cart.clear(); state.lastOrderCfg = null;
     for(const it of (pedido.items||[])){
       const base = _mpPedidoItemToCartItem(it);
       const key = cartKeyFor(base);
