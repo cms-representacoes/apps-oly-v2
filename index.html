@@ -2249,6 +2249,9 @@
               <div id="viewerTitle" class="truncate font-extrabold text-base sm:text-lg text-white" style="text-shadow:0 1px 4px rgba(0,0,0,.5)">—</div>
               <div id="viewerPdv" class="font-extrabold tabular-nums tracking-tight text-xl sm:text-2xl leading-none" style="color:#c4b5fd;text-shadow:0 1px 8px rgba(0,0,0,.6)">—</div>
             </div>
+            <div id="viewerCodigo" class="text-[11px] font-bold text-white/80" style="text-shadow:0 1px 3px rgba(0,0,0,.5)">
+              <span class="opacity-70">Art.</span> <span id="viewerCodigoVal">—</span>
+            </div>
             <div class="flex flex-wrap items-center gap-1.5">
               <span id="viewerColor" class="inline-flex items-center gap-1.5 rounded-full bg-white/95 border border-white/30 px-2.5 py-1 text-[11px] font-extrabold text-oly-text">
                 <i class="fa-solid fa-palette text-oly-blue" style="font-size:10px"></i>
@@ -6731,6 +6734,11 @@ function renderImageViewer(){
         pdvEl.textContent = pdv > 0 ? moneyBR(pdv) : "—";
       }
     }
+    {
+      // Código (artigo) do produto
+      const codEl = $("viewerCodigoVal");
+      if(codEl) codEl.textContent = (item && item.codigo) ? String(item.codigo) : "—";
+    }
     $("viewerIndex").textContent = total > 1 ? `${idx+1}/${total}` : "";
     $("viewerPrev").style.display = total > 1 ? "inline-flex" : "none";
     $("viewerNext").style.display = total > 1 ? "inline-flex" : "none";
@@ -6766,6 +6774,11 @@ function renderImageViewer(){
         const pdv = toNumberBR(it.precoRaw ?? it.precoNum ?? 0);
         pdvEl.textContent = pdv > 0 ? moneyBR(pdv) : "—";
       }
+    }
+    {
+      // Código (artigo) do produto
+      const codEl = $("viewerCodigoVal");
+      if(codEl) codEl.textContent = it.codigo ? String(it.codigo) : "—";
     }
     $("viewerIndex").textContent = viewerState.variants.length > 1 ? `${viewerState.index+1}/${viewerState.variants.length}` : "";
     $("viewerPrev").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
