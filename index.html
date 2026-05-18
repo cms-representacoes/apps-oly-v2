@@ -205,8 +205,8 @@
     #viewerThumbs::-webkit-scrollbar { height:4px; }
     #viewerThumbs::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:99px; }
     .viewer-thumb {
-      width:38px; height:38px;
-      border-radius:8px;
+      width:72px; height:72px;
+      border-radius:11px;
       border:2px solid rgba(255,255,255,.25);
       background:#fff;
       overflow:hidden;
@@ -2238,25 +2238,43 @@
             <i class="fa-solid fa-xmark"></i>
           </button>
 
+          <!-- ── Header (topo): produto + cor + gênero + PDV ── -->
+          <div class="absolute left-4 top-4 right-20 z-30 flex flex-col gap-1.5">
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <div id="viewerTitle" class="truncate font-extrabold text-base sm:text-lg text-white">—</div>
+              <div id="viewerPdv" class="font-extrabold tabular-nums tracking-tight text-xl sm:text-2xl leading-none" style="color:#c4b5fd;text-shadow:0 1px 8px rgba(0,0,0,.4)">—</div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span id="viewerColor" class="inline-flex items-center gap-1.5 rounded-full bg-white/95 border border-white/30 px-2.5 py-1 text-[11px] font-extrabold text-oly-text">
+                <i class="fa-solid fa-palette text-oly-blue" style="font-size:10px"></i>
+                <span>—</span>
+              </span>
+              <span id="viewerGender" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white">
+                <i class="fa-solid fa-user" style="font-size:10px"></i>
+                <span>—</span>
+              </span>
+            </div>
+          </div>
+
           <!-- ✅ Setas simples e sempre visíveis quando houver +1 variante -->
           <button id="viewerPrev" class="focus-ring absolute left-6 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full bg-white/85 border border-black/10 hover:bg-white text-black text-xl font-extrabold shadow-md" aria-label="Cor anterior">←</button>
           <button id="viewerNext" class="focus-ring absolute right-6 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full bg-white/85 border border-black/10 hover:bg-white text-black text-xl font-extrabold shadow-md" aria-label="Próxima cor">→</button>
 
+          <!-- ── Rodapé (enxuto): index + thumbs + ações ── -->
           <div class="absolute left-4 bottom-4 right-4 z-30 flex items-end justify-between gap-3 text-white/90">
-            <div class="min-w-0 flex-shrink">
-              <div id="viewerTitle" class="truncate font-extrabold">—</div>
-              <div class="text-xs text-white/70">
-                <span id="viewerColor">—</span>
-              </div>
-              <div class="text-xs text-white/70 mt-0.5">
-                <span id="viewerIndex">—</span>
-              </div>
+            <div class="text-xs text-white/70 flex-shrink-0">
+              <span id="viewerIndex">—</span>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <!-- Miniaturas das cores (só visível no modo cores) -->
               <div id="viewerThumbs" class="hidden flex items-center gap-1.5 overflow-x-auto max-w-[55vw] sm:max-w-md pb-1" style="scrollbar-width:thin"></div>
-              <!-- Botão Adicionar à Sacola -->
-              <button id="viewerAddCart" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full bg-oly-blue hover:opacity-90 text-white text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 shadow-lg" aria-label="Adicionar à sacola">
+              <!-- Botão Grade -->
+              <button id="viewerAddGrade" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full hover:opacity-90 text-white text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 shadow-lg" style="background:#7c3aed" aria-label="Abrir modal de grade">
+                <i class="fa-solid fa-layer-group"></i>
+                <span class="hidden sm:inline">Grade</span>
+              </button>
+              <!-- Botão Adicionar à Sacola (1 unidade) -->
+              <button id="viewerAddCart" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 shadow-lg" style="background:#0f172a" aria-label="Adicionar à sacola">
                 <i class="fa-solid fa-bag-shopping"></i>
                 <span class="hidden sm:inline">Sacola</span>
               </button>
@@ -2865,6 +2883,20 @@ $("btnSearchToggle").addEventListener("click", ()=>{
 });
 $("btnSearchClose").addEventListener("click", ()=> closeSearch());
 $("searchInput").addEventListener("input", (e)=>{ state.filters.q = e.target.value.trim(); refreshView(true); });
+// Esc: 1ª pressão limpa o texto; se já estiver vazio, fecha o campo de busca
+$("searchInput").addEventListener("keydown", (e)=>{
+  if(e.key === "Escape" || e.key === "Esc"){
+    e.preventDefault();
+    const input = e.target;
+    if(input.value){
+      input.value = "";
+      state.filters.q = "";
+      refreshView(true);
+    } else {
+      closeSearch();
+    }
+  }
+});
 
 /** Load XLSX */
 async function loadCatalog({ cacheBust=false } = {}){
@@ -3789,8 +3821,10 @@ function _genLinhaId(){
 }
 function getVariantsFor(item){
   // ✅ inclui todos os gêneros do mesmo produto/código (para thumbs/zoom)
+  // Respeita também a COLEÇÃO atual — produtos com mesmo código podem existir em 1S26 e 2S26
   const key = normalizeName(`${item.produto}||${item.codigo}`);
-  const variants = state.productsRaw
+  const colecaoAtiva = state?.filters?.colecao || "";
+  let variants = state.productsRaw
     .filter(p => normalizeName(`${p.produto}||${p.codigo}`) === key)
     .slice()
     .sort((a,b)=>{
@@ -3798,6 +3832,11 @@ function getVariantsFor(item){
       if(ca !== 0) return ca;
       return String(a.genero).localeCompare(String(b.genero),"pt-BR",{sensitivity:"base"});
     });
+  // Se temos uma coleção ativa, filtra; mas só se houver pelo menos 1 match nela
+  if(colecaoAtiva){
+    const sameColecao = variants.filter(p => String(p.colecao||"").toUpperCase() === colecaoAtiva.toUpperCase());
+    if(sameColecao.length) variants = sameColecao;
+  }
   return variants.length ? variants : [item];
 }
 
@@ -3833,6 +3872,41 @@ function genderIcon(gen){
   if(g.includes("uni")) return { icon:"fa-venus-mars", label:"Unissex", isFemale:false };
   if(g.includes("inf") || g.includes("kids") || g.includes("cri")) return { icon:"fa-child", label:"Infantil", isFemale:false };
   return { icon:"fa-user", label:"Gênero", isFemale:false };
+}
+
+/** HTML compacto: Artigo, Segmento e Tamanho em UMA linha (opção C aprovada) */
+function _cardInfoLine(item){
+  if(!item) return "";
+  const codigo = String(item.codigo || "").trim();
+  const seg = String(item.categoria || item.segmento || "").trim();
+  const tam = String(item.tam || "").trim();
+  // Converte lista de tamanhos em intervalo "34-39" (mais compacto)
+  const tamRange = _tamToRange(tam);
+  const parts = [];
+  if(codigo){
+    parts.push(`<span class="inline-flex items-center rounded-full bg-oly-bg border border-oly-border px-2 py-0.5 text-[10px] font-bold text-oly-text"><span class="opacity-60 mr-1">Art.</span><strong>${escapeHtml(codigo)}</strong></span>`);
+  }
+  if(seg){
+    parts.push(`<span class="inline-flex items-center rounded-full bg-oly-bg border border-oly-border px-2 py-0.5 text-[10px] font-extrabold text-oly-text">${escapeHtml(seg)}</span>`);
+  }
+  if(tamRange){
+    parts.push(`<span class="text-[10.5px] font-extrabold text-oly-text whitespace-nowrap flex-shrink-1 truncate">${escapeHtml(tamRange)}</span>`);
+  }
+  if(!parts.length) return "";
+  return `<div class="mt-1 flex items-center gap-1.5 overflow-hidden">${parts.join("")}</div>`;
+}
+
+/** Converte "34/44" → "34-44", "P-M-G-GG" → "P-GG", lista longa → primeiro-último */
+function _tamToRange(tam){
+  if(!tam) return "";
+  const s = String(tam).trim();
+  // Já é intervalo: 34/44, 34-44, etc.
+  const slashMatch = s.match(/^(\d+|[A-Z]+)\s*[\/\-]\s*(\d+|[A-Z]+)$/i);
+  if(slashMatch) return `${slashMatch[1]}-${slashMatch[2]}`;
+  // Lista separada por espaços ou hífens (ex: "34 35 36 37 38" ou "P-M-G")
+  const tokens = s.split(/[\s\-]+/).filter(Boolean);
+  if(tokens.length <= 1) return s;
+  return `${tokens[0]}-${tokens[tokens.length-1]}`;
 }
 
 function renderCardColorChip(entry, {isGroup=false, size="md", showCode=true} = {}){
@@ -4162,7 +4236,7 @@ function renderCards(){
     card.dataset.angleSrcs = JSON.stringify(buildAngleSrcs(v.imagem));
 
       // eventos
-      card.querySelector(".btnDetails")?.addEventListener("click", ()=> openProductModal({ item: base, group: isGroup ? v : null }));
+      card.querySelector(".btnDetails")?.addEventListener("click", ()=> _openCardZoom(base));
       card.querySelector(".btnUnfav")?.addEventListener("click", ()=>{
         if(isGroup){
           // remove todos os favoritos das variantes desse grupo
@@ -4222,6 +4296,7 @@ function renderCards(){
         <div class="min-w-0 flex-1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug truncate">${escapeHtml(v.produto||base?.produto||"—")}</div>
           <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          ${_cardInfoLine(base)}
           ${badgesHtml}
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-2 h-9 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
@@ -4235,8 +4310,8 @@ function renderCards(){
           <i class="fa-solid fa-chevron-right text-oly-muted text-xs"></i>
         </div>
       `;
-      card.addEventListener("click", ()=> openProductModal({ item:base, group: isGrp?v:null }));
-      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") openProductModal({ item:base, group: isGrp?v:null }); });
+      card.addEventListener("click", ()=> _openCardZoom(base));
+      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -4275,14 +4350,15 @@ function renderCards(){
         <div class="px-2.5 py-2 flex flex-col gap-1.5">
           <div class="font-extrabold text-sm sm:text-[15px] leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
           <div class="text-sm sm:text-[15px] font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          ${_cardInfoLine(base)}
           <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-1 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
           </button>
         </div>
       `;
-      card.addEventListener("click", ()=> openProductModal({ item:base, group: isGrp?v:null }));
-      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") openProductModal({ item:base, group: isGrp?v:null }); });
+      card.addEventListener("click", ()=> _openCardZoom(base));
+      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -4321,14 +4397,15 @@ function renderCards(){
         <div class="px-2 py-1.5 flex flex-col gap-1">
           <div class="font-extrabold text-[11px] sm:text-xs leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
           <div class="text-[11px] sm:text-xs font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          ${base?.tam ? `<div class="text-[9.5px] font-extrabold text-oly-text leading-tight">${escapeHtml(_tamToRange(base.tam))}</div>` : ""}
           <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"xs" })}</div>
           <button class="btnAdd focus-ring mt-0.5 h-8 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
           </button>
         </div>
       `;
-      card.addEventListener("click", ()=> openProductModal({ item:base, group: isGrp?v:null }));
-      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") openProductModal({ item:base, group: isGrp?v:null }); });
+      card.addEventListener("click", ()=> _openCardZoom(base));
+      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -4373,6 +4450,7 @@ function renderCards(){
         <div class="px-3 py-2 cursor-pointer" data-gridopen="1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug">${escapeHtml(v.produto||base?.produto||"—")}</div>
           <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
+          ${_cardInfoLine(base)}
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
           <button class="btnAdd focus-ring mt-2 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
@@ -4381,8 +4459,8 @@ function renderCards(){
       `;
 
       // Abrir modal ao clicar no texto
-      card.querySelector("[data-gridopen]").addEventListener("click", ()=> openProductModal({ item:base, group: isGrp?v:null }));
-      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") openProductModal({ item:base, group: isGrp?v:null }); });
+      card.querySelector("[data-gridopen]").addEventListener("click", ()=> _openCardZoom(base));
+      card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -4465,7 +4543,7 @@ function renderCards(){
               const relX = (e.clientX - rect.left) / rect.width;
               const relY = (e.clientY - rect.top) / rect.height;
               if(relX >= 0.25 && relX <= 0.75 && relY >= 0.2 && relY <= 0.8){
-                openProductModal({ item:base, group: isGrp?v:null });
+                _openCardZoom(base);
               }
             }
           }
@@ -4519,6 +4597,19 @@ function updateModalFavUI(){
   const fav = isFavoriteKey(cartKeyFor(item));
   icon.className = `${fav ? "fa-solid" : "fa-regular"} fa-heart text-oly-blue`;
   btn.title = fav ? "Remover dos favoritos" : "Adicionar aos favoritos";
+}
+
+/** Abre zoom direto do card (substitui openProductModal pra entrada vinda do card) */
+function _openCardZoom(item){
+  if(!item) return;
+  try{
+    const groups = (typeof buildAngleSrcs === "function") ? buildAngleSrcs(item.imagem).filter(g => g.length > 0) : [];
+    if(typeof openImageViewerAngles === "function"){
+      openImageViewerAngles(groups, 0, item, { returnToProductModal:false });
+    }
+  }catch(e){
+    console.error("Erro ao abrir zoom do card:", e);
+  }
 }
 
 /** Product modal open/close */
@@ -6442,14 +6533,11 @@ function openImageViewerAngles(angleGroups, startIndex, item, opts={}){
         variants = getVariantsFor(item) || [];
       }
     }catch(_){}
-    // Filtra: mesmo gênero, cores distintas
+    // Filtra: todas as cores (independente do gênero), desduplica por cor
     if(variants && variants.length){
-      const sameGender = variants.filter(v => String(v.genero||"") === String(item.genero||""));
-      const list = sameGender.length ? sameGender : variants;
-      // Desduplica por cor
       const seen = new Set();
       const uniq = [];
-      for(const v of list){
+      for(const v of variants){
         const k = String(v.cor || v.corCodigo || "").trim().toUpperCase();
         if(!seen.has(k)){ seen.add(k); uniq.push(v); }
       }
@@ -6557,7 +6645,32 @@ function renderImageViewer(){
     }
 
     $("viewerTitle").textContent = item ? (item.produto || "Produto") : "Produto";
-    $("viewerColor").textContent = item ? `${item.cor||"—"}${item.corCodigo?" ("+item.corCodigo+")":""}` + (total > 1 ? ` · Ângulo ${idx+1}` : "") : "";
+    {
+      const corTxt = item ? `${item.cor||"—"}${item.corCodigo?" ("+item.corCodigo+")":""}` + (total > 1 ? ` · Ângulo ${idx+1}` : "") : "";
+      const corSpan = $("viewerColor")?.querySelector("span");
+      if(corSpan) corSpan.textContent = corTxt;
+    }
+    {
+      const gInfo = item && typeof genderIcon === "function" ? genderIcon(item.genero) : null;
+      const gWrap = $("viewerGender");
+      const gIcon = gWrap?.querySelector("i");
+      const gSpan = gWrap?.querySelector("span");
+      if(gInfo){
+        if(gIcon) gIcon.className = `fa-solid ${gInfo.icon}`;
+        if(gSpan) gSpan.textContent = gInfo.label;
+        gWrap?.classList.remove("hidden");
+      } else {
+        gWrap?.classList.add("hidden");
+      }
+    }
+    {
+      // PDV (preço cheio do item)
+      const pdvEl = $("viewerPdv");
+      if(pdvEl){
+        const pdv = item ? toNumberBR(item.precoRaw ?? item.precoNum ?? 0) : 0;
+        pdvEl.textContent = pdv > 0 ? moneyBR(pdv) : "—";
+      }
+    }
     $("viewerIndex").textContent = total > 1 ? `${idx+1}/${total}` : "";
     $("viewerPrev").style.display = total > 1 ? "inline-flex" : "none";
     $("viewerNext").style.display = total > 1 ? "inline-flex" : "none";
@@ -6568,7 +6681,32 @@ function renderImageViewer(){
     if(!it) return;
     $("viewerImg").src = resolveImageSrc(it.imagem);
     $("viewerTitle").textContent = it.produto || "Produto";
-    $("viewerColor").textContent = `${it.cor || "—"}${it.corCodigo ? " ("+it.corCodigo+")" : ""}`;
+    {
+      const corTxt = `${it.cor || "—"}${it.corCodigo ? " ("+it.corCodigo+")" : ""}`;
+      const corSpan = $("viewerColor")?.querySelector("span");
+      if(corSpan) corSpan.textContent = corTxt;
+    }
+    {
+      const gInfo = typeof genderIcon === "function" ? genderIcon(it.genero) : null;
+      const gWrap = $("viewerGender");
+      const gIcon = gWrap?.querySelector("i");
+      const gSpan = gWrap?.querySelector("span");
+      if(gInfo){
+        if(gIcon) gIcon.className = `fa-solid ${gInfo.icon}`;
+        if(gSpan) gSpan.textContent = gInfo.label;
+        gWrap?.classList.remove("hidden");
+      } else {
+        gWrap?.classList.add("hidden");
+      }
+    }
+    {
+      // PDV (preço cheio do item)
+      const pdvEl = $("viewerPdv");
+      if(pdvEl){
+        const pdv = toNumberBR(it.precoRaw ?? it.precoNum ?? 0);
+        pdvEl.textContent = pdv > 0 ? moneyBR(pdv) : "—";
+      }
+    }
     $("viewerIndex").textContent = viewerState.variants.length > 1 ? `${viewerState.index+1}/${viewerState.variants.length}` : "";
     $("viewerPrev").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
     $("viewerNext").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
@@ -6607,6 +6745,24 @@ function _viewerAddToCart(){
   if(typeof addToCart === "function"){
     addToCart(item, 1);
     toast("Adicionado à sacola ✅");
+  } else {
+    toast("Função indisponível ⚠️");
+  }
+}
+
+// Botão "Grade" da lupa — fecha o zoom e abre o modal de grade
+function _viewerAddGrade(){
+  let item = null;
+  if(viewerState.mode === 'angles') item = viewerState.angleItem;
+  else item = viewerState.variants[viewerState.index];
+  if(!item){ toast("Produto inválido ⚠️"); return; }
+
+  if(typeof openGradeModal === "function"){
+    // Esconde o zoom visualmente (sem fechar o estado).
+    // Se o modal de grade for cancelado, reabre o zoom; se confirmou, fecha de vez.
+    viewerState._hiddenByGradeModal = true;
+    $("imageViewer")?.classList.add("hidden");
+    openGradeModal(item, { fromCart: false });
   } else {
     toast("Função indisponível ⚠️");
   }
@@ -6651,6 +6807,7 @@ $("imageViewer").addEventListener("click", (e)=>{
 $("viewerPrev").addEventListener("click", (e)=>{ e.stopPropagation(); viewerPrev(); });
 $("viewerNext").addEventListener("click", (e)=>{ e.stopPropagation(); viewerNext(); });
 $("viewerAddCart")?.addEventListener("click", (e)=>{ e.stopPropagation(); _viewerAddToCart(); });
+$("viewerAddGrade")?.addEventListener("click", (e)=>{ e.stopPropagation(); _viewerAddGrade(); });
 
 // ✅ Swipe (mobile): arraste esquerda/direita para trocar cor
 (function initViewerSwipe(){
@@ -6864,9 +7021,26 @@ function _updateGradeUIVisibility(){
 function closeGradeModal(){
   const modal = $("gradeModal");
   const keepProductLocked = !!state.productModal.open;
+  // Se o zoom foi escondido por causa do modal de grade, decide se reabre ou fecha:
+  // - Se vendedor adicionou ao menos 1 grade → fecha o zoom (fluxo concluído)
+  // - Se cancelou sem adicionar → reabre o zoom (vendedor pode estar só explorando)
+  const hiddenByGrade = !!(viewerState && viewerState._hiddenByGradeModal);
+  const adicionouAlguma = (gradeState?.addedGrades?.length || 0) > 0;
   modal.classList.remove("open");
   setTimeout(()=>{
     modal.classList.add("hidden");
+    if(hiddenByGrade){
+      viewerState._hiddenByGradeModal = false;
+      if(adicionouAlguma){
+        // Concluiu — fecha o zoom também
+        if(typeof closeImageViewer === "function") closeImageViewer();
+      } else {
+        // Cancelou sem adicionar — reabre o zoom
+        $("imageViewer")?.classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+      }
+      return;
+    }
     document.body.style.overflow = keepProductLocked ? "hidden" : "";
     if(keepProductLocked) trapFocus("productModal");
   }, 300);
