@@ -2087,19 +2087,7 @@
                  </div>
 
                  <div class="mt-4 rounded-3xl border border-oly-border bg-oly-bg p-4">
-                  <div class="font-extrabold">Dados (opcional)</div>
-                  <div class="mt-3 space-y-3">
-                    <div>
-                      <label class="text-xs font-bold text-oly-muted">Nome</label>
-                      <input id="ckName" class="focus-ring mt-1 w-full rounded-2xl border border-oly-border bg-white px-4 py-3 text-sm" placeholder="Seu nome"/>
-                    </div>
-                    <div>
-                      <label class="text-xs font-bold text-oly-muted">Cidade/UF</label>
-                      <input id="ckCity" class="focus-ring mt-1 w-full rounded-2xl border border-oly-border bg-white px-4 py-3 text-sm" placeholder="Ex.: São Luís/MA"/>
-                    </div>
-                  </div>
-
-                  <div class="mt-4 grid grid-cols-1 gap-2">
+                  <div class="mt-0 grid grid-cols-1 gap-2">
                     <!-- Ação principal -->
                     <button id="btnExportXlsx" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-4 text-base font-extrabold text-white hover:opacity-95 shadow-sm" title="Finalizar e exportar o pedido">
                       <i class="fa-solid fa-circle-check text-xl"></i>
@@ -2265,7 +2253,7 @@
             </div>
             <div class="grid grid-cols-1 sm:flex gap-2">
               <button id="btnCancelOrderExport" class="focus-ring inline-flex items-center justify-center rounded-2xl border border-oly-border bg-white px-4 py-3 text-sm font-extrabold hover:bg-white">Cancelar</button>
-              <button id="btnSaveRascunhoModal" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold text-white hover:opacity-95" style="background:#16a34a">
+              <button id="btnSaveRascunhoModal" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold text-white hover:opacity-95" style="background:#d97706">
                 <i class="fa-solid fa-floppy-disk"></i>
                 <span>Salvar rascunho</span>
               </button>
@@ -2306,6 +2294,10 @@
               </span>
               <span id="viewerGender" class="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white" style="backdrop-filter:blur(4px)">
                 <i class="fa-solid fa-user" style="font-size:10px"></i>
+                <span>—</span>
+              </span>
+              <span id="viewerTam" class="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white" style="backdrop-filter:blur(4px)">
+                <i class="fa-solid fa-ruler" style="font-size:10px"></i>
                 <span>—</span>
               </span>
             </div>
@@ -5712,12 +5704,8 @@ function renderCartUI(){
 
 /** WhatsApp */
 function buildWhatsMessage(){
-  const name = $("ckName").value.trim();
-  const city = $("ckCity").value.trim();
   const lines = [];
   lines.push("*🛍️ Pedido — Catálogo Olympikus*");
-  if(name) lines.push(`*Cliente:* ${name}`);
-  if(city) lines.push(`*Cidade/UF:* ${city}`);
   lines.push("");
   lines.push("*Itens:*");
   let i=1, grandPairs=0, grandCost=0;
@@ -6788,8 +6776,40 @@ async function exportOrderPdf(showGrade = true){
   yPos = drawSignature(yPos);
   drawFooter();
 
-  doc.save(`pedido_cliente_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
+  const nomePdf = `pedido_cliente_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
+  doc.save(nomePdf);
   toast("PDF gerado ✅");
+  // Oferece compartilhar (menu do sistema — anexa o PDF de verdade)
+  try{
+    const blob = doc.output("blob");
+    _oferecerCompartilharPDF(blob, nomePdf);
+  }catch(e){ console.warn("Compartilhar PDF indisponível:", e); }
+}
+
+// Pergunta se deseja compartilhar o PDF via menu nativo do sistema
+function _oferecerCompartilharPDF(blob, nomePdf){
+  // Web Share API com arquivos — disponível em tablets/celulares modernos
+  const file = new File([blob], nomePdf, { type:"application/pdf" });
+  const podeCompartilhar = navigator.canShare && navigator.canShare({ files:[file] });
+  if(!podeCompartilhar) return; // desktop sem suporte: PDF já foi baixado, nada a fazer
+
+  const modal = $("sharePdfModal");
+  if(!modal) return;
+  modal.classList.remove("hidden");
+  $("sharePdfCancel").onclick = () => modal.classList.add("hidden");
+  $("sharePdfOk").onclick = async () => {
+    modal.classList.add("hidden");
+    try{
+      await navigator.share({
+        files:[file],
+        title:"Pedido — Catálogo Olympikus",
+        text:"Segue o pedido em anexo."
+      });
+    }catch(e){
+      // usuário cancelou o compartilhamento — silencioso
+      if(e && e.name !== "AbortError") console.warn("share:", e);
+    }
+  };
 }
 
 // ── Dropdown do botão Baixar PDF ─────────────────────────────
@@ -6980,6 +7000,18 @@ function renderImageViewer(){
       const codEl = $("viewerCodigoVal");
       if(codEl) codEl.textContent = (item && item.codigo) ? String(item.codigo) : "—";
     }
+    {
+      // Tamanhos disponíveis (intervalo)
+      const tamWrap = $("viewerTam");
+      const tamSpan = tamWrap?.querySelector("span");
+      const tamRange = (item && item.tam && typeof _tamToRange === "function") ? _tamToRange(item.tam) : (item?.tam || "");
+      if(tamRange){
+        if(tamSpan) tamSpan.textContent = tamRange;
+        tamWrap?.classList.remove("hidden");
+      } else {
+        tamWrap?.classList.add("hidden");
+      }
+    }
     $("viewerIndex").textContent = total > 1 ? `${idx+1}/${total}` : "";
     $("viewerPrev").style.display = total > 1 ? "inline-flex" : "none";
     $("viewerNext").style.display = total > 1 ? "inline-flex" : "none";
@@ -7020,6 +7052,18 @@ function renderImageViewer(){
       // Código (artigo) do produto
       const codEl = $("viewerCodigoVal");
       if(codEl) codEl.textContent = it.codigo ? String(it.codigo) : "—";
+    }
+    {
+      // Tamanhos disponíveis (intervalo)
+      const tamWrap = $("viewerTam");
+      const tamSpan = tamWrap?.querySelector("span");
+      const tamRange = (it.tam && typeof _tamToRange === "function") ? _tamToRange(it.tam) : (it.tam || "");
+      if(tamRange){
+        if(tamSpan) tamSpan.textContent = tamRange;
+        tamWrap?.classList.remove("hidden");
+      } else {
+        tamWrap?.classList.add("hidden");
+      }
     }
     $("viewerIndex").textContent = viewerState.variants.length > 1 ? `${viewerState.index+1}/${viewerState.variants.length}` : "";
     $("viewerPrev").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
@@ -9113,6 +9157,8 @@ function mpEditarRascunho(id){
     closeMeusPedidosModal();
     _atualizarLabelRascunho();
     _marcarSacolaSalva();
+    // Abre a sacola já com os produtos carregados
+    if(typeof openCartModal === "function") openCartModal();
     toast(`Rascunho carregado — ${r.items.length} item(ns) ✏️`);
   };
   if(state.cart.size > 0){
@@ -9662,6 +9708,24 @@ loadCatalog({ cacheBust:false });
       <div class="flex gap-2">
         <button id="clearCartCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Cancelar</button>
         <button id="clearCartOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white" style="background:#dc2626">Limpar sacola</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: compartilhar PDF após gerar -->
+<div id="sharePdfModal" class="hidden fixed inset-0 z-[93]">
+  <div class="absolute inset-0 bg-black/60"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="rounded-2xl p-5 max-w-sm w-full" style="background:var(--card-bg, #fff)">
+      <div class="text-3xl mb-2">📤</div>
+      <div class="text-lg font-black mb-2" style="color:var(--text)">PDF gerado!</div>
+      <div class="text-sm mb-4" style="color:var(--muted)">Deseja compartilhar o pedido agora? Você poderá escolher o WhatsApp ou outro app.</div>
+      <div class="flex gap-2">
+        <button id="sharePdfCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Agora não</button>
+        <button id="sharePdfOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white inline-flex items-center justify-center gap-2" style="background:#7c3aed">
+          <i class="fa-solid fa-share-nodes"></i> Compartilhar
+        </button>
       </div>
     </div>
   </div>
