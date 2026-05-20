@@ -1111,6 +1111,15 @@
     #meusPedidosModal .mp-aba:not(.mp-aba-active) .mp-aba-count {
       background:var(--bg); color:var(--primary);
     }
+    /* Aba pulsante — chama atenção quando há rascunhos pendentes */
+    @keyframes mpAbaPulse {
+      0%, 100% { box-shadow:0 0 0 0 rgba(124,58,237,.45); }
+      50%      { box-shadow:0 0 0 6px rgba(124,58,237,0); }
+    }
+    #meusPedidosModal .mp-aba.mp-aba-pulse {
+      animation:mpAbaPulse 1.4s ease-out infinite;
+      border-color:var(--primary);
+    }
     #meusPedidosModal .mp-sheet-header { flex:0 0 auto; }
     #meusPedidosModal .mp-sheet-filters { flex:0 0 auto; }
     #meusPedidosModal .mp-sheet-stats { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; background:var(--card-bg); }
@@ -2096,15 +2105,15 @@
                       <span>Enviar pedido via WhatsApp</span>
                     </button>
 
-                    <button id="btnSalvarRascunho" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold hover:opacity-95" style="background:#FEF3C7;color:#92400E;border:1.5px solid #FCD34D" title="Salvar pedido como rascunho para completar depois">
+                    <button id="btnSalvarRascunho" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold text-white hover:opacity-95" style="background:#16a34a;border:1.5px solid #16a34a" title="Salvar pedido como rascunho para completar depois">
                       <i class="fa-solid fa-floppy-disk"></i>
                       <span id="btnSalvarRascunhoLabel">Salvar rascunho</span>
                     </button>
 
                     <div class="grid grid-cols-2 gap-2">
-                      <button id="btnExportXlsx" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-3 py-3 text-xs sm:text-sm font-extrabold text-white hover:opacity-95" title="Exportar sacola como planilha Excel">
-                        <i class="fa-solid fa-file-excel"></i>
-                        <span>Exportar Excel</span>
+                      <button id="btnExportXlsx" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-3 py-3 text-xs sm:text-sm font-extrabold text-white hover:opacity-95" title="Finalizar e exportar o pedido">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Finalizar pedido</span>
                       </button>
                       <!-- ── Dropdown Baixar PDF ── -->
                       <div id="pdfDropdownWrap" style="position:relative;display:inline-flex;">
@@ -2252,11 +2261,15 @@
             <div class="text-xs font-bold text-oly-muted">
              
             </div>
-            <div class="grid grid-cols-2 gap-2 sm:flex">
+            <div class="grid grid-cols-1 sm:flex gap-2">
               <button id="btnCancelOrderExport" class="focus-ring inline-flex items-center justify-center rounded-2xl border border-oly-border bg-white px-4 py-3 text-sm font-extrabold hover:bg-white">Cancelar</button>
+              <button id="btnSaveRascunhoModal" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold text-white hover:opacity-95" style="background:#16a34a">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>Salvar rascunho</span>
+              </button>
               <button id="btnConfirmOrderExport" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-3 text-sm font-extrabold text-white hover:opacity-95">
-                <i class="fa-solid fa-file-excel"></i>
-                <span>Gerar Excel</span>
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Finalizar pedido</span>
               </button>
             </div>
           </div>
@@ -2529,7 +2542,14 @@ const state = {
   lastOrderCfg: null,
   // Última grade adicionada à sacola (pra função "Repetir grade") — vive na sessão
   lastGradeUsed: null,
+  // Controle de "sacola não salva": true sempre que algo muda sem ter sido salvo/finalizado
+  sacolaSuja: false,
 };
+
+// Marca a sacola como modificada (não salva)
+function _marcarSacolaSuja(){ state.sacolaSuja = true; }
+// Marca a sacola como salva (após salvar rascunho ou finalizar)
+function _marcarSacolaSalva(){ state.sacolaSuja = false; }
 
 const $ = (id)=>document.getElementById(id);
 
@@ -2767,6 +2787,9 @@ function lsGet(k){ try{const v=localStorage.getItem(k);if(v!==null)return v;}cat
 function saveCartToStorage(){
   const arr = Array.from(state.cart.values()).map(it => ({...it}));
   lsSet(STORAGE_KEYS.cart, JSON.stringify(arr));
+  // Qualquer alteração na sacola a marca como "não salva".
+  // Fluxos de salvar/finalizar/carregar chamam _marcarSacolaSalva() logo depois.
+  state.sacolaSuja = true;
 }
 function loadCartFromStorage(){
   try{
@@ -5042,13 +5065,37 @@ $("cartModal").addEventListener("click", (e)=>{
   if(closeEl) closeCartModal();
 });
 $("btnClearCart").addEventListener("click", ()=>{
-  state.cart.clear(); state.lastOrderCfg = null;
-  saveCartToStorage();
-  // reset card statuses
-  for(const k of state.cardAddStatus.keys()) state.cardAddStatus.set(k,"idle");
-  renderCartUI();
-  refreshView(false);
-  toast("Sacola limpa ✅");
+  if(state.cart.size === 0){ toast("Sacola já está vazia ✅"); return; }
+  const qtd = state.cart.size;
+  const modal = $("clearCartModal");
+  const icon = $("clearCartIcon");
+  const title = $("clearCartTitle");
+  const msg = $("clearCartMsg");
+  if(state.sacolaSuja){
+    // Sacola com alterações não salvas — aviso reforçado
+    icon.textContent = "⚠️";
+    title.textContent = "Pedido não salvo!";
+    msg.textContent = "Os produtos desta sacola ainda não foram salvos. Se limpar agora, você vai perder este pedido. Deseja mesmo limpar a sacola?";
+  } else {
+    icon.textContent = "🗑️";
+    title.textContent = "Limpar a sacola?";
+    msg.textContent = `Os ${qtd} ${qtd===1?"item":"itens"} da sacola serão removidos.`;
+  }
+  modal.classList.remove("hidden");
+  $("clearCartCancel").onclick = () => modal.classList.add("hidden");
+  $("clearCartOk").onclick = () => {
+    modal.classList.add("hidden");
+    state.cart.clear();
+    state.lastOrderCfg = null;
+    MP.editandoRascunhoId = null;
+    _atualizarLabelRascunho();
+    saveCartToStorage();
+    _marcarSacolaSalva(); // sacola vazia = nada a perder
+    for(const k of state.cardAddStatus.keys()) state.cardAddStatus.set(k,"idle");
+    renderCartUI();
+    refreshView(false);
+    toast("Sacola limpa ✅");
+  };
 });
 
 function cartTotals(){
@@ -6121,6 +6168,8 @@ function _doExportXlsx(salvarHist){
 
   // Re-renderiza a sacola pra mostrar valor total (se toggle ON)
   if(typeof renderCartUI === "function") renderCartUI();
+  // Pedido finalizado conta como "salvo" — não avisa ao limpar
+  _marcarSacolaSalva();
 
   // Salva no histórico se o usuário confirmou
   if(salvarHist && typeof salvarPedidoNoHistorico === "function"){
@@ -6187,6 +6236,31 @@ $("btnCloseOrderExport")?.addEventListener("click", closeOrderExportModal);
 $("btnCancelOrderExport")?.addEventListener("click", closeOrderExportModal);
 $("orderExportBackdrop")?.addEventListener("click", closeOrderExportModal);
 $("btnConfirmOrderExport")?.addEventListener("click", exportOrderXlsxFromModal);
+
+// Botão "Salvar rascunho" dentro do modal de export
+$("btnSaveRascunhoModal")?.addEventListener("click", async ()=>{
+  if(state.cart.size === 0){ toast("Sacola vazia ⚠️"); return; }
+  const cfg = getOrderExportFormData();
+  const com = String(cfg.commission || "").trim();
+  if(!com){
+    toast("Selecione o comissionista antes de salvar o rascunho ⚠️");
+    return;
+  }
+  const rascunho = buildRascunhoSnapshot({ id: MP.editandoRascunhoId, cfg });
+  const btn = $("btnSaveRascunhoModal");
+  if(btn) btn.disabled = true;
+  const res = await salvarRascunhoNoWorker(com, rascunho);
+  if(btn) btn.disabled = false;
+  if(res.success){
+    MP.editandoRascunhoId = rascunho.id;
+    _atualizarLabelRascunho();
+    _marcarSacolaSalva();
+    closeOrderExportModal();
+    toast("Rascunho salvo ✅");
+  } else {
+    toast("⚠️ " + (res.error || "Falha ao salvar rascunho"));
+  }
+});
 
 
 /** Export PDF — Catálogo paisagem, 2 produtos por página */
@@ -8996,6 +9070,8 @@ function _mpTrocarAba(aba){
   }
   $("mpCustomDates")?.classList.add("hidden");
   renderListaPedidos();
+  // Entrar na aba rascunhos desliga o pulse (vendedor já viu)
+  _mpAtualizarPulseRascunhos();
 }
 
 // Carrega item de rascunho de volta pra sacola (reaproveita conversor de pedido)
@@ -9034,6 +9110,7 @@ function mpEditarRascunho(id){
     if(typeof refreshView === "function") refreshView();
     closeMeusPedidosModal();
     _atualizarLabelRascunho();
+    _marcarSacolaSalva();
     toast(`Rascunho carregado — ${r.items.length} item(ns) ✏️`);
   };
   if(state.cart.size > 0){
@@ -9086,6 +9163,7 @@ function mpFinalizarRascunho(id){
     if(typeof syncCardAddStatusFromCart === "function") syncCardAddStatusFromCart();
     closeMeusPedidosModal();
     _atualizarLabelRascunho();
+    _marcarSacolaSalva();
     // Abre o modal de exportação direto
     if(typeof openOrderExportModal === "function") openOrderExportModal();
     toast("Rascunho carregado — finalize gerando o Excel");
@@ -9277,8 +9355,8 @@ function openMeusPedidosModal(){
   document.querySelectorAll(".mp-periodo-pill").forEach(p =>
     p.classList.toggle("active", p.dataset.periodo === "mes"));
   $("mpCustomDates").classList.add("hidden");
-  // Aba padrão: rascunhos
-  _mpTrocarAba("rascunhos");
+  // Aba padrão: finalizados (a de rascunhos vai pulsar se houver pendentes)
+  _mpTrocarAba("finalizados");
 
   $("meusPedidosModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -9309,6 +9387,18 @@ async function _mpLoad(){
     carregarRascunhos(MP.filtroComissionista),
   ]);
   renderListaPedidos();
+  // Se há rascunhos pendentes e o vendedor não está na aba deles, pulsa pra avisar
+  _mpAtualizarPulseRascunhos();
+}
+
+// Liga/desliga a animação pulsante da aba Rascunhos
+function _mpAtualizarPulseRascunhos(){
+  const abaRasc = document.querySelector('.mp-aba[data-aba="rascunhos"]');
+  if(!abaRasc) return;
+  const qtd = (MP.rascunhosCache[MP.filtroComissionista] || []).length;
+  // Pulsa só se: tem rascunho E a aba ativa não é a de rascunhos
+  const devePulsar = qtd > 0 && MP.abaAtiva !== "rascunhos";
+  abaRasc.classList.toggle("mp-aba-pulse", devePulsar);
 }
 function closeMeusPedidosModal(){
   $("meusPedidosModal").classList.add("hidden");
@@ -9336,10 +9426,11 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Handler do botão "Salvar rascunho" / "Atualizar rascunho"
+// Handler do botão "Salvar rascunho" / "Atualizar rascunho" da sacola
 async function _onSalvarRascunho(){
   if(state.cart.size === 0){ toast("Sacola vazia — nada pra salvar ⚠️"); return; }
-  // Precisa do comissionista. Tenta do cfg salvo; senão pede pelo modal de export.
+  // Precisa do comissionista. Tenta do cfg salvo; senão abre o modal de export
+  // (lá tem o botão verde "Salvar rascunho" e os campos do cliente).
   let com = state.lastOrderCfg?.commission || "";
   if(!com){
     try{
@@ -9348,12 +9439,12 @@ async function _onSalvarRascunho(){
     }catch(_){}
   }
   if(!com){
-    toast("Selecione o comissionista no modal de pedido antes de salvar o rascunho");
+    toast("Preencha os dados do pedido e use \"Salvar rascunho\"");
     if(typeof openOrderExportModal === "function") openOrderExportModal();
     return;
   }
   const rascunho = buildRascunhoSnapshot({
-    id: MP.editandoRascunhoId,  // se editando, atualiza o mesmo
+    id: MP.editandoRascunhoId,
     cfg: { commission: com }
   });
   const btn = $("btnSalvarRascunho");
@@ -9361,8 +9452,9 @@ async function _onSalvarRascunho(){
   const res = await salvarRascunhoNoWorker(com, rascunho);
   if(btn) btn.disabled = false;
   if(res.success){
-    MP.editandoRascunhoId = rascunho.id;  // garante que próximo save atualiza o mesmo
+    MP.editandoRascunhoId = rascunho.id;
     _atualizarLabelRascunho();
+    _marcarSacolaSalva();
     toast("Rascunho salvo ✅");
   } else {
     toast("⚠️ " + (res.error || "Falha ao salvar rascunho"));
@@ -9552,6 +9644,22 @@ loadCatalog({ cacheBust:false });
       <div class="flex gap-2">
         <button id="mpConfirmCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg">Cancelar</button>
         <button id="mpConfirmOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white" style="background:var(--primary)">Substituir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmação: limpar sacola -->
+<div id="clearCartModal" class="hidden fixed inset-0 z-[91]">
+  <div class="absolute inset-0 bg-black/60"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="rounded-2xl p-5 max-w-sm w-full" style="background:var(--card-bg, #fff)">
+      <div id="clearCartIcon" class="text-3xl mb-2">🗑️</div>
+      <div class="text-lg font-black mb-2" style="color:var(--text)" id="clearCartTitle">Limpar a sacola?</div>
+      <div class="text-sm mb-4" id="clearCartMsg" style="color:var(--muted)"></div>
+      <div class="flex gap-2">
+        <button id="clearCartCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Cancelar</button>
+        <button id="clearCartOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white" style="background:#dc2626">Limpar sacola</button>
       </div>
     </div>
   </div>
