@@ -361,13 +361,22 @@ function montarCarteira(linhas){
       total: g.total
     });
   }
-  // Ordena pelo faturamento mais próximo (produto que fatura primeiro vem antes).
-  // Empate no mês → ordena por nome do produto.
+  // Ordena por: 1º mês de faturamento mais próximo, 2º referência, 3º produto, 4º cor.
+  // Assim cores do mesmo produto/ref ficam sempre juntas dentro do mesmo mês.
   carteira.sort((a,b)=>{
     const oa = a.meses.length ? a.meses[0].ordem : Infinity;
     const ob = b.meses.length ? b.meses[0].ordem : Infinity;
     if(oa !== ob) return oa - ob;
-    return a.produto.localeCompare(b.produto,"pt-BR");
+    // mesmo mês → agrupa por referência
+    if(a.ref !== b.ref){
+      const r = String(a.ref).localeCompare(String(b.ref),"pt-BR");
+      if(r !== 0) return r;
+    }
+    // mesma ref → por nome do produto
+    const p = a.produto.localeCompare(b.produto,"pt-BR");
+    if(p !== 0) return p;
+    // por fim, ordena as cores
+    return String(a.cor).localeCompare(String(b.cor),"pt-BR");
   });
   renderPreview(semBase);
 }
