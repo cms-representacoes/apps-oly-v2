@@ -2100,29 +2100,26 @@
                   </div>
 
                   <div class="mt-4 grid grid-cols-1 gap-2">
-                    <button id="btnWhatsCheckout" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-green-500 px-4 py-4 text-base font-extrabold text-white hover:opacity-95 shadow-sm" title="Enviar pedido completo via WhatsApp">
-                      <i class="fa-brands fa-whatsapp text-xl"></i>
-                      <span>Enviar pedido via WhatsApp</span>
+                    <!-- Ação principal -->
+                    <button id="btnExportXlsx" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-4 text-base font-extrabold text-white hover:opacity-95 shadow-sm" title="Finalizar e exportar o pedido">
+                      <i class="fa-solid fa-circle-check text-xl"></i>
+                      <span>Finalizar pedido</span>
                     </button>
 
-                    <button id="btnSalvarRascunho" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold text-white hover:opacity-95" style="background:#16a34a;border:1.5px solid #16a34a" title="Salvar pedido como rascunho para completar depois">
-                      <i class="fa-solid fa-floppy-disk"></i>
-                      <span id="btnSalvarRascunhoLabel">Salvar rascunho</span>
-                    </button>
-
-                    <div class="grid grid-cols-2 gap-2">
-                      <button id="btnExportXlsx" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-3 py-3 text-xs sm:text-sm font-extrabold text-white hover:opacity-95" title="Finalizar e exportar o pedido">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>Finalizar pedido</span>
+                    <!-- Ações secundárias: rascunho (âmbar) · PDF · WhatsApp -->
+                    <div class="grid grid-cols-3 gap-2">
+                      <button id="btnSalvarRascunho" class="focus-ring inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-white hover:opacity-95" style="background:#d97706" title="Salvar pedido como rascunho para completar depois">
+                        <i class="fa-solid fa-floppy-disk text-lg"></i>
+                        <span id="btnSalvarRascunhoLabel" class="text-[11px] font-extrabold">Rascunho</span>
                       </button>
+
                       <!-- ── Dropdown Baixar PDF ── -->
-                      <div id="pdfDropdownWrap" style="position:relative;display:inline-flex;">
-                        <button id="btnExportPdf" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl border border-oly-border bg-white px-3 py-3 text-xs sm:text-sm font-extrabold hover:bg-oly-bg" title="Baixar catálogo em PDF">
-                          <i class="fa-solid fa-file-pdf text-oly-blue"></i>
-                          <span>Baixar PDF</span>
-                          <i id="pdfDropIcon" class="fa-solid fa-chevron-down text-oly-blue" style="font-size:10px;transition:transform .2s;"></i>
+                      <div id="pdfDropdownWrap" style="position:relative;display:flex;">
+                        <button id="btnExportPdf" class="focus-ring inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-oly-border bg-white px-2 py-3 hover:bg-oly-bg w-full" title="Baixar catálogo em PDF">
+                          <i class="fa-solid fa-file-pdf text-lg" style="color:#475569"></i>
+                          <span class="text-[11px] font-extrabold inline-flex items-center gap-1">PDF <i id="pdfDropIcon" class="fa-solid fa-chevron-down" style="font-size:8px;transition:transform .2s;"></i></span>
                         </button>
-                        <div id="pdfDropMenu" style="display:none;position:absolute;bottom:calc(100% + 6px);right:0;min-width:190px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.10);overflow:hidden;z-index:200;">
+                        <div id="pdfDropMenu" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;right:0;min-width:190px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.10);overflow:hidden;z-index:200;">
                           <button id="btnPdfGrade" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:#111827;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
                             <i class="fa-solid fa-table-cells text-oly-blue" style="font-size:13px;width:16px;"></i>
                             Exibir grade completa
@@ -2134,6 +2131,11 @@
                           </button>
                         </div>
                       </div>
+
+                      <button id="btnWhatsCheckout" class="focus-ring inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-oly-border bg-white px-2 py-3 hover:bg-oly-bg" title="Enviar pedido via WhatsApp">
+                        <i class="fa-brands fa-whatsapp text-lg" style="color:#22c55e"></i>
+                        <span class="text-[11px] font-extrabold">WhatsApp</span>
+                      </button>
                     </div>
                   </div>
                 </div>
