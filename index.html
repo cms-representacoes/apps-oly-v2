@@ -1427,7 +1427,7 @@
     <header class="sticky top-0 z-40 border-b border-oly-border bg-white/90 backdrop-blur">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3">
         <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-white border border-oly-border flex items-center justify-center overflow-hidden shrink-0">
-          <img src="./logo-olympikus.png" alt="Olympikus" class="h-full w-full object-contain" onerror="this.style.display='none'">
+          <img id="brandLogoHome" src="./logo-olympikus.png" alt="Olympikus" class="h-full w-full object-contain" onerror="this.style.display='none'">
         </div>
         <div>
           <div class="text-[10px] font-bold text-oly-muted leading-none">Catálogo Digital</div>
@@ -1786,13 +1786,13 @@
             </h2>
             <p class="mt-2 text-oly-muted leading-relaxed">
               Estrutura esperada:
-              <span class="font-mono">/index.html</span> · <span class="font-mono">/Produtos.xlsx</span> · <span class="font-mono">/imagens_olympikus/*.png</span>
+              <span class="font-mono">/index.html</span> · <span class="font-mono" id="hintXlsxPath">/Produtos.xlsx</span> · <span class="font-mono">/imagens_olympikus/*.png</span>
             </p>
 
             <div id="loadHint" class="mt-4 rounded-2xl border border-oly-border bg-oly-bg p-4 text-sm">
               <div class="font-bold">Se não carregar:</div>
               <ul class="mt-1 list-disc pl-5 text-oly-muted">
-                <li>Confirme o nome <b>Produtos.xlsx</b> (exato).</li>
+                <li>Confirme o nome <b id="hintXlsxName">Produtos.xlsx</b> (exato).</li>
                 <li>Confirme a pasta <b>imagens_olympikus</b>.</li>
                 <li>Clique em <b>Atualizar</b> no topo.</li>
               </ul>
@@ -2482,7 +2482,31 @@
   </div>
 
 <script>
-const DATA_CONFIG = { xlsxPath: "./Produtos.xlsx", imagesBasePath: "./imagens_olympikus/", cacheBustOnRefresh: true };
+// ===== Marca ativa (lida da URL ?marca=oly|ua) =====
+const MARCAS = {
+  oly: { id:"oly", nome:"Olympikus",   xlsx:"./Produtos.xlsx",    logo:"./logo-olympikus.png" },
+  ua:  { id:"ua",  nome:"Under Armour", xlsx:"./produtos_ua.xlsx", logo:"./logo-ua-branca.png" }
+};
+const MARCA_ATUAL = (function(){
+  var p = new URLSearchParams(window.location.search).get("marca");
+  p = (p || "").toLowerCase();
+  return MARCAS[p] || MARCAS.oly;
+})();
+
+const DATA_CONFIG = { xlsxPath: MARCA_ATUAL.xlsx, imagesBasePath: "./imagens_olympikus/", cacheBustOnRefresh: true };
+
+// Aplica a logo/nome da marca ativa no header
+(function aplicarMarca(){
+  ["brandLogo","brandLogoHome"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.src = MARCA_ATUAL.logo; el.alt = MARCA_ATUAL.nome; el.style.display=""; }
+  });
+  var xlsxNome = MARCA_ATUAL.xlsx.replace(/^\.\//,"");
+  var hp = document.getElementById("hintXlsxPath");
+  if(hp) hp.textContent = "/" + xlsxNome;
+  var hn = document.getElementById("hintXlsxName");
+  if(hn) hn.textContent = xlsxNome;
+})();
 
 // ===== Namespacing de LocalStorage por projeto =====
 const STORAGE_NS = (location.pathname || "/").replace(/\/$/, ""); // ex: /Catalogo-Olympikus_2.0
