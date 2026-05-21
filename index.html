@@ -5889,7 +5889,7 @@ const ORDER_EXPORT_DEFAULTS = {
   commission: "",
   clientCode: "",
   payment: "",
-  priceTable: "OL025",
+  priceTable: (MARCA_ATUAL.id === "ua" ? "UA037" : "OL026"),
   campaign: "",
   packing: "M: Musical",
   deliveryType: "3: Total Artigo/Cor",
@@ -5922,6 +5922,8 @@ function loadOrderExportConfig(){
     delete parsed.payment;
     delete parsed.campaign;
     delete parsed.pedidoCliente;
+    // Tab. de preço sempre segue o padrão da marca ativa (editável pelo usuário)
+    delete parsed.priceTable;
     return { ...ORDER_EXPORT_DEFAULTS, ...parsed };
   }catch(e){
     return { ...ORDER_EXPORT_DEFAULTS };
@@ -6021,7 +6023,13 @@ function openOrderExportModal(opts = {}){
   }
 
   populateOrderPaymentSelect();
-  fillOrderExportForm(loadOrderExportConfig());
+  // Se há rascunho em edição, preenche com os dados salvos no rascunho.
+  // Caso contrário, usa a config padrão (pedido novo começa limpo).
+  if(MP.editandoRascunhoId && state.lastOrderCfg){
+    fillOrderExportForm({ ...loadOrderExportConfig(), ...state.lastOrderCfg });
+  } else {
+    fillOrderExportForm(loadOrderExportConfig());
+  }
   // Limpa estado inválido de aberturas anteriores
   ["oxCommission","oxClientCode","oxPayment","oxPriceTable"].forEach(id => $(id)?.classList.remove("invalid"));
   // Listener (idempotente) que remove .invalid assim que o usuário começa a corrigir
@@ -9248,7 +9256,15 @@ function mpEditarRascunho(id){
   if(!r){ toast("Rascunho não encontrado ⚠️"); return; }
   const carregar = () => {
     state.cart.clear();
-    state.lastOrderCfg = null;
+    // Restaura os dados do cliente salvos no rascunho (não zera)
+    state.lastOrderCfg = {
+      commission: r.comissionista || "",
+      clientCode: r.clientCode || "",
+      payment: r.payment || "",
+      priceTable: r.priceTable || "",
+      campaign: r.campaign || "",
+      pedidoCliente: r.pedidoCliente || ""
+    };
     for(const it of (r.items||[])){
       const base = _mpRascunhoItemToCartItem(it);
       const key = cartKeyFor(base);
@@ -9305,7 +9321,15 @@ function mpFinalizarRascunho(id){
   const semGrade = (r.items||[]).filter(i => !(i.grade && Object.keys(i.grade).length > 0)).length;
   const prosseguir = () => {
     state.cart.clear();
-    state.lastOrderCfg = null;
+    // Restaura os dados do cliente salvos no rascunho (não zera)
+    state.lastOrderCfg = {
+      commission: r.comissionista || "",
+      clientCode: r.clientCode || "",
+      payment: r.payment || "",
+      priceTable: r.priceTable || "",
+      campaign: r.campaign || "",
+      pedidoCliente: r.pedidoCliente || ""
+    };
     for(const it of (r.items||[])){
       const base = _mpRascunhoItemToCartItem(it);
       const key = cartKeyFor(base);
