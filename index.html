@@ -2424,14 +2424,32 @@
             <div id="gradeSizeList"></div>
           </div>
 
-          <!-- Data desejada (obrigatória) -->
+          <!-- Data desejada (obrigatória) + Caixas (multiplicador) -->
           <div class="px-4 sm:px-5 pb-3 pt-1">
-            <label class="text-[11px] font-extrabold uppercase tracking-wider text-oly-muted block mb-1.5">
-              📅 Data desejada <span style="color:#dc2626">*</span>
-            </label>
-            <input id="gradeDataDesejada" type="date" required
-                   class="w-full rounded-xl border border-oly-border px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2"
-                   style="background:var(--card-bg,#fff);color:var(--text)">
+            <div class="flex gap-3 items-start flex-wrap">
+              <div class="flex-1 min-w-[150px]">
+                <label class="text-[11px] font-extrabold uppercase tracking-wider text-oly-muted block mb-1.5">
+                  📅 Data desejada <span style="color:#dc2626">*</span>
+                </label>
+                <input id="gradeDataDesejada" type="date" required
+                       class="w-full rounded-xl border border-oly-border px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2"
+                       style="background:var(--card-bg,#fff);color:var(--text)">
+              </div>
+              <div class="shrink-0" id="gradeBoxWrap">
+                <label class="text-[11px] font-extrabold uppercase tracking-wider text-oly-muted block mb-1.5">
+                  📦 Caixas
+                </label>
+                <div class="flex items-center gap-1.5 rounded-xl border border-oly-border px-2 py-1.5" style="background:var(--card-bg,#fff)">
+                  <button id="gradeBoxMinus" type="button" class="focus-ring h-8 w-8 rounded-full border border-oly-border hover:bg-oly-bg disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Diminuir caixas" disabled>
+                    <i class="fa-solid fa-minus text-xs text-oly-blue"></i>
+                  </button>
+                  <div id="gradeBoxValue" class="min-w-[28px] text-center font-extrabold text-sm" style="color:var(--text)">1</div>
+                  <button id="gradeBoxPlus" type="button" class="focus-ring h-8 w-8 rounded-full border border-oly-border hover:bg-oly-bg" aria-label="Aumentar caixas">
+                    <i class="fa-solid fa-plus text-xs text-oly-blue"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
             <div id="gradeDataError" class="hidden text-xs font-bold mt-1.5" style="color:#dc2626">⚠️ Preencha a data desejada antes de adicionar</div>
           </div>
 
@@ -5264,6 +5282,9 @@ function openBulkGradeFromTargets(targets, meta={}){
   const cartModal = $("cartModal");
   if(cartModal) cartModal.classList.add("hidden");
   openGradeModal(templateItem, { fromCart:false, keepBulk:true });
+  // Modo lote não usa multiplicador de caixas
+  const boxWrapBulk = $("gradeBoxWrap");
+  if(boxWrapBulk) boxWrapBulk.classList.add("hidden");
   const typeEl = document.querySelector("#gradeModal .text-xs.font-bold.text-oly-muted");
   const prodEl = $("gradeProduto");
   const corEl  = $("gradeCor");
@@ -7404,11 +7425,22 @@ function openGradeModal(item, opts={}){
     if(pedInput) pedInput.value = "";
     const errEl = $("gradeDataError");
     if(errEl) errEl.classList.add("hidden");
+    // Caixas: ao editar linha da sacola restaura o valor; senão volta para 1
+    var boxIni = 1;
+    if(opts.cartKey && state.cart.has(opts.cartKey)){
+      boxIni = Math.max(1, Math.min(99, Number(state.cart.get(opts.cartKey).boxes) || 1));
+    }
+    setGradeBoxValue(boxIni);
   }
   // Restore confirm button label in case it was changed by bulk mode
   const confirmBtn = document.getElementById("btnConfirmGrade");
   const confirmSpan = confirmBtn?.querySelector("span");
   if(confirmSpan && !opts.keepBulk) confirmSpan.textContent = "Adicionar Grade à Sacola";
+  // Controle de Caixas: visível no fluxo normal (escondido no modo lote)
+  if(!opts.keepBulk){
+    const boxWrap = $("gradeBoxWrap");
+    if(boxWrap) boxWrap.classList.remove("hidden");
+  }
 
   const sizes = expandTam(item.tam);
   // Só recupera grade existente quando editando uma linha específica (cartKey explícito).
@@ -7661,6 +7693,17 @@ function gradeToCartEntry(){
   // Pedido do cliente (opcional, da linha)
   const pedidoClienteLinha = ($("gradePedidoCliente")?.value || "").trim();
 
+  // Caixas (multiplicador definido no modal de grade)
+  const boxesModal = Math.max(1, Math.min(99, parseInt($("gradeBoxValue")?.textContent, 10) || 1));
+  // Grade final = grade base × caixas
+  const gradeFinal = {};
+  let qtyFinal = 0;
+  for(const [tam, q] of Object.entries(gradeMap)){
+    const v = (Number(q) || 0) * boxesModal;
+    gradeFinal[tam] = v;
+    qtyFinal += v;
+  }
+
   return {
     key,
     linhaId: linhaId || undefined,
@@ -7675,11 +7718,11 @@ function gradeToCartEntry(){
     precoNum,
     precoFmt,
     precosPrazo: item.precosPrazo || null,
-    qty: totalQty,
-    grade: gradeMap,
+    qty: qtyFinal,
+    grade: gradeFinal,
     // Grade BASE imutável + multiplicador "boxes" — usados pelo +/- da sacola
     gradeBase: { ...gradeMap },
-    boxes: 1,
+    boxes: boxesModal,
     gradeResume,
     dataDesejada,
     pedidoCliente: pedidoClienteLinha,
@@ -7687,6 +7730,23 @@ function gradeToCartEntry(){
     imgSrc: resolveImageSrc(item.imagem),
   };
 }
+
+// ── Controle de Caixas no modal de grade ──
+function setGradeBoxValue(v){
+  var val = Math.max(1, Math.min(99, parseInt(v, 10) || 1));
+  var elVal = $("gradeBoxValue");
+  var elMinus = $("gradeBoxMinus");
+  if(elVal) elVal.textContent = val;
+  if(elMinus) elMinus.disabled = (val <= 1);
+}
+$("gradeBoxMinus")?.addEventListener("click", ()=>{
+  var cur = parseInt($("gradeBoxValue")?.textContent, 10) || 1;
+  setGradeBoxValue(cur - 1);
+});
+$("gradeBoxPlus")?.addEventListener("click", ()=>{
+  var cur = parseInt($("gradeBoxValue")?.textContent, 10) || 1;
+  setGradeBoxValue(cur + 1);
+});
 
 $("btnConfirmGrade").addEventListener("click", ()=>{
   // ── Modo lote ─────────────────────────────────────
@@ -7785,6 +7845,8 @@ $("btnAddAnotherGrade")?.addEventListener("click", ()=>{
   if(dataInput) dataInput.value = "";
   const pedInput = $("gradePedidoCliente");
   if(pedInput) pedInput.value = "";
+  // Caixas volta para 1 na próxima grade
+  setGradeBoxValue(1);
   openGradeModal(item, { fromCart: gradeState.fromCart, keepGrades: true });
 });
 
