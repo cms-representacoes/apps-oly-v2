@@ -7431,6 +7431,13 @@ function openGradeModal(item, opts={}){
       boxIni = Math.max(1, Math.min(99, Number(state.cart.get(opts.cartKey).boxes) || 1));
     }
     setGradeBoxValue(boxIni);
+  } else {
+    // "+ outra grade" do mesmo produto: pré-preenche com a última data usada
+    // para o calendário abrir no mês em que o vendedor está trabalhando
+    const dataInput = $("gradeDataDesejada");
+    if(dataInput) dataInput.value = gradeState.dataDesejada || "";
+    const errEl = $("gradeDataError");
+    if(errEl) errEl.classList.add("hidden");
   }
   // Restore confirm button label in case it was changed by bulk mode
   const confirmBtn = document.getElementById("btnConfirmGrade");
@@ -7840,9 +7847,9 @@ $("btnAddAnotherGrade")?.addEventListener("click", ()=>{
   // Reabre limpo, mantendo as grades adicionadas
   const item = gradeState.item;
   toast(`Grade ${gradeState.addedGrades.length} adicionada ✅`);
-  // Limpa o input de data e pedido pra próxima
-  const dataInput = $("gradeDataDesejada");
-  if(dataInput) dataInput.value = "";
+  // Mantém a última data usada para a próxima grade deste produto
+  gradeState.dataDesejada = entry.dataDesejada || "";
+  // Limpa o pedido do cliente pra próxima (a data permanece)
   const pedInput = $("gradePedidoCliente");
   if(pedInput) pedInput.value = "";
   // Caixas volta para 1 na próxima grade
