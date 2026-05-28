@@ -5388,49 +5388,54 @@ function _renderCartGradesSummary(){
     listEl.innerHTML = "";
     return;
   }
-  // Agrupa: chave = JSON da grade efetiva (já com caixas aplicadas)
-  const groups = new Map();   // key -> { grade:{tam:qty}, totalPares }
-  let semGradeTotal = 0;
-  let totalPedido = 0;
+  // Agrupa por GRADE BASE (proporção sem o multiplicador de caixas).
+  // Chave estável = ordenado por tamanho.
+  const groups = new Map();   // key -> { gradeBase, totalPares, itens }
+  let semGradeItens = 0;
+  let semGradeTotalPares = 0;
+  let totalItensComGrade = 0;
   for(const it of state.cart.values()){
     const qty = Number(it.qty) || 0;
-    totalPedido += qty;
-    const hasGrade = it.grade && Object.keys(it.grade).length > 0;
-    if(!hasGrade){
-      semGradeTotal += qty;
+    const baseObj = (it.gradeBase && Object.keys(it.gradeBase).length > 0)
+      ? it.gradeBase
+      : (it.grade && Object.keys(it.grade).length > 0 ? it.grade : null);
+    if(!baseObj){
+      semGradeItens += 1;
+      semGradeTotalPares += qty;
       continue;
     }
-    // Soma pares dessa linha
-    const linhaTotal = Object.values(it.grade).reduce((a,b) => a + (Number(b)||0), 0);
-    // Chave estável: ordena pelos tamanhos
-    const ordered = Object.keys(it.grade).sort((a,b)=>{
+    totalItensComGrade += 1;
+    const ordered = Object.keys(baseObj).sort((a,b)=>{
       const na = parseFloat(a), nb = parseFloat(b);
       if(!isNaN(na) && !isNaN(nb)) return na - nb;
       return String(a).localeCompare(String(b));
     });
-    const key = ordered.map(t => `${t}:${it.grade[t]}`).join("|");
+    const key = ordered.map(t => `${t}:${baseObj[t]}`).join("|");
     if(!groups.has(key)){
       const g = {};
-      for(const t of ordered) g[t] = Number(it.grade[t]) || 0;
-      groups.set(key, { grade:g, totalPares:0 });
+      for(const t of ordered) g[t] = Number(baseObj[t]) || 0;
+      groups.set(key, { gradeBase:g, totalPares:0, itens:0 });
     }
-    groups.get(key).totalPares += linhaTotal;
+    const grp = groups.get(key);
+    grp.totalPares += qty;
+    grp.itens += 1;
   }
 
-  // Ordena grupos por total de pares (decrescente)
-  const arr = Array.from(groups.values()).sort((a,b) => b.totalPares - a.totalPares);
-  if(arr.length === 0 && semGradeTotal === 0){
+  // Ordena grupos por nº de itens (decrescente)
+  const arr = Array.from(groups.values()).sort((a,b) => b.itens - a.itens);
+  if(arr.length === 0 && semGradeItens === 0){
     wrap.classList.add("hidden");
     listEl.innerHTML = "";
     return;
   }
-  // Calcula percentual sobre total do pedido
-  const pct = (n) => totalPedido > 0
-    ? `${(n / totalPedido * 100).toFixed(1).replace(".", ",")}%`
+  // Percentual = nº de itens dessa grade ÷ total de itens (independente da qtde de pares)
+  const totalItens = totalItensComGrade + semGradeItens;
+  const pct = (n) => totalItens > 0
+    ? `${(n / totalItens * 100).toFixed(1).replace(".", ",")}%`
     : "0%";
   // HTML
   const blocks = arr.map(g => {
-    const pillsHtml = Object.entries(g.grade).map(([tam, qty]) => `
+    const pillsHtml = Object.entries(g.gradeBase).map(([tam, qty]) => `
       <div class="flex flex-col items-center rounded-md border border-oly-border bg-white min-w-[28px] px-1.5 py-1 leading-none">
         <span class="text-[8.5px] font-bold text-oly-muted">${escapeHtml(tam)}</span>
         <span class="text-[11px] font-extrabold text-oly-blue mt-0.5">${qty}</span>
@@ -5439,17 +5444,17 @@ function _renderCartGradesSummary(){
       <div class="rounded-xl border border-oly-border bg-oly-bg p-2.5">
         <div class="flex flex-wrap gap-1">${pillsHtml}</div>
         <div class="mt-2 flex items-baseline justify-between gap-2">
-          <span class="text-[10.5px] font-bold text-oly-muted">${pct(g.totalPares)}</span>
+          <span class="text-[10.5px] font-bold text-oly-muted">${pct(g.itens)}</span>
           <span class="text-[12px] font-extrabold text-oly-blue">${g.totalPares} pares</span>
         </div>
       </div>`;
   }).join("");
   let extra = "";
-  if(semGradeTotal > 0){
+  if(semGradeItens > 0){
     extra = `
       <div class="rounded-xl border border-oly-border bg-oly-bg p-2.5 flex items-center justify-between">
-        <span class="text-[12px] font-bold text-oly-muted">Sem grade <span class="text-[10.5px] font-bold ml-1">· ${pct(semGradeTotal)}</span></span>
-        <span class="text-[12px] font-extrabold text-oly-blue">${semGradeTotal} pares</span>
+        <span class="text-[12px] font-bold text-oly-muted">Sem grade <span class="text-[10.5px] font-bold ml-1">· ${pct(semGradeItens)}</span></span>
+        <span class="text-[12px] font-extrabold text-oly-blue">${semGradeTotalPares} pares</span>
       </div>`;
   }
   listEl.innerHTML = blocks + extra;
@@ -5643,13 +5648,13 @@ function renderCartUI(){
     row.innerHTML = `
       <div class="flex gap-3">
         ${state.cartBulkSelectMode && eligibleForBulk ? `<button class="cart-bulk-pick ${bulkSelected ? "on" : ""}" data-bulk-pick="true" aria-label="${bulkSelected ? "Desmarcar" : "Selecionar"} produto" title="${bulkSelected ? "Desmarcar" : "Selecionar"} produto"><i class="fa-solid ${bulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
-        <div class="h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0">
+        <div class="h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0" data-open-details="true" role="button" tabindex="0" title="Ver/editar item">
           ${it.imgSrc ? `<img loading="lazy" decoding="async" src="${it.imgSrc}" alt="${escapeHtml(it.produto)}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none';">`
             : `<i class="fa-solid fa-image text-oly-blue text-xl"></i>`}
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0 flex-1" data-open="true" role="button" tabindex="0" title="Ver/editar item">
+            <div class="min-w-0 flex-1">
               <div class="font-extrabold leading-snug truncate">${escapeHtml(it.produto || "Produto")}</div>
               <div class="mt-1 flex flex-wrap gap-1.5">
                 <span class="inline-flex items-center gap-1 rounded-full bg-oly-blue/10 px-2.5 py-1 text-xs font-extrabold text-oly-blue">
@@ -5739,6 +5744,9 @@ function renderCartUI(){
     `;
 
     row.addEventListener("click", (e)=>{
+      // Etiqueta de data: deixa o calendário nativo abrir (não trata como clique no item)
+      if(e.target?.closest?.('.cart-date-pill')) return;
+
       const bp = e.target?.closest?.("[data-bulk-pick='true']");
       const rm = e.target?.closest?.("[data-remove='true']");
       const mn = e.target?.closest?.("[data-minus='true']");
@@ -5821,7 +5829,9 @@ function renderCartUI(){
         return;
       }
 
-      // Qualquer outro clique abre detalhes
+      // Abre detalhes APENAS ao clicar no container da imagem
+      const od = e.target?.closest?.("[data-open-details='true']");
+      if(!od) return;
       const variant = findProductVariantFromCartItem(it);
       if(variant && !ed){
         closeCartModal();
@@ -7481,10 +7491,11 @@ function openGradeModal(item, opts={}){
   const confirmBtn = document.getElementById("btnConfirmGrade");
   const confirmSpan = confirmBtn?.querySelector("span");
   if(confirmSpan && !opts.keepBulk) confirmSpan.textContent = "Adicionar Grade à Sacola";
-  // Controle de Caixas: visível no fluxo normal (escondido no modo lote)
+  // Controle de Caixas: visível no fluxo normal; escondido no modo lote e
+  // ao editar via régua (régua altera só a grade base — caixas se ajusta na sacola)
   if(!opts.keepBulk){
     const boxWrap = $("gradeBoxWrap");
-    if(boxWrap) boxWrap.classList.remove("hidden");
+    if(boxWrap) boxWrap.classList.toggle("hidden", !!opts.cartKey);
   }
 
   const sizes = expandTam(item.tam, item.categoria);
@@ -7738,13 +7749,19 @@ function gradeToCartEntry(){
   // Pedido do cliente (opcional, da linha)
   const pedidoClienteLinha = ($("gradePedidoCliente")?.value || "").trim();
 
-  // Caixas (multiplicador definido no modal de grade)
-  const boxesModal = Math.max(1, Math.min(99, parseInt($("gradeBoxValue")?.textContent, 10) || 1));
+  // Caixas: ao editar via régua, preserva o valor atual da linha (régua = só grade base).
+  // No fluxo normal (novo item ou outra grade), usa o controle do modal.
+  let boxesAplicar;
+  if(gradeState.cartKey && state.cart.has(gradeState.cartKey)){
+    boxesAplicar = Math.max(1, Math.min(99, Number(state.cart.get(gradeState.cartKey).boxes) || 1));
+  } else {
+    boxesAplicar = Math.max(1, Math.min(99, parseInt($("gradeBoxValue")?.textContent, 10) || 1));
+  }
   // Grade final = grade base × caixas
   const gradeFinal = {};
   let qtyFinal = 0;
   for(const [tam, q] of Object.entries(gradeMap)){
-    const v = (Number(q) || 0) * boxesModal;
+    const v = (Number(q) || 0) * boxesAplicar;
     gradeFinal[tam] = v;
     qtyFinal += v;
   }
@@ -7767,7 +7784,7 @@ function gradeToCartEntry(){
     grade: gradeFinal,
     // Grade BASE imutável + multiplicador "boxes" — usados pelo +/- da sacola
     gradeBase: { ...gradeMap },
-    boxes: boxesModal,
+    boxes: boxesAplicar,
     gradeResume,
     dataDesejada,
     pedidoCliente: pedidoClienteLinha,
