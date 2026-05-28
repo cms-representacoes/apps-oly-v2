@@ -253,6 +253,34 @@
     #btnBulkGrade.hidden { display: none !important; }
     .dark-mode #btnBulkGrade { background:rgba(167,139,250,.15)!important; }
 
+    #btnBulkAccDate {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(251, 191, 36, .12);
+      border: 1px dashed rgba(251, 191, 36, .6);
+      color: #B45309;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      margin-top: 8px;
+    }
+    #btnBulkAccDate .bulk-sub {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: .85;
+      margin-top: 2px;
+    }
+    #btnBulkAccDate:hover { background: rgba(251, 191, 36, .2); }
+    #btnBulkAccDate:active { transform: scale(.97); }
+    #btnBulkAccDate.hidden { display: none !important; }
+    .dark-mode #btnBulkAccDate { background:rgba(251,191,36,.12)!important; color:#FCD34D!important; }
+
     /* ── Bulk grade: seleção de produtos ── */
     #bulkSelectBar.hidden,
     #bulkGradeModeModal.hidden { display:none !important; }
@@ -2060,6 +2088,13 @@
                     <span class="bulk-sub" id="btnBulkGradeSub"></span>
                   </span>
                 </button>
+                <button id="btnBulkAccDate" class="hidden focus-ring">
+                  <i class="fa-regular fa-calendar" style="font-size:14px"></i>
+                  <span>
+                    Aplicar data em acessórios
+                    <span class="bulk-sub" id="btnBulkAccDateSub"></span>
+                  </span>
+                </button>
                 <div id="bulkSelectBar" class="hidden">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
@@ -2081,6 +2116,32 @@
                       <span>Aplicar aos selecionados</span>
                     </button>
                     <button id="btnBulkSelectCancel" class="bulk-select-btn" type="button">
+                      <i class="fa-solid fa-ban"></i>
+                      <span>Cancelar</span>
+                    </button>
+                  </div>
+                </div>
+                <div id="dateBulkBar" class="hidden">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-xs font-extrabold uppercase tracking-[0.18em]" style="color:#B45309">Definir data dos acessórios</div>
+                      <div id="dateBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 acessório selecionado</div>
+                      <div id="dateBulkHint" class="mt-1 text-xs text-oly-muted">Marque os acessórios e defina a mesma data para todos.</div>
+                    </div>
+                    <button id="btnDateBulkCancelTop" class="bulk-select-btn" type="button">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  <div class="bulk-select-actions">
+                    <button id="btnDateBulkSelectAll" class="bulk-select-btn" type="button">
+                      <i class="fa-solid fa-check-double"></i>
+                      <span>Selecionar todos</span>
+                    </button>
+                    <button id="btnDateBulkApply" class="bulk-select-btn primary" type="button" disabled>
+                      <i class="fa-regular fa-calendar"></i>
+                      <span>Definir data dos selecionados</span>
+                    </button>
+                    <button id="btnDateBulkCancel" class="bulk-select-btn" type="button">
                       <i class="fa-solid fa-ban"></i>
                       <span>Cancelar</span>
                     </button>
@@ -2432,6 +2493,31 @@
       </div>
     </div>
 
+    <!-- Modal genérico de seleção de data (reaproveitável) -->
+    <div id="datePickModal" class="hidden fixed inset-0 z-[90]">
+      <div class="absolute inset-0 bg-black/50" id="datePickBackdrop"></div>
+      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-[380px] bg-white rounded-2xl shadow-lift overflow-hidden" style="background:var(--card-bg,#fff);color:var(--text)">
+        <div class="px-5 pt-5 pb-2">
+          <div class="flex items-start gap-3">
+            <div class="h-10 w-10 rounded-full flex items-center justify-center shrink-0" style="background:rgba(124,58,237,.1);color:var(--primary)">
+              <i class="fa-regular fa-calendar text-lg"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 id="datePickTitle" class="text-base font-extrabold leading-tight">Definir data</h3>
+              <div id="datePickMessage" class="mt-1.5 text-sm font-medium" style="color:var(--muted);line-height:1.5">Escolha a data desejada</div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <input id="datePickInput" type="date" required class="w-full rounded-xl border border-oly-border px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2" style="background:var(--card-bg,#fff);color:var(--text)">
+          </div>
+        </div>
+        <div class="px-5 pb-5 pt-3 flex gap-2 justify-end flex-wrap">
+          <button id="datePickCancelBtn" type="button" class="focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-oly-border bg-white px-4 py-2.5 text-sm font-bold hover:bg-oly-bg" style="color:var(--text)">Cancelar</button>
+          <button id="datePickOkBtn" type="button" class="focus-ring inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-extrabold text-white" style="background:var(--primary)">Aplicar</button>
+        </div>
+      </div>
+    </div>
+
     <div id="gradeModal" class="hidden fixed inset-0 z-[75]">
       <div class="absolute inset-0 bg-black/40" id="gradeBackdrop"></div>
       <div class="grade-sheet absolute inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-lift max-h-[90vh] flex flex-col" id="gradeSheet" style="max-width:520px;margin:0 auto;">
@@ -2706,6 +2792,8 @@ const state = {
   cartGenderFilter: "",  // "" = todos | "masc"|"fem"|"inf"|"uni"
   cartBulkSelectMode: false,
   cartBulkSelected: new Set(),
+  cartDateBulkMode: false,         // modo de seleção pra aplicar data em ACCs
+  cartDateBulkSelected: new Set(),
   favsSelected: new Set(), // variant keys
   // Cond. Pagamento guardada após gerar Excel (vale até limpar sacola)
   lastOrderCfg: null,
@@ -2790,6 +2878,59 @@ function getBulkGradeTargets(mode, opts={}){
 function clearCartBulkSelection(){
   state.cartBulkSelectMode = false;
   state.cartBulkSelected = new Set();
+}
+/** Modo de seleção pra aplicar data em acessórios */
+function clearCartDateBulkSelection(){
+  state.cartDateBulkMode = false;
+  state.cartDateBulkSelected = new Set();
+}
+function startCartDateBulkMode(){
+  // Mutex com o modo de bulk grade
+  clearCartBulkSelection();
+  state.cartDateBulkMode = true;
+  state.cartDateBulkSelected = new Set();
+  renderCartUI();
+}
+function toggleCartDateBulkSelection(key){
+  const next = new Set(state.cartDateBulkSelected);
+  if(next.has(key)) next.delete(key); else next.add(key);
+  state.cartDateBulkSelected = next;
+  updateDateBulkToolbar();
+}
+async function applyCartDateBulk(){
+  const keys = [...state.cartDateBulkSelected];
+  if(!keys.length){ toast("Selecione ao menos 1 acessório ✅"); return; }
+  const data = await appDatePick({
+    title: "Definir data dos acessórios",
+    message: `Esta data será aplicada em <strong>${keys.length} acessório${keys.length!==1?"s":""}</strong>.`,
+    okText: "Aplicar"
+  });
+  if(!data) return;
+  let updated = 0;
+  for(const k of keys){
+    const it = state.cart.get(k);
+    if(!it) continue;
+    it.dataDesejada = data;
+    state.cart.set(k, it);
+    updated++;
+  }
+  clearCartDateBulkSelection();
+  saveCartToStorage();
+  renderCartUI();
+  toast("Data aplicada em " + updated + " acessório" + (updated!==1?"s":"") + " ✅");
+}
+function toggleCartDateBulkSelectAll(){
+  const accs = getCartAccessoriesWithoutDate();
+  const allSelected = accs.length > 0 && accs.every(it => state.cartDateBulkSelected.has(it.key));
+  const next = new Set(state.cartDateBulkSelected);
+  if(allSelected){
+    for(const it of accs) next.delete(it.key);
+  } else {
+    for(const it of accs) next.add(it.key);
+  }
+  state.cartDateBulkSelected = next;
+  updateDateBulkToolbar();
+  renderCartUI();
 }
 
 function normalizeName(s){
@@ -5227,6 +5368,7 @@ function openCartModal(){
   renderCartUI();
 }
 function closeCartModal(){
+  if(state.cartDateBulkMode) clearCartDateBulkSelection();
   $("cartModal").classList.add("hidden");
   document.body.style.overflow = "";
   releaseFocusTrap();
@@ -5340,6 +5482,28 @@ function openBulkGradeModeModal(){
   if(!modal) return;
   modal.classList.remove("hidden");
 }
+/** Atualiza a toolbar do modo de data em acessórios */
+function updateDateBulkToolbar(){
+  const bar = $("dateBulkBar");
+  const summary = $("dateBulkSummary");
+  const hint = $("dateBulkHint");
+  const applyBtn = $("btnDateBulkApply");
+  const selectBtn = $("btnDateBulkSelectAll");
+  if(!bar || !summary || !hint || !applyBtn) return;
+  if(!state.cartDateBulkMode){
+    bar.classList.add("hidden");
+    return;
+  }
+  bar.classList.remove("hidden");
+  const accs = getCartAccessoriesWithoutDate();
+  const selCount = accs.filter(it => state.cartDateBulkSelected.has(it.key)).length;
+  summary.textContent = selCount + " acessório" + (selCount!==1?"s":"") + " selecionado" + (selCount!==1?"s":"");
+  hint.textContent = "Marque os acessórios e defina a mesma data para todos.";
+  applyBtn.disabled = selCount === 0;
+  const allSelected = accs.length > 0 && selCount === accs.length;
+  if(selectBtn) selectBtn.querySelector("span").textContent = allSelected ? "Limpar todos" : "Selecionar todos";
+}
+
 function updateBulkSelectionToolbar(){
   const bar = $("bulkSelectBar");
   const summary = $("bulkSelectSummary");
@@ -5665,6 +5829,23 @@ function renderCartUI(){
     updateBulkSelectionToolbar();
   })();
 
+  // ── Botão "Aplicar data em acessórios" ─────────────
+  (()=>{
+    const btn = document.getElementById("btnBulkAccDate");
+    if(!btn) return;
+    const accSemData = getCartAccessoriesWithoutDate();
+    if(accSemData.length < 1){
+      btn.classList.add("hidden");
+      if(state.cartDateBulkMode) clearCartDateBulkSelection();
+      updateDateBulkToolbar();
+      return;
+    }
+    btn.classList.remove("hidden");
+    const sub = document.getElementById("btnBulkAccDateSub");
+    if(sub) sub.textContent = accSemData.length + " sem data";
+    updateDateBulkToolbar();
+  })();
+
   // ── Filter items by selected gender ──────────────
   const _genFilter = state.cartGenderFilter;
   function _genMatch(it){
@@ -5693,13 +5874,16 @@ function renderCartUI(){
     const isPending = needsGrade && !hasGrade;
     const eligibleForBulk = cartItemEligibleForBulkGrade(it, state.cartGenderFilter);
     const bulkSelected = state.cartBulkSelected.has(it.key);
+    const eligibleForDateBulk = isAccessoryCategory(it.categoria) && !it.dataDesejada;
+    const dateBulkSelected = state.cartDateBulkSelected.has(it.key);
 
     const row = document.createElement("div");
     row.dataset.cartKey = it.key;
-    row.className = "rounded-3xl border border-oly-border bg-white p-4" + (isPending ? " border-amber-300 cart-row-pending" : "") + (bulkSelected ? " cart-bulk-row-on" : "");
+    row.className = "rounded-3xl border border-oly-border bg-white p-4" + (isPending ? " border-amber-300 cart-row-pending" : "") + ((bulkSelected || dateBulkSelected) ? " cart-bulk-row-on" : "");
     row.innerHTML = `
       <div class="flex gap-3">
         ${state.cartBulkSelectMode && eligibleForBulk ? `<button class="cart-bulk-pick ${bulkSelected ? "on" : ""}" data-bulk-pick="true" aria-label="${bulkSelected ? "Desmarcar" : "Selecionar"} produto" title="${bulkSelected ? "Desmarcar" : "Selecionar"} produto"><i class="fa-solid ${bulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
+        ${state.cartDateBulkMode && eligibleForDateBulk ? `<button class="cart-bulk-pick ${dateBulkSelected ? "on" : ""}" data-date-pick="true" aria-label="${dateBulkSelected ? "Desmarcar" : "Selecionar"} acessório" title="${dateBulkSelected ? "Desmarcar" : "Selecionar"} acessório"><i class="fa-solid ${dateBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
         <div class="h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0" data-open-details="true" role="button" tabindex="0" title="Ver/editar item">
           ${it.imgSrc ? `<img loading="lazy" decoding="async" src="${it.imgSrc}" alt="${escapeHtml(it.produto)}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none';">`
             : `<i class="fa-solid fa-image text-oly-blue text-xl"></i>`}
@@ -5722,7 +5906,7 @@ function renderCartUI(){
                   const idx = ordemNoBase.get(it.key) || 1;
                   return total > 1 ? `<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD"><i class="fa-solid fa-layer-group" style="font-size:10px"></i> Grade ${idx}/${total}</span>` : "";
                 })()}
-                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="Clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataBR(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : ""}
+                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="Clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataBR(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : (isAccessoryCategory(it.categoria) ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="" aria-label="Definir data do pedido"></label>` : "")}
                 ${isPending ? `<span class="grade-pending-badge"><i class="fa-solid fa-triangle-exclamation"></i> Grade pendente</span>` : ""}
               </div>
             </div>
@@ -5800,6 +5984,7 @@ function renderCartUI(){
       if(e.target?.closest?.('.cart-date-pill')) return;
 
       const bp = e.target?.closest?.("[data-bulk-pick='true']");
+      const dp = e.target?.closest?.("[data-date-pick='true']");
       const rm = e.target?.closest?.("[data-remove='true']");
       const mn = e.target?.closest?.("[data-minus='true']");
       const pl = e.target?.closest?.("[data-plus='true']");
@@ -5812,6 +5997,11 @@ function renderCartUI(){
         const next = new Set(state.cartBulkSelected);
         if(next.has(it.key)) next.delete(it.key); else next.add(it.key);
         state.cartBulkSelected = next;
+        renderCartUI();
+        return;
+      }
+      if(dp){
+        toggleCartDateBulkSelection(it.key);
         renderCartUI();
         return;
       }
@@ -6113,6 +6303,12 @@ function getCartItemsWithPendingGrade(){
     return needsGrade && !hasGrade;
   });
 }
+/** Acessórios sem data desejada — exigidos para finalizar pedido */
+function getCartAccessoriesWithoutDate(){
+  return [...state.cart.values()].filter(it =>
+    isAccessoryCategory(it.categoria) && !it.dataDesejada
+  );
+}
 function flashPendingCartItems(items){
   setTimeout(() => {
     let firstEl = null;
@@ -6144,6 +6340,18 @@ async function openOrderExportModal(opts = {}){
       toast(msg);
       openCartModal();
       flashPendingCartItems(pending);
+      return;
+    }
+
+    // Gate: acessórios precisam de data desejada para finalizar
+    const accSemData = getCartAccessoriesWithoutDate();
+    if(accSemData.length > 0){
+      const msg = accSemData.length === 1
+        ? "1 acessório sem data. Defina antes de exportar ⚠️"
+        : `${accSemData.length} acessórios sem data. Defina antes de exportar ⚠️`;
+      toast(msg);
+      openCartModal();
+      flashPendingCartItems(accSemData);
       return;
     }
 
@@ -7755,6 +7963,56 @@ function appConfirm(opts = {}){
   });
 }
 
+/**
+ * Modal reutilizável para escolher uma data.
+ * appDatePick({ title, message, initial, okText, cancelText }) -> Promise<string|null>
+ *   resolve com a data ISO (YYYY-MM-DD) ou null se cancelar.
+ */
+function appDatePick(opts = {}){
+  return new Promise((resolve)=>{
+    const modal = document.getElementById("datePickModal");
+    const okBtn = document.getElementById("datePickOkBtn");
+    const cancel = document.getElementById("datePickCancelBtn");
+    const backd = document.getElementById("datePickBackdrop");
+    const titleEl = document.getElementById("datePickTitle");
+    const msgEl   = document.getElementById("datePickMessage");
+    const input   = document.getElementById("datePickInput");
+    if(!modal || !okBtn || !cancel || !input){ resolve(null); return; }
+
+    titleEl.textContent = opts.title || "Definir data";
+    msgEl.innerHTML = opts.message || "Escolha a data desejada.";
+    okBtn.textContent = opts.okText || "Aplicar";
+    cancel.textContent = opts.cancelText || "Cancelar";
+    input.value = opts.initial || "";
+
+    modal.classList.remove("hidden");
+    setTimeout(()=> input.focus(), 30);
+
+    const cleanup = (val) => {
+      modal.classList.add("hidden");
+      okBtn.removeEventListener("click", onOk);
+      cancel.removeEventListener("click", onCancel);
+      backd.removeEventListener("click", onCancel);
+      document.removeEventListener("keydown", onKey);
+      resolve(val);
+    };
+    const onOk = ()=>{
+      const v = (input.value || "").trim();
+      if(!v){ input.focus(); return; }
+      cleanup(v);
+    };
+    const onCancel = ()=> cleanup(null);
+    const onKey = (e)=>{
+      if(e.key === "Escape") cleanup(null);
+      else if(e.key === "Enter") onOk();
+    };
+    okBtn.addEventListener("click", onOk);
+    cancel.addEventListener("click", onCancel);
+    backd.addEventListener("click", onCancel);
+    document.addEventListener("keydown", onKey);
+  });
+}
+
 /** Atualiza a faixa-resumo do modo lote em tempo real */
 function _renderBulkSummary(){
   const wrap = document.getElementById("gradeBulkSummary");
@@ -8432,6 +8690,19 @@ function initSwipeModal(sheetId, modalId, closeFn){
   $("btnBulkApplySelected")?.addEventListener("click", startBulkGradeBySelection);
   $("btnBulkSelectCancel")?.addEventListener("click", ()=>{ clearCartBulkSelection(); renderCartUI(); });
   $("btnBulkSelectCancelTop")?.addEventListener("click", ()=>{ clearCartBulkSelection(); renderCartUI(); });
+})();
+
+// ── Modo "Aplicar data em acessórios" ─────────────
+(function initDateBulkActions(){
+  document.getElementById("btnBulkAccDate")?.addEventListener("click", ()=>{
+    const accs = getCartAccessoriesWithoutDate();
+    if(!accs.length){ toast("Nenhum acessório sem data"); return; }
+    startCartDateBulkMode();
+  });
+  $("btnDateBulkSelectAll")?.addEventListener("click", toggleCartDateBulkSelectAll);
+  $("btnDateBulkApply")?.addEventListener("click", applyCartDateBulk);
+  $("btnDateBulkCancel")?.addEventListener("click", ()=>{ clearCartDateBulkSelection(); renderCartUI(); });
+  $("btnDateBulkCancelTop")?.addEventListener("click", ()=>{ clearCartDateBulkSelection(); renderCartUI(); });
 })();
 
 // ── Dark mode toggle ──────────────────────────────
