@@ -5923,7 +5923,10 @@ function renderCartUI(){
                   </span>
                 ` : `<i class="fa-solid fa-ruler-horizontal text-oly-blue" style="font-size:12px"></i>`}
               </button>
-              <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-edit="true" aria-label="Editar observação">
+              <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-duplicate="true" aria-label="Duplicar item" title="Duplicar item">
+                <i class="fa-solid fa-copy text-oly-blue" style="font-size:12px"></i>
+              </button>
+              <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-edit="true" aria-label="Editar item" title="Editar item">
                 <i class="fa-solid fa-pen-to-square text-oly-blue" style="font-size:12px"></i>
               </button>
               <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-remove="true" aria-label="Remover item">
@@ -5996,6 +5999,7 @@ function renderCartUI(){
       const bxp = e.target?.closest?.("[data-box-plus='true']");
       const ed = e.target?.closest?.("[data-edit='true']");
       const eg = e.target?.closest?.("[data-edit-grade='true']");
+      const dup = e.target?.closest?.("[data-duplicate='true']");
 
       if(bp){
         const next = new Set(state.cartBulkSelected);
@@ -6060,6 +6064,25 @@ function renderCartUI(){
         renderCartUI();
         return;
       }
+      if(dup){
+        // Cria uma cópia da linha como nova entrada na sacola, com data limpa.
+        // Mantém grade, caixas, pedido do cliente, obs e demais atributos.
+        const novoLinhaId = _genLinhaId();
+        const copia = {
+          ...it,
+          linhaId: novoLinhaId,
+          dataDesejada: "",        // força definir nova data
+          pedidoCliente: "",       // pedido do cliente também é por linha
+          appliedInBulk: false,    // limpa flag de lote (foi revisado/duplicado)
+          bulkDate: undefined
+        };
+        copia.key = cartKeyFor(copia);
+        state.cart.set(copia.key, copia);
+        saveCartToStorage();
+        renderCartUI();
+        toast("Item duplicado ✅");
+        return;
+      }
       if(eg){
         // Abre modal de grade a partir da sacola
         const variant = findProductVariantFromCartItem(it);
@@ -6080,16 +6103,25 @@ function renderCartUI(){
         return;
       }
 
+      // Lápis: abre o produto em modo edição
+      if(ed){
+        const variant = findProductVariantFromCartItem(it);
+        if(variant){
+          closeCartModal();
+          openProductModal({ item: variant, group: null, fromCart:true, editing: true, editKey: it.key });
+        } else {
+          toast("Produto não encontrado no catálogo");
+        }
+        return;
+      }
+
       // Abre detalhes APENAS ao clicar no container da imagem
       const od = e.target?.closest?.("[data-open-details='true']");
       if(!od) return;
       const variant = findProductVariantFromCartItem(it);
-      if(variant && !ed){
+      if(variant){
         closeCartModal();
         openProductModal({ item: variant, group: null, fromCart:true, editing: false, editKey: it.key });
-      } else if(variant && ed){
-        closeCartModal();
-        openProductModal({ item: variant, group: null, fromCart:true, editing: true, editKey: it.key });
       }
     });
 
