@@ -2128,7 +2128,7 @@
                 <button id="btnBulkAccDate" class="hidden focus-ring">
                   <i class="fa-regular fa-calendar" style="font-size:14px"></i>
                   <span>
-                    Aplicar data em acessórios
+                    Aplicar data em itens
                     <span class="bulk-sub" id="btnBulkAccDateSub"></span>
                   </span>
                 </button>
@@ -2168,9 +2168,9 @@
                 <div id="dateBulkBar" class="hidden">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <div class="text-xs font-extrabold uppercase tracking-[0.18em]" style="color:#B45309">Definir data dos acessórios</div>
-                      <div id="dateBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 acessório selecionado</div>
-                      <div id="dateBulkHint" class="mt-1 text-xs text-oly-muted">Marque os acessórios e defina a mesma data para todos.</div>
+                      <div class="text-xs font-extrabold uppercase tracking-[0.18em]" style="color:#B45309">Definir data em lote</div>
+                      <div id="dateBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 item selecionado</div>
+                      <div id="dateBulkHint" class="mt-1 text-xs text-oly-muted">Marque os itens e defina a mesma data para todos.</div>
                     </div>
                     <button id="btnDateBulkCancelTop" class="bulk-select-btn" type="button">
                       <i class="fa-solid fa-xmark"></i>
@@ -2997,29 +2997,49 @@ function toggleCartDateBulkSelection(key){
 }
 async function applyCartDateBulk(){
   const keys = [...state.cartDateBulkSelected];
-  if(!keys.length){ toast("Selecione ao menos 1 acessório ✅"); return; }
+  if(!keys.length){ toast("Selecione ao menos 1 item ✅"); return; }
+  // Filtra os ainda elegíveis (sem data) — preserva itens que já foram revisados/preenchidos
+  const elegíveis = keys
+    .map(k => state.cart.get(k))
+    .filter(it => it && !it.dataDesejada);
+  const jaTocados = keys.length - elegíveis.length;
+  if(!elegíveis.length){
+    toast("Todos os selecionados já têm data ⚠️");
+    return;
+  }
   const data = await appDatePick({
-    title: "Definir data dos acessórios",
-    message: `Esta data será aplicada em <strong>${keys.length} acessório${keys.length!==1?"s":""}</strong>.`,
+    title: "Definir data em lote",
+    message: `Esta data será aplicada em <strong>${elegíveis.length} item${elegíveis.length!==1?"ns":""}</strong> que ainda <strong>não tem</strong> data.`,
     okText: "Aplicar"
   });
   if(!data) return;
+  // Confirmação extra se for lote grande (>=5 itens)
+  if(elegíveis.length >= 5){
+    const ok = await appConfirm({
+      title: "Aplicar data em lote",
+      message: `Aplicar a data <strong>${_formatDataBR(data)}</strong> em <strong>${elegíveis.length} item${elegíveis.length!==1?"ns":""}</strong>?`,
+      okText: "Aplicar",
+      cancelText: "Cancelar",
+      tone: "warning"
+    });
+    if(!ok) return;
+  }
   let updated = 0;
-  for(const k of keys){
-    const it = state.cart.get(k);
-    if(!it) continue;
+  for(const it of elegíveis){
     it.dataDesejada = data;
     if(it.pendingDate) delete it.pendingDate;
-    state.cart.set(k, it);
+    state.cart.set(it.key, it);
     updated++;
   }
   clearCartDateBulkSelection();
   saveCartToStorage();
   renderCartUI();
-  toast("Data aplicada em " + updated + " acessório" + (updated!==1?"s":"") + " ✅");
+  let msg = "Data aplicada em " + updated + " item" + (updated!==1?"ns":"") + " ✅";
+  if(jaTocados > 0) msg += " (" + jaTocados + " preservado" + (jaTocados!==1?"s":"") + ")";
+  toast(msg);
 }
 function toggleCartDateBulkSelectAll(){
-  const accs = getCartAccessoriesWithoutDate();
+  const accs = getCartItemsWithoutDateVisible();
   const allSelected = accs.length > 0 && accs.every(it => state.cartDateBulkSelected.has(it.key));
   const next = new Set(state.cartDateBulkSelected);
   if(allSelected){
@@ -5685,10 +5705,10 @@ function updateDateBulkToolbar(){
     return;
   }
   bar.classList.remove("hidden");
-  const accs = getCartAccessoriesWithoutDate();
+  const accs = getCartItemsWithoutDateVisible();
   const selCount = accs.filter(it => state.cartDateBulkSelected.has(it.key)).length;
-  summary.textContent = selCount + " acessório" + (selCount!==1?"s":"") + " selecionado" + (selCount!==1?"s":"");
-  hint.textContent = "Marque os acessórios e defina a mesma data para todos.";
+  summary.textContent = selCount + " item" + (selCount!==1?"ns":"") + " selecionado" + (selCount!==1?"s":"");
+  hint.textContent = "Marque os itens e defina a mesma data para todos.";
   applyBtn.disabled = selCount === 0;
   const allSelected = accs.length > 0 && selCount === accs.length;
   if(selectBtn) selectBtn.querySelector("span").textContent = allSelected ? "Limpar todos" : "Selecionar todos";
@@ -6040,12 +6060,12 @@ function renderCartUI(){
     updateBulkSelectionToolbar();
   })();
 
-  // ── Botão "Aplicar data em acessórios" ─────────────
+  // ── Botão "Aplicar data em itens" ─────────────
   (()=>{
     const btn = document.getElementById("btnBulkAccDate");
     if(!btn) return;
-    const accSemData = getCartAccessoriesWithoutDate();
-    if(accSemData.length < 1){
+    const accSemData = getCartItemsWithoutDateVisible();
+    if(accSemData.length < 2){
       btn.classList.add("hidden");
       if(state.cartDateBulkMode) clearCartDateBulkSelection();
       updateDateBulkToolbar();
@@ -6103,7 +6123,7 @@ function renderCartUI(){
     const isPending = needsGrade && !hasGrade;
     const eligibleForBulk = cartItemEligibleForBulkGrade(it, state.cartGenderFilter);
     const bulkSelected = state.cartBulkSelected.has(it.key);
-    const eligibleForDateBulk = isAccessoryCategory(it.categoria) && !it.dataDesejada;
+    const eligibleForDateBulk = !it.dataDesejada;
     const dateBulkSelected = state.cartDateBulkSelected.has(it.key);
     const eligibleForQtyBulk = isQtyBulkEligible(it);
     const qtyBulkSelected = state.cartQtyBulkSelected.has(it.key);
@@ -6114,7 +6134,7 @@ function renderCartUI(){
     row.innerHTML = `
       <div class="flex gap-3">
         ${state.cartBulkSelectMode && eligibleForBulk ? `<button class="cart-bulk-pick ${bulkSelected ? "on" : ""}" data-bulk-pick="true" aria-label="${bulkSelected ? "Desmarcar" : "Selecionar"} produto" title="${bulkSelected ? "Desmarcar" : "Selecionar"} produto"><i class="fa-solid ${bulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
-        ${state.cartDateBulkMode && eligibleForDateBulk ? `<button class="cart-bulk-pick ${dateBulkSelected ? "on" : ""}" data-date-pick="true" aria-label="${dateBulkSelected ? "Desmarcar" : "Selecionar"} acessório" title="${dateBulkSelected ? "Desmarcar" : "Selecionar"} acessório"><i class="fa-solid ${dateBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
+        ${state.cartDateBulkMode && eligibleForDateBulk ? `<button class="cart-bulk-pick ${dateBulkSelected ? "on" : ""}" data-date-pick="true" aria-label="${dateBulkSelected ? "Desmarcar" : "Selecionar"} item" title="${dateBulkSelected ? "Desmarcar" : "Selecionar"} item"><i class="fa-solid ${dateBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
         ${state.cartQtyBulkMode && eligibleForQtyBulk ? `<button class="cart-bulk-pick ${qtyBulkSelected ? "on" : ""}" data-qty-pick="true" aria-label="${qtyBulkSelected ? "Desmarcar" : "Selecionar"} item" title="${qtyBulkSelected ? "Desmarcar" : "Selecionar"} item"><i class="fa-solid ${qtyBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
         <div class="h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0" data-open-details="true" role="button" tabindex="0" title="Ver/editar item">
           ${it.imgSrc ? `<img loading="lazy" decoding="async" src="${it.imgSrc}" alt="${escapeHtml(it.produto)}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none';">`
@@ -6602,6 +6622,12 @@ function getCartAccessoriesWithoutDate(){
     (isAccessoryCategory(it.categoria) || it.pendingDate) && !it.dataDesejada
   );
 }
+/** Itens visíveis na sacola (respeita filtro de gênero) sem data desejada — usado pro lote de data */
+function getCartItemsWithoutDateVisible(){
+  return [...state.cart.values()].filter(it =>
+    !it.dataDesejada && cartItemMatchesGenderFilter(it, state.cartGenderFilter)
+  );
+}
 /** ACCs e meias elegíveis pro modo lote de quantidade (sem qty ainda definida pelo vendedor) */
 function isQtyBulkEligible(it){
   if(!it) return false;
@@ -6611,7 +6637,9 @@ function isQtyBulkEligible(it){
   return !it.qtyDefined;
 }
 function getCartItemsWithoutQty(){
-  return [...state.cart.values()].filter(isQtyBulkEligible);
+  return [...state.cart.values()].filter(it =>
+    isQtyBulkEligible(it) && cartItemMatchesGenderFilter(it, state.cartGenderFilter)
+  );
 }
 function flashPendingCartItems(items){
   setTimeout(() => {
@@ -9047,11 +9075,11 @@ function initSwipeModal(sheetId, modalId, closeFn){
   $("btnBulkSelectCancelTop")?.addEventListener("click", ()=>{ clearCartBulkSelection(); renderCartUI(); });
 })();
 
-// ── Modo "Aplicar data em acessórios" ─────────────
+// ── Modo "Aplicar data em itens" ─────────────
 (function initDateBulkActions(){
   document.getElementById("btnBulkAccDate")?.addEventListener("click", ()=>{
-    const accs = getCartAccessoriesWithoutDate();
-    if(!accs.length){ toast("Nenhum acessório sem data"); return; }
+    const accs = getCartItemsWithoutDateVisible();
+    if(!accs.length){ toast("Nenhum item sem data"); return; }
     startCartDateBulkMode();
   });
   $("btnDateBulkSelectAll")?.addEventListener("click", toggleCartDateBulkSelectAll);
