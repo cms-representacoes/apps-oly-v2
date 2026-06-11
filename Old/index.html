@@ -281,6 +281,34 @@
     #btnBulkAccDate.hidden { display: none !important; }
     .dark-mode #btnBulkAccDate { background:rgba(251,191,36,.12)!important; color:#FCD34D!important; }
 
+    #btnBulkAccQty {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(34, 211, 238, .10);
+      border: 1px dashed rgba(14, 116, 144, .55);
+      color: #0e7490;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      margin-top: 8px;
+    }
+    #btnBulkAccQty .bulk-sub {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: .85;
+      margin-top: 2px;
+    }
+    #btnBulkAccQty:hover { background: rgba(34, 211, 238, .2); }
+    #btnBulkAccQty:active { transform: scale(.97); }
+    #btnBulkAccQty.hidden { display: none !important; }
+    .dark-mode #btnBulkAccQty { background:rgba(34,211,238,.12)!important; color:#67e8f9!important; }
+
     /* ── Bulk grade: seleção de produtos ── */
     #bulkSelectBar.hidden,
     #bulkGradeModeModal.hidden { display:none !important; }
@@ -2100,8 +2128,15 @@
                 <button id="btnBulkAccDate" class="hidden focus-ring">
                   <i class="fa-regular fa-calendar" style="font-size:14px"></i>
                   <span>
-                    Aplicar data em acessórios
+                    Aplicar data em itens
                     <span class="bulk-sub" id="btnBulkAccDateSub"></span>
+                  </span>
+                </button>
+                <button id="btnBulkAccQty" class="hidden focus-ring">
+                  <i class="fa-solid fa-hashtag" style="font-size:14px"></i>
+                  <span>
+                    Aplicar quantidade em acessórios
+                    <span class="bulk-sub" id="btnBulkAccQtySub"></span>
                   </span>
                 </button>
                 <div id="bulkSelectBar" class="hidden">
@@ -2133,9 +2168,9 @@
                 <div id="dateBulkBar" class="hidden">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <div class="text-xs font-extrabold uppercase tracking-[0.18em]" style="color:#B45309">Definir data dos acessórios</div>
-                      <div id="dateBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 acessório selecionado</div>
-                      <div id="dateBulkHint" class="mt-1 text-xs text-oly-muted">Marque os acessórios e defina a mesma data para todos.</div>
+                      <div class="text-xs font-extrabold uppercase tracking-[0.18em]" style="color:#B45309">Definir data em lote</div>
+                      <div id="dateBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 item selecionado</div>
+                      <div id="dateBulkHint" class="mt-1 text-xs text-oly-muted">Marque os itens e defina a mesma data para todos.</div>
                     </div>
                     <button id="btnDateBulkCancelTop" class="bulk-select-btn" type="button">
                       <i class="fa-solid fa-xmark"></i>
@@ -2151,6 +2186,32 @@
                       <span>Definir data dos selecionados</span>
                     </button>
                     <button id="btnDateBulkCancel" class="bulk-select-btn" type="button">
+                      <i class="fa-solid fa-ban"></i>
+                      <span>Cancelar</span>
+                    </button>
+                  </div>
+                </div>
+                <div id="qtyBulkBar" class="hidden">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-xs font-extrabold uppercase tracking-[0.18em]" style="color:#0e7490">Definir quantidade em lote</div>
+                      <div id="qtyBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 item selecionado</div>
+                      <div id="qtyBulkHint" class="mt-1 text-xs text-oly-muted">Itens com quantidade já definida são preservados.</div>
+                    </div>
+                    <button id="btnQtyBulkCancelTop" class="bulk-select-btn" type="button">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  <div class="bulk-select-actions">
+                    <button id="btnQtyBulkSelectAll" class="bulk-select-btn" type="button">
+                      <i class="fa-solid fa-check-double"></i>
+                      <span>Selecionar todos</span>
+                    </button>
+                    <button id="btnQtyBulkApply" class="bulk-select-btn primary" type="button" disabled>
+                      <i class="fa-solid fa-hashtag"></i>
+                      <span>Definir quantidade dos selecionados</span>
+                    </button>
+                    <button id="btnQtyBulkCancel" class="bulk-select-btn" type="button">
                       <i class="fa-solid fa-ban"></i>
                       <span>Cancelar</span>
                     </button>
@@ -2829,6 +2890,8 @@ const state = {
   cartBulkSelected: new Set(),
   cartDateBulkMode: false,         // modo de seleção pra aplicar data em ACCs
   cartDateBulkSelected: new Set(),
+  cartQtyBulkMode: false,          // modo de seleção pra aplicar quantidade em ACCs/meias
+  cartQtyBulkSelected: new Set(),
   favsSelected: new Set(), // variant keys
   // Cond. Pagamento guardada após gerar Excel (vale até limpar sacola)
   lastOrderCfg: null,
@@ -2934,29 +2997,49 @@ function toggleCartDateBulkSelection(key){
 }
 async function applyCartDateBulk(){
   const keys = [...state.cartDateBulkSelected];
-  if(!keys.length){ toast("Selecione ao menos 1 acessório ✅"); return; }
+  if(!keys.length){ toast("Selecione ao menos 1 item ✅"); return; }
+  // Filtra os ainda elegíveis (sem data) — preserva itens que já foram revisados/preenchidos
+  const elegíveis = keys
+    .map(k => state.cart.get(k))
+    .filter(it => it && !it.dataDesejada);
+  const jaTocados = keys.length - elegíveis.length;
+  if(!elegíveis.length){
+    toast("Todos os selecionados já têm data ⚠️");
+    return;
+  }
   const data = await appDatePick({
-    title: "Definir data dos acessórios",
-    message: `Esta data será aplicada em <strong>${keys.length} acessório${keys.length!==1?"s":""}</strong>.`,
+    title: "Definir data em lote",
+    message: `Esta data será aplicada em <strong>${elegíveis.length} item${elegíveis.length!==1?"ns":""}</strong> que ainda <strong>não tem</strong> data.`,
     okText: "Aplicar"
   });
   if(!data) return;
+  // Confirmação extra se for lote grande (>=5 itens)
+  if(elegíveis.length >= 5){
+    const ok = await appConfirm({
+      title: "Aplicar data em lote",
+      message: `Aplicar a data <strong>${_formatDataBR(data)}</strong> em <strong>${elegíveis.length} item${elegíveis.length!==1?"ns":""}</strong>?`,
+      okText: "Aplicar",
+      cancelText: "Cancelar",
+      tone: "warning"
+    });
+    if(!ok) return;
+  }
   let updated = 0;
-  for(const k of keys){
-    const it = state.cart.get(k);
-    if(!it) continue;
+  for(const it of elegíveis){
     it.dataDesejada = data;
     if(it.pendingDate) delete it.pendingDate;
-    state.cart.set(k, it);
+    state.cart.set(it.key, it);
     updated++;
   }
   clearCartDateBulkSelection();
   saveCartToStorage();
   renderCartUI();
-  toast("Data aplicada em " + updated + " acessório" + (updated!==1?"s":"") + " ✅");
+  let msg = "Data aplicada em " + updated + " item" + (updated!==1?"ns":"") + " ✅";
+  if(jaTocados > 0) msg += " (" + jaTocados + " preservado" + (jaTocados!==1?"s":"") + ")";
+  toast(msg);
 }
 function toggleCartDateBulkSelectAll(){
-  const accs = getCartAccessoriesWithoutDate();
+  const accs = getCartItemsWithoutDateVisible();
   const allSelected = accs.length > 0 && accs.every(it => state.cartDateBulkSelected.has(it.key));
   const next = new Set(state.cartDateBulkSelected);
   if(allSelected){
@@ -2966,6 +3049,88 @@ function toggleCartDateBulkSelectAll(){
   }
   state.cartDateBulkSelected = next;
   updateDateBulkToolbar();
+  renderCartUI();
+}
+
+/** Modo de seleção pra aplicar QUANTIDADE em ACCs/meias */
+function clearCartQtyBulkSelection(){
+  state.cartQtyBulkMode = false;
+  state.cartQtyBulkSelected = new Set();
+}
+function startCartQtyBulkMode(){
+  // Mutex com os outros modos
+  clearCartBulkSelection();
+  clearCartDateBulkSelection();
+  state.cartQtyBulkMode = true;
+  state.cartQtyBulkSelected = new Set();
+  renderCartUI();
+}
+function toggleCartQtyBulkSelection(key){
+  const next = new Set(state.cartQtyBulkSelected);
+  if(next.has(key)) next.delete(key); else next.add(key);
+  state.cartQtyBulkSelected = next;
+  updateQtyBulkToolbar();
+}
+async function applyCartQtyBulk(){
+  const keys = [...state.cartQtyBulkSelected];
+  if(!keys.length){ toast("Selecione ao menos 1 item ✅"); return; }
+  // Filtra somente os que ainda estão elegíveis (sem qty definida) — preserva os já tocados
+  const elegíveis = keys
+    .map(k => state.cart.get(k))
+    .filter(it => it && isQtyBulkEligible(it));
+  const jaTocados = keys.length - elegíveis.length;
+  if(!elegíveis.length){
+    toast("Todos os selecionados já têm quantidade definida ⚠️");
+    return;
+  }
+  // Pergunta a quantidade
+  const valor = await appTextPrompt({
+    title: "Definir quantidade",
+    message: `Esta quantidade será aplicada em <strong>${elegíveis.length} item${elegíveis.length!==1?"ns":""}</strong> que ainda <strong>não tem</strong> quantidade definida.`,
+    initial: "",
+    placeholder: "Ex.: 12",
+    okText: "Aplicar"
+  });
+  if(valor === null) return;
+  const qtyNum = parseInt(valor, 10);
+  if(isNaN(qtyNum) || qtyNum < 1){ toast("Quantidade inválida ⚠️"); return; }
+  // Confirmação extra se for lote grande (>=5 itens)
+  if(elegíveis.length >= 5){
+    const ok = await appConfirm({
+      title: "Aplicar quantidade em lote",
+      message: `Aplicar a quantidade <strong>${qtyNum}</strong> em <strong>${elegíveis.length} item${elegíveis.length!==1?"ns":""}</strong>?`,
+      okText: "Aplicar",
+      cancelText: "Cancelar",
+      tone: "warning"
+    });
+    if(!ok) return;
+  }
+  // Aplica
+  let updated = 0;
+  for(const it of elegíveis){
+    it.qty = qtyNum;
+    it.qtyDefined = true;
+    state.cart.set(it.key, it);
+    updated++;
+  }
+  clearCartQtyBulkSelection();
+  saveCartToStorage();
+  renderCartUI();
+  let msg = "Quantidade aplicada em " + updated + " item" + (updated!==1?"ns":"") + " ✅";
+  if(jaTocados > 0) msg += " (" + jaTocados + " preservado" + (jaTocados!==1?"s":"") + ")";
+  toast(msg);
+}
+function toggleCartQtyBulkSelectAll(){
+  const itens = getCartItemsWithoutQty();
+  const allSelected = itens.length > 0 && itens.every(it => state.cartQtyBulkSelected.has(it.key));
+  const next = new Set(state.cartQtyBulkSelected);
+  if(allSelected){
+    for(const it of itens) next.delete(it.key);
+  } else {
+    for(const it of itens) next.add(it.key);
+  }
+  state.cartQtyBulkSelected = next;
+  updateQtyBulkToolbar();
   renderCartUI();
 }
 
@@ -5409,6 +5574,7 @@ function openCartModal(){
 }
 function closeCartModal(){
   if(state.cartDateBulkMode) clearCartDateBulkSelection();
+  if(state.cartQtyBulkMode) clearCartQtyBulkSelection();
   $("cartModal").classList.add("hidden");
   document.body.style.overflow = "";
   releaseFocusTrap();
@@ -5539,12 +5705,33 @@ function updateDateBulkToolbar(){
     return;
   }
   bar.classList.remove("hidden");
-  const accs = getCartAccessoriesWithoutDate();
+  const accs = getCartItemsWithoutDateVisible();
   const selCount = accs.filter(it => state.cartDateBulkSelected.has(it.key)).length;
-  summary.textContent = selCount + " acessório" + (selCount!==1?"s":"") + " selecionado" + (selCount!==1?"s":"");
-  hint.textContent = "Marque os acessórios e defina a mesma data para todos.";
+  summary.textContent = selCount + " item" + (selCount!==1?"ns":"") + " selecionado" + (selCount!==1?"s":"");
+  hint.textContent = "Marque os itens e defina a mesma data para todos.";
   applyBtn.disabled = selCount === 0;
   const allSelected = accs.length > 0 && selCount === accs.length;
+  if(selectBtn) selectBtn.querySelector("span").textContent = allSelected ? "Limpar todos" : "Selecionar todos";
+}
+
+function updateQtyBulkToolbar(){
+  const bar = $("qtyBulkBar");
+  const summary = $("qtyBulkSummary");
+  const hint = $("qtyBulkHint");
+  const applyBtn = $("btnQtyBulkApply");
+  const selectBtn = $("btnQtyBulkSelectAll");
+  if(!bar || !summary || !hint || !applyBtn) return;
+  if(!state.cartQtyBulkMode){
+    bar.classList.add("hidden");
+    return;
+  }
+  bar.classList.remove("hidden");
+  const itens = getCartItemsWithoutQty();
+  const selCount = itens.filter(it => state.cartQtyBulkSelected.has(it.key)).length;
+  summary.textContent = selCount + " item" + (selCount!==1?"ns":"") + " selecionado" + (selCount!==1?"s":"");
+  hint.textContent = "Itens com quantidade já definida são preservados.";
+  applyBtn.disabled = selCount === 0;
+  const allSelected = itens.length > 0 && selCount === itens.length;
   if(selectBtn) selectBtn.querySelector("span").textContent = allSelected ? "Limpar todos" : "Selecionar todos";
 }
 
@@ -5873,12 +6060,12 @@ function renderCartUI(){
     updateBulkSelectionToolbar();
   })();
 
-  // ── Botão "Aplicar data em acessórios" ─────────────
+  // ── Botão "Aplicar data em itens" ─────────────
   (()=>{
     const btn = document.getElementById("btnBulkAccDate");
     if(!btn) return;
-    const accSemData = getCartAccessoriesWithoutDate();
-    if(accSemData.length < 1){
+    const accSemData = getCartItemsWithoutDateVisible();
+    if(accSemData.length < 2){
       btn.classList.add("hidden");
       if(state.cartDateBulkMode) clearCartDateBulkSelection();
       updateDateBulkToolbar();
@@ -5888,6 +6075,24 @@ function renderCartUI(){
     const sub = document.getElementById("btnBulkAccDateSub");
     if(sub) sub.textContent = accSemData.length + " sem data";
     updateDateBulkToolbar();
+  })();
+
+  // ── Botão "Aplicar quantidade em acessórios" ─────────────
+  (()=>{
+    const btn = document.getElementById("btnBulkAccQty");
+    if(!btn) return;
+    const semQty = getCartItemsWithoutQty();
+    // Aparece só com ≥2 itens elegíveis (faz sentido aplicar em lote)
+    if(semQty.length < 2){
+      btn.classList.add("hidden");
+      if(state.cartQtyBulkMode) clearCartQtyBulkSelection();
+      updateQtyBulkToolbar();
+      return;
+    }
+    btn.classList.remove("hidden");
+    const sub = document.getElementById("btnBulkAccQtySub");
+    if(sub) sub.textContent = semQty.length + " sem quantidade";
+    updateQtyBulkToolbar();
   })();
 
   // ── Filter items by selected gender ──────────────
@@ -5918,16 +6123,19 @@ function renderCartUI(){
     const isPending = needsGrade && !hasGrade;
     const eligibleForBulk = cartItemEligibleForBulkGrade(it, state.cartGenderFilter);
     const bulkSelected = state.cartBulkSelected.has(it.key);
-    const eligibleForDateBulk = isAccessoryCategory(it.categoria) && !it.dataDesejada;
+    const eligibleForDateBulk = !it.dataDesejada;
     const dateBulkSelected = state.cartDateBulkSelected.has(it.key);
+    const eligibleForQtyBulk = isQtyBulkEligible(it);
+    const qtyBulkSelected = state.cartQtyBulkSelected.has(it.key);
 
     const row = document.createElement("div");
     row.dataset.cartKey = it.key;
-    row.className = "rounded-3xl border border-oly-border bg-white p-4" + (isPending ? " border-amber-300 cart-row-pending" : "") + ((bulkSelected || dateBulkSelected) ? " cart-bulk-row-on" : "");
+    row.className = "rounded-3xl border border-oly-border bg-white p-4" + (isPending ? " border-amber-300 cart-row-pending" : "") + ((bulkSelected || dateBulkSelected || qtyBulkSelected) ? " cart-bulk-row-on" : "");
     row.innerHTML = `
       <div class="flex gap-3">
         ${state.cartBulkSelectMode && eligibleForBulk ? `<button class="cart-bulk-pick ${bulkSelected ? "on" : ""}" data-bulk-pick="true" aria-label="${bulkSelected ? "Desmarcar" : "Selecionar"} produto" title="${bulkSelected ? "Desmarcar" : "Selecionar"} produto"><i class="fa-solid ${bulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
-        ${state.cartDateBulkMode && eligibleForDateBulk ? `<button class="cart-bulk-pick ${dateBulkSelected ? "on" : ""}" data-date-pick="true" aria-label="${dateBulkSelected ? "Desmarcar" : "Selecionar"} acessório" title="${dateBulkSelected ? "Desmarcar" : "Selecionar"} acessório"><i class="fa-solid ${dateBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
+        ${state.cartDateBulkMode && eligibleForDateBulk ? `<button class="cart-bulk-pick ${dateBulkSelected ? "on" : ""}" data-date-pick="true" aria-label="${dateBulkSelected ? "Desmarcar" : "Selecionar"} item" title="${dateBulkSelected ? "Desmarcar" : "Selecionar"} item"><i class="fa-solid ${dateBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
+        ${state.cartQtyBulkMode && eligibleForQtyBulk ? `<button class="cart-bulk-pick ${qtyBulkSelected ? "on" : ""}" data-qty-pick="true" aria-label="${qtyBulkSelected ? "Desmarcar" : "Selecionar"} item" title="${qtyBulkSelected ? "Desmarcar" : "Selecionar"} item"><i class="fa-solid ${qtyBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
         <div class="h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0" data-open-details="true" role="button" tabindex="0" title="Ver/editar item">
           ${it.imgSrc ? `<img loading="lazy" decoding="async" src="${it.imgSrc}" alt="${escapeHtml(it.produto)}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none';">`
             : `<i class="fa-solid fa-image text-oly-blue text-xl"></i>`}
@@ -6033,6 +6241,7 @@ function renderCartUI(){
 
       const bp = e.target?.closest?.("[data-bulk-pick='true']");
       const dp = e.target?.closest?.("[data-date-pick='true']");
+      const qp = e.target?.closest?.("[data-qty-pick='true']");
       const rm = e.target?.closest?.("[data-remove='true']");
       const mn = e.target?.closest?.("[data-minus='true']");
       const pl = e.target?.closest?.("[data-plus='true']");
@@ -6055,6 +6264,11 @@ function renderCartUI(){
         renderCartUI();
         return;
       }
+      if(qp){
+        toggleCartQtyBulkSelection(it.key);
+        renderCartUI();
+        return;
+      }
       if(rm){
         state.cart.delete(it.key);
         saveCartToStorage();
@@ -6064,6 +6278,7 @@ function renderCartUI(){
       }
       if(mn){
         it.qty = Math.max(1, it.qty - 1);
+        it.qtyDefined = true;
         state.cart.set(it.key, it);
         saveCartToStorage();
         renderCartUI();
@@ -6071,6 +6286,7 @@ function renderCartUI(){
       }
       if(pl){
         it.qty = Math.min(9999, it.qty + 1);
+        it.qtyDefined = true;
         state.cart.set(it.key, it);
         saveCartToStorage();
         renderCartUI();
@@ -6404,6 +6620,25 @@ function getCartItemsWithPendingGrade(){
 function getCartAccessoriesWithoutDate(){
   return [...state.cart.values()].filter(it =>
     (isAccessoryCategory(it.categoria) || it.pendingDate) && !it.dataDesejada
+  );
+}
+/** Itens visíveis na sacola (respeita filtro de gênero) sem data desejada — usado pro lote de data */
+function getCartItemsWithoutDateVisible(){
+  return [...state.cart.values()].filter(it =>
+    !it.dataDesejada && cartItemMatchesGenderFilter(it, state.cartGenderFilter)
+  );
+}
+/** ACCs e meias elegíveis pro modo lote de quantidade (sem qty ainda definida pelo vendedor) */
+function isQtyBulkEligible(it){
+  if(!it) return false;
+  // Vale só pra itens sem grade: acessório ou meia
+  if(it.grade && Object.keys(it.grade).length > 0) return false;
+  if(!isAccessoryCategory(it.categoria) && !isSockCategory(it.categoria)) return false;
+  return !it.qtyDefined;
+}
+function getCartItemsWithoutQty(){
+  return [...state.cart.values()].filter(it =>
+    isQtyBulkEligible(it) && cartItemMatchesGenderFilter(it, state.cartGenderFilter)
   );
 }
 function flashPendingCartItems(items){
@@ -8840,17 +9075,30 @@ function initSwipeModal(sheetId, modalId, closeFn){
   $("btnBulkSelectCancelTop")?.addEventListener("click", ()=>{ clearCartBulkSelection(); renderCartUI(); });
 })();
 
-// ── Modo "Aplicar data em acessórios" ─────────────
+// ── Modo "Aplicar data em itens" ─────────────
 (function initDateBulkActions(){
   document.getElementById("btnBulkAccDate")?.addEventListener("click", ()=>{
-    const accs = getCartAccessoriesWithoutDate();
-    if(!accs.length){ toast("Nenhum acessório sem data"); return; }
+    const accs = getCartItemsWithoutDateVisible();
+    if(!accs.length){ toast("Nenhum item sem data"); return; }
     startCartDateBulkMode();
   });
   $("btnDateBulkSelectAll")?.addEventListener("click", toggleCartDateBulkSelectAll);
   $("btnDateBulkApply")?.addEventListener("click", applyCartDateBulk);
   $("btnDateBulkCancel")?.addEventListener("click", ()=>{ clearCartDateBulkSelection(); renderCartUI(); });
   $("btnDateBulkCancelTop")?.addEventListener("click", ()=>{ clearCartDateBulkSelection(); renderCartUI(); });
+})();
+
+// ── Modo "Aplicar quantidade em acessórios/meias" ─────────────
+(function initQtyBulkActions(){
+  document.getElementById("btnBulkAccQty")?.addEventListener("click", ()=>{
+    const itens = getCartItemsWithoutQty();
+    if(!itens.length){ toast("Nenhum item sem quantidade definida"); return; }
+    startCartQtyBulkMode();
+  });
+  $("btnQtyBulkSelectAll")?.addEventListener("click", toggleCartQtyBulkSelectAll);
+  $("btnQtyBulkApply")?.addEventListener("click", applyCartQtyBulk);
+  $("btnQtyBulkCancel")?.addEventListener("click", ()=>{ clearCartQtyBulkSelection(); renderCartUI(); });
+  $("btnQtyBulkCancelTop")?.addEventListener("click", ()=>{ clearCartQtyBulkSelection(); renderCartUI(); });
 })();
 
 // ── Dark mode toggle ──────────────────────────────

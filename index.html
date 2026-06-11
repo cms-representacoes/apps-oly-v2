@@ -2087,14 +2087,26 @@
           <div id="cartDragHandle" class="sm:hidden flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing shrink-0" aria-hidden="true">
             <div class="w-10 h-1 rounded-full bg-oly-border opacity-60"></div>
           </div>
-          <div class="p-4 sm:p-6 border-b border-oly-border flex items-center justify-between">
-            <div>
+          <div class="p-4 sm:p-6 border-b border-oly-border flex items-center justify-between gap-3">
+            <div class="shrink-0">
               <div class="text-xs text-oly-muted">Checkout</div>
               <div class="text-lg sm:text-xl font-extrabold">Minha Sacola</div>
             </div>
-            <button class="focus-ring h-10 w-10 rounded-full border border-oly-border hover:bg-oly-bg" data-close-cart="true" aria-label="Fechar checkout">
-              <i class="fa-solid fa-xmark text-oly-blue"></i>
-            </button>
+            <div class="flex-1 flex justify-end items-center gap-2 min-w-0">
+              <div id="cartSearchWrap" class="relative" style="width:0;max-width:280px;overflow:hidden;transition:width .22s ease">
+                <input id="cartSearchInput" type="search" autocomplete="off" placeholder="Buscar (código, nome, cor)" class="w-full rounded-full border border-oly-border bg-white pl-9 pr-9 py-2 text-sm font-medium focus:outline-none focus:ring-2" style="color:var(--text)" aria-label="Buscar na sacola">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-oly-muted" style="font-size:12px"></i>
+                <button id="cartSearchClear" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full hover:bg-oly-bg flex items-center justify-center" title="Limpar busca" aria-label="Limpar busca">
+                  <i class="fa-solid fa-xmark text-oly-muted" style="font-size:11px"></i>
+                </button>
+              </div>
+              <button id="btnCartSearchToggle" class="focus-ring h-10 w-10 rounded-full border border-oly-border hover:bg-oly-bg flex items-center justify-center shrink-0" type="button" title="Buscar na sacola" aria-label="Buscar na sacola">
+                <i class="fa-solid fa-magnifying-glass text-oly-blue" style="font-size:13px"></i>
+              </button>
+              <button class="focus-ring h-10 w-10 rounded-full border border-oly-border hover:bg-oly-bg flex items-center justify-center shrink-0" data-close-cart="true" title="Fechar sacola" aria-label="Fechar checkout">
+                <i class="fa-solid fa-xmark text-oly-blue"></i>
+              </button>
+            </div>
           </div>
 
           <div class="p-3 sm:p-6 overflow-y-auto no-scrollbar" id="cartScroll">
@@ -2110,7 +2122,7 @@
               <div class="lg:col-span-2">
                 <div class="flex items-center justify-between">
                   <div class="font-extrabold">Itens</div>
-                  <button id="btnClearCart" class="focus-ring text-sm font-bold text-oly-blue hover:underline">
+                  <button id="btnClearCart" class="focus-ring text-sm font-bold text-oly-blue hover:underline" title="Esvaziar a sacola por completo">
                     Limpar sacola
                   </button>
                 </div>
@@ -2118,21 +2130,21 @@
                 <!-- ✅ Filtro gênero sacola -->
                 <div id="cartGenderFilter"></div>
                 <!-- ✅ Botão grade em lote -->
-                <button id="btnBulkGrade" class="hidden focus-ring">
+                <button id="btnBulkGrade" class="hidden focus-ring" title="Aplicar uma mesma grade em vários produtos de uma vez">
                   <i class="fa-solid fa-layer-group" style="font-size:14px"></i>
                   <span>
                     Aplicar grade em lote
                     <span class="bulk-sub" id="btnBulkGradeSub"></span>
                   </span>
                 </button>
-                <button id="btnBulkAccDate" class="hidden focus-ring">
+                <button id="btnBulkAccDate" class="hidden focus-ring" title="Aplicar uma mesma data em vários itens de uma vez">
                   <i class="fa-regular fa-calendar" style="font-size:14px"></i>
                   <span>
                     Aplicar data em itens
                     <span class="bulk-sub" id="btnBulkAccDateSub"></span>
                   </span>
                 </button>
-                <button id="btnBulkAccQty" class="hidden focus-ring">
+                <button id="btnBulkAccQty" class="hidden focus-ring" title="Aplicar uma mesma quantidade em acessórios e meias">
                   <i class="fa-solid fa-hashtag" style="font-size:14px"></i>
                   <span>
                     Aplicar quantidade em acessórios
@@ -2146,20 +2158,20 @@
                       <div id="bulkSelectSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 produto selecionado</div>
                       <div id="bulkSelectHint" class="mt-1 text-xs text-oly-muted">Marque os produtos e aplique a grade somente neles.</div>
                     </div>
-                    <button id="btnBulkSelectCancelTop" class="bulk-select-btn" type="button">
+                    <button id="btnBulkSelectCancelTop" class="bulk-select-btn" type="button" title="Sair do modo de seleção">
                       <i class="fa-solid fa-xmark"></i>
                     </button>
                   </div>
                   <div class="bulk-select-actions">
-                    <button id="btnBulkSelectAll" class="bulk-select-btn" type="button">
+                    <button id="btnBulkSelectAll" class="bulk-select-btn" type="button" title="Selecionar/desmarcar todos os itens visíveis">
                       <i class="fa-solid fa-check-double"></i>
                       <span>Selecionar visíveis</span>
                     </button>
-                    <button id="btnBulkApplySelected" class="bulk-select-btn primary" type="button" disabled>
+                    <button id="btnBulkApplySelected" class="bulk-select-btn primary" type="button" disabled title="Aplicar a grade nos itens selecionados">
                       <i class="fa-solid fa-ruler-combined"></i>
                       <span>Aplicar aos selecionados</span>
                     </button>
-                    <button id="btnBulkSelectCancel" class="bulk-select-btn" type="button">
+                    <button id="btnBulkSelectCancel" class="bulk-select-btn" type="button" title="Cancelar e limpar seleção">
                       <i class="fa-solid fa-ban"></i>
                       <span>Cancelar</span>
                     </button>
@@ -2172,20 +2184,20 @@
                       <div id="dateBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 item selecionado</div>
                       <div id="dateBulkHint" class="mt-1 text-xs text-oly-muted">Marque os itens e defina a mesma data para todos.</div>
                     </div>
-                    <button id="btnDateBulkCancelTop" class="bulk-select-btn" type="button">
+                    <button id="btnDateBulkCancelTop" class="bulk-select-btn" type="button" title="Sair do modo de seleção">
                       <i class="fa-solid fa-xmark"></i>
                     </button>
                   </div>
                   <div class="bulk-select-actions">
-                    <button id="btnDateBulkSelectAll" class="bulk-select-btn" type="button">
+                    <button id="btnDateBulkSelectAll" class="bulk-select-btn" type="button" title="Selecionar/desmarcar todos os itens sem data">
                       <i class="fa-solid fa-check-double"></i>
                       <span>Selecionar todos</span>
                     </button>
-                    <button id="btnDateBulkApply" class="bulk-select-btn primary" type="button" disabled>
+                    <button id="btnDateBulkApply" class="bulk-select-btn primary" type="button" disabled title="Definir a data nos itens selecionados">
                       <i class="fa-regular fa-calendar"></i>
                       <span>Definir data dos selecionados</span>
                     </button>
-                    <button id="btnDateBulkCancel" class="bulk-select-btn" type="button">
+                    <button id="btnDateBulkCancel" class="bulk-select-btn" type="button" title="Cancelar e limpar seleção">
                       <i class="fa-solid fa-ban"></i>
                       <span>Cancelar</span>
                     </button>
@@ -2198,20 +2210,20 @@
                       <div id="qtyBulkSummary" class="mt-1 text-sm font-extrabold text-oly-text">0 item selecionado</div>
                       <div id="qtyBulkHint" class="mt-1 text-xs text-oly-muted">Itens com quantidade já definida são preservados.</div>
                     </div>
-                    <button id="btnQtyBulkCancelTop" class="bulk-select-btn" type="button">
+                    <button id="btnQtyBulkCancelTop" class="bulk-select-btn" type="button" title="Sair do modo de seleção">
                       <i class="fa-solid fa-xmark"></i>
                     </button>
                   </div>
                   <div class="bulk-select-actions">
-                    <button id="btnQtyBulkSelectAll" class="bulk-select-btn" type="button">
+                    <button id="btnQtyBulkSelectAll" class="bulk-select-btn" type="button" title="Selecionar/desmarcar todos os itens sem quantidade">
                       <i class="fa-solid fa-check-double"></i>
                       <span>Selecionar todos</span>
                     </button>
-                    <button id="btnQtyBulkApply" class="bulk-select-btn primary" type="button" disabled>
+                    <button id="btnQtyBulkApply" class="bulk-select-btn primary" type="button" disabled title="Definir a quantidade nos itens selecionados">
                       <i class="fa-solid fa-hashtag"></i>
                       <span>Definir quantidade dos selecionados</span>
                     </button>
-                    <button id="btnQtyBulkCancel" class="bulk-select-btn" type="button">
+                    <button id="btnQtyBulkCancel" class="bulk-select-btn" type="button" title="Cancelar e limpar seleção">
                       <i class="fa-solid fa-ban"></i>
                       <span>Cancelar</span>
                     </button>
@@ -2276,12 +2288,12 @@
                           <span class="text-[11px] font-extrabold inline-flex items-center gap-1">PDF <i id="pdfDropIcon" class="fa-solid fa-chevron-down" style="font-size:8px;transition:transform .2s;"></i></span>
                         </button>
                         <div id="pdfDropMenu" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;right:0;min-width:190px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.10);overflow:hidden;z-index:200;">
-                          <button id="btnPdfGrade" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:#111827;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+                          <button id="btnPdfGrade" title="PDF com grade completa de tamanhos" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:#111827;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
                             <i class="fa-solid fa-table-cells text-oly-blue" style="font-size:13px;width:16px;"></i>
                             Exibir grade completa
                           </button>
                           <div style="height:1px;background:#f3f4f6;margin:0 10px;"></div>
-                          <button id="btnPdfQtd" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:#111827;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+                          <button id="btnPdfQtd" title="PDF resumido (apenas total de pares)" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:#111827;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
                             <i class="fa-solid fa-hashtag text-oly-blue" style="font-size:13px;width:16px;"></i>
                             Apenas total de pares
                           </button>
@@ -2741,8 +2753,9 @@
     <!-- Toast -->
     <div id="toast" class="pointer-events-none fixed top-4 left-1/2 -translate-x-1/2 z-[80] hidden">
       <div class="pointer-events-auto rounded-full bg-oly-text text-white px-4 py-2 text-sm font-bold shadow-lift flex items-center gap-2">
-        <i class="fa-solid fa-circle-check"></i>
+        <i class="fa-solid fa-circle-check" id="toastIcon"></i>
         <span id="toastMsg">Ok</span>
+        <button id="toastAction" type="button" class="hidden ml-2 rounded-full bg-white/15 hover:bg-white/25 px-3 py-1 text-xs font-extrabold transition" style="color:#fff"></button>
       </div>
     </div>
   </div>
@@ -2892,6 +2905,7 @@ const state = {
   cartDateBulkSelected: new Set(),
   cartQtyBulkMode: false,          // modo de seleção pra aplicar quantidade em ACCs/meias
   cartQtyBulkSelected: new Set(),
+  cartSearchQuery: "",             // texto da busca dentro da sacola
   favsSelected: new Set(), // variant keys
   // Cond. Pagamento guardada após gerar Excel (vale até limpar sacola)
   lastOrderCfg: null,
@@ -2957,6 +2971,20 @@ function cartGenderKeyFromItem(it){
 function cartItemMatchesGenderFilter(it, filter=state.cartGenderFilter){
   if(!filter) return true;
   return cartGenderKeyFromItem(it) === filter;
+}
+/** Verifica se item da sacola casa com a busca (codigo + nome + cor) */
+function cartItemMatchesSearch(it, query=state.cartSearchQuery){
+  const q = String(query || "").trim().toLowerCase();
+  if(!q) return true;
+  const partes = [
+    it.codigo || "",
+    it.produto || "",
+    it.cor || "",
+    it.corCodigo || ""
+  ].join(" ").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove acentos
+  const qNorm = q.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return partes.includes(qNorm);
 }
 function cartItemEligibleForBulkGrade(it, filter=state.cartGenderFilter){
   if(!tamNeedsGrade(it?.categoria, it?.tam)) return false;
@@ -3279,12 +3307,38 @@ function restoreScrollPosition(){
   const y = Number(state.ui.lastScrollY || 0);
   requestAnimationFrame(()=> window.scrollTo({ top: y, left: 0, behavior: "instant" in window ? "instant" : "auto" }));
 }
-function toast(msg){
+function toast(msg, opts){
   const t = $("toast"), m = $("toastMsg");
+  const action = document.getElementById("toastAction");
   m.textContent = msg;
   t.classList.remove("hidden");
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=>t.classList.add("hidden"), 1500);
+  // Limpa listener anterior do botão
+  if(action){
+    if(toast._actionHandler){
+      action.removeEventListener("click", toast._actionHandler);
+      toast._actionHandler = null;
+    }
+    if(opts && opts.actionLabel && typeof opts.onAction === "function"){
+      action.textContent = opts.actionLabel;
+      action.classList.remove("hidden");
+      toast._actionHandler = ()=>{
+        try{ opts.onAction(); } finally {
+          clearTimeout(toast._t);
+          t.classList.add("hidden");
+          action.classList.add("hidden");
+        }
+      };
+      action.addEventListener("click", toast._actionHandler);
+    } else {
+      action.classList.add("hidden");
+    }
+  }
+  const dur = (opts && opts.duration) || 1500;
+  toast._t = setTimeout(()=>{
+    t.classList.add("hidden");
+    if(action) action.classList.add("hidden");
+  }, dur);
 }
 
 function setHeaderStatus(msg){
@@ -5575,6 +5629,14 @@ function openCartModal(){
 function closeCartModal(){
   if(state.cartDateBulkMode) clearCartDateBulkSelection();
   if(state.cartQtyBulkMode) clearCartQtyBulkSelection();
+  // Limpa busca ao fechar
+  state.cartSearchQuery = "";
+  const _si = document.getElementById("cartSearchInput");
+  if(_si) _si.value = "";
+  const _sw = document.getElementById("cartSearchWrap");
+  if(_sw) _sw.style.width = "0";
+  const _sc = document.getElementById("cartSearchClear");
+  if(_sc) _sc.classList.add("hidden");
   $("cartModal").classList.add("hidden");
   document.body.style.overflow = "";
   releaseFocusTrap();
@@ -5609,6 +5671,61 @@ $("cartModal").addEventListener("change", (e)=>{
   renderCartUI();
   toast("Data atualizada ✅");
 });
+
+// ── Busca dentro da sacola ──
+(function initCartSearch(){
+  const wrap = document.getElementById("cartSearchWrap");
+  const input = document.getElementById("cartSearchInput");
+  const clearBtn = document.getElementById("cartSearchClear");
+  const toggleBtn = document.getElementById("btnCartSearchToggle");
+  if(!wrap || !input || !clearBtn || !toggleBtn) return;
+  let aberto = false;
+
+  function setAberto(novo){
+    aberto = novo;
+    wrap.style.width = aberto ? "min(280px, 60vw)" : "0";
+    if(aberto){
+      setTimeout(()=> input.focus(), 230);
+    } else {
+      if(input.value){
+        input.value = "";
+        state.cartSearchQuery = "";
+        clearBtn.classList.add("hidden");
+        renderCartUI();
+      }
+    }
+  }
+
+  toggleBtn.addEventListener("click", ()=> setAberto(!aberto));
+
+  input.addEventListener("input", ()=>{
+    state.cartSearchQuery = input.value;
+    clearBtn.classList.toggle("hidden", !input.value);
+    renderCartUI();
+  });
+
+  input.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape"){
+      if(input.value){
+        input.value = "";
+        state.cartSearchQuery = "";
+        clearBtn.classList.add("hidden");
+        renderCartUI();
+      } else {
+        setAberto(false);
+      }
+    }
+  });
+
+  clearBtn.addEventListener("click", ()=>{
+    input.value = "";
+    state.cartSearchQuery = "";
+    clearBtn.classList.add("hidden");
+    input.focus();
+    renderCartUI();
+  });
+})();
+
 $("btnClearCart").addEventListener("click", ()=>{
   if(state.cart.size === 0){ toast("Sacola já está vazia ✅"); return; }
   const qtd = state.cart.size;
@@ -6118,6 +6235,7 @@ function renderCartUI(){
 
   for(const it of state.cart.values()){
     if(!_genMatch(it)) continue;
+    if(!cartItemMatchesSearch(it)) continue;
     const needsGrade = tamNeedsGrade(it.categoria, it.tam);
     const hasGrade = it.grade && Object.keys(it.grade).length > 0;
     const isPending = needsGrade && !hasGrade;
@@ -6178,7 +6296,7 @@ function renderCartUI(){
               <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-edit="true" aria-label="Editar item" title="Editar item">
                 <i class="fa-solid fa-pen-to-square text-oly-blue" style="font-size:12px"></i>
               </button>
-              <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-remove="true" aria-label="Remover item">
+              <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-remove="true" aria-label="Remover item" title="Remover item">
                 <i class="fa-solid fa-trash text-oly-blue" style="font-size:12px"></i>
               </button>
             </div>
@@ -6197,11 +6315,11 @@ function renderCartUI(){
             <div class="mt-2 flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-bold text-oly-muted">Caixas</span>
-                <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg disabled:opacity-40 disabled:cursor-not-allowed" data-box-minus="true" aria-label="Diminuir caixas" ${(it.boxes||1) <= 1 ? "disabled" : ""}>
+                <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg disabled:opacity-40 disabled:cursor-not-allowed" data-box-minus="true" aria-label="Diminuir caixas" title="Diminuir caixas" ${(it.boxes||1) <= 1 ? "disabled" : ""}>
                   <i class="fa-solid fa-minus text-oly-blue" style="font-size:12px"></i>
                 </button>
                 <div class="min-w-[36px] text-center font-extrabold text-sm">${it.boxes || 1}</div>
-                <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-box-plus="true" aria-label="Aumentar caixas">
+                <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-box-plus="true" aria-label="Aumentar caixas" title="Aumentar caixas">
                   <i class="fa-solid fa-plus text-oly-blue" style="font-size:12px"></i>
                 </button>
               </div>
@@ -6209,20 +6327,20 @@ function renderCartUI(){
             </div>
           </div>` : needsGrade ? `
           <div class="mt-2 flex items-center gap-1.5">
-            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-minus="true" aria-label="Diminuir quantidade">
+            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-minus="true" aria-label="Diminuir quantidade" title="Diminuir quantidade">
               <i class="fa-solid fa-minus text-oly-blue" style="font-size:12px"></i>
             </button>
             <div class="min-w-[44px] text-center font-extrabold text-sm">${it.qty || 0}</div>
-            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-plus="true" aria-label="Aumentar quantidade">
+            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-plus="true" aria-label="Aumentar quantidade" title="Aumentar quantidade">
               <i class="fa-solid fa-plus text-oly-blue" style="font-size:12px"></i>
             </button>
           </div>` : `
           <div class="mt-2 flex items-center gap-1.5">
-            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-minus="true" aria-label="Diminuir quantidade">
+            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-minus="true" aria-label="Diminuir quantidade" title="Diminuir quantidade">
               <i class="fa-solid fa-minus text-oly-blue" style="font-size:12px"></i>
             </button>
             <div class="min-w-[44px] text-center font-extrabold text-sm">${it.qty}</div>
-            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-plus="true" aria-label="Aumentar quantidade">
+            <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-plus="true" aria-label="Aumentar quantidade" title="Aumentar quantidade">
               <i class="fa-solid fa-plus text-oly-blue" style="font-size:12px"></i>
             </button>
           </div>`}
@@ -6270,10 +6388,26 @@ function renderCartUI(){
         return;
       }
       if(rm){
+        // Captura snapshot do item e da posição na sacola pra permitir desfazer
+        const removidoSnapshot = { ...it };
+        const keys = [...state.cart.keys()];
+        const idx = keys.indexOf(it.key);
         state.cart.delete(it.key);
         saveCartToStorage();
         renderCartUI();
-        toast("Removido ✅");
+        toast("Item removido", {
+          duration: 5000,
+          actionLabel: "Desfazer",
+          onAction: ()=>{
+            // Restaura na posição original reconstruindo o Map
+            const arr = [...state.cart.entries()];
+            arr.splice(idx, 0, [removidoSnapshot.key, removidoSnapshot]);
+            state.cart = new Map(arr);
+            saveCartToStorage();
+            renderCartUI();
+            toast("Remoção desfeita ✅");
+          }
+        });
         return;
       }
       if(mn){
