@@ -345,6 +345,44 @@
       border-color: rgba(167,139,250,.55) !important;
       box-shadow: 0 0 0 3px rgba(167,139,250,.10);
     }
+    /* ─── Painel da direita: modo oculto (desktop) ─── */
+    @media (min-width: 1024px){
+      #cartContent.sidebar-hidden{
+        grid-template-columns: 1fr;
+      }
+      #cartContent.sidebar-hidden #cartSidebar{ display:none; }
+      #cartContent.sidebar-hidden #cartFloatingFab{
+        display:flex; align-items:center; gap:10px;
+        position:fixed; right:24px; bottom:24px; z-index:75;
+      }
+    }
+    .cart-fab-btn{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:10px 14px; border-radius:999px;
+      background:#fff; border:1px solid var(--oly-border,#e5e7eb);
+      color:var(--text,#111827); font-weight:800; font-size:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,.10);
+      cursor:pointer; transition:background .15s, transform .15s;
+    }
+    .cart-fab-btn:hover{ background:var(--oly-bg,#f9fafb); }
+    .cart-fab-btn:active{ transform:scale(.97); }
+    .cart-fab-finalize{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:14px 22px; border-radius:999px;
+      background:var(--primary,#7c3aed); color:#fff;
+      font-weight:900; font-size:14px;
+      box-shadow:0 10px 28px rgba(124,58,237,.35);
+      border:0; cursor:pointer; transition:opacity .15s, transform .15s;
+    }
+    .cart-fab-finalize:hover{ opacity:.95; }
+    .cart-fab-finalize:active{ transform:scale(.97); }
+    .cart-fab-total{
+      display:inline-flex; align-items:center;
+      padding:4px 10px; border-radius:999px;
+      background:rgba(255,255,255,.22);
+      font-size:11px; font-weight:800; letter-spacing:.02em;
+    }
+    .dark-mode .cart-fab-btn{ background:var(--card-bg)!important; border-color:var(--border)!important; color:var(--text)!important; }
     #bulkGradeModeSheet {
       width:min(100%, 420px); border-radius:28px; border:1px solid var(--border);
       background:#fff; box-shadow:0 18px 60px rgba(15,23,42,.18); overflow:hidden;
@@ -2119,6 +2157,18 @@
             </div>
 
             <div id="cartContent" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <!-- Botão flutuante de finalizar (só aparece com painel oculto no desktop) -->
+              <div id="cartFloatingFab" class="hidden">
+                <button id="btnShowSidebar" type="button" class="cart-fab-btn" title="Mostrar resumo e opções de exportar">
+                  <i class="fa-solid fa-angles-left" style="font-size:11px"></i>
+                  <span>Resumo</span>
+                </button>
+                <button id="cartFabFinalize" type="button" class="cart-fab-finalize" title="Finalizar e exportar o pedido">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span class="cart-fab-finalize-label">Finalizar pedido</span>
+                  <span id="cartFabTotal" class="cart-fab-total">0 pares</span>
+                </button>
+              </div>
               <div class="lg:col-span-2">
                 <div class="flex items-center justify-between">
                   <div class="font-extrabold">Itens</div>
@@ -2232,9 +2282,15 @@
                 <div id="cartItems" class="mt-3 space-y-3"></div>
               </div>
 
-              <div class="lg:col-span-1">
+              <div class="lg:col-span-1" id="cartSidebar">
                 <div class="rounded-3xl border border-oly-border bg-oly-bg p-4">
-                   <div class="font-extrabold">Resumo</div>
+                   <div class="flex items-center justify-between gap-2">
+                     <div class="font-extrabold">Resumo</div>
+                     <button id="btnHideSidebar" type="button" class="hidden lg:inline-flex focus-ring h-7 px-2.5 rounded-full border border-oly-border bg-white items-center gap-1.5 text-[11px] font-bold text-oly-muted hover:bg-oly-bg" title="Ocultar este painel para ganhar espaço">
+                       <i class="fa-solid fa-angles-right" style="font-size:10px"></i>
+                       <span>Ocultar painel</span>
+                     </button>
+                   </div>
                    <div class="mt-3 rounded-2xl border border-oly-border bg-white p-4">
                      <div class="flex items-start justify-between gap-3">
                        <div>
@@ -5726,6 +5782,44 @@ $("cartModal").addEventListener("change", (e)=>{
   });
 })();
 
+// ── Toggle do painel da direita (desktop) ──
+(function initSidebarToggle(){
+  const content = document.getElementById("cartContent");
+  const hideBtn = document.getElementById("btnHideSidebar");
+  const showBtn = document.getElementById("btnShowSidebar");
+  const finalizeFab = document.getElementById("cartFabFinalize");
+  if(!content || !hideBtn || !showBtn || !finalizeFab) return;
+
+  const STORAGE_KEY = "cart_sidebar_hidden_v1";
+
+  function applyState(hidden){
+    content.classList.toggle("sidebar-hidden", hidden);
+    try{ lsSet(STORAGE_KEY, hidden ? "1" : "0"); }catch(e){}
+    if(hidden) updateFabTotal();
+  }
+  function updateFabTotal(){
+    const el = document.getElementById("cartFabTotal");
+    const totalEl = document.getElementById("cartTotalQty");
+    if(el && totalEl){
+      const n = parseInt(totalEl.textContent, 10) || 0;
+      el.textContent = n + " par" + (n !== 1 ? "es" : "");
+    }
+  }
+  // Restaura estado salvo
+  const saved = lsGet(STORAGE_KEY) === "1";
+  if(saved) content.classList.add("sidebar-hidden");
+
+  hideBtn.addEventListener("click", ()=> applyState(true));
+  showBtn.addEventListener("click", ()=> applyState(false));
+  // O botão flutuante finaliza igual ao btnExportXlsx
+  finalizeFab.addEventListener("click", ()=>{
+    const real = document.getElementById("btnExportXlsx");
+    if(real) real.click();
+  });
+  // Atualiza o chip quando a sacola muda
+  document.addEventListener("cart:total-changed", updateFabTotal);
+})();
+
 $("btnClearCart").addEventListener("click", ()=>{
   if(state.cart.size === 0){ toast("Sacola já está vazia ✅"); return; }
   const qtd = state.cart.size;
@@ -6050,6 +6144,7 @@ function renderCartUI(){
 
   // ✅ Atualiza resumo (se existir)
   if($("cartTotalQty")) $("cartTotalQty").textContent = String(items);
+  document.dispatchEvent(new CustomEvent("cart:total-changed"));
   if($("cartTotalValue")) $("cartTotalValue").textContent = moneyBR(totalValue);
 
   // Mostra/oculta o bloco de Valor total:

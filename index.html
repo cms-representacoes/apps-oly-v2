@@ -16,7 +16,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -35,8 +35,8 @@
             }
           },
           boxShadow: {
-            card: "0 10px 25px rgba(17,24,39,.06)",
-            lift: "0 16px 35px rgba(17,24,39,.10)",
+            card: "0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06)",
+            lift: "0 2px 4px rgba(15,23,42,.06), 0 18px 38px rgba(15,23,42,.12)",
           }
         }
       }
@@ -54,8 +54,8 @@
 
   <style>
     :root{
-      --bg: #F6F7FB;
-      --text:#111827;
+      --bg: #F4F6FA;
+      --text:#0F172A;
       --muted:#6B7280;
       --border:#E5E7EB;
       --primary:var(--primary);
@@ -345,6 +345,18 @@
       border-color: rgba(167,139,250,.55) !important;
       box-shadow: 0 0 0 3px rgba(167,139,250,.10);
     }
+    /* ─── Hover sutil nos cards de produto (premium) ─── */
+    .prod-card-hover{
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+    @media (hover: hover){
+      .prod-card-hover:hover{
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(15,23,42,.06), 0 22px 44px rgba(15,23,42,.14);
+        border-color: rgba(124,58,237,.20);
+      }
+    }
+    .dark-mode .prod-card-hover:hover{ border-color: rgba(167,139,250,.35) !important; }
     /* ─── Painel da direita: modo oculto (desktop) ─── */
     @media (min-width: 1024px){
       #cartContent.sidebar-hidden{
@@ -478,7 +490,7 @@
     @keyframes spin360{ to{ transform:rotate(360deg); } }
     .spinning{ animation:spin360 .65s linear infinite; }
     html, body { height: 100%; width:100%; overflow-x:hidden; }
-    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text);  overflow-x: hidden; }
+    body { font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text);  overflow-x: hidden; }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -639,10 +651,18 @@
     .btn-ready i { color: var(--primary) !important; }
     .btn-added { background: var(--success) !important; }
   
-    /* Card Add button status (robusto: não depende do Tailwind gerar classes dinâmicas) */
-    .btn-add-status.is-idle { background: var(--primary) !important; }
-    .btn-add-status.is-pending { background: #f97316 !important; } /* laranja */
-    .btn-add-status.is-added { background: #22c55e !important; }   /* verde */
+    /* Card Add button status — premium: gradiente diagonal sutil + sombra fina */
+    .btn-add-status{
+      background-image: linear-gradient(140deg, rgba(255,255,255,.18) 0%, transparent 60%);
+      background-blend-mode: overlay;
+      box-shadow: 0 1px 2px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.18);
+      transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .btn-add-status:hover{ filter: brightness(1.05); box-shadow: 0 4px 14px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.22); }
+    .btn-add-status:active{ transform: scale(.98); }
+    .btn-add-status.is-idle    { background-color: var(--primary) !important; }
+    .btn-add-status.is-pending { background-color: #f97316 !important; }
+    .btn-add-status.is-added   { background-color: #22c55e !important; }
 
   /* Product modal thumbnails (cores) */
 .pm-thumbs { display:flex; gap:10px; overflow-x:auto; padding:10px 2px; }
@@ -2807,7 +2827,7 @@
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="pointer-events-none fixed top-4 left-1/2 -translate-x-1/2 z-[80] hidden">
+    <div id="toast" class="pointer-events-none fixed z-[80] hidden" style="position:fixed;right:20px;bottom:24px;max-width:calc(100vw - 40px);z-index:80">
       <div class="pointer-events-auto rounded-full bg-oly-text text-white px-4 py-2 text-sm font-bold shadow-lift flex items-center gap-2">
         <i class="fa-solid fa-circle-check" id="toastIcon"></i>
         <span id="toastMsg">Ok</span>
@@ -4891,7 +4911,7 @@ function renderCards(){
 
     // ✅ Favoritos: lista compacta (como print) + seleção para remover
     if(state.viewMode === "favs"){
-      card.className = "rounded-3xl border border-oly-border bg-white shadow-card overflow-hidden flex flex-col";
+      card.className = "prod-card-hover rounded-3xl border border-oly-border bg-white shadow-card overflow-hidden flex flex-col";
       card.tabIndex = 0;
 
       // Decide conteúdo baseado em group/item
