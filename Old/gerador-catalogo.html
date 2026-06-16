@@ -155,6 +155,66 @@
     border-radius:8px; padding:6px 10px; font-size:11px; font-weight:700;
   }
 
+  /* Filtros */
+  .filtros{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    margin-bottom:12px; padding:10px 12px;
+    background:#faf5ff; border:1px solid #e9d5ff; border-radius:12px;
+  }
+  .flt{ position:relative; }
+  .flt-sumario{
+    display:flex; align-items:center; gap:6px;
+    background:#fff; border:1px solid #d6bcfa; border-radius:8px;
+    padding:6px 10px; font-size:12px; font-weight:700; color:#5b21b6;
+    cursor:pointer; white-space:nowrap;
+  }
+  .flt-sumario .count{
+    background:#7c3aed; color:#fff; font-size:10px; padding:1px 6px;
+    border-radius:99px; min-width:18px; text-align:center;
+  }
+  .flt-menu{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:50;
+    background:#fff; border:1px solid #d6bcfa; border-radius:8px;
+    padding:6px; min-width:200px; max-height:280px; overflow-y:auto;
+    box-shadow:0 4px 14px rgba(124,58,237,.18);
+  }
+  .flt.open .flt-menu{ display:block; }
+  .flt-menu label{
+    display:flex; align-items:center; gap:8px; padding:6px 8px;
+    font-size:12px; cursor:pointer; border-radius:6px;
+  }
+  .flt-menu label:hover{ background:#faf5ff; }
+  .flt-menu input[type=checkbox]{ width:16px; height:16px; accent-color:#7c3aed; }
+  .flt-busca{
+    border:1px solid #d6bcfa; border-radius:8px; padding:6px 10px;
+    font-size:12px; min-width:180px; flex:1; background:#fff;
+  }
+  .flt-busca:focus{ outline:2px solid #c4b5fd; outline-offset:-1px; }
+  .flt-limpar{
+    background:transparent; border:none; color:#7c3aed;
+    font-size:12px; font-weight:700; cursor:pointer; padding:6px 8px;
+  }
+  .flt-limpar:hover{ text-decoration:underline; }
+
+  /* Selecionar todos + contador */
+  .selbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px; padding:8px 12px;
+    background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;
+  }
+  .selbar label{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .selbar input[type=checkbox]{ width:18px; height:18px; accent-color:#7c3aed; }
+  .selcount{ font-size:12px; color:var(--muted); }
+
+  /* Checkbox individual no card */
+  .prev-chk{
+    width:18px; height:18px; accent-color:#7c3aed; cursor:pointer;
+    margin-top:4px; flex-shrink:0;
+  }
+  .prev-item.unchecked{ opacity:.5; }
+  .prev-item.unchecked .prev-img,
+  .prev-item.unchecked .prev-img-ph{ filter:grayscale(.6); }
+
   /* Toggle */
   .toggle-row{
     display:flex; align-items:center; gap:12px;
@@ -223,6 +283,11 @@
   <div id="previewCard" class="card hidden">
     <div class="card-title"><span class="step-num">3</span> Conferência</div>
     <div class="resumo" id="resumo"></div>
+    <div id="filtrosBar" class="filtros hidden"></div>
+    <div id="selbar" class="selbar hidden">
+      <label><input type="checkbox" id="chkTodos" checked> Selecionar todos</label>
+      <span class="selcount" id="selCount"></span>
+    </div>
     <div class="preview-list" id="previewList"></div>
   </div>
 
@@ -264,7 +329,12 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
 // Estado
 let baseProdutos = [];   // do Produtos.xlsx
 let baseIndex = new Map(); // chave "ref|cor" → produto
-let carteira = [];       // agrupada, pronta pra PDF
+let carteira = [];       // agrupada e filtrada, pronta pra render
+let linhasBrutas = [];   // todas as linhas lidas, antes do filtro
+let temColuna = { marca:false, porta:false, cliente:false };
+let nomesClientes = new Map(); // CODIGO → NOME FANTASIA
+let filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
+let selecionados = new Set();  // chaves "ref|cor" marcadas pro PDF
 
 const $ = id => document.getElementById(id);
 function setStatus(el, tipo, html){
@@ -372,11 +442,22 @@ async function processarArquivo(file){
     // Detecta colunas de tamanho: tudo que não for coluna conhecida
     const CONHECIDAS = new Set([
       "REFERENCIA","REFERÊNCIA","DESCRICAO","DESCRIÇÃO","COR",
-      "PREV.FAT.","PREV FAT","PREVFAT","CART"
+      "PREV.FAT.","PREV FAT","PREVFAT","CART",
+      // colunas extras do formato grupo_ideal (não são tamanho)
+      "NOME FANTASIA","CODIGO","CÓDIGO","PORTA","MARCA",
+      "FABRICA","FÁBRICA","FILIAL","NF","OC","GCI",
+      "FAT","DATA FAT","STATUS 1","STATUS 2","STATUS 3"
     ]);
     const colsTam = Object.keys(json[0]).filter(k =>
       !CONHECIDAS.has(String(k).trim().toUpperCase())
     );
+
+    // Detecta quais colunas extras a planilha tem
+    const keysUC = Object.keys(json[0]).map(k => String(k).trim().toUpperCase());
+    temColuna.marca   = keysUC.includes("MARCA");
+    temColuna.porta   = keysUC.includes("PORTA");
+    temColuna.cliente = keysUC.includes("CODIGO") || keysUC.includes("CÓDIGO");
+    nomesClientes.clear();
 
     // Lê linhas da carteira
     const linhas = [];
@@ -394,26 +475,56 @@ async function processarArquivo(file){
         const q = Number(r[ct]) || 0;
         if(q > 0) grade.push({ tam:String(ct).trim(), qtd:q });
       }
-      linhas.push({ ref, desc, cor, fat, cart, grade });
+      // colunas extras (formato grupo_ideal)
+      const marca   = String(r["MARCA"] ?? r["Marca"] ?? r["marca"] ?? "").trim();
+      const porta   = String(r["PORTA"] ?? r["Porta"] ?? r["porta"] ?? "").trim();
+      const cliente = String(r["CODIGO"] ?? r["Codigo"] ?? r["CÓDIGO"] ?? r["código"] ?? r["codigo"] ?? "").trim();
+      const nomeFant= String(r["NOME FANTASIA"] ?? r["Nome Fantasia"] ?? r["nome fantasia"] ?? "").trim();
+      if(cliente && nomeFant && !nomesClientes.has(cliente)){
+        nomesClientes.set(cliente, nomeFant);
+      }
+      linhas.push({ ref, desc, cor, fat, cart, grade, marca, porta, cliente });
     }
     if(!linhas.length) throw new Error("Nenhuma linha válida encontrada");
 
-    montarCarteira(linhas);
+    linhasBrutas = linhas;
+    // reset filtros e seleção a cada nova importação
+    filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
+    selecionados = new Set();
+    recalcular(true);
   }catch(err){
     console.error(err);
     setStatus($("cartStatus"), "err", `<i class="fa-solid fa-triangle-exclamation"></i> Erro ao ler a planilha: ${err.message}`);
   }
 }
 
-// Agrupa por ref+cor, soma CART por mês
-function montarCarteira(linhas){
+// Aplica os filtros sobre uma linha bruta
+function passaFiltros(l){
+  if(filtros.marca.size && !filtros.marca.has(l.marca)) return false;
+  if(filtros.porta.size && !filtros.porta.has(l.porta)) return false;
+  if(filtros.cliente.size && !filtros.cliente.has(l.cliente)) return false;
+  if(filtros.mes.size){
+    const k = l.fat ? `${l.fat.getMonth()}|${l.fat.getFullYear()}` : "-1|0";
+    if(!filtros.mes.has(k)) return false;
+  }
+  if(filtros.desc){
+    const q = filtros.desc.toLowerCase();
+    if(!String(l.desc||"").toLowerCase().includes(q)) return false;
+  }
+  return true;
+}
+
+// Re-filtra linhasBrutas → re-agrupa → re-renderiza
+// reset=true: também reseta seleção (marca todos os grupos resultantes)
+function recalcular(reset){
+  const linhasFil = linhasBrutas.filter(passaFiltros);
   const grupos = new Map(); // "ref|cor" → grupo
-  for(const l of linhas){
+  for(const l of linhasFil){
     const chave = `${norm(l.ref)}|${norm(l.cor)}`;
     if(!grupos.has(chave)){
       grupos.set(chave, {
         ref:l.ref, cor:l.cor, desc:l.desc,
-        meses:new Map(),  // índiceMes → { nome, qtd }
+        meses:new Map(),
         total:0
       });
     }
@@ -427,7 +538,6 @@ function montarCarteira(linhas){
     }
     const mes = g.meses.get(mi);
     mes.qtd += l.cart;
-    // soma grade célula a célula (preserva ordem do cabeçalho)
     for(const cel of l.grade){
       mes.grade.set(cel.tam, (mes.grade.get(cel.tam) || 0) + cel.qtd);
     }
@@ -436,7 +546,7 @@ function montarCarteira(linhas){
   // Cruza com a base e monta lista final
   carteira = [];
   let semBase = 0;
-  for(const g of grupos.values()){
+  for(const [chave, g] of grupos){
     const prod = baseIndex.get(`${norm(g.ref)}|${norm(g.cor)}`) || null;
     if(!prod) semBase++;
     const meses = Array.from(g.meses.values())
@@ -445,9 +555,9 @@ function montarCarteira(linhas){
         nome:m.nome, qtd:m.qtd, ordem:m.ordem,
         grade: Array.from(m.grade.entries()).map(([tam,qtd])=>({ tam, qtd }))
       }));
-    // soma de toda a grade (para validar contra CART)
     const somaGrade = meses.reduce((a,m)=> a + m.grade.reduce((s,c)=> s+c.qtd, 0), 0);
     carteira.push({
+      chave,
       ref:g.ref,
       cor:g.cor,
       produto: prod ? prod.produto : g.desc,
@@ -462,23 +572,25 @@ function montarCarteira(linhas){
       temGrade: somaGrade > 0
     });
   }
-  // Ordena por: 1º mês de faturamento mais próximo, 2º referência, 3º produto, 4º cor.
-  // Assim cores do mesmo produto/ref ficam sempre juntas dentro do mesmo mês.
   carteira.sort((a,b)=>{
     const oa = a.meses.length ? a.meses[0].ordem : Infinity;
     const ob = b.meses.length ? b.meses[0].ordem : Infinity;
     if(oa !== ob) return oa - ob;
-    // mesmo mês → agrupa por referência
     if(a.ref !== b.ref){
       const r = String(a.ref).localeCompare(String(b.ref),"pt-BR");
       if(r !== 0) return r;
     }
-    // mesma ref → por nome do produto
     const p = a.produto.localeCompare(b.produto,"pt-BR");
     if(p !== 0) return p;
-    // por fim, ordena as cores
     return String(a.cor).localeCompare(String(b.cor),"pt-BR");
   });
+
+  // Seleção: na primeira vez ou após mudança de filtro → marca todos visíveis
+  if(reset){
+    selecionados = new Set(carteira.map(c=> c.chave));
+  }
+
+  renderFiltros();
   renderPreview(semBase);
 }
 
@@ -519,6 +631,10 @@ function renderPreview(semBase){
     <div class="resumo-item"><div class="resumo-num">${numBR(semBase)}</div><div class="resumo-lbl">Sem base</div></div>
   `;
 
+  // Barra "selecionar todos" só aparece quando há itens
+  $("selbar").classList.toggle("hidden", carteira.length === 0);
+  atualizarSelBar();
+
   // Lista
   const mostrarGrade = $("tgGrade").checked;
   $("previewList").innerHTML = carteira.map((c, idx)=>{
@@ -529,7 +645,6 @@ function renderPreview(semBase){
 
     let blocoMeses;
     if(mostrarGrade && c.temGrade){
-      // cada mês com sua própria grade embaixo
       blocoMeses = c.meses.map(m=>{
         const cels = m.grade.map(cel=>
           `<div class="grade-cel"><div class="gt">${cel.tam}</div><div class="gq">${numBR(cel.qtd)}</div></div>`
@@ -548,7 +663,9 @@ function renderPreview(semBase){
       ? `<div class="grade-aviso"><i class="fa-solid fa-triangle-exclamation"></i> CART (${numBR(c.total)}) diverge da soma da grade (${numBR(c.somaGrade)}) — verificar planilha</div>`
       : "";
 
-    return `<div class="prev-item ${c.temBase?"":"missing"}">
+    const marcado = selecionados.has(c.chave);
+    return `<div class="prev-item ${c.temBase?"":"missing"} ${marcado?"":"unchecked"}" data-chave="${escAttr(c.chave)}">
+      <input type="checkbox" class="prev-chk" ${marcado?"checked":""} data-chave="${escAttr(c.chave)}">
       ${img}
       <div class="prev-info">
         <div class="prev-name">${c.produto} · ${c.ref}</div>
@@ -564,8 +681,146 @@ function renderPreview(semBase){
     </div>`;
   }).join("");
 
+  // Binds dos checkboxes individuais
+  $("previewList").querySelectorAll(".prev-chk").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      const chave = cb.dataset.chave;
+      const item = cb.closest(".prev-item");
+      if(cb.checked){ selecionados.add(chave); item.classList.remove("unchecked"); }
+      else { selecionados.delete(chave); item.classList.add("unchecked"); }
+      atualizarSelBar();
+    });
+  });
+
   $("previewCard").classList.remove("hidden");
   $("genCard").classList.remove("hidden");
+}
+
+// Atualiza a barra "selecionar todos" + contador
+function atualizarSelBar(){
+  const visiveis = carteira.map(c=> c.chave);
+  const marcados = visiveis.filter(k=> selecionados.has(k)).length;
+  $("selCount").textContent = `${marcados} de ${visiveis.length} selecionados`;
+  const chk = $("chkTodos");
+  chk.checked = marcados === visiveis.length && visiveis.length > 0;
+  chk.indeterminate = marcados > 0 && marcados < visiveis.length;
+}
+// Handler "Selecionar todos"
+$("chkTodos").addEventListener("change", ()=>{
+  const todos = $("chkTodos").checked;
+  for(const c of carteira){
+    if(todos) selecionados.add(c.chave); else selecionados.delete(c.chave);
+  }
+  // atualiza checkboxes visíveis sem re-renderizar a lista
+  $("previewList").querySelectorAll(".prev-chk").forEach(cb=>{
+    cb.checked = todos;
+    const item = cb.closest(".prev-item");
+    if(todos) item.classList.remove("unchecked"); else item.classList.add("unchecked");
+  });
+  atualizarSelBar();
+});
+
+// ───────── Filtros UI ─────────
+// Opções derivadas das linhas brutas (não filtradas) — usuário sempre vê todas
+function opcoesDe(campo){
+  const set = new Set();
+  for(const l of linhasBrutas){
+    const v = l[campo];
+    if(v) set.add(v);
+  }
+  return Array.from(set).sort((a,b)=> String(a).localeCompare(String(b),"pt-BR"));
+}
+function opcoesMeses(){
+  const map = new Map();
+  for(const l of linhasBrutas){
+    if(l.fat){
+      const k = `${l.fat.getMonth()}|${l.fat.getFullYear()}`;
+      if(!map.has(k)){
+        map.set(k, { label:`${MESES[l.fat.getMonth()]}/${String(l.fat.getFullYear()).slice(-2)}`, ordem:l.fat.getTime() });
+      }
+    }
+  }
+  return Array.from(map.entries())
+    .sort((a,b)=> a[1].ordem - b[1].ordem)
+    .map(([k,v])=> ({ key:k, label:v.label }));
+}
+function renderFiltros(){
+  const bar = $("filtrosBar");
+  if(!linhasBrutas.length){ bar.classList.add("hidden"); return; }
+
+  const drops = [];
+  if(temColuna.marca){
+    drops.push(dropdownHTML("marca", "Marca", opcoesDe("marca").map(v=>({key:v,label:v})), filtros.marca));
+  }
+  if(temColuna.porta){
+    drops.push(dropdownHTML("porta", "Porta", opcoesDe("porta").map(v=>({key:v,label:v})), filtros.porta));
+  }
+  if(temColuna.cliente){
+    const ops = opcoesDe("cliente").map(c=>({
+      key:c,
+      label: nomesClientes.has(c) ? `${c} — ${nomesClientes.get(c)}` : c
+    }));
+    drops.push(dropdownHTML("cliente", "Cliente", ops, filtros.cliente));
+  }
+  drops.push(dropdownHTML("mes", "Prev fat", opcoesMeses(), filtros.mes));
+  drops.push(`<input type="text" id="fltDesc" class="flt-busca" placeholder="Buscar descrição…" value="${escAttr(filtros.desc)}">`);
+
+  const hasAny = filtros.marca.size || filtros.porta.size || filtros.cliente.size || filtros.mes.size || filtros.desc;
+  if(hasAny) drops.push(`<button id="btnLimparFlt" class="flt-limpar">Limpar filtros</button>`);
+
+  bar.innerHTML = drops.join("");
+  bar.classList.remove("hidden");
+
+  // Binds dos dropdowns
+  bar.querySelectorAll(".flt").forEach(el=>{
+    const sumario = el.querySelector(".flt-sumario");
+    sumario.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      bar.querySelectorAll(".flt.open").forEach(o=>{ if(o!==el) o.classList.remove("open"); });
+      el.classList.toggle("open");
+    });
+    el.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        const campo = el.dataset.campo;
+        const v = cb.dataset.val;
+        if(cb.checked) filtros[campo].add(v); else filtros[campo].delete(v);
+        recalcular(true);
+      });
+    });
+  });
+  document.addEventListener("click", fecharDropdowns);
+
+  const inp = $("fltDesc");
+  if(inp){
+    inp.addEventListener("input", ()=>{
+      filtros.desc = inp.value;
+      clearTimeout(window.__fltDescT);
+      window.__fltDescT = setTimeout(()=> recalcular(true), 200);
+    });
+  }
+  if($("btnLimparFlt")){
+    $("btnLimparFlt").addEventListener("click", ()=>{
+      filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
+      recalcular(true);
+    });
+  }
+}
+function fecharDropdowns(){
+  document.querySelectorAll(".flt.open").forEach(o=> o.classList.remove("open"));
+}
+function dropdownHTML(campo, label, opcoes, setAtual){
+  const sel = setAtual.size;
+  const itens = opcoes.map(o=>{
+    const checked = setAtual.has(o.key) ? "checked" : "";
+    return `<label><input type="checkbox" data-val="${escAttr(o.key)}" ${checked}> <span>${escHtml(o.label)}</span></label>`;
+  }).join("");
+  return `<div class="flt" data-campo="${campo}">
+    <div class="flt-sumario">${label}${sel ? `<span class="count">${sel}</span>` : ""} <i class="fa-solid fa-chevron-down" style="font-size:9px"></i></div>
+    <div class="flt-menu" onclick="event.stopPropagation()">${itens || '<div style="padding:6px 8px;font-size:12px;color:#999">— sem opções —</div>'}</div>
+  </div>`;
+}
+function escHtml(s){
+  return String(s||"").replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[ch]));
 }
 
 // Re-renderiza a conferência quando o toggle de grade muda
@@ -609,9 +864,41 @@ function carregarImg(baseName){
 
 $("btnGerar").addEventListener("click", gerarPDF);
 
+// Monta o texto "Cliente: X · Porta: Y" pro cabeçalho do PDF
+// regra: 1 → nome direto; 2 → "A · B"; 3+ → "N selecionados"
+function montarTextoFiltros(){
+  const partes = [];
+  if(filtros.cliente.size){
+    const cods = Array.from(filtros.cliente);
+    if(cods.length === 1){
+      const c = cods[0];
+      partes.push(`Cliente: ${nomesClientes.get(c) || c}`);
+    } else if(cods.length === 2){
+      const nomes = cods.map(c => nomesClientes.get(c) || c);
+      partes.push(`Cliente: ${nomes.join(" · ")}`);
+    } else {
+      partes.push(`${cods.length} clientes selecionados`);
+    }
+  }
+  if(filtros.porta.size){
+    const ps = Array.from(filtros.porta);
+    if(ps.length === 1)      partes.push(`Porta: ${ps[0]}`);
+    else if(ps.length === 2) partes.push(`Porta: ${ps.join(" · ")}`);
+    else                      partes.push(`${ps.length} portas selecionadas`);
+  }
+  return partes.join("    ·    ");
+}
+
 async function gerarPDF(){
   if(!carteira.length){ return; }
   const mostrarGradePDF = $("tgGrade").checked;
+  // Só os marcados E visíveis (na carteira filtrada atual)
+  const itensPDF = carteira.filter(c => selecionados.has(c.chave));
+  if(!itensPDF.length){
+    setStatus($("genStatus"), "warn", `<i class="fa-solid fa-triangle-exclamation"></i> Nenhum item selecionado.`);
+    return;
+  }
+  const textoFiltros = montarTextoFiltros();
   const btn = $("btnGerar");
   btn.disabled = true;
   setStatus($("genStatus"), "info", `<i class="fa-solid fa-circle-notch spin"></i> Gerando PDF…`);
@@ -624,9 +911,9 @@ async function gerarPDF(){
     const margin = 36;
     const contentW = PW - margin*2;
 
-    // Pré-carrega imagens
+    // Pré-carrega imagens (só dos selecionados)
     const imgCache = {};
-    for(const c of carteira){
+    for(const c of itensPDF){
       if(c.temBase && c.imagem && !imgCache[c.imagem]){
         imgCache[c.imagem] = await carregarImg(c.imagem);
       }
@@ -634,7 +921,7 @@ async function gerarPDF(){
 
     // ─── Cabeçalho (Variação 1: roxo cheio + faixa laranja) ───
     function drawHeader(){
-      const HEAD_H = 86;
+      const HEAD_H = textoFiltros ? 102 : 86;
       // fundo roxo
       doc.setFillColor(124,58,237);
       doc.rect(0,0,PW,HEAD_H,"F");
@@ -665,6 +952,12 @@ async function gerarPDF(){
       doc.setTextColor(255,255,255);
       doc.setFont("helvetica","bold"); doc.setFontSize(6.5);
       doc.text("REPRESENTANTE AUTORIZADO", tx+61, 65.5, { align:"center" });
+      // linha de filtros aplicados — só se houver Cliente ou Porta filtrados
+      if(textoFiltros){
+        doc.setTextColor(255,255,255);
+        doc.setFont("helvetica","bold"); doc.setFontSize(9.5);
+        doc.text(textoFiltros, tx, 88);
+      }
       return HEAD_H + 4;
     }
 
@@ -843,7 +1136,7 @@ async function gerarPDF(){
       // agrupa pares por gênero
       const porGenero = new Map();
       let totalGeral = 0;
-      for(const c of carteira){
+      for(const c of itensPDF){
         totalGeral += c.total;
         const g = c.genero && c.genero.trim() ? c.genero.trim() : "Sem classificação";
         porGenero.set(g, (porGenero.get(g) || 0) + c.total);
@@ -895,7 +1188,7 @@ async function gerarPDF(){
     let y = drawHeader();
     y += 14;
 
-    for(const c of carteira){
+    for(const c of itensPDF){
       if(y + calcCardH(c) > PH - 40){
         drawFooter();
         doc.addPage();
@@ -908,7 +1201,7 @@ async function gerarPDF(){
     y += 14;
     {
       const generosDistintos = new Set(
-        carteira.map(c=> c.genero && c.genero.trim() ? c.genero.trim() : "Sem classificação")
+        itensPDF.map(c=> c.genero && c.genero.trim() ? c.genero.trim() : "Sem classificação")
       );
       if(y + calcResumoH(generosDistintos.size) > PH - 40){
         drawFooter();

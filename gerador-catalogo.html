@@ -1220,9 +1220,20 @@ async function gerarPDF(){
       doc.setFont("helvetica","bold"); doc.setFontSize(8);
       doc.text(`${p}/${totPag}`, PW-margin, 30, { align:"right" });
     }
-    const d = new Date();
-    const pad = n => String(n).padStart(2,"0");
-    const nome = `catalogo_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.pdf`;
+    // ─── Nome do arquivo: "CARTEIRA 2S26 - <código> - <porta>.pdf" ───
+    function parteNome(setFiltro, plural){
+      const arr = Array.from(setFiltro);
+      if(arr.length === 0) return null;
+      if(arr.length === 1) return arr[0];
+      return `${arr.length}${plural}`;
+    }
+    const partes = ["CARTEIRA 2S26"];
+    const pCli  = parteNome(filtros.cliente, "clientes");
+    const pPort = parteNome(filtros.porta,   "portas");
+    if(pCli)  partes.push(pCli);
+    if(pPort) partes.push(pPort);
+    // remove caracteres inválidos pra nome de arquivo (Windows/macOS/Linux)
+    const nome = partes.join(" - ").replace(/[\\/:*?"<>|]/g, "").trim() + ".pdf";
     doc.save(nome);
 
     setStatus($("genStatus"), "ok", `<i class="fa-solid fa-circle-check"></i> PDF gerado — ${carteira.length} produtos.`);
