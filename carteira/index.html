@@ -6,15 +6,10 @@
   <meta name="theme-color" content="#0D9488">
   <title>Carteira CMS</title>
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <!-- SheetJS para ler XLSX -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -54,6 +49,11 @@
       --acao-cancelar: #EF4444;
       --acao-repassar: #F59E0B;
       --acao-gestao:   #F97316;
+
+      --tag-gci-bg: #E0F2FE;
+      --tag-gci-fg: #075985;
+      --tag-mes-bg: #FEF3C7;
+      --tag-mes-fg: #92400E;
     }
 
     html.dark {
@@ -79,10 +79,15 @@
 
       --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
       --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+      --tag-gci-bg: #0C4A6E;
+      --tag-gci-fg: #BAE6FD;
+      --tag-mes-bg: #78350F;
+      --tag-mes-fg: #FDE68A;
     }
 
     /* =========================================================
-       RESET + BASE
+       RESET
        ========================================================= */
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; }
@@ -98,10 +103,9 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    button { font: inherit; cursor: pointer; border: none; background: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
     input { font: inherit; color: inherit; }
 
-    /* Desativa transições em touch (evita flash escurecimento) */
     @media (hover: none), (pointer: coarse) {
       *, *::before, *::after {
         transition: none !important;
@@ -113,7 +117,7 @@
        LAYOUT GERAL
        ========================================================= */
     .app {
-      max-width: 1200px;        /* DESKTOP MAIS LARGO */
+      max-width: 1200px;
       margin: 0 auto;
       padding: 16px;
       min-height: 100vh;
@@ -153,10 +157,7 @@
       box-shadow: var(--shadow-lift);
       color: var(--primary);
     }
-    .btn-icon.loading {
-      opacity: .6;
-      pointer-events: none;
-    }
+    .btn-icon.loading { opacity: .6; pointer-events: none; }
 
     .btn-primary {
       background: var(--primary); color: #fff;
@@ -164,7 +165,7 @@
       font-weight: 600; font-size: 14px;
       display: inline-flex; align-items: center; gap: 8px;
       box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
-      transition: transform .15s, box-shadow .15s;
+      transition: transform .15s;
     }
     .btn-primary:hover { transform: translateY(-1px); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
@@ -209,7 +210,6 @@
       border-radius: 10px;
       background: var(--card-bg-2); color: var(--text);
       outline: none;
-      transition: border-color .15s, box-shadow .15s;
     }
     .field select:focus, .field input:focus {
       border-color: var(--primary);
@@ -225,11 +225,10 @@
     .login-error.show { display: block; }
 
     /* =========================================================
-       BUSCA — CAMPO COM X
+       BUSCA COM X
        ========================================================= */
     .search-wrap {
       position: relative;
-      margin-bottom: 16px;
     }
     .search-wrap input {
       width: 100%;
@@ -264,12 +263,11 @@
     }
     .search-clear:hover { background: var(--card-bg-2); color: var(--text); }
     .search-wrap.has-value .search-clear { display: inline-flex; }
-    /* Esconde o X nativo do type=search */
     input[type="search"]::-webkit-search-cancel-button { display: none; }
     input[type="search"]::-webkit-search-decoration { display: none; }
 
     /* =========================================================
-       LISTAS / ESTADO VAZIO
+       LISTAS
        ========================================================= */
     .empty-state {
       text-align: center;
@@ -295,7 +293,6 @@
       padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
-      transition: background .15s;
     }
     .client-item:last-child { border-bottom: none; }
     .client-item:hover { background: var(--card-bg-2); }
@@ -325,46 +322,209 @@
     }
 
     /* =========================================================
-       TELA DE PRODUTOS
+       TELA DE PRODUTOS — HEADER CONGELADO
        ========================================================= */
-    .client-header {
-      background: var(--card-bg);
-      border-radius: var(--r-lg);
-      box-shadow: var(--shadow-card);
-      padding: 14px 18px;
-      margin-bottom: 14px;
-      display: flex; align-items: center; gap: 12px;
+    .frozen-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-2);
+      padding: 12px 0 14px;
+      margin: -12px 0 0;  /* compensa o padding original */
     }
-    .client-header .back {
-      width: 36px; height: 36px;
-      border-radius: 10px;
+    .frozen-header::before {
+      content: '';
+      position: absolute;
+      left: -16px; right: -16px;
+      top: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: -1;
+    }
+    .frozen-header::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -10px;
+      height: 10px;
+      background: linear-gradient(180deg, var(--bg-2), transparent);
+      pointer-events: none;
+    }
+
+    /* Linha 1: voltar + cliente compacto + busca */
+    .client-strip {
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .client-strip .back {
+      width: 34px; height: 34px;
+      border-radius: 8px;
       background: var(--card-bg-2); color: var(--text-2);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .client-header .name { font-size: 15px; font-weight: 700; margin: 0; }
-    .client-header .meta { font-size: 12px; color: var(--text-2); margin: 2px 0 0; }
+    .client-info-compact {
+      min-width: 0;
+      flex: 0 0 auto;
+      max-width: 35%;
+    }
+    .client-info-compact .name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .client-info-compact .meta {
+      font-size: 11px;
+      color: var(--text-2);
+      margin: 1px 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-inline {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    .search-inline input {
+      width: 100%;
+      padding: 8px 30px 8px 32px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg-2);
+      color: var(--text);
+      outline: none;
+    }
+    .search-inline input:focus {
+      border-color: var(--primary);
+      background: var(--card-bg);
+    }
+    .search-inline .search-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); font-size: 12px;
+      pointer-events: none;
+    }
+    .search-inline .search-clear {
+      width: 22px; height: 22px;
+      right: 4px;
+      font-size: 11px;
+    }
+    .search-inline.has-value .search-clear { display: inline-flex; }
 
+    /* Linha 2: chips de resumo */
     .products-summary {
-      display: flex; gap: 8px;
-      margin-bottom: 14px;
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding-bottom: 2px;
     }
     .summary-chip {
       flex-shrink: 0;
       background: var(--card-bg);
       box-shadow: var(--shadow-card);
-      padding: 8px 14px;
-      border-radius: 10px;
-      font-size: 12px; font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
       color: var(--text-2);
+      font-weight: 500;
     }
-    .summary-chip strong { color: var(--text); font-weight: 700; margin-right: 4px; }
+    .summary-chip strong { color: var(--text); font-weight: 700; margin-right: 3px; }
 
+    /* Linha 3: filtros e ordenação */
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      padding: 7px 12px;
+      font-size: 11px;
+      color: var(--text-2);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      position: relative;
+    }
+    .filter-chip:hover { color: var(--primary); border-color: var(--primary); }
+    .filter-chip i.fa-chevron-down { font-size: 9px; }
+    .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .filter-chip.active i { color: #fff; }
+    .filter-clear-btn {
+      width: 36px; height: 34px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-3);
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .filter-clear-btn.show { display: inline-flex; }
+    .filter-clear-btn:hover { color: var(--acao-cancelar); border-color: var(--acao-cancelar); }
+
+    /* Popover de filtro */
+    .filter-popover {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 220px;
+      max-width: 280px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-lift);
+      z-index: 20;
+      padding: 4px;
+      display: none;
+    }
+    .filter-popover.show { display: block; }
+    .filter-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-option:hover { background: var(--card-bg-2); }
+    .filter-option.active { background: var(--primary-bg); color: var(--primary-2); font-weight: 600; }
+    html.dark .filter-option.active { color: var(--primary); }
+    .filter-option i.check { font-size: 10px; width: 12px; }
+
+    /* =========================================================
+       CARDS DE PRODUTOS
+       ========================================================= */
     .products-list {
       display: flex; flex-direction: column;
       gap: 10px;
+      padding-top: 4px;
     }
 
     .product-card {
@@ -380,21 +540,44 @@
       cursor: pointer;
     }
 
-    /* IMAGEM MAIOR — 100px mobile, 140px desktop */
+    .product-thumb-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
     .product-thumb {
       width: 100px;
       height: 100px;
       border-radius: 12px;
       background: var(--card-bg-2);
-      flex-shrink: 0;
       object-fit: cover;
       border: 1px solid var(--border);
+      display: block;
     }
     @media (min-width: 768px) {
-      .product-thumb {
-        width: 140px;
-        height: 140px;
-      }
+      .product-thumb { width: 140px; height: 140px; }
+    }
+
+    /* Lupa no canto da imagem */
+    .product-zoom {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.75);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      transition: transform .15s, background .15s;
+    }
+    .product-zoom:hover {
+      transform: scale(1.1);
+      background: var(--primary);
     }
 
     .product-info { flex: 1; min-width: 0; }
@@ -406,14 +589,36 @@
       .product-name { font-size: 17px; }
     }
     .product-meta {
-      font-size: 13px; color: var(--text-2); margin: 0;
-      display: flex; gap: 8px; flex-wrap: wrap;
+      font-size: 12px; color: var(--text-2); margin: 0 0 6px;
+      display: flex; gap: 6px; flex-wrap: wrap;
     }
     .product-meta .dot { color: var(--text-3); }
+
+    /* Tags GCI e mês */
+    .product-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .tag {
+      font-size: 10.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag i { font-size: 9px; }
+    .tag-gci { background: var(--tag-gci-bg); color: var(--tag-gci-fg); }
+    .tag-mes { background: var(--tag-mes-bg); color: var(--tag-mes-fg); }
+    .tag-ped { background: var(--card-bg-2); color: var(--text-2); border: 1px solid var(--border); }
+
     .product-price {
-      font-size: 14px; font-weight: 700;
+      font-size: 13px; font-weight: 700;
       color: var(--primary-2);
-      margin-top: 6px;
+      margin-top: 4px;
     }
     html.dark .product-price { color: var(--primary); }
 
@@ -502,7 +707,64 @@
     .action-pill.active.gestao   { background: var(--acao-gestao); color: #fff; border-color: var(--acao-gestao); }
 
     /* =========================================================
-       TOAST + SYNC INDICATOR
+       MODAL DE ZOOM
+       ========================================================= */
+    .zoom-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .zoom-modal.show {
+      display: flex;
+      opacity: 1;
+    }
+    .zoom-modal img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 12px;
+      cursor: zoom-out;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info p { margin: 0; }
+    .zoom-modal .zoom-info p:first-child { font-size: 16px; font-weight: 700; }
+    .zoom-modal .zoom-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .zoom-modal .zoom-close:hover { background: rgba(255,255,255,0.25); }
+
+    /* =========================================================
+       TOAST + SYNC
        ========================================================= */
     .toast {
       position: fixed;
@@ -537,15 +799,23 @@
 
     .file-input { display: none; }
 
-    /* =========================================================
-       RESPONSIVO
-       ========================================================= */
+    /* Backdrop pra fechar popovers ao clicar fora */
+    .filter-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      display: none;
+    }
+    .filter-backdrop.show { display: block; }
+
+    /* Responsivo */
     @media (max-width: 480px) {
       .app { padding: 12px; }
       .login-card { padding: 24px 20px; }
+      .client-info-compact { max-width: 30%; }
+      .client-info-compact .name { font-size: 12px; }
+      .client-info-compact .meta { font-size: 10px; }
     }
-
-    /* Layout desktop: padding maior + 2 colunas no produto */
     @media (min-width: 1024px) {
       .app { padding: 24px 32px; }
       .product-main { padding: 18px 20px; gap: 20px; }
@@ -557,7 +827,7 @@
 <div class="app">
 
   <!-- =================================================================
-       TELA: LOGIN
+       TELA LOGIN
        ================================================================= -->
   <div id="screen-login" class="screen active">
     <div class="login-wrap">
@@ -588,7 +858,7 @@
   </div>
 
   <!-- =================================================================
-       TELA: BUSCA DE CLIENTE
+       TELA CLIENTES
        ================================================================= -->
   <div id="screen-clientes" class="screen">
     <div class="topbar">
@@ -615,7 +885,7 @@
       </div>
     </div>
 
-    <div class="search-wrap" id="search-cliente-wrap">
+    <div class="search-wrap" id="search-cliente-wrap" style="margin-bottom:16px;">
       <i class="fa-solid fa-magnifying-glass search-icon"></i>
       <input
         type="search"
@@ -624,7 +894,7 @@
         enterkeyhint="search"
         placeholder="Buscar cliente por nome ou código…"
         autocomplete="off">
-      <button class="search-clear" data-target="busca-cliente" title="Limpar (ESC)">
+      <button class="search-clear" title="Limpar (ESC)">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
@@ -639,9 +909,11 @@
   </div>
 
   <!-- =================================================================
-       TELA: PRODUTOS DO CLIENTE
+       TELA PRODUTOS
        ================================================================= -->
   <div id="screen-produtos" class="screen">
+
+    <!-- TOPBAR mínima (logo + tema) -->
     <div class="topbar">
       <div class="topbar-left">
         <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
@@ -657,36 +929,89 @@
       </div>
     </div>
 
-    <div class="client-header">
-      <button class="back" id="btn-voltar-clientes" title="Voltar">
-        <i class="fa-solid fa-arrow-left"></i>
-      </button>
-      <div style="flex:1;min-width:0;">
-        <p class="name" id="cliente-nome">—</p>
-        <p class="meta" id="cliente-meta">—</p>
+    <!-- HEADER CONGELADO (sticky) -->
+    <div class="frozen-header" id="frozen-header">
+
+      <!-- Linha 1: voltar + cliente compacto + busca -->
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-clientes" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="client-info-compact">
+          <p class="name" id="cliente-nome">—</p>
+          <p class="meta" id="cliente-meta">—</p>
+        </div>
+        <div class="search-inline" id="search-produto-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input
+            type="search"
+            id="busca-produto"
+            inputmode="search"
+            enterkeyhint="search"
+            placeholder="Buscar produto…"
+            autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div class="products-summary" id="products-summary"></div>
+      <!-- Linha 2: chips de resumo -->
+      <div class="products-summary" id="products-summary"></div>
 
-    <!-- BUSCA DE PRODUTO -->
-    <div class="search-wrap" id="search-produto-wrap" style="margin-bottom: 14px;">
-      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input
-        type="search"
-        id="busca-produto"
-        inputmode="search"
-        enterkeyhint="search"
-        placeholder="Buscar produto por descrição, artigo, cor, GCI…"
-        autocomplete="off">
-      <button class="search-clear" data-target="busca-produto" title="Limpar (ESC)">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <!-- Linha 3: filtros + ordenação -->
+      <div class="filter-row" id="filter-row">
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="cidade">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>Cidade</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ped_cliente">
+            <i class="fa-solid fa-tag"></i>
+            <span>Ped.Cliente</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="mes">
+            <i class="fa-solid fa-calendar"></i>
+            <span>Mês</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ordem">
+            <i class="fa-solid fa-arrow-down-wide-short"></i>
+            <span id="ordem-label">Mês mais próximo</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-clear-btn" id="btn-limpar-filtros" title="Limpar filtros">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
     </div>
 
     <div class="products-list" id="products-list"></div>
-
     <div class="list-footer" id="products-footer"></div>
+  </div>
+
+  <!-- =================================================================
+       MODAL DE ZOOM
+       ================================================================= -->
+  <div class="zoom-modal" id="zoom-modal">
+    <button class="zoom-close" id="zoom-close" aria-label="Fechar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="zoom-img" src="" alt="Produto">
+    <div class="zoom-info">
+      <p id="zoom-name">—</p>
+      <p id="zoom-meta">—</p>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -694,6 +1019,7 @@
     <i class="fa-solid fa-cloud-arrow-up"></i>
     <span id="sync-text">Sincronizando…</span>
   </div>
+  <div class="filter-backdrop" id="filter-backdrop"></div>
 
 </div>
 
@@ -713,21 +1039,27 @@ const VENDEDORES = [
   { nome: 'CMS',     codigo: '25846',   papel: 'admin'    },
 ];
 
-const PREPOSTO_MAP = {
-  'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'C': 'CMS',
-};
-
+const PREPOSTO_MAP = { 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'C': 'CMS' };
 const IMG_PATH = '../imagens_olympikus/';
 
 const STORAGE = {
   sessao: 'carteira.sessao',
-  tema:   'carteira.tema',
+  tema: 'carteira.tema',
   pedidos: 'carteira.pedidos',
   produtos: 'carteira.produtos',
 };
 
+const OPCOES_ORDEM = [
+  { id: 'mes_proximo', label: 'Mês mais próximo' },
+  { id: 'mes_distante', label: 'Mês mais distante' },
+  { id: 'preco_maior', label: 'Maior preço' },
+  { id: 'preco_menor', label: 'Menor preço' },
+  { id: 'mais_pares', label: 'Mais pares' },
+  { id: 'descricao', label: 'A-Z (descrição)' },
+];
+
 /* ============================================================
-   ESTADO GLOBAL
+   ESTADO
    ============================================================ */
 const APP = {
   sessao: null,
@@ -735,6 +1067,12 @@ const APP = {
   produtos: {},
   clienteAtual: null,
   filtroProduto: '',
+  filtros: {
+    cidade: null,
+    ped_cliente: null,
+    mes: null,
+  },
+  ordem: 'mes_proximo',
   saveTimer: null,
 };
 
@@ -778,20 +1116,25 @@ function mesAno(v) {
   if (d.length >= 10) return d.slice(3);
   return '';
 }
+function prevFatToNumero(v) {
+  // Converte "22/09/2026" → 20260922 pra ordenação
+  const d = formatarDataBR(v);
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return Infinity;
+  return Number(m[3] + m[2] + m[1]);
+}
 function formatarPreco(v) {
   if (v == null || v === '') return '—';
   const n = Number(v);
   if (isNaN(n)) return '—';
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
-
-// Converte a cor pra formato seguro pra nome de arquivo (substitui / por _)
 function corParaArquivo(cor) {
   return String(cor || '').replace(/\//g, '_').trim();
 }
 
 /* ============================================================
-   COPIAR AO SELECIONAR TEXTO
+   COPIAR AO SELECIONAR
    ============================================================ */
 function configurarCopiaAoSelecionar() {
   let timer;
@@ -801,7 +1144,6 @@ function configurarCopiaAoSelecionar() {
       const sel = window.getSelection();
       const texto = sel ? sel.toString().trim() : '';
       if (texto && texto.length > 0 && texto.length < 200) {
-        // Não copia se foi seleção dentro de input/textarea ou search
         const node = sel.anchorNode;
         if (node) {
           const el = node.nodeType === 1 ? node : node.parentElement;
@@ -863,18 +1205,17 @@ async function carregarCarteiraDoServidor() {
 
 async function carregarProdutosDoServidor() {
   try {
-    // Primeiro tenta do produtos.json salvo no GitHub
     const data = await workerCall('getProdutos');
     if (Array.isArray(data) && data.length > 0) {
       APP.produtos = {};
       for (const row of data) {
         const artigo = String(row.Artigo || row.artigo || row.ARTIGO || '').trim();
-        let cor      = String(row.Cor || row.cor || row.COR || '').trim();
+        let cor = String(row.Cor || row.cor || row.COR || '').trim();
         if (!artigo || !cor) continue;
         cor = corParaArquivo(cor);
         const key = `${artigo}_${cor}`;
         APP.produtos[key] = {
-          preco:     row.Preco || row.Preço || row.PRECO || row.preco || row.preço || '',
+          preco: row.Preco || row.Preço || row.PRECO || row.preco || row.preço || '',
           categoria: row.Categoria || row.categoria || row.CATEGORIA || '',
           descricao: row.Descricao || row.Descrição || row.descricao || row.descrição || '',
         };
@@ -883,7 +1224,6 @@ async function carregarProdutosDoServidor() {
       return;
     }
   } catch {}
-  // Fallback: tenta ler Produtos.xlsx local
   try {
     const r = await fetch('../Produtos.xlsx');
     if (!r.ok) return;
@@ -894,12 +1234,12 @@ async function carregarProdutosDoServidor() {
     APP.produtos = {};
     for (const row of rows) {
       const artigo = String(row.Artigo || row.artigo || '').trim();
-      let cor      = String(row.Cor || row.cor || '').trim();
+      let cor = String(row.Cor || row.cor || '').trim();
       if (!artigo || !cor) continue;
       cor = corParaArquivo(cor);
       const key = `${artigo}_${cor}`;
       APP.produtos[key] = {
-        preco:     row.Preco || row.Preço || row.preco || row.preço || '',
+        preco: row.Preco || row.Preço || row.preco || row.preço || '',
         categoria: row.Categoria || row.categoria || '',
         descricao: row.Descricao || row.Descrição || row.descricao || row.descrição || '',
       };
@@ -924,11 +1264,9 @@ async function salvarCarteiraNoServidor(modo = 'full') {
   } catch (e) {
     syncHide();
     toast('Falha ao salvar online (ficou só local)');
-    console.error(e);
   }
 }
 
-// Debounce: salva alteração de ação depois de 800ms parado
 function agendarSaveAcoes() {
   clearTimeout(APP.saveTimer);
   APP.saveTimer = setTimeout(() => salvarCarteiraNoServidor('acoes'), 800);
@@ -963,7 +1301,6 @@ async function tentarLogin() {
   erroEl.classList.remove('show');
   irParaClientes();
 
-  // Após login, busca a carteira do servidor (em segundo plano)
   carregarCarteiraDoServidor().then(() => renderClientes(''));
 }
 
@@ -1009,7 +1346,6 @@ async function importarXLSX(file) {
       return;
     }
 
-    // Preserva ações existentes (se já tinha pedido com mesma chave, mantém ação atual)
     const chave = p => `${p.preposto}|${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}`;
     const acoesAnteriores = {};
     for (const p of APP.pedidos) {
@@ -1026,7 +1362,6 @@ async function importarXLSX(file) {
     toast(`${pedidos.length} pedidos importados`);
     renderClientes($('busca-cliente').value);
 
-    // Salva no servidor (todos os dispositivos vão ver)
     await salvarCarteiraNoServidor('full');
     toast('Sincronizado com servidor');
   } catch (e) {
@@ -1050,7 +1385,7 @@ function parseLinhaPedido(row) {
   if (!preposto) return null;
 
   const artigo = String(get('Artigo', 'artigo')).trim();
-  const cor    = String(get('Cor', 'cor')).trim();
+  const cor = String(get('Cor', 'cor')).trim();
   if (!artigo || !cor) return null;
 
   const grade = {};
@@ -1060,35 +1395,35 @@ function parseLinhaPedido(row) {
   }
 
   return {
-    marca:       String(get('Marca', 'marca')).trim(),
+    marca: String(get('Marca', 'marca')).trim(),
     cliente_cod: String(get('Cliente', 'cliente')).trim(),
     cliente_razao: String(get('Razão', 'Razao', 'razão', 'razao')).trim(),
     razao_social: String(get('Razão Social', 'Razao Social')).trim(),
-    cnpj:        String(get('CNPJ', 'cnpj')).trim(),
-    cidade:      String(get('Cidade', 'cidade')).trim(),
-    endereco:    String(get('Endereço do Cliente', 'Endereco do Cliente')).trim(),
+    cnpj: String(get('CNPJ', 'cnpj')).trim(),
+    cidade: String(get('Cidade', 'cidade')).trim(),
+    endereco: String(get('Endereço do Cliente', 'Endereco do Cliente')).trim(),
     ped_cliente: String(get('Ped.Cliente', 'PedCliente')).trim(),
-    empresa:     String(get('Empresa', 'empresa')).trim(),
-    cond_pag:    String(get('Cond. Pag', 'CondPag')).trim(),
-    prazo:       String(get('Prazo', 'prazo')).trim(),
-    campanha:    String(get('Campanha Comercial', 'Campanha')).trim(),
-    gci:         String(get('Enc.GCI', 'GCI', 'gci')).trim(),
-    ebm:         String(get('Enc.EBM', 'EBM', 'ebm')).trim(),
-    preposto:    preposto,
-    descricao:   String(get('descrição', 'Descrição', 'descricao', 'Descricao')).trim(),
-    artigo:      artigo,
-    cor:         cor,
-    grade_str:   String(get('grade', 'Grade')).trim(),
-    faixa:       String(get('Faixa', 'faixa')).trim(),
-    grade:       grade,
-    total:       Number(get('Total de pares', 'Total') || 0),
-    prev_fat:    formatarDataBR(get('Prev.fat.', 'PrevFat', 'Prev. Fat.')),
-    acao:        'MANTER',
+    empresa: String(get('Empresa', 'empresa')).trim(),
+    cond_pag: String(get('Cond. Pag', 'CondPag')).trim(),
+    prazo: String(get('Prazo', 'prazo')).trim(),
+    campanha: String(get('Campanha Comercial', 'Campanha')).trim(),
+    gci: String(get('Enc.GCI', 'GCI', 'gci')).trim(),
+    ebm: String(get('Enc.EBM', 'EBM', 'ebm')).trim(),
+    preposto: preposto,
+    descricao: String(get('descrição', 'Descrição', 'descricao', 'Descricao')).trim(),
+    artigo: artigo,
+    cor: cor,
+    grade_str: String(get('grade', 'Grade')).trim(),
+    faixa: String(get('Faixa', 'faixa')).trim(),
+    grade: grade,
+    total: Number(get('Total de pares', 'Total') || 0),
+    prev_fat: formatarDataBR(get('Prev.fat.', 'PrevFat', 'Prev. Fat.')),
+    acao: 'MANTER',
   };
 }
 
 /* ============================================================
-   RENDER: LISTA DE CLIENTES
+   LISTA DE CLIENTES
    ============================================================ */
 function renderClientes(filtro) {
   const container = $('client-results');
@@ -1114,7 +1449,6 @@ function renderClientes(filtro) {
       map.set(key, {
         codigo: p.cliente_cod,
         razao: p.razao_social || p.cliente_razao,
-        razaoCompleta: p.cliente_razao,
         cidade: p.cidade,
         totalPedidos: 0,
         totalPares: 0,
@@ -1179,36 +1513,85 @@ function abrirCliente(codigo) {
     codigo,
     razao: pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao,
     cidade: pedidosCliente[0].cidade,
-    cnpj: pedidosCliente[0].cnpj,
     pedidos: pedidosCliente,
   };
   APP.filtroProduto = '';
+  APP.filtros = { cidade: null, ped_cliente: null, mes: null };
+  APP.ordem = 'mes_proximo';
+
   $('busca-produto').value = '';
   $('search-produto-wrap').classList.remove('has-value');
 
   $('cliente-nome').textContent = APP.clienteAtual.razao;
   $('cliente-meta').textContent = `${codigo} · ${APP.clienteAtual.cidade}`;
 
+  atualizarBotoesFiltros();
   renderProdutos();
   show('screen-produtos');
   window.scrollTo(0, 0);
 }
 
-function renderProdutos() {
-  if (!APP.clienteAtual) return;
-  const pedidosCliente = APP.clienteAtual.pedidos;
-
+function obterPedidosFiltrados() {
+  if (!APP.clienteAtual) return [];
+  const todos = APP.clienteAtual.pedidos;
   const filtroNorm = normalizar(APP.filtroProduto);
-  const pedidosFiltrados = filtroNorm
-    ? pedidosCliente.filter(p =>
+
+  let resultado = todos.filter(p => {
+    // Filtro de texto
+    if (filtroNorm) {
+      const casa =
         normalizar(p.descricao).includes(filtroNorm) ||
         normalizar(p.artigo).includes(filtroNorm) ||
         normalizar(p.cor).includes(filtroNorm) ||
         normalizar(p.gci).includes(filtroNorm) ||
-        normalizar(p.ebm).includes(filtroNorm))
-    : pedidosCliente;
+        normalizar(p.ebm).includes(filtroNorm) ||
+        normalizar(p.ped_cliente).includes(filtroNorm);
+      if (!casa) return false;
+    }
+    // Filtros de coluna
+    if (APP.filtros.cidade && p.cidade !== APP.filtros.cidade) return false;
+    if (APP.filtros.ped_cliente && p.ped_cliente !== APP.filtros.ped_cliente) return false;
+    if (APP.filtros.mes && mesAno(p.prev_fat) !== APP.filtros.mes) return false;
+    return true;
+  });
 
-  // Resumo (baseado em TODOS os pedidos do cliente, não no filtro)
+  // Ordenação
+  const precoDe = p => {
+    const key = `${p.artigo}_${corParaArquivo(p.cor)}`;
+    const v = APP.produtos[key]?.preco;
+    return v ? Number(v) : 0;
+  };
+
+  switch (APP.ordem) {
+    case 'mes_proximo':
+      resultado.sort((a, b) => prevFatToNumero(a.prev_fat) - prevFatToNumero(b.prev_fat));
+      break;
+    case 'mes_distante':
+      resultado.sort((a, b) => prevFatToNumero(b.prev_fat) - prevFatToNumero(a.prev_fat));
+      break;
+    case 'preco_maior':
+      resultado.sort((a, b) => precoDe(b) - precoDe(a));
+      break;
+    case 'preco_menor':
+      resultado.sort((a, b) => precoDe(a) - precoDe(b));
+      break;
+    case 'mais_pares':
+      resultado.sort((a, b) => b.total - a.total);
+      break;
+    case 'descricao':
+      resultado.sort((a, b) => (a.descricao || '').localeCompare(b.descricao || ''));
+      break;
+  }
+
+  return resultado;
+}
+
+function renderProdutos() {
+  if (!APP.clienteAtual) return;
+  const pedidosCliente = APP.clienteAtual.pedidos;
+  const pedidosFiltrados = obterPedidosFiltrados();
+
+  // Resumo (baseado em TODOS, não no filtro)
   const totalPares = pedidosCliente.reduce((s, p) => s + p.total, 0);
   const totalProdutos = pedidosCliente.length;
   const mesesUnicos = [...new Set(pedidosCliente.map(p => mesAno(p.prev_fat)).filter(Boolean))].length;
@@ -1233,10 +1616,21 @@ function renderProdutos() {
 
   listaEl.innerHTML = pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
 
-  // Expandir/recolher
+  // Expandir/recolher (evita lupa)
   listaEl.querySelectorAll('.product-main').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.product-zoom')) return;
       el.parentElement.classList.toggle('expanded');
+    });
+  });
+
+  // Zoom
+  listaEl.querySelectorAll('.product-zoom').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(el.dataset.idx);
+      const p = APP.clienteAtual.pedidos[idx];
+      abrirZoom(p);
     });
   });
 
@@ -1248,16 +1642,12 @@ function renderProdutos() {
       const acao = el.dataset.acao;
       APP.clienteAtual.pedidos[idx].acao = acao;
 
-      // Atualiza visual
       const pills = el.parentElement.querySelectorAll('.action-pill');
       pills.forEach(p => p.classList.remove('active', 'manter', 'cancelar', 'repassar', 'gestao'));
       el.classList.add('active', acao.toLowerCase().replace('_cms', '').replace('_', ''));
 
-      // Atualiza no array global e localStorage
       localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
       toast(`${acao.replace('_', ' ')} aplicado`);
-
-      // Sincroniza com servidor (debounce)
       agendarSaveAcoes();
     });
   });
@@ -1268,11 +1658,11 @@ function renderProdutos() {
 }
 
 function renderCardProduto(p, idx) {
-  // CHAVE DA IMAGEM: cor com / virando _
   const corArquivo = corParaArquivo(p.cor);
   const imgKey = `${p.artigo}_${corArquivo}`;
   const imgUrl = `${IMG_PATH}${imgKey}.jpg`;
   const prod = APP.produtos[imgKey] || {};
+  const mes = mesAno(p.prev_fat);
 
   const gradeHtml = Object.keys(p.grade).length > 0
     ? `<div class="grade-row">
@@ -1296,8 +1686,13 @@ function renderCardProduto(p, idx) {
   return `
     <div class="product-card">
       <div class="product-main">
-        <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
-             onerror="this.style.background='var(--card-bg-2)';this.removeAttribute('src');">
+        <div class="product-thumb-wrap">
+          <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
+               onerror="this.style.background='var(--card-bg-2)';this.removeAttribute('src');">
+          <button class="product-zoom" data-idx="${idx}" title="Ampliar">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          </button>
+        </div>
         <div class="product-info">
           <p class="product-name">${p.descricao || p.artigo}</p>
           <p class="product-meta">
@@ -1305,6 +1700,11 @@ function renderCardProduto(p, idx) {
             <span class="dot">·</span>
             <span>Art. ${p.artigo}</span>
           </p>
+          <div class="product-tags">
+            ${p.gci ? `<span class="tag tag-gci"><i class="fa-solid fa-receipt"></i> GCI ${p.gci}</span>` : ''}
+            ${mes ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mes}</span>` : ''}
+            ${p.ped_cliente ? `<span class="tag tag-ped"><i class="fa-solid fa-tag"></i> ${p.ped_cliente}</span>` : ''}
+          </div>
           ${prod.preco ? `<div class="product-price">${formatarPreco(prod.preco)}</div>` : ''}
         </div>
         <div class="product-right">
@@ -1321,12 +1721,8 @@ function renderCardProduto(p, idx) {
               <span class="value">${prod.categoria}</span>
             </div>` : ''}
           <div class="detail-row">
-            <span class="label">Mês de previsão</span>
-            <span class="value">${mesAno(p.prev_fat) || '—'}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">Encomenda (GCI)</span>
-            <span class="value">${p.gci || '—'}</span>
+            <span class="label">Data prevista</span>
+            <span class="value">${formatarDataBR(p.prev_fat) || '—'}</span>
           </div>
           <div class="detail-row">
             <span class="label">EBM</span>
@@ -1335,6 +1731,14 @@ function renderCardProduto(p, idx) {
           <div class="detail-row">
             <span class="label">Faixa</span>
             <span class="value">${p.faixa || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Empresa</span>
+            <span class="value">${p.empresa || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Condição</span>
+            <span class="value">${p.cond_pag || '—'}</span>
           </div>
           <div>
             <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Grade</div>
@@ -1351,6 +1755,141 @@ function renderCardProduto(p, idx) {
 }
 
 /* ============================================================
+   ZOOM MODAL
+   ============================================================ */
+function abrirZoom(p) {
+  const corArquivo = corParaArquivo(p.cor);
+  const imgUrl = `${IMG_PATH}${p.artigo}_${corArquivo}.jpg`;
+  $('zoom-img').src = imgUrl;
+  $('zoom-name').textContent = p.descricao || p.artigo;
+  $('zoom-meta').textContent = `${p.cor} · Art. ${p.artigo}`;
+  $('zoom-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function fecharZoom() {
+  $('zoom-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+/* ============================================================
+   FILTROS / ORDENAÇÃO (popovers)
+   ============================================================ */
+function getValoresUnicos(campo) {
+  if (!APP.clienteAtual) return [];
+  const set = new Set();
+  for (const p of APP.clienteAtual.pedidos) {
+    let v = '';
+    if (campo === 'mes') v = mesAno(p.prev_fat);
+    else v = p[campo];
+    if (v) set.add(String(v));
+  }
+  return [...set].sort();
+}
+
+function abrirPopoverFiltro(filtroId, btnEl) {
+  fecharTodosPopovers();
+  const wrapper = btnEl.parentElement;
+  let pop = wrapper.querySelector('.filter-popover');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.className = 'filter-popover';
+    wrapper.appendChild(pop);
+  }
+
+  let opcoes = [];
+  let valorAtual = null;
+
+  if (filtroId === 'ordem') {
+    opcoes = OPCOES_ORDEM;
+    valorAtual = APP.ordem;
+  } else {
+    const valores = getValoresUnicos(filtroId);
+    opcoes = valores.map(v => ({ id: v, label: v }));
+    valorAtual = APP.filtros[filtroId];
+  }
+
+  if (opcoes.length === 0) {
+    pop.innerHTML = `<div class="filter-option" style="opacity:.5;cursor:default;">Sem opções</div>`;
+  } else {
+    pop.innerHTML = opcoes.map(o => `
+      <div class="filter-option ${o.id === valorAtual ? 'active' : ''}" data-id="${o.id}">
+        <i class="fa-solid fa-check check" style="visibility:${o.id === valorAtual ? 'visible' : 'hidden'}"></i>
+        <span>${o.label}</span>
+      </div>
+    `).join('');
+
+    pop.querySelectorAll('.filter-option').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        if (filtroId === 'ordem') {
+          APP.ordem = id;
+          $('ordem-label').textContent = OPCOES_ORDEM.find(x => x.id === id)?.label || 'Ordenar';
+        } else {
+          if (APP.filtros[filtroId] === id) {
+            APP.filtros[filtroId] = null;  // desmarca
+          } else {
+            APP.filtros[filtroId] = id;
+          }
+        }
+        atualizarBotoesFiltros();
+        renderProdutos();
+        fecharTodosPopovers();
+      });
+    });
+  }
+
+  pop.classList.add('show');
+  $('filter-backdrop').classList.add('show');
+}
+
+function fecharTodosPopovers() {
+  document.querySelectorAll('.filter-popover').forEach(p => p.classList.remove('show'));
+  $('filter-backdrop').classList.remove('show');
+}
+
+function atualizarBotoesFiltros() {
+  let temAlgum = false;
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    const f = btn.dataset.filter;
+    if (f === 'ordem') {
+      // ordem padrão não destaca
+      if (APP.ordem !== 'mes_proximo') {
+        btn.classList.add('active');
+        temAlgum = true;
+      } else {
+        btn.classList.remove('active');
+      }
+    } else {
+      if (APP.filtros[f]) {
+        btn.classList.add('active');
+        // Mostra valor selecionado
+        const span = btn.querySelector('span');
+        if (span) span.textContent = APP.filtros[f];
+        temAlgum = true;
+      } else {
+        btn.classList.remove('active');
+        const span = btn.querySelector('span');
+        if (span) {
+          if (f === 'cidade') span.textContent = 'Cidade';
+          else if (f === 'ped_cliente') span.textContent = 'Ped.Cliente';
+          else if (f === 'mes') span.textContent = 'Mês';
+        }
+      }
+    }
+  });
+
+  $('btn-limpar-filtros').classList.toggle('show', temAlgum);
+}
+
+function limparFiltros() {
+  APP.filtros = { cidade: null, ped_cliente: null, mes: null };
+  APP.ordem = 'mes_proximo';
+  $('ordem-label').textContent = 'Mês mais próximo';
+  atualizarBotoesFiltros();
+  renderProdutos();
+}
+
+/* ============================================================
    CAMPOS DE BUSCA COM X E ESC
    ============================================================ */
 function configurarBuscaComX(inputId, wrapId, onChange) {
@@ -1359,16 +1898,12 @@ function configurarBuscaComX(inputId, wrapId, onChange) {
   const clearBtn = wrap.querySelector('.search-clear');
 
   function atualizar() {
-    if (input.value.length > 0) {
-      wrap.classList.add('has-value');
-    } else {
-      wrap.classList.remove('has-value');
-    }
+    if (input.value.length > 0) wrap.classList.add('has-value');
+    else wrap.classList.remove('has-value');
     onChange(input.value);
   }
 
   input.addEventListener('input', atualizar);
-
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       input.value = '';
@@ -1376,7 +1911,6 @@ function configurarBuscaComX(inputId, wrapId, onChange) {
       input.blur();
     }
   });
-
   clearBtn.addEventListener('click', () => {
     input.value = '';
     atualizar();
@@ -1385,14 +1919,13 @@ function configurarBuscaComX(inputId, wrapId, onChange) {
 }
 
 /* ============================================================
-   INICIALIZAÇÃO
+   INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
   aplicarTema();
   popularDropdownVendedores();
   configurarCopiaAoSelecionar();
 
-  // Restaura cache local
   try {
     const ped = localStorage.getItem(STORAGE.pedidos);
     if (ped) APP.pedidos = JSON.parse(ped);
@@ -1402,7 +1935,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (prod) APP.produtos = JSON.parse(prod);
   } catch {}
 
-  // Restaura sessão
   const ses = localStorage.getItem(STORAGE.sessao);
   if (ses) {
     try {
@@ -1411,7 +1943,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch {}
   }
 
-  // Buttons
   $('btn-login').addEventListener('click', tentarLogin);
   $('login-codigo').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') tentarLogin();
@@ -1420,21 +1951,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-tema-2').addEventListener('click', toggleTema);
   $('btn-sair').addEventListener('click', logout);
 
-  // Importar XLSX
   $('file-input-xlsx').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) importarXLSX(file);
     e.target.value = '';
   });
 
-  // Busca de cliente
   let buscaTimer;
   configurarBuscaComX('busca-cliente', 'search-cliente-wrap', (val) => {
     clearTimeout(buscaTimer);
     buscaTimer = setTimeout(() => renderClientes(val), 200);
   });
 
-  // Busca de produto
   let produtoTimer;
   configurarBuscaComX('busca-produto', 'search-produto-wrap', (val) => {
     clearTimeout(produtoTimer);
@@ -1444,13 +1972,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 200);
   });
 
-  // Voltar
   $('btn-voltar-clientes').addEventListener('click', () => {
     show('screen-clientes');
     $('busca-cliente').focus();
   });
 
-  // Carrega dados do servidor (em paralelo)
+  // Filtros
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const f = btn.dataset.filter;
+      abrirPopoverFiltro(f, btn);
+    });
+  });
+  $('btn-limpar-filtros').addEventListener('click', limparFiltros);
+  $('filter-backdrop').addEventListener('click', fecharTodosPopovers);
+
+  // Zoom modal
+  $('zoom-close').addEventListener('click', fecharZoom);
+  $('zoom-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'zoom-modal' || e.target.id === 'zoom-img') fecharZoom();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('zoom-modal').classList.contains('show')) {
+      fecharZoom();
+    }
+  });
+
+  // Carrega do servidor
   carregarProdutosDoServidor();
   if (APP.sessao) {
     await carregarCarteiraDoServidor();
