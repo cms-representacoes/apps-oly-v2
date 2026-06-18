@@ -1,0 +1,2162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0D9488">
+  <title>Carteira CMS</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    /* =========================================================
+       VARIÁVEIS DE TEMA
+       ========================================================= */
+    :root {
+      --primary: #0D9488;
+      --primary-2: #0F766E;
+      --primary-soft: #CCFBF1;
+      --primary-bg: #F0FDFA;
+      --primary-rgb: 13, 148, 136;
+
+      --bg-1: #F8FAFC;
+      --bg-2: #F1F5F9;
+      --bg-grad: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+
+      --card-bg: #FFFFFF;
+      --card-bg-2: #F8FAFC;
+
+      --text: #0F172A;
+      --text-2: #475569;
+      --text-3: #94A3B8;
+
+      --border: #E2E8F0;
+      --border-2: #CBD5E1;
+
+      --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-lift: 0 4px 16px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.05);
+
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 20px;
+
+      --acao-manter:   #10B981;
+      --acao-cancelar: #EF4444;
+      --acao-repassar: #F59E0B;
+      --acao-gestao:   #F97316;
+
+      --tag-gci-bg: #E0F2FE;
+      --tag-gci-fg: #075985;
+      --tag-mes-bg: #FEF3C7;
+      --tag-mes-fg: #92400E;
+    }
+
+    html.dark {
+      --primary: #2DD4BF;
+      --primary-2: #5EEAD4;
+      --primary-soft: #134E4A;
+      --primary-bg: #0F2A28;
+      --primary-rgb: 45, 212, 191;
+
+      --bg-1: #0F172A;
+      --bg-2: #1E293B;
+      --bg-grad: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+
+      --card-bg: #1E293B;
+      --card-bg-2: #0F172A;
+
+      --text: #F1F5F9;
+      --text-2: #CBD5E1;
+      --text-3: #64748B;
+
+      --border: #334155;
+      --border-2: #475569;
+
+      --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+      --tag-gci-bg: #0C4A6E;
+      --tag-gci-fg: #BAE6FD;
+      --tag-mes-bg: #78350F;
+      --tag-mes-fg: #FDE68A;
+    }
+
+    /* =========================================================
+       RESET
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-grad);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input { font: inherit; color: inherit; }
+
+    @media (hover: none), (pointer: coarse) {
+      *, *::before, *::after {
+        transition: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+    }
+
+    /* =========================================================
+       LAYOUT GERAL
+       ========================================================= */
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 16px;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .logo-mark {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
+    .logo-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--card-bg); color: var(--text-2);
+      display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-card);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-icon:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lift);
+      color: var(--primary);
+    }
+    .btn-icon.loading { opacity: .6; pointer-events: none; }
+
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      padding: 10px 18px; border-radius: 10px;
+      font-weight: 600; font-size: 14px;
+      display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+      transition: transform .15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .screen { display: none; flex: 1; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+    .login-wrap {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-lift);
+      padding: 32px 28px;
+      width: 100%; max-width: 380px;
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 20px;
+    }
+    .login-title { font-size: 22px; font-weight: 700; text-align: center; margin: 0 0 6px; }
+    .login-sub { font-size: 13px; color: var(--text-2); text-align: center; margin: 0 0 28px; }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--text-2); margin-bottom: 6px;
+    }
+    .field select, .field input {
+      width: 100%; padding: 11px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      background: var(--card-bg-2); color: var(--text);
+      outline: none;
+    }
+    .field select:focus, .field input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+    }
+    .login-error {
+      background: #FEE2E2; color: #991B1B;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 12px;
+      display: none;
+    }
+    html.dark .login-error { background: #7F1D1D; color: #FECACA; }
+    .login-error.show { display: block; }
+
+    /* =========================================================
+       BUSCA COM X
+       ========================================================= */
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 100%;
+      padding: 14px 46px 14px 46px;
+      font-size: 15px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card-bg); color: var(--text);
+      outline: none;
+      box-shadow: var(--shadow-card);
+    }
+    .search-wrap input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15), var(--shadow-card);
+    }
+    .search-wrap .search-icon {
+      position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); font-size: 15px;
+      pointer-events: none;
+    }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-3);
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .search-clear:hover { background: var(--card-bg-2); color: var(--text); }
+    .search-wrap.has-value .search-clear { display: inline-flex; }
+    input[type="search"]::-webkit-search-cancel-button { display: none; }
+    input[type="search"]::-webkit-search-decoration { display: none; }
+
+    /* =========================================================
+       HEADER CONGELADO (sticky)
+       ========================================================= */
+    .frozen-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-2);
+      padding: 12px 0 14px;
+      margin: -12px 0 0;
+    }
+    .frozen-header::before {
+      content: '';
+      position: absolute;
+      left: -16px; right: -16px;
+      top: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: -1;
+    }
+    .frozen-header::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -10px;
+      height: 10px;
+      background: linear-gradient(180deg, var(--bg-2), transparent);
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       KPIS — tela clientes
+       ========================================================= */
+    .kpis-wrap {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: stretch;
+    }
+    .kpis-wrap.hidden { display: none; }
+    .kpi-card {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 500;
+      margin: 0 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.1;
+    }
+    @media (max-width: 480px) {
+      .kpi-value { font-size: 17px; }
+      .kpi-label { font-size: 10px; }
+    }
+
+    .toggle-kpis {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-2);
+      background: transparent;
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+    .toggle-kpis:hover { color: var(--primary); }
+    .toggle-kpis i { font-size: 10px; }
+
+    /* =========================================================
+       LISTAS
+       ========================================================= */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-2);
+    }
+    .empty-state i {
+      font-size: 48px;
+      color: var(--text-3);
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+    .empty-state p { font-size: 14px; margin: 0; }
+
+    .client-list {
+      background: var(--card-bg);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .client-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .client-item:last-child { border-bottom: none; }
+    .client-item:hover { background: var(--card-bg-2); }
+    .client-avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      color: var(--primary-2);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+      flex-shrink: 0;
+    }
+    html.dark .client-avatar { background: var(--primary-soft); color: var(--primary); }
+    .client-info { flex: 1; min-width: 0; }
+    .client-info .name {
+      font-size: 14px; font-weight: 600;
+      color: var(--text); margin: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .client-info .meta {
+      font-size: 12px; color: var(--text-2); margin: 2px 0 0;
+    }
+    .client-item .chev { color: var(--text-3); font-size: 14px; }
+    .list-footer {
+      text-align: center; font-size: 12px;
+      color: var(--text-3); padding: 12px;
+    }
+
+    /* =========================================================
+       TELA PRODUTOS
+       ========================================================= */
+    .client-strip {
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .client-strip .back {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: var(--card-bg-2); color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .client-info-compact {
+      min-width: 0;
+      flex: 0 0 auto;
+      max-width: 35%;
+    }
+    .client-info-compact .name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .client-info-compact .meta {
+      font-size: 11px;
+      color: var(--text-2);
+      margin: 1px 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-inline {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    .search-inline input {
+      width: 100%;
+      padding: 8px 30px 8px 32px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg-2);
+      color: var(--text);
+      outline: none;
+    }
+    .search-inline input:focus {
+      border-color: var(--primary);
+      background: var(--card-bg);
+    }
+    .search-inline .search-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); font-size: 12px;
+      pointer-events: none;
+    }
+    .search-inline .search-clear {
+      width: 22px; height: 22px;
+      right: 4px;
+      font-size: 11px;
+    }
+    .search-inline.has-value .search-clear { display: inline-flex; }
+
+    .products-summary {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .summary-chip {
+      flex-shrink: 0;
+      background: var(--card-bg);
+      box-shadow: var(--shadow-card);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+    .summary-chip strong { color: var(--text); font-weight: 700; margin-right: 3px; }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      padding: 7px 12px;
+      font-size: 11px;
+      color: var(--text-2);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .filter-chip:hover { color: var(--primary); border-color: var(--primary); }
+    .filter-chip i.fa-chevron-down { font-size: 9px; }
+    .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .filter-chip.active i { color: #fff; }
+    .filter-clear-btn {
+      width: 36px; height: 34px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-3);
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .filter-clear-btn.show { display: inline-flex; }
+    .filter-clear-btn:hover { color: var(--acao-cancelar); border-color: var(--acao-cancelar); }
+
+    .filter-popover {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 220px;
+      max-width: 280px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-lift);
+      z-index: 20;
+      padding: 4px;
+      display: none;
+    }
+    .filter-popover.show { display: block; }
+    .filter-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-option:hover { background: var(--card-bg-2); }
+    .filter-option.active { background: var(--primary-bg); color: var(--primary-2); font-weight: 600; }
+    html.dark .filter-option.active { color: var(--primary); }
+    .filter-option i.check { font-size: 10px; width: 12px; }
+
+    /* =========================================================
+       CARDS DE PRODUTOS
+       ========================================================= */
+    .products-list {
+      display: flex; flex-direction: column;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .product-card {
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .product-main {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    .product-thumb-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .product-thumb {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      background: var(--card-bg-2);
+      object-fit: cover;
+      border: 1px solid var(--border);
+      display: block;
+    }
+    .product-thumb-fallback {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      background: var(--card-bg-2);
+      border: 1px dashed var(--border-2);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 500;
+      text-align: center;
+      padding: 8px;
+    }
+    .product-thumb-fallback i { font-size: 24px; opacity: 0.6; }
+    .product-thumb.failed { display: none; }
+    .product-thumb.failed + .product-thumb-fallback { display: flex; }
+
+    @media (min-width: 768px) {
+      .product-thumb, .product-thumb-fallback { width: 140px; height: 140px; }
+      .product-thumb-fallback i { font-size: 32px; }
+      .product-thumb-fallback { font-size: 12px; }
+    }
+
+    .product-zoom {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.75);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      transition: transform .15s, background .15s;
+      z-index: 2;
+    }
+    .product-zoom:hover {
+      transform: scale(1.1);
+      background: var(--primary);
+    }
+    .product-zoom.hidden { display: none; }
+
+    .product-info { flex: 1; min-width: 0; }
+    .product-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--text); margin: 0 0 4px;
+    }
+    @media (min-width: 768px) {
+      .product-name { font-size: 17px; }
+    }
+    .product-meta {
+      font-size: 12px; color: var(--text-2); margin: 0 0 6px;
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .product-meta .dot { color: var(--text-3); }
+
+    .product-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .tag {
+      font-size: 10.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag i { font-size: 9px; }
+    .tag-gci { background: var(--tag-gci-bg); color: var(--tag-gci-fg); }
+    .tag-mes { background: var(--tag-mes-bg); color: var(--tag-mes-fg); }
+    .tag-ped { background: var(--card-bg-2); color: var(--text-2); border: 1px solid var(--border); }
+
+    .product-price {
+      font-size: 13px; font-weight: 700;
+      color: var(--primary-2);
+      margin-top: 4px;
+    }
+    html.dark .product-price { color: var(--primary); }
+
+    .product-right {
+      display: flex; flex-direction: column;
+      align-items: flex-end; gap: 6px;
+      flex-shrink: 0;
+    }
+    .product-total {
+      background: var(--primary-soft);
+      color: var(--primary-2);
+      font-weight: 700; font-size: 13px;
+      padding: 5px 12px; border-radius: 8px;
+    }
+    html.dark .product-total { color: var(--primary); }
+    .expand-icon {
+      color: var(--text-3); font-size: 12px;
+      transition: transform .2s;
+    }
+    .product-card.expanded .expand-icon { transform: rotate(180deg); }
+
+    .product-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease;
+      border-top: 1px solid transparent;
+    }
+    .product-card.expanded .product-details {
+      max-height: 800px;
+      border-top-color: var(--border);
+    }
+    .product-details-inner {
+      padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .detail-row {
+      display: flex; justify-content: space-between;
+      font-size: 13px;
+    }
+    .detail-row .label { color: var(--text-2); }
+    .detail-row .value { color: var(--text); font-weight: 500; }
+
+    .grade-row {
+      display: flex; gap: 4px;
+      flex-wrap: wrap; margin-top: 4px;
+    }
+    .grade-cell {
+      background: var(--primary-bg);
+      border: 1px solid var(--primary-soft);
+      border-radius: 6px;
+      padding: 4px 6px;
+      min-width: 36px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      line-height: 1.15;
+    }
+    html.dark .grade-cell { background: var(--primary-soft); border-color: var(--primary); }
+    .grade-cell .g-size {
+      display: block; font-size: 9px;
+      color: var(--primary-2); font-weight: 500;
+    }
+    .grade-cell .g-qty {
+      display: block; font-size: 12px;
+      font-weight: 700; color: var(--primary-2);
+    }
+    html.dark .grade-cell .g-size, html.dark .grade-cell .g-qty { color: var(--primary-2); }
+
+    .action-pills {
+      display: flex; gap: 6px;
+      flex-wrap: wrap; margin-top: 6px;
+    }
+    .action-pill {
+      flex: 1; min-width: 80px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      text-align: center;
+      background: var(--card-bg-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .action-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .action-pill.active.manter   { background: var(--acao-manter); color: #fff; border-color: var(--acao-manter); }
+    .action-pill.active.cancelar { background: var(--acao-cancelar); color: #fff; border-color: var(--acao-cancelar); }
+    .action-pill.active.repassar { background: var(--acao-repassar); color: #fff; border-color: var(--acao-repassar); }
+    .action-pill.active.gestao   { background: var(--acao-gestao); color: #fff; border-color: var(--acao-gestao); }
+
+    /* =========================================================
+       ZOOM MODAL
+       ========================================================= */
+    .zoom-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .zoom-modal.show { display: flex; opacity: 1; }
+    .zoom-modal img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 12px;
+      cursor: zoom-out;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info p { margin: 0; }
+    .zoom-modal .zoom-info p:first-child { font-size: 16px; font-weight: 700; }
+    .zoom-modal .zoom-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .zoom-modal .zoom-close:hover { background: rgba(255,255,255,0.25); }
+
+    /* =========================================================
+       TOAST + SYNC + BACKDROP
+       ========================================================= */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--text); color: var(--card-bg);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow-lift);
+      transition: transform .3s;
+      z-index: 100;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .sync-indicator {
+      position: fixed;
+      top: 16px; right: 16px;
+      background: var(--primary);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      box-shadow: var(--shadow-lift);
+      display: none;
+      align-items: center; gap: 6px;
+      z-index: 99;
+    }
+    .sync-indicator.show { display: inline-flex; }
+
+    .file-input { display: none; }
+
+    .filter-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      display: none;
+    }
+    .filter-backdrop.show { display: block; }
+
+    @media (max-width: 480px) {
+      .app { padding: 12px; }
+      .login-card { padding: 24px 20px; }
+      .client-info-compact { max-width: 30%; }
+      .client-info-compact .name { font-size: 12px; }
+      .client-info-compact .meta { font-size: 10px; }
+      .kpi-card { padding: 8px 10px; }
+    }
+    @media (min-width: 1024px) {
+      .app { padding: 24px 32px; }
+      .product-main { padding: 18px 20px; gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- =================================================================
+       TELA LOGIN
+       ================================================================= -->
+  <div id="screen-login" class="screen active">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-logo"><i class="fa-solid fa-wallet"></i></div>
+        <h1 class="login-title">Carteira CMS</h1>
+        <p class="login-sub">Gestão de carteira comercial</p>
+
+        <div id="login-error" class="login-error"></div>
+
+        <div class="field">
+          <label>Vendedor</label>
+          <select id="login-vendedor">
+            <option value="">— Selecione —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Código de comissionista</label>
+          <input id="login-codigo" type="tel" inputmode="numeric" placeholder="Digite o código">
+        </div>
+
+        <button class="btn-primary" id="btn-login" style="width:100%; justify-content:center; margin-top:8px;">
+          Entrar <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       TELA CLIENTES
+       ================================================================= -->
+  <div id="screen-clientes" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <label class="btn-icon" id="btn-importar" title="Importar XLSX" for="file-input-xlsx">
+          <i class="fa-solid fa-file-import"></i>
+        </label>
+        <input type="file" id="file-input-xlsx" class="file-input" accept=".xlsx,.xls">
+
+        <button class="btn-icon" id="btn-tema" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+
+        <button class="btn-icon" id="btn-sair" title="Sair">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- HEADER CONGELADO da tela clientes -->
+    <div class="frozen-header" id="frozen-header-clientes">
+
+      <button class="toggle-kpis" id="btn-toggle-kpis">
+        <i class="fa-solid fa-chevron-up"></i>
+        <span id="toggle-kpis-label">Ocultar resumo</span>
+      </button>
+
+      <div class="kpis-wrap" id="kpis-wrap">
+        <div class="kpi-card">
+          <p class="kpi-label">Clientes</p>
+          <p class="kpi-value" id="kpi-clientes">0</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Pedidos</p>
+          <p class="kpi-value" id="kpi-pedidos">0</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Pares</p>
+          <p class="kpi-value" id="kpi-pares">0</p>
+        </div>
+      </div>
+
+      <div class="search-wrap" id="search-cliente-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="busca-cliente"
+          inputmode="search"
+          enterkeyhint="search"
+          placeholder="Buscar por nome, código ou cidade…"
+          autocomplete="off">
+        <button class="search-clear" title="Limpar (ESC)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="client-results">
+      <div class="empty-state" id="empty-no-import">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Importe um arquivo XLSX para começar</p>
+        <p style="margin-top:8px;font-size:12px;">Toque no ícone <i class="fa-solid fa-file-import"></i> no topo</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       TELA PRODUTOS
+       ================================================================= -->
+  <div id="screen-produtos" class="screen">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-2">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-2" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="frozen-header" id="frozen-header">
+
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-clientes" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="client-info-compact">
+          <p class="name" id="cliente-nome">—</p>
+          <p class="meta" id="cliente-meta">—</p>
+        </div>
+        <div class="search-inline" id="search-produto-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input
+            type="search"
+            id="busca-produto"
+            inputmode="search"
+            enterkeyhint="search"
+            placeholder="Buscar produto…"
+            autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="products-summary" id="products-summary"></div>
+
+      <div class="filter-row" id="filter-row">
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ped_cliente">
+            <i class="fa-solid fa-tag"></i>
+            <span>Ped.Cliente</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="mes">
+            <i class="fa-solid fa-calendar"></i>
+            <span>Mês</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ordem">
+            <i class="fa-solid fa-arrow-down-wide-short"></i>
+            <span id="ordem-label">Mês mais próximo</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-clear-btn" id="btn-limpar-filtros" title="Limpar filtros">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <div class="products-list" id="products-list"></div>
+    <div class="list-footer" id="products-footer"></div>
+  </div>
+
+  <!-- =================================================================
+       MODAL DE ZOOM
+       ================================================================= -->
+  <div class="zoom-modal" id="zoom-modal">
+    <button class="zoom-close" id="zoom-close" aria-label="Fechar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="zoom-img" src="" alt="Produto">
+    <div class="zoom-info">
+      <p id="zoom-name">—</p>
+      <p id="zoom-meta">—</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="sync-indicator" id="sync-indicator">
+    <i class="fa-solid fa-cloud-arrow-up"></i>
+    <span id="sync-text">Sincronizando…</span>
+  </div>
+  <div class="filter-backdrop" id="filter-backdrop"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
+
+const VENDEDORES = [
+  { nome: 'JORGE',   codigo: '114611',  papel: 'vendedor' },
+  { nome: 'MARIANA', codigo: '109839',  papel: 'vendedor' },
+  { nome: 'RAFAEL',  codigo: '1333497', papel: 'vendedor' },
+  { nome: 'WILLAME', codigo: '25471',   papel: 'vendedor' },
+  { nome: 'LEANDRO', codigo: '25745',   papel: 'vendedor' },
+  { nome: 'MARCOS',  codigo: '3616654', papel: 'vendedor' },
+  { nome: 'CMS',     codigo: '25846',   papel: 'admin'    },
+];
+
+const PREPOSTO_MAP = { 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'C': 'CMS' };
+const IMG_PATH = '../imagens_olympikus/';
+
+const STORAGE = {
+  sessao: 'carteira.sessao',
+  tema: 'carteira.tema',
+  pedidos: 'carteira.pedidos',
+  produtos: 'carteira.produtos',
+  kpisOcultos: 'carteira.kpisOcultos',
+};
+
+const OPCOES_ORDEM = [
+  { id: 'mes_proximo', label: 'Mês mais próximo' },
+  { id: 'mes_distante', label: 'Mês mais distante' },
+  { id: 'preco_maior', label: 'Maior preço' },
+  { id: 'preco_menor', label: 'Menor preço' },
+  { id: 'mais_pares', label: 'Mais pares' },
+  { id: 'descricao', label: 'A-Z (descrição)' },
+];
+
+// Mapeamento de campanhas → sufixo da condição de pagamento
+const CAMPANHA_SUFIXO = {
+  'CO681': '+ 28 DD',
+  'CO689': '+ 56 DD',
+};
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const APP = {
+  sessao: null,
+  pedidos: [],
+  produtos: {},
+  clienteAtual: null,
+  filtroProduto: '',
+  filtros: {
+    ped_cliente: null,
+    mes: null,
+  },
+  ordem: 'mes_proximo',
+  saveTimer: null,
+  filtroCliente: '',
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function normalizar(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function toast(msg, ms = 2500) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+function syncShow(texto) {
+  $('sync-text').textContent = texto;
+  $('sync-indicator').classList.add('show');
+}
+function syncHide() {
+  $('sync-indicator').classList.remove('show');
+}
+function iniciais(nome) {
+  return String(nome || '').split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
+}
+function formatarDataBR(v) {
+  if (!v) return '';
+  const s = String(v);
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return s;
+}
+function mesAno(v) {
+  const d = formatarDataBR(v);
+  if (d.length >= 10) return d.slice(3);
+  return '';
+}
+function prevFatToNumero(v) {
+  const d = formatarDataBR(v);
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return Infinity;
+  return Number(m[3] + m[2] + m[1]);
+}
+function formatarPreco(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (isNaN(n)) return '—';
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+function formatarNumero(n) {
+  return Number(n || 0).toLocaleString('pt-BR');
+}
+function corParaArquivo(cor) {
+  return String(cor || '').replace(/\//g, '_').trim();
+}
+
+// Junta condição + sufixo de campanha (se for uma das conhecidas)
+function condicaoCompleta(cond_pag, campanha) {
+  const c = String(cond_pag || '').trim();
+  const camp = String(campanha || '').trim().toUpperCase();
+  const sufixo = CAMPANHA_SUFIXO[camp];
+  if (c && sufixo) return `${c} ${sufixo}`;
+  if (c && camp) return `${c} · ${camp}`;
+  return c || '—';
+}
+
+/* ============================================================
+   COPIAR AO SELECIONAR
+   ============================================================ */
+function configurarCopiaAoSelecionar() {
+  let timer;
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const sel = window.getSelection();
+      const texto = sel ? sel.toString().trim() : '';
+      if (texto && texto.length > 0 && texto.length < 200) {
+        const node = sel.anchorNode;
+        if (node) {
+          const el = node.nodeType === 1 ? node : node.parentElement;
+          if (el && el.closest('input, textarea, [contenteditable]')) return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(texto).then(() => {
+            toast('Copiado: ' + (texto.length > 30 ? texto.slice(0, 30) + '…' : texto), 1500);
+          }).catch(() => {});
+        }
+      }
+    }, 400);
+  });
+}
+
+/* ============================================================
+   TEMA
+   ============================================================ */
+function aplicarTema() {
+  const t = localStorage.getItem(STORAGE.tema) || 'claro';
+  document.documentElement.classList.toggle('dark', t === 'escuro');
+  document.querySelectorAll('#btn-tema i, #btn-tema-2 i').forEach(i => {
+    i.className = t === 'escuro' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  });
+}
+function toggleTema() {
+  const atual = localStorage.getItem(STORAGE.tema) || 'claro';
+  localStorage.setItem(STORAGE.tema, atual === 'claro' ? 'escuro' : 'claro');
+  aplicarTema();
+}
+
+/* ============================================================
+   KPIs
+   ============================================================ */
+function aplicarEstadoKpis() {
+  const ocultos = localStorage.getItem(STORAGE.kpisOcultos) === '1';
+  $('kpis-wrap').classList.toggle('hidden', ocultos);
+  const i = $('btn-toggle-kpis').querySelector('i');
+  const label = $('toggle-kpis-label');
+  if (ocultos) {
+    i.className = 'fa-solid fa-chevron-down';
+    label.textContent = 'Exibir resumo';
+  } else {
+    i.className = 'fa-solid fa-chevron-up';
+    label.textContent = 'Ocultar resumo';
+  }
+}
+function toggleKpis() {
+  const atual = localStorage.getItem(STORAGE.kpisOcultos) === '1';
+  localStorage.setItem(STORAGE.kpisOcultos, atual ? '0' : '1');
+  aplicarEstadoKpis();
+}
+
+/* ============================================================
+   API DO WORKER
+   ============================================================ */
+async function workerCall(action, extra = {}) {
+  const r = await fetch(WORKER_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...extra })
+  });
+  if (!r.ok) throw new Error('Erro HTTP ' + r.status);
+  return r.json();
+}
+
+async function carregarCarteiraDoServidor() {
+  try {
+    syncShow('Buscando…');
+    const data = await workerCall('getCarteira');
+    if (data && Array.isArray(data.pedidos) && data.pedidos.length > 0) {
+      APP.pedidos = data.pedidos;
+      localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+    }
+    syncHide();
+  } catch (e) {
+    console.warn('Falha ao carregar carteira do servidor', e);
+    syncHide();
+  }
+}
+
+async function carregarProdutosDoServidor() {
+  try {
+    const data = await workerCall('getProdutos');
+    if (Array.isArray(data) && data.length > 0) {
+      APP.produtos = {};
+      for (const row of data) {
+        const artigo = String(row.Artigo || row.artigo || row.ARTIGO || '').trim();
+        let cor = String(row.Cor || row.cor || row.COR || '').trim();
+        if (!artigo || !cor) continue;
+        cor = corParaArquivo(cor);
+        const key = `${artigo}_${cor}`;
+        APP.produtos[key] = {
+          preco: row.Preco || row.Preço || row.PRECO || row.preco || row.preço || '',
+          categoria: row.Categoria || row.categoria || row.CATEGORIA || '',
+          descricao: row.Descricao || row.Descrição || row.descricao || row.descrição || '',
+        };
+      }
+      localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
+      return;
+    }
+  } catch {}
+  try {
+    const r = await fetch('../Produtos.xlsx');
+    if (!r.ok) return;
+    const buf = await r.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    APP.produtos = {};
+    for (const row of rows) {
+      const artigo = String(row.Artigo || row.artigo || '').trim();
+      let cor = String(row.Cor || row.cor || '').trim();
+      if (!artigo || !cor) continue;
+      cor = corParaArquivo(cor);
+      const key = `${artigo}_${cor}`;
+      APP.produtos[key] = {
+        preco: row.Preco || row.Preço || row.preco || row.preço || '',
+        categoria: row.Categoria || row.categoria || '',
+        descricao: row.Descricao || row.Descrição || row.descricao || row.descrição || '',
+      };
+    }
+    localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
+  } catch (e) {
+    console.warn('Sem Produtos.xlsx local', e);
+  }
+}
+
+async function salvarCarteiraNoServidor(modo = 'full') {
+  try {
+    syncShow(modo === 'acoes' ? 'Salvando ação…' : 'Salvando…');
+    await workerCall('saveCarteira', {
+      data: {
+        pedidos: APP.pedidos,
+        importadoPor: APP.sessao?.nome || '',
+        modo,
+      }
+    });
+    syncHide();
+  } catch (e) {
+    syncHide();
+    toast('Falha ao salvar online (ficou só local)');
+  }
+}
+
+function agendarSaveAcoes() {
+  clearTimeout(APP.saveTimer);
+  APP.saveTimer = setTimeout(() => salvarCarteiraNoServidor('acoes'), 800);
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+function popularDropdownVendedores() {
+  const sel = $('login-vendedor');
+  for (const v of VENDEDORES) {
+    const opt = document.createElement('option');
+    opt.value = v.nome;
+    opt.textContent = v.nome;
+    sel.appendChild(opt);
+  }
+}
+
+async function tentarLogin() {
+  const nome = $('login-vendedor').value;
+  const codigo = $('login-codigo').value.trim();
+  const erroEl = $('login-error');
+
+  if (!nome) { erroEl.textContent = 'Selecione um vendedor'; erroEl.classList.add('show'); return; }
+  if (!codigo) { erroEl.textContent = 'Digite o código'; erroEl.classList.add('show'); return; }
+
+  const v = VENDEDORES.find(x => x.nome === nome && x.codigo === codigo);
+  if (!v) { erroEl.textContent = 'Código incorreto'; erroEl.classList.add('show'); return; }
+
+  APP.sessao = v;
+  localStorage.setItem(STORAGE.sessao, JSON.stringify(v));
+  erroEl.classList.remove('show');
+  irParaClientes();
+
+  carregarCarteiraDoServidor().then(() => renderClientes(''));
+}
+
+function logout() {
+  APP.sessao = null;
+  localStorage.removeItem(STORAGE.sessao);
+  $('login-vendedor').value = '';
+  $('login-codigo').value = '';
+  show('screen-login');
+}
+
+function irParaClientes() {
+  $('topbar-user').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-2').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  show('screen-clientes');
+  renderClientes(APP.filtroCliente);
+}
+
+/* ============================================================
+   IMPORTAÇÃO XLSX
+   ============================================================ */
+async function importarXLSX(file) {
+  try {
+    $('btn-importar').classList.add('loading');
+    toast('Lendo arquivo…');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+
+    const pedidos = [];
+    for (const sheetName of wb.SheetNames) {
+      if (!/EM ABERTO/i.test(sheetName)) continue;
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      for (const row of rows) {
+        const ped = parseLinhaPedido(row);
+        if (ped) pedidos.push(ped);
+      }
+    }
+
+    if (pedidos.length === 0) {
+      toast('Nenhum pedido encontrado no XLSX');
+      $('btn-importar').classList.remove('loading');
+      return;
+    }
+
+    const chave = p => `${p.preposto}|${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}`;
+    const acoesAnteriores = {};
+    for (const p of APP.pedidos) {
+      acoesAnteriores[chave(p)] = p.acao;
+    }
+    for (const p of pedidos) {
+      const k = chave(p);
+      if (acoesAnteriores[k]) p.acao = acoesAnteriores[k];
+    }
+
+    APP.pedidos = pedidos;
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(pedidos));
+
+    toast(`${pedidos.length} pedidos importados`);
+    renderClientes($('busca-cliente').value);
+
+    await salvarCarteiraNoServidor('full');
+    toast('Sincronizado com servidor');
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao ler o arquivo');
+  } finally {
+    $('btn-importar').classList.remove('loading');
+  }
+}
+
+function parseLinhaPedido(row) {
+  const get = (...keys) => {
+    for (const k of keys) {
+      if (row[k] != null && row[k] !== '') return row[k];
+    }
+    return '';
+  };
+
+  const prepostoBruto = String(get('Preposto', 'preposto')).trim().toUpperCase();
+  const preposto = PREPOSTO_MAP[prepostoBruto] || prepostoBruto;
+  if (!preposto) return null;
+
+  const artigo = String(get('Artigo', 'artigo')).trim();
+  const cor = String(get('Cor', 'cor')).trim();
+  if (!artigo || !cor) return null;
+
+  const grade = {};
+  for (let t = 28; t <= 48; t++) {
+    const v = row[String(t)] ?? row[t];
+    if (v && Number(v) > 0) grade[t] = Number(v);
+  }
+
+  return {
+    marca: String(get('Marca', 'marca')).trim(),
+    cliente_cod: String(get('Cliente', 'cliente')).trim(),
+    cliente_razao: String(get('Razão', 'Razao', 'razão', 'razao')).trim(),
+    razao_social: String(get('Razão Social', 'Razao Social')).trim(),
+    cnpj: String(get('CNPJ', 'cnpj')).trim(),
+    cidade: String(get('Cidade', 'cidade')).trim(),
+    endereco: String(get('Endereço do Cliente', 'Endereco do Cliente')).trim(),
+    ped_cliente: String(get('Ped.Cliente', 'PedCliente')).trim(),
+    empresa: String(get('Empresa', 'empresa')).trim(),
+    cond_pag: String(get('Cond. Pag', 'CondPag')).trim(),
+    prazo: String(get('Prazo', 'prazo')).trim(),
+    campanha: String(get('Campanha Comercial', 'Campanha')).trim(),
+    gci: String(get('Enc.GCI', 'GCI', 'gci')).trim(),
+    ebm: String(get('Enc.EBM', 'EBM', 'ebm')).trim(),
+    preposto: preposto,
+    descricao: String(get('descrição', 'Descrição', 'descricao', 'Descricao')).trim(),
+    artigo: artigo,
+    cor: cor,
+    grade_str: String(get('grade', 'Grade')).trim(),
+    faixa: String(get('Faixa', 'faixa')).trim(),
+    grade: grade,
+    total: Number(get('Total de pares', 'Total') || 0),
+    prev_fat: formatarDataBR(get('Prev.fat.', 'PrevFat', 'Prev. Fat.')),
+    acao: 'MANTER',
+  };
+}
+
+/* ============================================================
+   LISTA DE CLIENTES + KPIs
+   ============================================================ */
+function obterClientesDoVendedor() {
+  return APP.sessao.papel === 'admin'
+    ? APP.pedidos
+    : APP.pedidos.filter(p => p.preposto === APP.sessao.nome);
+}
+
+function renderClientes(filtro) {
+  APP.filtroCliente = filtro || '';
+  const container = $('client-results');
+
+  const meusPedidos = obterClientesDoVendedor();
+
+  if (meusPedidos.length === 0) {
+    // Esconde KPIs quando não há dados
+    $('kpis-wrap').style.visibility = 'hidden';
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Importe um arquivo XLSX para começar</p>
+        <p style="margin-top:8px;font-size:12px;">Toque no ícone <i class="fa-solid fa-file-import"></i> no topo</p>
+      </div>`;
+    return;
+  }
+
+  $('kpis-wrap').style.visibility = '';
+
+  // Agrupa por cliente
+  const mapClientes = new Map();
+  for (const p of meusPedidos) {
+    const key = p.cliente_cod;
+    if (!mapClientes.has(key)) {
+      mapClientes.set(key, {
+        codigo: p.cliente_cod,
+        razao: p.razao_social || p.cliente_razao,
+        cidade: p.cidade,
+        totalPedidos: 0,
+        totalPares: 0,
+        pedidos: [],
+      });
+    }
+    const c = mapClientes.get(key);
+    c.totalPedidos += 1;
+    c.totalPares += p.total;
+    c.pedidos.push(p);
+  }
+
+  const clientes = [...mapClientes.values()];
+
+  // Filtra busca (nome, código ou cidade)
+  const filtroNorm = normalizar(filtro);
+  const filtrados = filtroNorm
+    ? clientes.filter(c =>
+        normalizar(c.razao).includes(filtroNorm) ||
+        normalizar(c.codigo).includes(filtroNorm) ||
+        normalizar(c.cidade).includes(filtroNorm))
+    : clientes;
+
+  // KPIs respondem ao filtro
+  const kpiClientes = filtrados.length;
+  const kpiPedidos = filtrados.reduce((s, c) => s + c.totalPedidos, 0);
+  const kpiPares = filtrados.reduce((s, c) => s + c.totalPares, 0);
+
+  $('kpi-clientes').textContent = formatarNumero(kpiClientes);
+  $('kpi-pedidos').textContent = formatarNumero(kpiPedidos);
+  $('kpi-pares').textContent = formatarNumero(kpiPares);
+
+  if (filtrados.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>Nenhum cliente encontrado</p>
+      </div>`;
+    return;
+  }
+
+  const html = `
+    <div class="client-list">
+      ${filtrados.map(c => `
+        <div class="client-item" data-cliente="${c.codigo}">
+          <div class="client-avatar">${iniciais(c.razao)}</div>
+          <div class="client-info">
+            <p class="name">${c.razao}</p>
+            <p class="meta">${c.codigo} · ${c.cidade || '—'} · ${c.totalPedidos} pedidos · ${c.totalPares} pares</p>
+          </div>
+          <i class="fa-solid fa-chevron-right chev"></i>
+        </div>
+      `).join('')}
+    </div>
+    <div class="list-footer">${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}</div>
+  `;
+  container.innerHTML = html;
+
+  container.querySelectorAll('.client-item').forEach(el => {
+    el.addEventListener('click', () => abrirCliente(el.dataset.cliente));
+  });
+}
+
+/* ============================================================
+   TELA: PRODUTOS DO CLIENTE
+   ============================================================ */
+function abrirCliente(codigo) {
+  const meusPedidos = obterClientesDoVendedor();
+  const pedidosCliente = meusPedidos.filter(p => p.cliente_cod === codigo);
+  if (pedidosCliente.length === 0) return;
+
+  APP.clienteAtual = {
+    codigo,
+    razao: pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao,
+    cidade: pedidosCliente[0].cidade,
+    pedidos: pedidosCliente,
+  };
+  APP.filtroProduto = '';
+  APP.filtros = { ped_cliente: null, mes: null };
+  APP.ordem = 'mes_proximo';
+
+  $('busca-produto').value = '';
+  $('search-produto-wrap').classList.remove('has-value');
+  $('ordem-label').textContent = 'Mês mais próximo';
+
+  $('cliente-nome').textContent = APP.clienteAtual.razao;
+  $('cliente-meta').textContent = `${codigo} · ${APP.clienteAtual.cidade}`;
+
+  atualizarBotoesFiltros();
+  renderProdutos();
+  show('screen-produtos');
+  window.scrollTo(0, 0);
+}
+
+function obterPedidosFiltrados() {
+  if (!APP.clienteAtual) return [];
+  const todos = APP.clienteAtual.pedidos;
+  const filtroNorm = normalizar(APP.filtroProduto);
+
+  let resultado = todos.filter(p => {
+    if (filtroNorm) {
+      const casa =
+        normalizar(p.descricao).includes(filtroNorm) ||
+        normalizar(p.artigo).includes(filtroNorm) ||
+        normalizar(p.cor).includes(filtroNorm) ||
+        normalizar(p.gci).includes(filtroNorm) ||
+        normalizar(p.ebm).includes(filtroNorm) ||
+        normalizar(p.ped_cliente).includes(filtroNorm);
+      if (!casa) return false;
+    }
+    if (APP.filtros.ped_cliente && p.ped_cliente !== APP.filtros.ped_cliente) return false;
+    if (APP.filtros.mes && mesAno(p.prev_fat) !== APP.filtros.mes) return false;
+    return true;
+  });
+
+  const precoDe = p => {
+    const key = `${p.artigo}_${corParaArquivo(p.cor)}`;
+    const v = APP.produtos[key]?.preco;
+    return v ? Number(v) : 0;
+  };
+
+  switch (APP.ordem) {
+    case 'mes_proximo':
+      resultado.sort((a, b) => prevFatToNumero(a.prev_fat) - prevFatToNumero(b.prev_fat));
+      break;
+    case 'mes_distante':
+      resultado.sort((a, b) => prevFatToNumero(b.prev_fat) - prevFatToNumero(a.prev_fat));
+      break;
+    case 'preco_maior':
+      resultado.sort((a, b) => precoDe(b) - precoDe(a));
+      break;
+    case 'preco_menor':
+      resultado.sort((a, b) => precoDe(a) - precoDe(b));
+      break;
+    case 'mais_pares':
+      resultado.sort((a, b) => b.total - a.total);
+      break;
+    case 'descricao':
+      resultado.sort((a, b) => (a.descricao || '').localeCompare(b.descricao || ''));
+      break;
+  }
+
+  return resultado;
+}
+
+function renderProdutos() {
+  if (!APP.clienteAtual) return;
+  const pedidosCliente = APP.clienteAtual.pedidos;
+  const pedidosFiltrados = obterPedidosFiltrados();
+
+  const totalPares = pedidosCliente.reduce((s, p) => s + p.total, 0);
+  const totalProdutos = pedidosCliente.length;
+  const mesesUnicos = [...new Set(pedidosCliente.map(p => mesAno(p.prev_fat)).filter(Boolean))].length;
+
+  $('products-summary').innerHTML = `
+    <div class="summary-chip"><strong>${totalProdutos}</strong> produtos</div>
+    <div class="summary-chip"><strong>${totalPares}</strong> pares</div>
+    <div class="summary-chip"><strong>${mesesUnicos}</strong> meses</div>
+  `;
+
+  const listaEl = $('products-list');
+
+  if (pedidosFiltrados.length === 0) {
+    listaEl.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>Nenhum produto encontrado</p>
+      </div>`;
+    $('products-footer').textContent = '';
+    return;
+  }
+
+  listaEl.innerHTML = pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
+
+  listaEl.querySelectorAll('.product-main').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.product-zoom')) return;
+      el.parentElement.classList.toggle('expanded');
+    });
+  });
+
+  listaEl.querySelectorAll('.product-zoom').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(el.dataset.idx);
+      const p = APP.clienteAtual.pedidos[idx];
+      abrirZoom(p);
+    });
+  });
+
+  listaEl.querySelectorAll('.action-pill').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(el.dataset.idx);
+      const acao = el.dataset.acao;
+      APP.clienteAtual.pedidos[idx].acao = acao;
+
+      const pills = el.parentElement.querySelectorAll('.action-pill');
+      pills.forEach(p => p.classList.remove('active', 'manter', 'cancelar', 'repassar', 'gestao'));
+      el.classList.add('active', acao.toLowerCase().replace('_cms', '').replace('_', ''));
+
+      localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+      toast(`${acao.replace('_', ' ')} aplicado`);
+      agendarSaveAcoes();
+    });
+  });
+
+  $('products-footer').textContent = pedidosFiltrados.length === pedidosCliente.length
+    ? `${pedidosCliente.length} produto${pedidosCliente.length !== 1 ? 's' : ''}`
+    : `${pedidosFiltrados.length} de ${pedidosCliente.length}`;
+}
+
+function renderCardProduto(p, idx) {
+  const corArquivo = corParaArquivo(p.cor);
+  const imgKey = `${p.artigo}_${corArquivo}`;
+  const imgUrl = `${IMG_PATH}${imgKey}.jpg`;
+  const prod = APP.produtos[imgKey] || {};
+  const mes = mesAno(p.prev_fat);
+
+  const gradeHtml = Object.keys(p.grade).length > 0
+    ? `<div class="grade-row">
+        ${Object.entries(p.grade).map(([t, q]) => `
+          <div class="grade-cell">
+            <span class="g-size">${t}</span>
+            <span class="g-qty">${q}</span>
+          </div>
+        `).join('')}
+      </div>`
+    : '<span style="color:var(--text-3);font-size:12px;">—</span>';
+
+  const acoes = ['MANTER', 'CANCELAR', 'REPASSAR'];
+  if (APP.sessao.papel === 'admin') acoes.push('GESTAO_CMS');
+  const pillsHtml = acoes.map(a => {
+    const ativo = p.acao === a;
+    const cls = a.toLowerCase().replace('_cms', '').replace('_', '');
+    return `<button class="action-pill ${ativo ? 'active ' + cls : ''}" data-idx="${idx}" data-acao="${a}">${a === 'GESTAO_CMS' ? 'GESTÃO' : a}</button>`;
+  }).join('');
+
+  // Imagem com fallback "Imagem em breve"
+  // Esconde a lupa quando a imagem falha
+  const imgErrorHandler = `
+    this.classList.add('failed');
+    this.parentElement.querySelector('.product-zoom').classList.add('hidden');
+  `.replace(/\s+/g, ' ');
+
+  return `
+    <div class="product-card">
+      <div class="product-main">
+        <div class="product-thumb-wrap">
+          <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
+               onerror="${imgErrorHandler}">
+          <div class="product-thumb-fallback">
+            <i class="fa-solid fa-image"></i>
+            <span>Imagem em breve</span>
+          </div>
+          <button class="product-zoom" data-idx="${idx}" title="Ampliar">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          </button>
+        </div>
+        <div class="product-info">
+          <p class="product-name">${p.descricao || p.artigo}</p>
+          <p class="product-meta">
+            <span>${p.cor}</span>
+            <span class="dot">·</span>
+            <span>Art. ${p.artigo}</span>
+          </p>
+          <div class="product-tags">
+            ${p.gci ? `<span class="tag tag-gci"><i class="fa-solid fa-receipt"></i> GCI ${p.gci}</span>` : ''}
+            ${mes ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mes}</span>` : ''}
+            ${p.ped_cliente ? `<span class="tag tag-ped"><i class="fa-solid fa-tag"></i> ${p.ped_cliente}</span>` : ''}
+          </div>
+          ${prod.preco ? `<div class="product-price">${formatarPreco(prod.preco)}</div>` : ''}
+        </div>
+        <div class="product-right">
+          <span class="product-total">${p.total} pares</span>
+          <i class="fa-solid fa-chevron-down expand-icon"></i>
+        </div>
+      </div>
+
+      <div class="product-details">
+        <div class="product-details-inner">
+          ${prod.categoria ? `
+            <div class="detail-row">
+              <span class="label">Categoria</span>
+              <span class="value">${prod.categoria}</span>
+            </div>` : ''}
+          <div class="detail-row">
+            <span class="label">Data prevista</span>
+            <span class="value">${formatarDataBR(p.prev_fat) || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">EBM</span>
+            <span class="value">${p.ebm || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Faixa</span>
+            <span class="value">${p.faixa || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Empresa</span>
+            <span class="value">${p.empresa || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Condição</span>
+            <span class="value">${condicaoCompleta(p.cond_pag, p.campanha)}</span>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Grade</div>
+            ${gradeHtml}
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Ação</div>
+            <div class="action-pills">${pillsHtml}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   ZOOM MODAL
+   ============================================================ */
+function abrirZoom(p) {
+  const corArquivo = corParaArquivo(p.cor);
+  const imgUrl = `${IMG_PATH}${p.artigo}_${corArquivo}.jpg`;
+  $('zoom-img').src = imgUrl;
+  $('zoom-name').textContent = p.descricao || p.artigo;
+  $('zoom-meta').textContent = `${p.cor} · Art. ${p.artigo}`;
+  $('zoom-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function fecharZoom() {
+  $('zoom-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+/* ============================================================
+   FILTROS / ORDENAÇÃO
+   ============================================================ */
+function getValoresUnicos(campo) {
+  if (!APP.clienteAtual) return [];
+  const set = new Set();
+  for (const p of APP.clienteAtual.pedidos) {
+    let v = '';
+    if (campo === 'mes') v = mesAno(p.prev_fat);
+    else v = p[campo];
+    if (v) set.add(String(v));
+  }
+  return [...set].sort();
+}
+
+function abrirPopoverFiltro(filtroId, btnEl) {
+  fecharTodosPopovers();
+  const wrapper = btnEl.parentElement;
+  let pop = wrapper.querySelector('.filter-popover');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.className = 'filter-popover';
+    wrapper.appendChild(pop);
+  }
+
+  let opcoes = [];
+  let valorAtual = null;
+
+  if (filtroId === 'ordem') {
+    opcoes = OPCOES_ORDEM;
+    valorAtual = APP.ordem;
+  } else {
+    const valores = getValoresUnicos(filtroId);
+    opcoes = valores.map(v => ({ id: v, label: v }));
+    valorAtual = APP.filtros[filtroId];
+  }
+
+  if (opcoes.length === 0) {
+    pop.innerHTML = `<div class="filter-option" style="opacity:.5;cursor:default;">Sem opções</div>`;
+  } else {
+    pop.innerHTML = opcoes.map(o => `
+      <div class="filter-option ${o.id === valorAtual ? 'active' : ''}" data-id="${o.id}">
+        <i class="fa-solid fa-check check" style="visibility:${o.id === valorAtual ? 'visible' : 'hidden'}"></i>
+        <span>${o.label}</span>
+      </div>
+    `).join('');
+
+    // Anexa o handler usando dataset pra não escapar caracteres
+    pop.querySelectorAll('.filter-option').forEach(el => {
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const id = el.dataset.id;
+        if (filtroId === 'ordem') {
+          APP.ordem = id;
+          const lbl = OPCOES_ORDEM.find(x => x.id === id);
+          if (lbl) $('ordem-label').textContent = lbl.label;
+        } else {
+          // Toggle: clica de novo no mesmo → remove
+          if (APP.filtros[filtroId] === id) {
+            APP.filtros[filtroId] = null;
+          } else {
+            APP.filtros[filtroId] = id;
+          }
+        }
+        fecharTodosPopovers();
+        atualizarBotoesFiltros();
+        renderProdutos();
+      });
+    });
+  }
+
+  pop.classList.add('show');
+  $('filter-backdrop').classList.add('show');
+}
+
+function fecharTodosPopovers() {
+  document.querySelectorAll('.filter-popover').forEach(p => p.classList.remove('show'));
+  $('filter-backdrop').classList.remove('show');
+}
+
+function atualizarBotoesFiltros() {
+  let temAlgum = false;
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    const f = btn.dataset.filter;
+    if (f === 'ordem') {
+      if (APP.ordem !== 'mes_proximo') {
+        btn.classList.add('active');
+        temAlgum = true;
+      } else {
+        btn.classList.remove('active');
+      }
+    } else {
+      if (APP.filtros[f]) {
+        btn.classList.add('active');
+        const span = btn.querySelector('span');
+        if (span) span.textContent = APP.filtros[f];
+        temAlgum = true;
+      } else {
+        btn.classList.remove('active');
+        const span = btn.querySelector('span');
+        if (span) {
+          if (f === 'ped_cliente') span.textContent = 'Ped.Cliente';
+          else if (f === 'mes') span.textContent = 'Mês';
+        }
+      }
+    }
+  });
+
+  $('btn-limpar-filtros').classList.toggle('show', temAlgum);
+}
+
+function limparFiltros() {
+  APP.filtros = { ped_cliente: null, mes: null };
+  APP.ordem = 'mes_proximo';
+  $('ordem-label').textContent = 'Mês mais próximo';
+  atualizarBotoesFiltros();
+  renderProdutos();
+}
+
+/* ============================================================
+   CAMPOS DE BUSCA COM X E ESC
+   ============================================================ */
+function configurarBuscaComX(inputId, wrapId, onChange) {
+  const input = $(inputId);
+  const wrap = $(wrapId);
+  const clearBtn = wrap.querySelector('.search-clear');
+
+  function atualizar() {
+    if (input.value.length > 0) wrap.classList.add('has-value');
+    else wrap.classList.remove('has-value');
+    onChange(input.value);
+  }
+
+  input.addEventListener('input', atualizar);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      input.value = '';
+      atualizar();
+      input.blur();
+    }
+  });
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    atualizar();
+    input.focus();
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  aplicarTema();
+  aplicarEstadoKpis();
+  popularDropdownVendedores();
+  configurarCopiaAoSelecionar();
+
+  try {
+    const ped = localStorage.getItem(STORAGE.pedidos);
+    if (ped) APP.pedidos = JSON.parse(ped);
+  } catch {}
+  try {
+    const prod = localStorage.getItem(STORAGE.produtos);
+    if (prod) APP.produtos = JSON.parse(prod);
+  } catch {}
+
+  const ses = localStorage.getItem(STORAGE.sessao);
+  if (ses) {
+    try {
+      APP.sessao = JSON.parse(ses);
+      irParaClientes();
+    } catch {}
+  }
+
+  $('btn-login').addEventListener('click', tentarLogin);
+  $('login-codigo').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tentarLogin();
+  });
+  $('btn-tema').addEventListener('click', toggleTema);
+  $('btn-tema-2').addEventListener('click', toggleTema);
+  $('btn-sair').addEventListener('click', logout);
+  $('btn-toggle-kpis').addEventListener('click', toggleKpis);
+
+  $('file-input-xlsx').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) importarXLSX(file);
+    e.target.value = '';
+  });
+
+  let buscaTimer;
+  configurarBuscaComX('busca-cliente', 'search-cliente-wrap', (val) => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => renderClientes(val), 200);
+  });
+
+  let produtoTimer;
+  configurarBuscaComX('busca-produto', 'search-produto-wrap', (val) => {
+    clearTimeout(produtoTimer);
+    produtoTimer = setTimeout(() => {
+      APP.filtroProduto = val;
+      renderProdutos();
+    }, 200);
+  });
+
+  $('btn-voltar-clientes').addEventListener('click', () => {
+    show('screen-clientes');
+    $('busca-cliente').focus();
+  });
+
+  // Filtros
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const f = btn.dataset.filter;
+      abrirPopoverFiltro(f, btn);
+    });
+  });
+  $('btn-limpar-filtros').addEventListener('click', limparFiltros);
+  $('filter-backdrop').addEventListener('click', fecharTodosPopovers);
+
+  // Zoom modal
+  $('zoom-close').addEventListener('click', fecharZoom);
+  $('zoom-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'zoom-modal' || e.target.id === 'zoom-img') fecharZoom();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('zoom-modal').classList.contains('show')) {
+      fecharZoom();
+    }
+  });
+
+  // Carrega do servidor
+  carregarProdutosDoServidor();
+  if (APP.sessao) {
+    await carregarCarteiraDoServidor();
+    if (APP.clienteAtual === null) renderClientes(APP.filtroCliente);
+  }
+});
+</script>
+
+</body>
+</html>
