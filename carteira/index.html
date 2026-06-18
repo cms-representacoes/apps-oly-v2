@@ -537,9 +537,7 @@
     .filter-clear-btn:hover { color: var(--acao-cancelar); border-color: var(--acao-cancelar); }
 
     .filter-popover {
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 0;
+      position: fixed;
       min-width: 220px;
       max-width: 280px;
       max-height: 280px;
@@ -548,7 +546,7 @@
       border: 1px solid var(--border);
       border-radius: var(--r-md);
       box-shadow: var(--shadow-lift);
-      z-index: 20;
+      z-index: 25;
       padding: 4px;
       display: none;
     }
@@ -872,7 +870,7 @@
     .filter-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 15;
+      z-index: 20;
       display: none;
     }
     .filter-backdrop.show { display: block; }
@@ -1934,14 +1932,18 @@ function getValoresUnicos(campo) {
 }
 
 function abrirPopoverFiltro(filtroId, btnEl) {
+  // Se já existe popover ABERTO pra esse mesmo filtro, fecha (toggle)
+  const existente = document.querySelector('.filter-popover.show');
   fecharTodosPopovers();
-  const wrapper = btnEl.parentElement;
-  let pop = wrapper.querySelector('.filter-popover');
-  if (!pop) {
-    pop = document.createElement('div');
-    pop.className = 'filter-popover';
-    wrapper.appendChild(pop);
+  if (existente && existente.dataset.filtroId === filtroId) {
+    return;
   }
+
+  // Cria/recria o popover direto no body pra evitar problemas de z-index
+  const pop = document.createElement('div');
+  pop.className = 'filter-popover';
+  pop.dataset.filtroId = filtroId;
+  document.body.appendChild(pop);
 
   let opcoes = [];
   let valorAtual = null;
@@ -1965,7 +1967,6 @@ function abrirPopoverFiltro(filtroId, btnEl) {
       </div>
     `).join('');
 
-    // Anexa o handler usando dataset pra não escapar caracteres
     pop.querySelectorAll('.filter-option').forEach(el => {
       el.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -1975,7 +1976,6 @@ function abrirPopoverFiltro(filtroId, btnEl) {
           const lbl = OPCOES_ORDEM.find(x => x.id === id);
           if (lbl) $('ordem-label').textContent = lbl.label;
         } else {
-          // Toggle: clica de novo no mesmo → remove
           if (APP.filtros[filtroId] === id) {
             APP.filtros[filtroId] = null;
           } else {
@@ -1989,12 +1989,26 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     });
   }
 
+  // Posiciona o popover abaixo do botão
+  const rect = btnEl.getBoundingClientRect();
+  pop.style.top = (rect.bottom + 6) + 'px';
+
+  // Mostra primeiro pra calcular largura
   pop.classList.add('show');
   $('filter-backdrop').classList.add('show');
+
+  // Ajusta horizontalmente pra não sair da tela
+  const popRect = pop.getBoundingClientRect();
+  let left = rect.left;
+  if (left + popRect.width > window.innerWidth - 8) {
+    left = window.innerWidth - popRect.width - 8;
+  }
+  if (left < 8) left = 8;
+  pop.style.left = left + 'px';
 }
 
 function fecharTodosPopovers() {
-  document.querySelectorAll('.filter-popover').forEach(p => p.classList.remove('show'));
+  document.querySelectorAll('.filter-popover').forEach(p => p.remove());
   $('filter-backdrop').classList.remove('show');
 }
 

@@ -129,7 +129,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 0 20px;
+      padding: 12px 0 16px;
     }
 
     .topbar-left { display: flex; align-items: center; gap: 12px; }
@@ -227,9 +227,7 @@
     /* =========================================================
        BUSCA COM X
        ========================================================= */
-    .search-wrap {
-      position: relative;
-    }
+    .search-wrap { position: relative; }
     .search-wrap input {
       width: 100%;
       padding: 14px 46px 14px 46px;
@@ -265,6 +263,89 @@
     .search-wrap.has-value .search-clear { display: inline-flex; }
     input[type="search"]::-webkit-search-cancel-button { display: none; }
     input[type="search"]::-webkit-search-decoration { display: none; }
+
+    /* =========================================================
+       HEADER CONGELADO (sticky)
+       ========================================================= */
+    .frozen-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-2);
+      padding: 12px 0 14px;
+      margin: -12px 0 0;
+    }
+    .frozen-header::before {
+      content: '';
+      position: absolute;
+      left: -16px; right: -16px;
+      top: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: -1;
+    }
+    .frozen-header::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -10px;
+      height: 10px;
+      background: linear-gradient(180deg, var(--bg-2), transparent);
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       KPIS — tela clientes
+       ========================================================= */
+    .kpis-wrap {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: stretch;
+    }
+    .kpis-wrap.hidden { display: none; }
+    .kpi-card {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 500;
+      margin: 0 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.1;
+    }
+    @media (max-width: 480px) {
+      .kpi-value { font-size: 17px; }
+      .kpi-label { font-size: 10px; }
+    }
+
+    .toggle-kpis {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-2);
+      background: transparent;
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+    .toggle-kpis:hover { color: var(--primary); }
+    .toggle-kpis i { font-size: 10px; }
 
     /* =========================================================
        LISTAS
@@ -322,35 +403,8 @@
     }
 
     /* =========================================================
-       TELA DE PRODUTOS — HEADER CONGELADO
+       TELA PRODUTOS
        ========================================================= */
-    .frozen-header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: var(--bg-2);
-      padding: 12px 0 14px;
-      margin: -12px 0 0;  /* compensa o padding original */
-    }
-    .frozen-header::before {
-      content: '';
-      position: absolute;
-      left: -16px; right: -16px;
-      top: 0; bottom: 0;
-      background: var(--bg-2);
-      z-index: -1;
-    }
-    .frozen-header::after {
-      content: '';
-      position: absolute;
-      left: 0; right: 0;
-      bottom: -10px;
-      height: 10px;
-      background: linear-gradient(180deg, var(--bg-2), transparent);
-      pointer-events: none;
-    }
-
-    /* Linha 1: voltar + cliente compacto + busca */
     .client-strip {
       background: var(--card-bg);
       border-radius: var(--r-md);
@@ -422,7 +476,6 @@
     }
     .search-inline.has-value .search-clear { display: inline-flex; }
 
-    /* Linha 2: chips de resumo */
     .products-summary {
       display: flex;
       gap: 6px;
@@ -442,7 +495,6 @@
     }
     .summary-chip strong { color: var(--text); font-weight: 700; margin-right: 3px; }
 
-    /* Linha 3: filtros e ordenação */
     .filter-row {
       display: flex;
       gap: 6px;
@@ -461,7 +513,6 @@
       align-items: center;
       gap: 6px;
       font-weight: 500;
-      position: relative;
     }
     .filter-chip:hover { color: var(--primary); border-color: var(--primary); }
     .filter-chip i.fa-chevron-down { font-size: 9px; }
@@ -485,7 +536,6 @@
     .filter-clear-btn.show { display: inline-flex; }
     .filter-clear-btn:hover { color: var(--acao-cancelar); border-color: var(--acao-cancelar); }
 
-    /* Popover de filtro */
     .filter-popover {
       position: absolute;
       top: calc(100% + 6px);
@@ -553,11 +603,33 @@
       border: 1px solid var(--border);
       display: block;
     }
+    .product-thumb-fallback {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      background: var(--card-bg-2);
+      border: 1px dashed var(--border-2);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 500;
+      text-align: center;
+      padding: 8px;
+    }
+    .product-thumb-fallback i { font-size: 24px; opacity: 0.6; }
+    .product-thumb.failed { display: none; }
+    .product-thumb.failed + .product-thumb-fallback { display: flex; }
+
     @media (min-width: 768px) {
-      .product-thumb { width: 140px; height: 140px; }
+      .product-thumb, .product-thumb-fallback { width: 140px; height: 140px; }
+      .product-thumb-fallback i { font-size: 32px; }
+      .product-thumb-fallback { font-size: 12px; }
     }
 
-    /* Lupa no canto da imagem */
     .product-zoom {
       position: absolute;
       bottom: 6px;
@@ -574,11 +646,13 @@
       backdrop-filter: blur(4px);
       cursor: pointer;
       transition: transform .15s, background .15s;
+      z-index: 2;
     }
     .product-zoom:hover {
       transform: scale(1.1);
       background: var(--primary);
     }
+    .product-zoom.hidden { display: none; }
 
     .product-info { flex: 1; min-width: 0; }
     .product-name {
@@ -594,7 +668,6 @@
     }
     .product-meta .dot { color: var(--text-3); }
 
-    /* Tags GCI e mês */
     .product-tags {
       display: flex;
       gap: 6px;
@@ -707,7 +780,7 @@
     .action-pill.active.gestao   { background: var(--acao-gestao); color: #fff; border-color: var(--acao-gestao); }
 
     /* =========================================================
-       MODAL DE ZOOM
+       ZOOM MODAL
        ========================================================= */
     .zoom-modal {
       position: fixed;
@@ -721,10 +794,7 @@
       opacity: 0;
       transition: opacity .2s;
     }
-    .zoom-modal.show {
-      display: flex;
-      opacity: 1;
-    }
+    .zoom-modal.show { display: flex; opacity: 1; }
     .zoom-modal img {
       max-width: 100%;
       max-height: 90vh;
@@ -764,7 +834,7 @@
     .zoom-modal .zoom-close:hover { background: rgba(255,255,255,0.25); }
 
     /* =========================================================
-       TOAST + SYNC
+       TOAST + SYNC + BACKDROP
        ========================================================= */
     .toast {
       position: fixed;
@@ -799,7 +869,6 @@
 
     .file-input { display: none; }
 
-    /* Backdrop pra fechar popovers ao clicar fora */
     .filter-backdrop {
       position: fixed;
       inset: 0;
@@ -808,13 +877,13 @@
     }
     .filter-backdrop.show { display: block; }
 
-    /* Responsivo */
     @media (max-width: 480px) {
       .app { padding: 12px; }
       .login-card { padding: 24px 20px; }
       .client-info-compact { max-width: 30%; }
       .client-info-compact .name { font-size: 12px; }
       .client-info-compact .meta { font-size: 10px; }
+      .kpi-card { padding: 8px 10px; }
     }
     @media (min-width: 1024px) {
       .app { padding: 24px 32px; }
@@ -885,18 +954,42 @@
       </div>
     </div>
 
-    <div class="search-wrap" id="search-cliente-wrap" style="margin-bottom:16px;">
-      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input
-        type="search"
-        id="busca-cliente"
-        inputmode="search"
-        enterkeyhint="search"
-        placeholder="Buscar cliente por nome ou código…"
-        autocomplete="off">
-      <button class="search-clear" title="Limpar (ESC)">
-        <i class="fa-solid fa-xmark"></i>
+    <!-- HEADER CONGELADO da tela clientes -->
+    <div class="frozen-header" id="frozen-header-clientes">
+
+      <button class="toggle-kpis" id="btn-toggle-kpis">
+        <i class="fa-solid fa-chevron-up"></i>
+        <span id="toggle-kpis-label">Ocultar resumo</span>
       </button>
+
+      <div class="kpis-wrap" id="kpis-wrap">
+        <div class="kpi-card">
+          <p class="kpi-label">Clientes</p>
+          <p class="kpi-value" id="kpi-clientes">0</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Pedidos</p>
+          <p class="kpi-value" id="kpi-pedidos">0</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Pares</p>
+          <p class="kpi-value" id="kpi-pares">0</p>
+        </div>
+      </div>
+
+      <div class="search-wrap" id="search-cliente-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="busca-cliente"
+          inputmode="search"
+          enterkeyhint="search"
+          placeholder="Buscar por nome, código ou cidade…"
+          autocomplete="off">
+        <button class="search-clear" title="Limpar (ESC)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
     </div>
 
     <div id="client-results">
@@ -913,7 +1006,6 @@
        ================================================================= -->
   <div id="screen-produtos" class="screen">
 
-    <!-- TOPBAR mínima (logo + tema) -->
     <div class="topbar">
       <div class="topbar-left">
         <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
@@ -929,10 +1021,8 @@
       </div>
     </div>
 
-    <!-- HEADER CONGELADO (sticky) -->
     <div class="frozen-header" id="frozen-header">
 
-      <!-- Linha 1: voltar + cliente compacto + busca -->
       <div class="client-strip">
         <button class="back" id="btn-voltar-clientes" title="Voltar">
           <i class="fa-solid fa-arrow-left"></i>
@@ -956,18 +1046,9 @@
         </div>
       </div>
 
-      <!-- Linha 2: chips de resumo -->
       <div class="products-summary" id="products-summary"></div>
 
-      <!-- Linha 3: filtros + ordenação -->
       <div class="filter-row" id="filter-row">
-        <div style="position:relative;">
-          <button class="filter-chip" data-filter="cidade">
-            <i class="fa-solid fa-location-dot"></i>
-            <span>Cidade</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-        </div>
         <div style="position:relative;">
           <button class="filter-chip" data-filter="ped_cliente">
             <i class="fa-solid fa-tag"></i>
@@ -1047,6 +1128,7 @@ const STORAGE = {
   tema: 'carteira.tema',
   pedidos: 'carteira.pedidos',
   produtos: 'carteira.produtos',
+  kpisOcultos: 'carteira.kpisOcultos',
 };
 
 const OPCOES_ORDEM = [
@@ -1058,6 +1140,12 @@ const OPCOES_ORDEM = [
   { id: 'descricao', label: 'A-Z (descrição)' },
 ];
 
+// Mapeamento de campanhas → sufixo da condição de pagamento
+const CAMPANHA_SUFIXO = {
+  'CO681': '+ 28 DD',
+  'CO689': '+ 56 DD',
+};
+
 /* ============================================================
    ESTADO
    ============================================================ */
@@ -1068,12 +1156,12 @@ const APP = {
   clienteAtual: null,
   filtroProduto: '',
   filtros: {
-    cidade: null,
     ped_cliente: null,
     mes: null,
   },
   ordem: 'mes_proximo',
   saveTimer: null,
+  filtroCliente: '',
 };
 
 /* ============================================================
@@ -1117,7 +1205,6 @@ function mesAno(v) {
   return '';
 }
 function prevFatToNumero(v) {
-  // Converte "22/09/2026" → 20260922 pra ordenação
   const d = formatarDataBR(v);
   const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   if (!m) return Infinity;
@@ -1129,8 +1216,21 @@ function formatarPreco(v) {
   if (isNaN(n)) return '—';
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
+function formatarNumero(n) {
+  return Number(n || 0).toLocaleString('pt-BR');
+}
 function corParaArquivo(cor) {
   return String(cor || '').replace(/\//g, '_').trim();
+}
+
+// Junta condição + sufixo de campanha (se for uma das conhecidas)
+function condicaoCompleta(cond_pag, campanha) {
+  const c = String(cond_pag || '').trim();
+  const camp = String(campanha || '').trim().toUpperCase();
+  const sufixo = CAMPANHA_SUFIXO[camp];
+  if (c && sufixo) return `${c} ${sufixo}`;
+  if (c && camp) return `${c} · ${camp}`;
+  return c || '—';
 }
 
 /* ============================================================
@@ -1173,6 +1273,28 @@ function toggleTema() {
   const atual = localStorage.getItem(STORAGE.tema) || 'claro';
   localStorage.setItem(STORAGE.tema, atual === 'claro' ? 'escuro' : 'claro');
   aplicarTema();
+}
+
+/* ============================================================
+   KPIs
+   ============================================================ */
+function aplicarEstadoKpis() {
+  const ocultos = localStorage.getItem(STORAGE.kpisOcultos) === '1';
+  $('kpis-wrap').classList.toggle('hidden', ocultos);
+  const i = $('btn-toggle-kpis').querySelector('i');
+  const label = $('toggle-kpis-label');
+  if (ocultos) {
+    i.className = 'fa-solid fa-chevron-down';
+    label.textContent = 'Exibir resumo';
+  } else {
+    i.className = 'fa-solid fa-chevron-up';
+    label.textContent = 'Ocultar resumo';
+  }
+}
+function toggleKpis() {
+  const atual = localStorage.getItem(STORAGE.kpisOcultos) === '1';
+  localStorage.setItem(STORAGE.kpisOcultos, atual ? '0' : '1');
+  aplicarEstadoKpis();
 }
 
 /* ============================================================
@@ -1316,7 +1438,7 @@ function irParaClientes() {
   $('topbar-user').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-2').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   show('screen-clientes');
-  renderClientes('');
+  renderClientes(APP.filtroCliente);
 }
 
 /* ============================================================
@@ -1423,16 +1545,23 @@ function parseLinhaPedido(row) {
 }
 
 /* ============================================================
-   LISTA DE CLIENTES
+   LISTA DE CLIENTES + KPIs
    ============================================================ */
-function renderClientes(filtro) {
-  const container = $('client-results');
-
-  const meusPedidos = APP.sessao.papel === 'admin'
+function obterClientesDoVendedor() {
+  return APP.sessao.papel === 'admin'
     ? APP.pedidos
     : APP.pedidos.filter(p => p.preposto === APP.sessao.nome);
+}
+
+function renderClientes(filtro) {
+  APP.filtroCliente = filtro || '';
+  const container = $('client-results');
+
+  const meusPedidos = obterClientesDoVendedor();
 
   if (meusPedidos.length === 0) {
+    // Esconde KPIs quando não há dados
+    $('kpis-wrap').style.visibility = 'hidden';
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -1442,30 +1571,47 @@ function renderClientes(filtro) {
     return;
   }
 
-  const map = new Map();
+  $('kpis-wrap').style.visibility = '';
+
+  // Agrupa por cliente
+  const mapClientes = new Map();
   for (const p of meusPedidos) {
     const key = p.cliente_cod;
-    if (!map.has(key)) {
-      map.set(key, {
+    if (!mapClientes.has(key)) {
+      mapClientes.set(key, {
         codigo: p.cliente_cod,
         razao: p.razao_social || p.cliente_razao,
         cidade: p.cidade,
         totalPedidos: 0,
         totalPares: 0,
+        pedidos: [],
       });
     }
-    const c = map.get(key);
+    const c = mapClientes.get(key);
     c.totalPedidos += 1;
     c.totalPares += p.total;
+    c.pedidos.push(p);
   }
 
-  const clientes = [...map.values()];
+  const clientes = [...mapClientes.values()];
+
+  // Filtra busca (nome, código ou cidade)
   const filtroNorm = normalizar(filtro);
   const filtrados = filtroNorm
     ? clientes.filter(c =>
         normalizar(c.razao).includes(filtroNorm) ||
-        normalizar(c.codigo).includes(filtroNorm))
+        normalizar(c.codigo).includes(filtroNorm) ||
+        normalizar(c.cidade).includes(filtroNorm))
     : clientes;
+
+  // KPIs respondem ao filtro
+  const kpiClientes = filtrados.length;
+  const kpiPedidos = filtrados.reduce((s, c) => s + c.totalPedidos, 0);
+  const kpiPares = filtrados.reduce((s, c) => s + c.totalPares, 0);
+
+  $('kpi-clientes').textContent = formatarNumero(kpiClientes);
+  $('kpi-pedidos').textContent = formatarNumero(kpiPedidos);
+  $('kpi-pares').textContent = formatarNumero(kpiPares);
 
   if (filtrados.length === 0) {
     container.innerHTML = `
@@ -1483,7 +1629,7 @@ function renderClientes(filtro) {
           <div class="client-avatar">${iniciais(c.razao)}</div>
           <div class="client-info">
             <p class="name">${c.razao}</p>
-            <p class="meta">${c.codigo} · ${c.totalPedidos} pedidos · ${c.totalPares} pares</p>
+            <p class="meta">${c.codigo} · ${c.cidade || '—'} · ${c.totalPedidos} pedidos · ${c.totalPares} pares</p>
           </div>
           <i class="fa-solid fa-chevron-right chev"></i>
         </div>
@@ -1502,10 +1648,7 @@ function renderClientes(filtro) {
    TELA: PRODUTOS DO CLIENTE
    ============================================================ */
 function abrirCliente(codigo) {
-  const meusPedidos = APP.sessao.papel === 'admin'
-    ? APP.pedidos
-    : APP.pedidos.filter(p => p.preposto === APP.sessao.nome);
-
+  const meusPedidos = obterClientesDoVendedor();
   const pedidosCliente = meusPedidos.filter(p => p.cliente_cod === codigo);
   if (pedidosCliente.length === 0) return;
 
@@ -1516,11 +1659,12 @@ function abrirCliente(codigo) {
     pedidos: pedidosCliente,
   };
   APP.filtroProduto = '';
-  APP.filtros = { cidade: null, ped_cliente: null, mes: null };
+  APP.filtros = { ped_cliente: null, mes: null };
   APP.ordem = 'mes_proximo';
 
   $('busca-produto').value = '';
   $('search-produto-wrap').classList.remove('has-value');
+  $('ordem-label').textContent = 'Mês mais próximo';
 
   $('cliente-nome').textContent = APP.clienteAtual.razao;
   $('cliente-meta').textContent = `${codigo} · ${APP.clienteAtual.cidade}`;
@@ -1537,7 +1681,6 @@ function obterPedidosFiltrados() {
   const filtroNorm = normalizar(APP.filtroProduto);
 
   let resultado = todos.filter(p => {
-    // Filtro de texto
     if (filtroNorm) {
       const casa =
         normalizar(p.descricao).includes(filtroNorm) ||
@@ -1548,14 +1691,11 @@ function obterPedidosFiltrados() {
         normalizar(p.ped_cliente).includes(filtroNorm);
       if (!casa) return false;
     }
-    // Filtros de coluna
-    if (APP.filtros.cidade && p.cidade !== APP.filtros.cidade) return false;
     if (APP.filtros.ped_cliente && p.ped_cliente !== APP.filtros.ped_cliente) return false;
     if (APP.filtros.mes && mesAno(p.prev_fat) !== APP.filtros.mes) return false;
     return true;
   });
 
-  // Ordenação
   const precoDe = p => {
     const key = `${p.artigo}_${corParaArquivo(p.cor)}`;
     const v = APP.produtos[key]?.preco;
@@ -1591,7 +1731,6 @@ function renderProdutos() {
   const pedidosCliente = APP.clienteAtual.pedidos;
   const pedidosFiltrados = obterPedidosFiltrados();
 
-  // Resumo (baseado em TODOS, não no filtro)
   const totalPares = pedidosCliente.reduce((s, p) => s + p.total, 0);
   const totalProdutos = pedidosCliente.length;
   const mesesUnicos = [...new Set(pedidosCliente.map(p => mesAno(p.prev_fat)).filter(Boolean))].length;
@@ -1616,7 +1755,6 @@ function renderProdutos() {
 
   listaEl.innerHTML = pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
 
-  // Expandir/recolher (evita lupa)
   listaEl.querySelectorAll('.product-main').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('.product-zoom')) return;
@@ -1624,7 +1762,6 @@ function renderProdutos() {
     });
   });
 
-  // Zoom
   listaEl.querySelectorAll('.product-zoom').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1634,7 +1771,6 @@ function renderProdutos() {
     });
   });
 
-  // Ações
   listaEl.querySelectorAll('.action-pill').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1683,12 +1819,23 @@ function renderCardProduto(p, idx) {
     return `<button class="action-pill ${ativo ? 'active ' + cls : ''}" data-idx="${idx}" data-acao="${a}">${a === 'GESTAO_CMS' ? 'GESTÃO' : a}</button>`;
   }).join('');
 
+  // Imagem com fallback "Imagem em breve"
+  // Esconde a lupa quando a imagem falha
+  const imgErrorHandler = `
+    this.classList.add('failed');
+    this.parentElement.querySelector('.product-zoom').classList.add('hidden');
+  `.replace(/\s+/g, ' ');
+
   return `
     <div class="product-card">
       <div class="product-main">
         <div class="product-thumb-wrap">
           <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
-               onerror="this.style.background='var(--card-bg-2)';this.removeAttribute('src');">
+               onerror="${imgErrorHandler}">
+          <div class="product-thumb-fallback">
+            <i class="fa-solid fa-image"></i>
+            <span>Imagem em breve</span>
+          </div>
           <button class="product-zoom" data-idx="${idx}" title="Ampliar">
             <i class="fa-solid fa-magnifying-glass-plus"></i>
           </button>
@@ -1738,7 +1885,7 @@ function renderCardProduto(p, idx) {
           </div>
           <div class="detail-row">
             <span class="label">Condição</span>
-            <span class="value">${p.cond_pag || '—'}</span>
+            <span class="value">${condicaoCompleta(p.cond_pag, p.campanha)}</span>
           </div>
           <div>
             <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Grade</div>
@@ -1772,7 +1919,7 @@ function fecharZoom() {
 }
 
 /* ============================================================
-   FILTROS / ORDENAÇÃO (popovers)
+   FILTROS / ORDENAÇÃO
    ============================================================ */
 function getValoresUnicos(campo) {
   if (!APP.clienteAtual) return [];
@@ -1818,22 +1965,26 @@ function abrirPopoverFiltro(filtroId, btnEl) {
       </div>
     `).join('');
 
+    // Anexa o handler usando dataset pra não escapar caracteres
     pop.querySelectorAll('.filter-option').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
         const id = el.dataset.id;
         if (filtroId === 'ordem') {
           APP.ordem = id;
-          $('ordem-label').textContent = OPCOES_ORDEM.find(x => x.id === id)?.label || 'Ordenar';
+          const lbl = OPCOES_ORDEM.find(x => x.id === id);
+          if (lbl) $('ordem-label').textContent = lbl.label;
         } else {
+          // Toggle: clica de novo no mesmo → remove
           if (APP.filtros[filtroId] === id) {
-            APP.filtros[filtroId] = null;  // desmarca
+            APP.filtros[filtroId] = null;
           } else {
             APP.filtros[filtroId] = id;
           }
         }
+        fecharTodosPopovers();
         atualizarBotoesFiltros();
         renderProdutos();
-        fecharTodosPopovers();
       });
     });
   }
@@ -1852,7 +2003,6 @@ function atualizarBotoesFiltros() {
   document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
     const f = btn.dataset.filter;
     if (f === 'ordem') {
-      // ordem padrão não destaca
       if (APP.ordem !== 'mes_proximo') {
         btn.classList.add('active');
         temAlgum = true;
@@ -1862,7 +2012,6 @@ function atualizarBotoesFiltros() {
     } else {
       if (APP.filtros[f]) {
         btn.classList.add('active');
-        // Mostra valor selecionado
         const span = btn.querySelector('span');
         if (span) span.textContent = APP.filtros[f];
         temAlgum = true;
@@ -1870,8 +2019,7 @@ function atualizarBotoesFiltros() {
         btn.classList.remove('active');
         const span = btn.querySelector('span');
         if (span) {
-          if (f === 'cidade') span.textContent = 'Cidade';
-          else if (f === 'ped_cliente') span.textContent = 'Ped.Cliente';
+          if (f === 'ped_cliente') span.textContent = 'Ped.Cliente';
           else if (f === 'mes') span.textContent = 'Mês';
         }
       }
@@ -1882,7 +2030,7 @@ function atualizarBotoesFiltros() {
 }
 
 function limparFiltros() {
-  APP.filtros = { cidade: null, ped_cliente: null, mes: null };
+  APP.filtros = { ped_cliente: null, mes: null };
   APP.ordem = 'mes_proximo';
   $('ordem-label').textContent = 'Mês mais próximo';
   atualizarBotoesFiltros();
@@ -1923,6 +2071,7 @@ function configurarBuscaComX(inputId, wrapId, onChange) {
    ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
   aplicarTema();
+  aplicarEstadoKpis();
   popularDropdownVendedores();
   configurarCopiaAoSelecionar();
 
@@ -1950,6 +2099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-tema').addEventListener('click', toggleTema);
   $('btn-tema-2').addEventListener('click', toggleTema);
   $('btn-sair').addEventListener('click', logout);
+  $('btn-toggle-kpis').addEventListener('click', toggleKpis);
 
   $('file-input-xlsx').addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -2003,7 +2153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarProdutosDoServidor();
   if (APP.sessao) {
     await carregarCarteiraDoServidor();
-    if (APP.clienteAtual === null) renderClientes('');
+    if (APP.clienteAtual === null) renderClientes(APP.filtroCliente);
   }
 });
 </script>
