@@ -997,6 +997,10 @@
     .tag.tag-acao.cancelar { background: var(--acao-cancelar); }
     .tag.tag-acao.repassar { background: var(--acao-repassar); }
     .tag.tag-acao.gestao   { background: var(--acao-gestao); }
+    .tag.tag-destino { background: var(--primary-soft); color: var(--primary-2); font-weight: 700; }
+    html.dark .tag.tag-destino { color: var(--primary); }
+    .action-pill.rep-cancelar { border-color: var(--acao-cancelar); color: var(--acao-cancelar); }
+    .action-pill.rep-cancelar:hover { background: var(--acao-cancelar); color: #fff; }
 
     /* =========================================================
        ZOOM MODAL
@@ -2595,7 +2599,7 @@ function renderRepasse() {
       </div>
     </label>`;
 
-  let html = `<label class="repasse-pendente"><input type="checkbox" id="chk-pendente" ${APP.repassePendente ? 'checked' : ''}> Destino a definir (vendedor de rota escolhe)</label>`;
+  let html = '';
   if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Tem o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
   if (tier2.length) html += `<p class="repasse-grupo-titulo neutro">② Não tem este artigo</p><div class="repasse-grupo">${tier2.map(c => item(c, false)).join('')}</div>`;
   if (semCarteira.length) html += `<p class="repasse-grupo-titulo neutro">③ Sem carteira</p><div class="repasse-grupo">${semCarteira.map(c => item(c, false)).join('')}</div>`;
@@ -2607,30 +2611,26 @@ function renderRepasse() {
     if (chk.checked) APP.repasseSel.add(chk.dataset.cod); else APP.repasseSel.delete(chk.dataset.cod);
     atualizarConfirmarRepasse();
   }));
-  const pend = $('chk-pendente');
-  if (pend) pend.addEventListener('change', () => { APP.repassePendente = pend.checked; atualizarConfirmarRepasse(); });
   atualizarConfirmarRepasse();
 }
 
 function atualizarConfirmarRepasse() {
   const n = APP.repasseSel.size;
   const btn = $('btn-confirmar-repasse');
-  btn.disabled = !(n > 0 || APP.repassePendente);
-  $('btn-confirmar-repasse-label').textContent = (APP.repassePendente && n === 0)
-    ? 'Marcar repasse (destino a definir)'
-    : n ? `Repassar para ${n} destino${n !== 1 ? 's' : ''}` : 'Selecione um destino';
+  btn.disabled = n === 0;
+  $('btn-confirmar-repasse-label').textContent = n ? `Finalizar · ${n} destino${n !== 1 ? 's' : ''}` : 'Selecione um destino';
 }
 
 function confirmarRepasse() {
   const n = APP.repasseSel.size;
-  if (!(n > 0 || APP.repassePendente)) return;
+  if (n === 0) return;
   const p = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
   const destinos = [...APP.repasseSel].map(cod => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod) }));
   p.acao = 'REPASSAR';
-  p.repasse = { pendente: APP.repassePendente && destinos.length === 0, destinos };
+  p.repasse = { pendente: false, destinos };
   localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
   agendarSaveAcoes();
-  toast(p.repasse.pendente ? 'Repasse marcado (destino a definir)' : `Repasse para ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
+  toast(`Repasse finalizado · ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
   APP.repasseCtx = null;
   renderProdutos();
   show('screen-produtos');
@@ -2758,7 +2758,9 @@ function renderProdutos() {
       <span><i class="fa-solid fa-bullseye"></i> Focado neste produto da loja</span>
       <button id="btn-ver-tudo-loja">Ver tudo da loja</button>
     </div>` : '';
+  const expandidos = new Set([...listaEl.querySelectorAll('.product-card.expanded')].map(c => c.dataset.idx));
   listaEl.innerHTML = focoBanner + pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
+  if (expandidos.size) listaEl.querySelectorAll('.product-card').forEach(c => { if (expandidos.has(c.dataset.idx)) c.classList.add('expanded'); });
 
   const verTudo = $('btn-ver-tudo-loja');
   if (verTudo) verTudo.addEventListener('click', () => { APP.focoProduto = null; renderProdutos(); });
@@ -2779,7 +2781,14 @@ function renderProdutos() {
     });
   });
 
-  listaEl.querySelectorAll('.action-pill').forEach(el => {
+  const salvarAcao = (msg) => {
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+    agendarSaveAcoes();
+    if (msg) toast(msg);
+    renderProdutos();
+  };
+
+  listaEl.querySelectorAll('.action-pill[data-acao]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       if (el.classList.contains('bloqueado')) {
@@ -2788,36 +2797,34 @@ function renderProdutos() {
       }
       const idx = Number(el.dataset.idx);
       const acao = el.dataset.acao;
+      const p = APP.clienteAtual.pedidos[idx];
       if (acao === 'REPASSAR') {
+        p.acao = 'REPASSAR';
+        p.repasse = { pendente: true, destinos: [] };
+        salvarAcao('Marcado para repasse · falta finalizar');
+        return;
+      }
+      p.acao = acao;
+      delete p.repasse;
+      salvarAcao(`${acao.replace('_', ' ')} aplicado`);
+    });
+  });
+
+  listaEl.querySelectorAll('.action-pill[data-rep]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(el.dataset.idx);
+      const tipo = el.dataset.rep;
+      if (tipo === 'finalizar' || tipo === 'mudar') {
         abrirRepasse(idx);
         return;
       }
-      APP.clienteAtual.pedidos[idx].acao = acao;
-
-      const pills = el.parentElement.querySelectorAll('.action-pill');
-      pills.forEach(p => p.classList.remove('active', 'manter', 'cancelar', 'repassar', 'gestao'));
-      el.classList.add('active', acao.toLowerCase().replace('_cms', '').replace('_', ''));
-
-      const card = el.closest('.product-card');
-      if (card) {
-        card.classList.remove('acao-manter', 'acao-cancelar', 'acao-repassar', 'acao-gestao');
-        card.classList.add('acao-' + acao.toLowerCase().replace('_cms', '').replace('_', ''));
-        const tagsEl = card.querySelector('.product-tags');
-        if (tagsEl) {
-          const old = tagsEl.querySelector('.tag-acao');
-          if (old) old.remove();
-          if (acao !== 'MANTER') {
-            const cls = acao.toLowerCase().replace('_cms', '').replace('_', '');
-            const icon = acao === 'CANCELAR' ? 'fa-ban' : acao === 'REPASSAR' ? 'fa-right-left' : 'fa-gear';
-            const label = acao === 'GESTAO_CMS' ? 'GESTÃO' : acao.charAt(0) + acao.slice(1).toLowerCase();
-            tagsEl.insertAdjacentHTML('afterbegin', `<span class="tag tag-acao ${cls}"><i class="fa-solid ${icon}"></i> ${label}</span>`);
-          }
-        }
+      if (tipo === 'cancelar') {
+        const p = APP.clienteAtual.pedidos[idx];
+        p.acao = 'MANTER';
+        delete p.repasse;
+        salvarAcao('Repasse cancelado');
       }
-
-      localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
-      toast(`${acao.replace('_', ' ')} aplicado`);
-      agendarSaveAcoes();
     });
   });
 
@@ -2845,14 +2852,31 @@ function renderCardProduto(p, idx) {
     : '<span style="color:var(--text-3);font-size:12px;">—</span>';
 
   const podeCancelar = diasAteFat(p) >= MIN_DIAS_CANCELAR;
-  const acoes = ['MANTER', 'CANCELAR', 'REPASSAR'];
-  if (APP.sessao.papel === 'admin') acoes.push('GESTAO_CMS');
-  const pillsHtml = acoes.map(a => {
-    const ativo = p.acao === a;
-    const cls = a.toLowerCase().replace('_cms', '').replace('_', '');
-    const bloq = (a === 'CANCELAR' && !podeCancelar);
-    return `<button class="action-pill ${ativo ? 'active ' + cls : ''}${bloq ? ' bloqueado' : ''}" data-idx="${idx}" data-acao="${a}"${bloq ? ' title="Faturamento em menos de 45 dias"' : ''}>${a === 'GESTAO_CMS' ? 'GESTÃO' : a}</button>`;
-  }).join('');
+  const repFinalizado = p.acao === 'REPASSAR' && p.repasse && (p.repasse.destinos || []).length > 0;
+  const repPendente = p.acao === 'REPASSAR' && !repFinalizado;
+  let pillsHtml;
+  if (repFinalizado) {
+    pillsHtml = `
+      <button class="action-pill rep-mudar" data-idx="${idx}" data-rep="mudar"><i class="fa-solid fa-pen"></i> Mudar destino</button>
+      <button class="action-pill rep-cancelar" data-idx="${idx}" data-rep="cancelar"><i class="fa-solid fa-xmark"></i> Cancelar repasse</button>`;
+  } else {
+    const btns = ['MANTER', 'CANCELAR'].map(a => {
+      const ativo = p.acao === a;
+      const cls = a.toLowerCase();
+      const bloq = (a === 'CANCELAR' && !podeCancelar);
+      return `<button class="action-pill ${ativo ? 'active ' + cls : ''}${bloq ? ' bloqueado' : ''}" data-idx="${idx}" data-acao="${a}"${bloq ? ' title="Faturamento em menos de 45 dias"' : ''}>${a}</button>`;
+    });
+    if (repPendente) {
+      btns.push(`<button class="action-pill active repassar" data-idx="${idx}" data-rep="finalizar"><i class="fa-solid fa-right-left"></i> Finalizar repasse</button>`);
+    } else {
+      btns.push(`<button class="action-pill" data-idx="${idx}" data-acao="REPASSAR">REPASSAR</button>`);
+    }
+    if (APP.sessao.papel === 'admin') {
+      const ativo = p.acao === 'GESTAO_CMS';
+      btns.push(`<button class="action-pill ${ativo ? 'active gestao' : ''}" data-idx="${idx}" data-acao="GESTAO_CMS">GESTÃO</button>`);
+    }
+    pillsHtml = btns.join('');
+  }
 
   const acaoCls = 'acao-' + (p.acao || 'MANTER').toLowerCase().replace('_cms', '').replace('_', '');
 
@@ -2864,7 +2888,7 @@ function renderCardProduto(p, idx) {
   `.replace(/\s+/g, ' ');
 
   return `
-    <div class="product-card ${acaoCls}">
+    <div class="product-card ${acaoCls}" data-idx="${idx}">
       <div class="product-main">
         <div class="product-thumb-wrap">
           <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
@@ -2886,6 +2910,7 @@ function renderCardProduto(p, idx) {
           </p>
           <div class="product-tags">
             ${p.acao && p.acao !== 'MANTER' ? `<span class="tag tag-acao ${p.acao.toLowerCase().replace('_cms', '').replace('_', '')}"><i class="fa-solid ${p.acao === 'CANCELAR' ? 'fa-ban' : p.acao === 'REPASSAR' ? 'fa-right-left' : 'fa-gear'}"></i> ${p.acao === 'GESTAO_CMS' ? 'GESTÃO' : p.acao.charAt(0) + p.acao.slice(1).toLowerCase()}</span>` : ''}
+            ${repFinalizado ? `<span class="tag tag-destino"><i class="fa-solid fa-arrow-right-long"></i> ${(p.repasse.destinos || []).length === 1 ? p.repasse.destinos[0].nome : (p.repasse.destinos || []).length + ' destinos'}</span>` : ''}
             ${p.gci ? `<span class="tag tag-gci"><i class="fa-solid fa-receipt"></i> GCI ${p.gci}</span>` : ''}
             ${mes ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mes}</span>` : ''}
             ${p.ped_cliente ? `<span class="tag tag-ped"><i class="fa-solid fa-tag"></i> ${p.ped_cliente}</span>` : ''}
@@ -2931,7 +2956,7 @@ function renderCardProduto(p, idx) {
           <div>
             <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Ação</div>
             <div class="action-pills">${pillsHtml}</div>
-            ${p.acao === 'REPASSAR' && p.repasse ? `<div class="repasse-destinos">${p.repasse.pendente ? '<i class="fa-solid fa-clock"></i> Destino a definir (vendedor)' : '<i class="fa-solid fa-right-long"></i> ' + (p.repasse.destinos || []).map(d => d.nome).join(', ')}</div>` : ''}
+            ${repFinalizado ? `<div class="repasse-destinos"><i class="fa-solid fa-right-long"></i> ${(p.repasse.destinos || []).map(d => d.nome).join(', ')}</div>` : ''}
           </div>
         </div>
       </div>
