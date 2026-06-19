@@ -1339,51 +1339,67 @@ async function carregarCarteiraDoServidor() {
   }
 }
 
+// Monta o mapa de produtos a partir de linhas (do worker ou do XLSX).
+// Leitura de colunas à prova de acento e maiúscula/minúscula.
+function montarProdutos(rows) {
+  const acha = (row, ...nomes) => {
+    const alvo = nomes.map(normalizar);
+    for (const k of Object.keys(row)) {
+      if (alvo.includes(normalizar(k))) return row[k];
+    }
+    return '';
+  };
+  const out = {};
+  for (const row of rows) {
+    // A coluna IMAGEM já é a chave ARTIGO_COR; se não houver, monta de CODIGO+COR.
+    let key = String(acha(row, 'IMAGEM') || '').trim();
+    if (!key) {
+      const artigo = String(acha(row, 'CODIGO', 'Artigo') || '').trim();
+      const cor = corParaArquivo(acha(row, 'COR', 'Cor'));
+      if (!artigo || !cor) continue;
+      key = `${artigo}_${cor}`;
+    }
+    out[key] = {
+      preco: acha(row, 'PRECO', 'PREÇO', 'Preço', 'Preco') || '',
+      categoria: acha(row, 'CATEGORIA', 'Categoria') || '',
+      descricao: acha(row, 'Produto', 'Descricao', 'Descrição') || '',
+    };
+  }
+  return out;
+}
+
 async function carregarProdutosDoServidor() {
+  // Fonte principal: Produtos.xlsx publicado no repo (catálogo completo com preço).
+  try {
+    const r = await fetch('../Produtos.xlsx', { cache: 'no-store' });
+    if (r.ok) {
+      const buf = await r.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const p = montarProdutos(rows);
+      if (Object.keys(p).length > 0) {
+        APP.produtos = p;
+        localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
+        if (APP.clienteAtual) renderProdutos();
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('Falha ao ler Produtos.xlsx', e);
+  }
+  // Fallback: worker getProdutos (só se o arquivo não vier).
   try {
     const data = await workerCall('getProdutos');
     if (Array.isArray(data) && data.length > 0) {
-      APP.produtos = {};
-      for (const row of data) {
-        const artigo = String(row.CODIGO || row.Codigo || row.codigo || row.Artigo || row.artigo || row.ARTIGO || '').trim();
-        let cor = String(row.Cor || row.cor || row.COR || '').trim();
-        if (!artigo || !cor) continue;
-        cor = corParaArquivo(cor);
-        const key = `${artigo}_${cor}`;
-        APP.produtos[key] = {
-          preco: row.PREÇO || row.Preço || row.PRECO || row.Preco || row.preco || row.preço || '',
-          categoria: row.CATEGORIA || row.Categoria || row.categoria || '',
-          descricao: row.Produto || row.Descricao || row.Descrição || row.descricao || row.descrição || '',
-        };
+      const p = montarProdutos(data);
+      if (Object.keys(p).length > 0) {
+        APP.produtos = p;
+        localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
+        if (APP.clienteAtual) renderProdutos();
       }
-      localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
-      return;
     }
   } catch {}
-  try {
-    const r = await fetch('../Produtos.xlsx');
-    if (!r.ok) return;
-    const buf = await r.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    APP.produtos = {};
-    for (const row of rows) {
-      const artigo = String(row.CODIGO || row.Codigo || row.codigo || row.Artigo || row.artigo || '').trim();
-      let cor = String(row.Cor || row.cor || row.COR || '').trim();
-      if (!artigo || !cor) continue;
-      cor = corParaArquivo(cor);
-      const key = `${artigo}_${cor}`;
-      APP.produtos[key] = {
-        preco: row.PREÇO || row.Preço || row.PRECO || row.Preco || row.preco || row.preço || '',
-        categoria: row.CATEGORIA || row.Categoria || row.categoria || '',
-        descricao: row.Produto || row.Descricao || row.Descrição || row.descricao || row.descrição || '',
-      };
-    }
-    localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
-  } catch (e) {
-    console.warn('Sem Produtos.xlsx local', e);
-  }
 }
 
 async function salvarCarteiraNoServidor(modo = 'full') {

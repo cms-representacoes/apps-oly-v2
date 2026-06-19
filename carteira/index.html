@@ -998,7 +998,7 @@
           id="busca-cliente"
           inputmode="search"
           enterkeyhint="search"
-          placeholder="Buscar por nome, código ou cidade…"
+          placeholder="Nome, cidade ou produto · separe por vírgula"
           autocomplete="off">
         <button class="search-clear" title="Limpar (ESC)">
           <i class="fa-solid fa-xmark"></i>
@@ -1649,21 +1649,28 @@ function renderClientes(filtro) {
 
   const clientes = [...mapClientes.values()];
 
-  // Filtra busca: casa por nome/código/cidade OU por produto (descrição/artigo)
-  const filtroNorm = normalizar(filtro);
+  // Filtra busca: até 3 termos separados por vírgula, com E (todos precisam casar).
+  // Cada termo casa por nome/código/cidade OU por produto (descrição/artigo).
+  const termos = filtro.split(',').map(normalizar).filter(Boolean).slice(0, 3);
   let filtrados;
-  if (filtroNorm) {
+  if (termos.length) {
     filtrados = [];
     for (const c of clientes) {
-      const casaCliente =
-        normalizar(c.razao).includes(filtroNorm) ||
-        normalizar(c.codigo).includes(filtroNorm) ||
-        normalizar(c.cidade).includes(filtroNorm);
-      const produtosCasados = c.pedidos.filter(p =>
-        normalizar(p.descricao).includes(filtroNorm) ||
-        normalizar(p.artigo).includes(filtroNorm));
-      if (casaCliente || produtosCasados.length > 0) {
-        c.produtosCasados = produtosCasados;
+      const casados = new Set();
+      let todosOk = true;
+      for (const termo of termos) {
+        const casaCliente =
+          normalizar(c.razao).includes(termo) ||
+          normalizar(c.codigo).includes(termo) ||
+          normalizar(c.cidade).includes(termo);
+        const prodMatches = c.pedidos.filter(p =>
+          normalizar(p.descricao).includes(termo) ||
+          normalizar(p.artigo).includes(termo));
+        if (!casaCliente && prodMatches.length === 0) { todosOk = false; break; }
+        prodMatches.forEach(p => casados.add(p));
+      }
+      if (todosOk) {
+        c.produtosCasados = [...casados];
         filtrados.push(c);
       }
     }
@@ -1677,7 +1684,7 @@ function renderClientes(filtro) {
   const kpiClientes = filtrados.length;
   let kpiPedidos = 0, kpiPares = 0;
   for (const c of filtrados) {
-    const base = (filtroNorm && c.produtosCasados.length) ? c.produtosCasados : c.pedidos;
+    const base = (termos.length && c.produtosCasados.length) ? c.produtosCasados : c.pedidos;
     kpiPedidos += base.length;
     kpiPares += base.reduce((s, p) => s + p.total, 0);
   }
@@ -1697,19 +1704,23 @@ function renderClientes(filtro) {
 
   const html = `
     <div class="client-list">
-      ${filtrados.map(c => `
+      ${filtrados.map(c => {
+        const temProd = termos.length && c.produtosCasados.length;
+        const nPedidos = temProd ? c.produtosCasados.length : c.totalPedidos;
+        const nPares = temProd ? c.produtosCasados.reduce((s, p) => s + p.total, 0) : c.totalPares;
+        return `
         <div class="client-item" data-cliente="${c.codigo}">
           <div class="client-row">
             <div class="client-avatar">${iniciais(c.razao)}</div>
             <div class="client-info">
               <p class="name">${c.razao}</p>
-              <p class="meta">${c.codigo} · ${c.cidade || '—'} · ${c.totalPedidos} pedidos · ${c.totalPares} pares</p>
+              <p class="meta">${c.codigo} · ${c.cidade || '—'} · ${nPedidos} pedidos · ${nPares} pares</p>
             </div>
             <i class="fa-solid fa-chevron-right chev"></i>
           </div>
           ${htmlProdutosCasados(c.produtosCasados)}
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>
     <div class="list-footer">${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}</div>
   `;
