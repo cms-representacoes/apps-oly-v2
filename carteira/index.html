@@ -1586,6 +1586,7 @@ const APP = {
   },
   ordem: 'mes_proximo',
   saveTimer: null,
+  acoesPendentes: false,
   filtroCliente: '',
   redeAtual: null,
   redeSelecao: new Set(),
@@ -1773,7 +1774,11 @@ async function workerCall(action, extra = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, ...extra })
   });
-  if (!r.ok) throw new Error('Erro HTTP ' + r.status);
+  if (!r.ok) {
+    let body = '';
+    try { body = await r.text(); } catch {}
+    throw new Error('HTTP ' + r.status + (body ? ' · ' + body.slice(0, 140) : ''));
+  }
   return r.json();
 }
 
@@ -1785,6 +1790,7 @@ async function carregarCarteiraDoServidor() {
       APP.pedidos = data.pedidos;
       localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
     }
+    await aplicarAcoesDoServidor();
     syncHide();
   } catch (e) {
     console.warn('Falha ao carregar carteira do servidor', e);
@@ -1921,29 +1927,79 @@ async function salvarCarteiraNoServidor(modo = 'full') {
         modo,
       }
     });
+    APP.acoesPendentes = false;
     syncHide();
+    return true;
   } catch (e) {
     syncHide();
-    toast('Falha ao salvar online (ficou só local)');
+    console.warn('saveCarteira falhou:', e);
+    toast('Não salvou online: ' + (e.message || 'erro'));
+    return false;
   }
+}
+
+// Chave única de um pedido (distingue até dobrados de mesmo GCI com grades diferentes)
+function keyPedido(p) {
+  return [p.cliente_cod, p.gci, p.artigo, p.cor, p.grade_str || '', p.total].join('|');
+}
+
+// Registra a mudança de ação de um pedido na fila de envio (grava só a chave alterada)
+function registrarAcao(p) {
+  if (!APP.acoesMap) APP.acoesMap = {};
+  APP.acoesMap[keyPedido(p)] = { acao: p.acao || 'MANTER', repasse: p.repasse || null };
+  agendarSaveAcoes();
 }
 
 function agendarSaveAcoes() {
   clearTimeout(APP.saveTimer);
-  APP.saveTimer = setTimeout(() => salvarCarteiraNoServidor('acoes'), 400);
+  APP.saveTimer = setTimeout(flushSaveAcoes, 400);
 }
 
-// Envia imediatamente qualquer ação pendente (antes de puxar ou ao sair da tela)
+// Envia as ações pendentes (arquivo pequeno). Usado pelo debounce, pelo botão Atualizar e ao sair.
 async function flushSaveAcoes() {
   if (APP.saveTimer) { clearTimeout(APP.saveTimer); APP.saveTimer = null; }
-  await salvarCarteiraNoServidor('acoes');
+  const mapa = APP.acoesMap || {};
+  const itens = Object.entries(mapa).map(([key, v]) => ({ key, acao: v.acao, repasse: v.repasse }));
+  if (!itens.length) return true;
+  try {
+    syncShow('Salvando…');
+    await workerCall('saveAcaoCarteira', { itens, por: APP.sessao?.nome || '' });
+    APP.acoesMap = {};
+    syncHide();
+    return true;
+  } catch (e) {
+    syncHide();
+    console.warn('saveAcaoCarteira falhou:', e);
+    toast('Não salvou online: ' + (e.message || 'erro'));
+    return false;
+  }
+}
+
+// Lê o arquivo pequeno de ações e aplica por cima da carteira
+async function aplicarAcoesDoServidor() {
+  try {
+    const data = await workerCall('getAcoesCarteira');
+    const mapa = (data && data.acoes) ? data.acoes : {};
+    let n = 0;
+    for (const p of APP.pedidos) {
+      const v = mapa[keyPedido(p)];
+      if (v) { p.acao = v.acao; p.repasse = v.repasse || undefined; n++; }
+    }
+    if (n) localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+  } catch (e) {
+    console.warn('getAcoesCarteira falhou', e);
+  }
 }
 
 // Botão "Atualizar": garante o envio do que é local, puxa o servidor e re-renderiza a tela atual
 async function atualizarDoServidor(btn) {
   if (btn) btn.classList.add('girando');
   try {
-    await flushSaveAcoes();
+    const ok = await flushSaveAcoes();
+    if (!ok) {
+      toast('Suas marcações ficaram só aqui — não atualizei pra não apagá-las');
+      return;
+    }
     await carregarCarteiraDoServidor();
     if (APP.clienteAtual && document.querySelector('#screen-produtos.active')) {
       const cod = APP.clienteAtual.codigo;
@@ -2711,7 +2767,7 @@ function confirmarRepasse() {
   p.acao = 'REPASSAR';
   p.repasse = { pendente: false, destinos };
   localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
-  agendarSaveAcoes();
+  registrarAcao(p);
   toast(`Repasse finalizado · ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
   APP.repasseCtx = null;
   renderProdutos();
@@ -2874,9 +2930,9 @@ function renderProdutos() {
     });
   });
 
-  const salvarAcao = (msg) => {
+  const salvarAcao = (p, msg) => {
     localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
-    agendarSaveAcoes();
+    registrarAcao(p);
     if (msg) toast(msg);
     renderProdutos();
   };
@@ -2894,12 +2950,12 @@ function renderProdutos() {
       if (acao === 'REPASSAR') {
         p.acao = 'REPASSAR';
         p.repasse = { pendente: true, destinos: [] };
-        salvarAcao('Marcado para repasse · falta finalizar');
+        salvarAcao(p, 'Marcado para repasse · falta finalizar');
         return;
       }
       p.acao = acao;
       delete p.repasse;
-      salvarAcao(`${acao.replace('_', ' ')} aplicado`);
+      salvarAcao(p, `${acao.replace('_', ' ')} aplicado`);
     });
   });
 
@@ -2916,7 +2972,7 @@ function renderProdutos() {
         const p = APP.clienteAtual.pedidos[idx];
         p.acao = 'MANTER';
         delete p.repasse;
-        salvarAcao('Repasse cancelado');
+        salvarAcao(p, 'Repasse cancelado');
       }
     });
   });
