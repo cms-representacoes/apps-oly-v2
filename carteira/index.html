@@ -951,6 +951,10 @@
     .action-pill.active.cancelar { background: var(--acao-cancelar); color: #fff; border-color: var(--acao-cancelar); }
     .action-pill.active.repassar { background: var(--acao-repassar); color: #fff; border-color: var(--acao-repassar); }
     .action-pill.active.gestao   { background: var(--acao-gestao); color: #fff; border-color: var(--acao-gestao); }
+    .action-pill.bloqueado { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
+    .product-card.acao-cancelar { border: 2px solid var(--acao-cancelar); }
+    .product-card.acao-repassar { border: 2px solid var(--acao-repassar); }
+    .product-card.acao-gestao   { border: 2px solid var(--acao-gestao); }
 
     /* =========================================================
        ZOOM MODAL
@@ -1525,6 +1529,17 @@ function prevFatToNumero(v) {
   if (!m) return Infinity;
   return Number(m[3] + m[2] + m[1]);
 }
+// Dias entre hoje e a data prevista de faturamento (regra dos 45 dias do cancelamento)
+function diasAteFat(p) {
+  const d = formatarDataBR(p.prev_fat);
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return Infinity;
+  const alvo = Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  const h = new Date();
+  const hoje = Date.UTC(h.getFullYear(), h.getMonth(), h.getDate());
+  return Math.round((alvo - hoje) / 86400000);
+}
+const MIN_DIAS_CANCELAR = 45;
 function formatarPreco(v) {
   if (v == null || v === '') return '—';
   const n = Number(v);
@@ -2546,6 +2561,10 @@ function renderProdutos() {
   listaEl.querySelectorAll('.action-pill').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (el.classList.contains('bloqueado')) {
+        toast('Só dá pra cancelar com 45+ dias até o faturamento');
+        return;
+      }
       const idx = Number(el.dataset.idx);
       const acao = el.dataset.acao;
       APP.clienteAtual.pedidos[idx].acao = acao;
@@ -2553,6 +2572,12 @@ function renderProdutos() {
       const pills = el.parentElement.querySelectorAll('.action-pill');
       pills.forEach(p => p.classList.remove('active', 'manter', 'cancelar', 'repassar', 'gestao'));
       el.classList.add('active', acao.toLowerCase().replace('_cms', '').replace('_', ''));
+
+      const card = el.closest('.product-card');
+      if (card) {
+        card.classList.remove('acao-manter', 'acao-cancelar', 'acao-repassar', 'acao-gestao');
+        card.classList.add('acao-' + acao.toLowerCase().replace('_cms', '').replace('_', ''));
+      }
 
       localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
       toast(`${acao.replace('_', ' ')} aplicado`);
@@ -2583,13 +2608,17 @@ function renderCardProduto(p, idx) {
       </div>`
     : '<span style="color:var(--text-3);font-size:12px;">—</span>';
 
+  const podeCancelar = diasAteFat(p) >= MIN_DIAS_CANCELAR;
   const acoes = ['MANTER', 'CANCELAR', 'REPASSAR'];
   if (APP.sessao.papel === 'admin') acoes.push('GESTAO_CMS');
   const pillsHtml = acoes.map(a => {
     const ativo = p.acao === a;
     const cls = a.toLowerCase().replace('_cms', '').replace('_', '');
-    return `<button class="action-pill ${ativo ? 'active ' + cls : ''}" data-idx="${idx}" data-acao="${a}">${a === 'GESTAO_CMS' ? 'GESTÃO' : a}</button>`;
+    const bloq = (a === 'CANCELAR' && !podeCancelar);
+    return `<button class="action-pill ${ativo ? 'active ' + cls : ''}${bloq ? ' bloqueado' : ''}" data-idx="${idx}" data-acao="${a}"${bloq ? ' title="Faturamento em menos de 45 dias"' : ''}>${a === 'GESTAO_CMS' ? 'GESTÃO' : a}</button>`;
   }).join('');
+
+  const acaoCls = 'acao-' + (p.acao || 'MANTER').toLowerCase().replace('_cms', '').replace('_', '');
 
   // Imagem com fallback "Imagem em breve"
   // Esconde a lupa quando a imagem falha
@@ -2599,7 +2628,7 @@ function renderCardProduto(p, idx) {
   `.replace(/\s+/g, ' ');
 
   return `
-    <div class="product-card">
+    <div class="product-card ${acaoCls}">
       <div class="product-main">
         <div class="product-thumb-wrap">
           <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
