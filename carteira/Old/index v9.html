@@ -651,12 +651,6 @@
     .cad-item .ci-del { background: transparent; border: none; color: var(--acao-cancelar); cursor: pointer; font-size: 16px; padding: 6px; }
     .tag-semcompra { font-size: 10px; font-weight: 700; background: var(--acao-repassar); color: #fff; padding: 1px 7px; border-radius: 5px; margin-left: 6px; }
     .repasses-filtros { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .rep-toprow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .rep-toprow .rep-strip { flex: 0 0 auto; padding: 0; border: none; margin: 0; }
-    .rep-toprow .rep-strip .name { font-size: 15px; }
-    .rep-toprow .rep-strip .meta { font-size: 11px; }
-    .rep-toprow .rep-search { flex: 1 1 200px; min-width: 160px; margin: 0; }
-    .rep-toprow .rep-select { flex: 0 1 160px; min-width: 120px; }
     .rep-select {
       flex: 1; min-width: 0; font-size: 12px; padding: 7px 10px;
       border: 1px solid var(--border-2); border-radius: var(--r-md);
@@ -664,26 +658,7 @@
     }
     .repasses-selbar {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
-    }
-    .rep-fab {
-      position: fixed; right: 18px; bottom: 18px; z-index: 60;
-      width: 56px; height: 56px; border-radius: 50%;
-      background: var(--primary); color: #fff; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 21px;
-      box-shadow: 0 4px 14px rgba(0,0,0,.28);
-    }
-    .rep-fab:disabled { opacity: .4; cursor: default; }
-    .rep-fab .rep-fab-count {
-      position: absolute; top: -5px; right: -5px; min-width: 21px; height: 21px;
-      background: #fff; color: var(--primary); border-radius: 11px; padding: 0 5px;
-      font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
-    }
-    .rep-fab.pulsando { animation: repfab-pulse 1.5s ease-out infinite; }
-    @keyframes repfab-pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(13,148,136,.55), 0 4px 14px rgba(0,0,0,.28); }
-      70%  { box-shadow: 0 0 0 16px rgba(13,148,136,0), 0 4px 14px rgba(0,0,0,.28); }
-      100% { box-shadow: 0 0 0 0 rgba(13,148,136,0), 0 4px 14px rgba(0,0,0,.28); }
+      margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
     }
     .rep-selall { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
     .rep-selall input { width: 18px; height: 18px; accent-color: var(--primary); }
@@ -1683,19 +1658,19 @@
     </div>
 
     <div class="frozen-header">
-      <div class="rep-toprow">
-        <div class="client-strip rep-strip">
-          <button class="back" id="btn-voltar-repasses" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
-          <div class="client-info-compact">
-            <p class="name">Repasses</p>
-            <p class="meta" id="repasses-meta">—</p>
-          </div>
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-repasses" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="client-info-compact">
+          <p class="name">Repasses</p>
+          <p class="meta" id="repasses-meta">—</p>
         </div>
-        <div class="search-wrap rep-search" id="repasses-busca-wrap">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="search" id="busca-repasses" inputmode="search" enterkeyhint="search" placeholder="Buscar · separe por vírgula" autocomplete="off">
-          <button class="search-clear" title="Limpar"><i class="fa-solid fa-xmark"></i></button>
-        </div>
+      </div>
+      <div class="search-wrap" id="repasses-busca-wrap" style="margin-top:10px;">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="search" id="busca-repasses" inputmode="search" enterkeyhint="search" placeholder="Produto, loja ou cidade · separe por vírgula" autocomplete="off">
+        <button class="search-clear" title="Limpar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="repasses-filtros">
         <select id="rep-f-status" class="rep-select"></select>
         <select id="rep-f-genero" class="rep-select"></select>
         <select id="rep-f-cliente" class="rep-select"></select>
@@ -1708,10 +1683,11 @@
 
     <div id="repasses-body"></div>
 
-    <button class="rep-fab" id="btn-exportar-repasses" disabled title="Exportar XLSX" aria-label="Exportar XLSX">
-      <i class="fa-solid fa-file-excel"></i>
-      <span class="rep-fab-count" id="btn-exportar-label"></span>
-    </button>
+    <div class="rede-actionbar">
+      <button class="rede-ver-btn" id="btn-exportar-repasses" disabled>
+        <i class="fa-solid fa-file-excel"></i> <span id="btn-exportar-label">Exportar XLSX</span>
+      </button>
+    </div>
   </div>
 
   <!-- =================================================================
@@ -2511,27 +2487,20 @@ async function importarXLSX(file) {
       return;
     }
 
-    // Preserva a ação COMPLETA (inclui o "finalizar": destinos/caixas) do que já estava em memória.
-    // Chave por cliente+gci+artigo+cor+grade (sem o total) — sobrevive a faturamento parcial e distingue grades.
-    const chave = p => `${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}|${p.grade_str || ''}`;
+    const chave = p => `${p.preposto}|${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}`;
     const acoesAnteriores = {};
     for (const p of APP.pedidos) {
-      acoesAnteriores[chave(p)] = { acao: p.acao, repasse: p.repasse || null };
+      acoesAnteriores[chave(p)] = p.acao;
     }
     for (const p of pedidos) {
-      const prev = acoesAnteriores[chave(p)];
-      if (prev) {
-        p.acao = prev.acao;
-        if (prev.repasse) p.repasse = prev.repasse;
-      }
+      const k = chave(p);
+      if (acoesAnteriores[k]) p.acao = acoesAnteriores[k];
     }
 
     APP.pedidos = pedidos;
-    // Reaplica o arquivo de ações do servidor (canônico / outros aparelhos) por cima
-    await aplicarAcoesDoServidor();
-    localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(pedidos));
 
-    toast(`${APP.pedidos.length} pedidos importados`);
+    toast(`${pedidos.length} pedidos importados`);
     atualizarCabecalhoMarca();
     renderClientes($('busca-cliente').value);
 
@@ -3414,11 +3383,8 @@ function montarItensRepasse() {
       pares: p.total,
       origemNome: p.razao_social || p.cliente_razao,
       origemCod: p.cliente_cod,
-      origemFantasia: nomeFantasiaDe(p.cliente_cod),
-      origemPorta: portaDe(p.cliente_cod),
       cidade: p.cidade,
       destinos: fin ? (p.repasse.destinos || []).map(d => d.nome) : [],
-      destinosBusca: fin ? (p.repasse.destinos || []).map(d => `${d.nome || ''} ${d.porta || ''} ${d.codigo || ''}`).join(' ') : '',
       finalizado: fin,
       genero: generoPedido(p),
     };
@@ -3464,7 +3430,7 @@ function renderRepassesLista() {
   const termos = (APP.repBusca || '').split(',').map(normalizar).filter(Boolean).slice(0, 3);
   if (termos.length) {
     itens = itens.filter(i => {
-      const hay = normalizar([i.descricao, i.artigo, i.cor, i.origemNome, i.origemFantasia, i.origemPorta, i.origemCod, i.cidade, i.gci, i.destinosBusca].join(' '));
+      const hay = normalizar([i.descricao, i.artigo, i.cor, i.origemNome, i.origemCod, i.cidade, i.gci, i.destinos.join(' ')].join(' '));
       return termos.every(t => hay.includes(t));
     });
   }
@@ -3621,8 +3587,7 @@ function atualizarContadorRepasses() {
   const btnExp = $('btn-exportar-repasses');
   if (btnExp) {
     btnExp.disabled = nSel === 0;
-    btnExp.classList.toggle('pulsando', nSel > 0);
-    $('btn-exportar-label').textContent = nSel ? String(nSel) : '';
+    $('btn-exportar-label').textContent = nSel ? `Exportar XLSX (${nSel})` : 'Exportar XLSX';
   }
   const vis = APP.repVisiveis || [];
   const chk = $('rep-selecionar-todos');
