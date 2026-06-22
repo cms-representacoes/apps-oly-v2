@@ -597,31 +597,8 @@
     }
     html.dark .dist-badge { background: #78350f; color: #fde68a; }
 
-    /* Cadastro de cliente */
-    .cad-form {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: var(--r-lg); padding: 14px; margin-bottom: 16px;
-    }
-    .cad-form label { display: block; font-size: 12px; color: var(--text-2); margin: 8px 0 4px; }
-    .cad-form label:first-child { margin-top: 0; }
-    .cad-form input {
-      width: 100%; font-size: 14px; padding: 9px 11px; color: var(--text);
-      border: 1px solid var(--border-2); border-radius: var(--r-md); background: var(--card-bg-2);
-    }
-    .cad-salvar {
-      width: 100%; margin-top: 14px; background: var(--primary); color: #fff; border: none;
-      border-radius: var(--r-md); padding: 11px; font-weight: 700; font-size: 14px; cursor: pointer;
-    }
-    .cad-lista-titulo { font-size: 12px; color: var(--text-2); margin: 0 2px 6px; }
-    .cad-item {
-      display: flex; justify-content: space-between; align-items: center; gap: 10px;
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 6px;
-    }
-    .cad-item .ci-nome { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
-    .cad-item .ci-meta { font-size: 12px; color: var(--text-2); margin: 2px 0 0; }
-    .cad-item .ci-del { background: transparent; border: none; color: var(--acao-cancelar); cursor: pointer; font-size: 16px; padding: 6px; }
-    .tag-semcompra { font-size: 10px; font-weight: 700; background: var(--acao-repassar); color: #fff; padding: 1px 7px; border-radius: 5px; margin-left: 6px; }
+    /* Tela Repasses (lista geral) */
+    #repasses-body { padding-bottom: 96px; }
     .repasses-filtros { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
     .rep-select {
       flex: 1; min-width: 0; font-size: 12px; padding: 7px 10px;
@@ -1275,9 +1252,6 @@
         <button class="btn-icon" id="btn-atualizar-clientes" title="Atualizar">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
-        <button class="btn-icon" id="btn-cad-cliente" title="Cadastrar cliente">
-          <i class="fa-solid fa-user-plus"></i>
-        </button>
         <label class="btn-icon" id="btn-importar" title="Importar XLSX" for="file-input-xlsx">
           <i class="fa-solid fa-file-import"></i>
         </label>
@@ -1654,50 +1628,6 @@
   </div>
 
   <!-- =================================================================
-       TELA CADASTRAR CLIENTE (sem compra)
-       ================================================================= -->
-  <div id="screen-cad-cliente" class="screen">
-    <div class="topbar">
-      <div class="topbar-left">
-        <div class="logo-mark"><i class="fa-solid fa-user-plus"></i></div>
-        <div>
-          <div class="logo-text">Carteira CMS</div>
-          <div class="logo-sub" id="topbar-user-8">—</div>
-        </div>
-      </div>
-      <div class="topbar-actions">
-        <button class="btn-icon" id="btn-tema-8" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
-      </div>
-    </div>
-
-    <div class="frozen-header">
-      <div class="client-strip">
-        <button class="back" id="btn-voltar-cad" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
-        <div class="client-info-compact">
-          <p class="name">Cadastrar cliente</p>
-          <p class="meta">Clientes sem compra · aparecem na busca</p>
-        </div>
-      </div>
-    </div>
-
-    <div id="cad-body" style="padding-bottom:24px;">
-      <div class="cad-form">
-        <label>Código</label>
-        <input type="text" id="cad-codigo" inputmode="numeric" placeholder="Ex.: 998877" autocomplete="off">
-        <label>Razão</label>
-        <input type="text" id="cad-razao" placeholder="Ex.: NOVA LOJA COMERCIO LTDA" autocomplete="off">
-        <label>Nome fantasia</label>
-        <input type="text" id="cad-fantasia" placeholder="Ex.: NOVA LOJA" autocomplete="off">
-        <label>Porta</label>
-        <input type="text" id="cad-porta" placeholder="Ex.: CENTRO" autocomplete="off">
-        <button class="cad-salvar" id="btn-salvar-cad"><i class="fa-solid fa-check"></i> Salvar cliente</button>
-      </div>
-      <p class="cad-lista-titulo">Já cadastrados</p>
-      <div id="cad-lista"></div>
-    </div>
-  </div>
-
-  <!-- =================================================================
        MODAL DE ZOOM
        ================================================================= -->
   <div class="zoom-modal" id="zoom-modal">
@@ -1745,7 +1675,6 @@ const STORAGE = {
   pedidos: 'carteira.pedidos',
   produtos: 'carteira.produtos',
   clientesInfo: 'carteira.clientesInfo',
-  clientesCadastrados: 'carteira.clientesCadastrados',
   kpisOcultos: 'carteira.kpisOcultos',
 };
 
@@ -1779,7 +1708,6 @@ const APP = {
   pedidos: [],
   produtos: {},
   clientesInfo: {},
-  clientesCadastrados: {},
   redes: {},
   clienteAtual: null,
   filtroProduto: '',
@@ -1946,7 +1874,7 @@ function configurarCopiaAoSelecionar() {
 function aplicarTema() {
   const t = localStorage.getItem(STORAGE.tema) || 'claro';
   document.documentElement.classList.toggle('dark', t === 'escuro');
-  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i, #btn-tema-7 i, #btn-tema-8 i').forEach(i => {
+  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i, #btn-tema-7 i').forEach(i => {
     i.className = t === 'escuro' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   });
 }
@@ -2124,107 +2052,11 @@ async function carregarClientesDoServidor() {
       APP.clientesInfo = info;
       APP.redes = montarRedes(info);
       localStorage.setItem(STORAGE.clientesInfo, JSON.stringify(info));
-      aplicarCadastrados();
       if (APP.sessao && !APP.clienteAtual) renderClientes($('busca-cliente')?.value || '');
     }
   } catch (e) {
     console.warn('Falha ao ler Clientes.xlsx', e);
   }
-}
-
-// Mescla os clientes cadastrados manualmente no clientesInfo e recalcula as redes
-function aplicarCadastrados() {
-  for (const [cod, c] of Object.entries(APP.clientesCadastrados || {})) {
-    APP.clientesInfo[cod] = { nomeFantasia: c.nomeFantasia || '', porta: c.porta || '' };
-  }
-  APP.redes = montarRedes(APP.clientesInfo);
-}
-
-async function carregarClientesCadastrados() {
-  try {
-    const data = await workerCall('getClientesCadastrados');
-    APP.clientesCadastrados = (data && data.clientes) ? data.clientes : {};
-    localStorage.setItem(STORAGE.clientesCadastrados, JSON.stringify(APP.clientesCadastrados));
-    aplicarCadastrados();
-    if (APP.sessao && !APP.clienteAtual) renderClientes($('busca-cliente')?.value || '');
-  } catch (e) {
-    console.warn('getClientesCadastrados falhou', e);
-  }
-}
-
-function cardSemCompraHTML(c) {
-  const nome = c.razao || c.nomeFantasia || c.codigo;
-  return `
-    <div class="client-item" data-cliente="${escAttr(c.codigo)}">
-      <div class="client-row">
-        <div class="client-avatar"><i class="fa-solid fa-user-plus"></i></div>
-        <div class="client-info">
-          <p class="name">${escHtml(nome)} <span class="tag-semcompra">sem compra</span></p>
-          <p class="meta">${[c.codigo, c.porta, c.nomeFantasia].filter(Boolean).map(escHtml).join(' · ')} · 0 pedidos</p>
-        </div>
-        <i class="fa-solid fa-chevron-right chev"></i>
-      </div>
-    </div>`;
-}
-
-function abrirCadastro() {
-  $('cad-codigo').value = '';
-  $('cad-razao').value = '';
-  $('cad-fantasia').value = '';
-  $('cad-porta').value = '';
-  renderCadastrados();
-  show('screen-cad-cliente');
-  window.scrollTo(0, 0);
-  setTimeout(() => $('cad-codigo').focus(), 50);
-}
-
-function renderCadastrados() {
-  const lista = Object.values(APP.clientesCadastrados || {}).sort((a, b) => (a.razao || a.nomeFantasia || '').localeCompare(b.razao || b.nomeFantasia || ''));
-  const el = $('cad-lista');
-  if (!lista.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:20px 0;"><i class="fa-solid fa-user-plus"></i><p>Nenhum cliente cadastrado ainda</p></div>`;
-    return;
-  }
-  el.innerHTML = lista.map(c => `
-    <div class="cad-item">
-      <div>
-        <p class="ci-nome">${escHtml(c.razao || c.nomeFantasia || c.codigo)}</p>
-        <p class="ci-meta">${[c.nomeFantasia, c.porta, c.codigo].filter(Boolean).map(escHtml).join(' · ')}</p>
-      </div>
-      <button class="ci-del" data-cod="${escAttr(c.codigo)}" title="Remover"><i class="fa-solid fa-trash"></i></button>
-    </div>`).join('');
-  el.querySelectorAll('.ci-del').forEach(b => b.addEventListener('click', () => removerCadastro(b.dataset.cod)));
-}
-
-async function salvarCadastro() {
-  const codigo = $('cad-codigo').value.trim();
-  const razao = $('cad-razao').value.trim();
-  const nomeFantasia = $('cad-fantasia').value.trim();
-  const porta = $('cad-porta').value.trim();
-  if (!codigo) { toast('Informe o código'); return; }
-  if (!razao && !nomeFantasia) { toast('Informe a razão ou o nome fantasia'); return; }
-  if (APP.pedidos.some(p => p.cliente_cod === codigo)) { toast('Esse código já existe na carteira'); return; }
-  const c = { codigo, razao, nomeFantasia, porta };
-  APP.clientesCadastrados[codigo] = c;
-  localStorage.setItem(STORAGE.clientesCadastrados, JSON.stringify(APP.clientesCadastrados));
-  aplicarCadastrados();
-  renderCadastrados();
-  $('cad-codigo').value = ''; $('cad-razao').value = ''; $('cad-fantasia').value = ''; $('cad-porta').value = '';
-  $('cad-codigo').focus();
-  toast('Cliente cadastrado');
-  try { await workerCall('saveClientesCadastrados', { itens: [c], por: APP.sessao?.nome || '' }); }
-  catch (e) { toast('Salvou local · falha no servidor: ' + (e.message || '')); }
-}
-
-async function removerCadastro(cod) {
-  delete APP.clientesCadastrados[cod];
-  delete APP.clientesInfo[cod];
-  localStorage.setItem(STORAGE.clientesCadastrados, JSON.stringify(APP.clientesCadastrados));
-  APP.redes = montarRedes(APP.clientesInfo);
-  renderCadastrados();
-  toast('Removido');
-  try { await workerCall('saveClientesCadastrados', { itens: [{ codigo: cod, remover: true }], por: APP.sessao?.nome || '' }); }
-  catch (e) { toast('Removeu local · falha no servidor'); }
 }
 
 async function salvarCarteiraNoServidor(modo = 'full') {
@@ -2311,7 +2143,6 @@ async function atualizarDoServidor(btn) {
       return;
     }
     await carregarCarteiraDoServidor();
-    await carregarClientesCadastrados();
     if (APP.clienteAtual && document.querySelector('#screen-produtos.active')) {
       const cod = APP.clienteAtual.codigo;
       APP.clienteAtual.pedidos = obterClientesDoVendedor().filter(p => p.cliente_cod === cod);
@@ -2378,7 +2209,6 @@ function irParaClientes() {
   $('topbar-user-5').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-6').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-7').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
-  $('topbar-user-8').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   show('screen-clientes');
   renderClientes(APP.filtroCliente);
 }
@@ -2704,19 +2534,6 @@ function renderClientes(filtro) {
     }
   }
 
-  // Clientes cadastrados (sem compra) que casam a busca e não estão na carteira
-  let nSemCompra = 0;
-  if (termos.length && !APP.soRedes) {
-    const naCarteira = new Set(clientes.map(c => c.codigo));
-    for (const c of Object.values(APP.clientesCadastrados || {})) {
-      if (naCarteira.has(c.codigo)) continue;
-      const hay = normalizar([c.razao, c.nomeFantasia, c.porta, c.codigo].join(' '));
-      if (!termos.every(t => hay.includes(t))) continue;
-      cards.push(cardSemCompraHTML(c));
-      nSemCompra++;
-    }
-  }
-
   if (cards.length === 0) {
     container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-store"></i><p>${APP.soRedes ? 'Nenhuma rede encontrada' : 'Nenhum cliente encontrado'}</p></div>`;
     return;
@@ -2724,7 +2541,7 @@ function renderClientes(filtro) {
 
   const rodape = APP.soRedes
     ? `${cards.length} rede${cards.length !== 1 ? 's' : ''}`
-    : `${filtrados.length + nSemCompra} cliente${(filtrados.length + nSemCompra) !== 1 ? 's' : ''}`;
+    : `${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}`;
   const html = `
     <div class="client-list">${cards.join('')}</div>
     <div class="list-footer">${rodape}</div>
@@ -3407,22 +3224,12 @@ function toggleTodosRepasses(marcar) {
 function abrirCliente(codigo) {
   const meusPedidos = obterClientesDoVendedor();
   const pedidosCliente = meusPedidos.filter(p => p.cliente_cod === codigo);
-
-  let razao, cidade;
-  if (pedidosCliente.length) {
-    razao = pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao;
-    cidade = pedidosCliente[0].cidade;
-  } else {
-    const cad = APP.clientesCadastrados?.[codigo];
-    const info = APP.clientesInfo?.[codigo];
-    razao = (cad && (cad.razao || cad.nomeFantasia)) || (info && info.nomeFantasia) || codigo;
-    cidade = (cad && cad.porta) || (info && info.porta) || '—';
-  }
+  if (pedidosCliente.length === 0) return;
 
   APP.clienteAtual = {
     codigo,
-    razao,
-    cidade,
+    razao: pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao,
+    cidade: pedidosCliente[0].cidade,
     pedidos: pedidosCliente,
   };
   APP.filtroProduto = '';
@@ -3984,14 +3791,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (prod) APP.produtos = JSON.parse(prod);
   } catch {}
   try {
-    const cc = localStorage.getItem(STORAGE.clientesCadastrados);
-    if (cc) APP.clientesCadastrados = JSON.parse(cc);
-  } catch {}
-  try {
     const ci = localStorage.getItem(STORAGE.clientesInfo);
     if (ci) {
       APP.clientesInfo = JSON.parse(ci);
-      aplicarCadastrados();
+      APP.redes = montarRedes(APP.clientesInfo);
     }
   } catch {}
 
@@ -4073,12 +3876,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Tela Repasses
   $('btn-repasses').addEventListener('click', abrirRepasses);
-  // Cadastro de cliente
-  $('btn-cad-cliente').addEventListener('click', abrirCadastro);
-  $('btn-voltar-cad').addEventListener('click', () => show('screen-clientes'));
-  $('btn-tema-8').addEventListener('click', toggleTema);
-  $('btn-salvar-cad').addEventListener('click', salvarCadastro);
-  $('cad-porta').addEventListener('keydown', (e) => { if (e.key === 'Enter') salvarCadastro(); });
   $('btn-voltar-repasses').addEventListener('click', () => show('screen-clientes'));
   $('btn-tema-7').addEventListener('click', toggleTema);
   $('btn-atualizar-repasses').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
@@ -4147,7 +3944,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Carrega do servidor
   carregarProdutosDoServidor();
   carregarClientesDoServidor();
-  carregarClientesCadastrados();
   if (APP.sessao) {
     await carregarCarteiraDoServidor();
     if (APP.clienteAtual === null) renderClientes(APP.filtroCliente);
