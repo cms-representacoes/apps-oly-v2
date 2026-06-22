@@ -3141,7 +3141,7 @@ function renderRepasse() {
     const nome = nomeDe[cod] || APP.clientesInfo[cod]?.nomeFantasia || cod;
     const porta = portaDe(cod);
     if (busca) {
-      const txt = normalizar(nome + ' ' + nomeFantasiaDe(cod) + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
+      const txt = normalizar(nome + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
       if (!txt.includes(busca)) continue;
     }
     const obj = { cod, nome, porta, cores: cores ? [...cores] : null, rede: naRede(cod), recebe: recebeMap[cod] || null };
