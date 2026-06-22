@@ -467,19 +467,6 @@
       display: flex; align-items: center; gap: 12px;
       padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
     }
-    .dist-banner {
-      display: flex; justify-content: space-between; align-items: center; gap: 10px;
-      background: var(--primary-soft); color: var(--primary-2); border-radius: var(--r-md);
-      padding: 9px 12px; margin-bottom: 10px; font-size: 12px; font-weight: 600;
-    }
-    html.dark .dist-banner { color: var(--primary); }
-    .dist-banner .dist-cont { font-weight: 700; white-space: nowrap; }
-    .dist-stepper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
-    .dist-stepper button {
-      width: 28px; height: 28px; border: 1px solid var(--border-2); background: var(--card-bg);
-      color: var(--text); border-radius: 6px; font-size: 16px; line-height: 1; cursor: pointer;
-    }
-    .dist-stepper span { font-size: 13px; font-weight: 700; min-width: 40px; text-align: center; color: var(--text); }
     .rede-sel-item:last-child { border-bottom: none; }
     .rede-sel-item input { width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0; }
     .rede-sel-info { flex: 1; min-width: 0; }
@@ -718,13 +705,9 @@
       margin: 12px 2px 0; display: flex; align-items: center; gap: 6px;
     }
     .repasse-destinos {
-      margin-top: 8px; font-size: 12px; display: block;
+      margin-top: 8px; font-size: 12px; font-weight: 600;
+      color: var(--acao-repassar); display: flex; align-items: center; gap: 6px;
     }
-    .repasse-destinos .rd-linha {
-      display: flex; justify-content: space-between; gap: 10px; padding: 3px 0;
-      color: var(--text);
-    }
-    .repasse-destinos .rd-det { color: var(--text-2); font-weight: 600; white-space: nowrap; }
     .list-footer {
       text-align: center; font-size: 12px;
       color: var(--text-3); padding: 12px;
@@ -1908,41 +1891,6 @@ function statusPedido(p) {
 function generoPedido(p) {
   return APP.produtos[`${p.artigo}_${corParaArquivo(p.cor)}`]?.genero || '';
 }
-// Tamanho da caixa fechada = soma dos dígitos da grade (ex.: 1232211 = 12; 1221 = 6)
-function tamanhoCaixa(p) {
-  const gs = String(p.grade_str || '').replace(/\D/g, '');
-  if (gs) {
-    const soma = [...gs].reduce((s, d) => s + Number(d), 0);
-    if (soma > 0 && (p.total || 0) % soma === 0) return soma;
-  }
-  return p.total || 1;
-}
-function numCaixas(p) {
-  const t = tamanhoCaixa(p);
-  return Math.max(1, Math.round((p.total || 0) / t));
-}
-// Tamanho da caixa guardado no repasse (ou recalculado a partir do pedido, p/ dados antigos)
-function boxSizeRepasse(p) {
-  return (p.repasse && p.repasse.boxSize) || tamanhoCaixa(p);
-}
-function paresDestino(d, p) {
-  if (d.caixas) return d.caixas * boxSizeRepasse(p);
-  return null;
-}
-function rotuloDestinoTag(p) {
-  const dests = (p.repasse && p.repasse.destinos) || [];
-  if (dests.length === 1) return dests[0].nome;
-  const totCx = dests.reduce((s, d) => s + (d.caixas || 0), 0);
-  return `${dests.length} lojas${totCx ? ` · ${totCx} cx` : ''}`;
-}
-function breakdownDestinos(p) {
-  const dests = (p.repasse && p.repasse.destinos) || [];
-  return dests.map(d => {
-    const pares = paresDestino(d, p);
-    const det = [d.caixas ? `${d.caixas} cx` : '', pares ? `${formatarNumero(pares)} pares` : ''].filter(Boolean).join(' · ');
-    return `<div class="rd-linha"><span><i class="fa-solid fa-arrow-right-long"></i> ${d.nome}</span><span class="rd-det">${det}</span></div>`;
-  }).join('');
-}
 function formatarPreco(v) {
   if (v == null || v === '') return '—';
   const n = Number(v);
@@ -3051,8 +2999,7 @@ function repassesRecebidosPorCliente(cod, artigo, cor) {
     if (!p.repasse || !(p.repasse.destinos || []).length) continue;
     if (artigo && (p.artigo !== artigo || p.cor !== cor)) continue;
     if (!p.repasse.destinos.some(d => d.codigo === cod)) continue;
-    const d = p.repasse.destinos.find(x => x.codigo === cod);
-    out.push({ artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: paresDestino(d, p) ?? p.total, origemNome: p.razao_social || p.cliente_razao || p.cliente_cod });
+    out.push({ artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: p.total, origemNome: p.razao_social || p.cliente_razao || p.cliente_cod });
   }
   return out;
 }
@@ -3073,7 +3020,7 @@ function repassesRecebidosPara(artigo, cor, excluir) {
     for (const d of p.repasse.destinos) {
       (mapa[d.codigo] = mapa[d.codigo] || []).push({
         origemNome: p.razao_social || p.cliente_razao || p.cliente_cod,
-        pares: paresDestino(d, p) ?? p.total,
+        pares: p.total,
         pendente: !!p.repasse.pendente,
       });
     }
@@ -3085,10 +3032,9 @@ function abrirRepasse(p, origem = 'produtos') {
   const origemCod = p.cliente_cod;
   const nn = normalizar(nomeFantasiaDe(origemCod));
   const redeNN = (nn && APP.redes[nn]) ? nn : null;
-  APP.repasseCtx = { pedido: p, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN, origem, boxSize: tamanhoCaixa(p), totalCaixas: numCaixas(p) };
+  APP.repasseCtx = { pedido: p, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN, origem };
   APP.repasseEscopo = redeNN ? 'rede' : 'todos';
-  APP.repasseDist = {};
-  for (const d of (p.repasse?.destinos || [])) APP.repasseDist[d.codigo] = d.caixas || 1;
+  APP.repasseSel = new Set((p.repasse?.destinos || []).map(d => d.codigo));
   APP.repassePendente = !!p.repasse?.pendente;
   APP.repasseBusca = '';
   $('repasse-titulo').textContent = `Repassar · ${p.descricao || p.artigo}`;
@@ -3160,11 +3106,6 @@ function renderRepasse() {
     }
   }
 
-  const totalCaixas = APP.repasseCtx.totalCaixas;
-  const boxSize = APP.repasseCtx.boxSize;
-  const distMulti = totalCaixas > 1;
-  const distribuido = () => Object.values(APP.repasseDist).reduce((s, n) => s + n, 0);
-
   const item = (c, mostrarCor, aviso) => {
     const recebe = c.recebe ? (() => {
       const tot = c.recebe.reduce((s, r) => s + (r.pares || 0), 0);
@@ -3172,30 +3113,18 @@ function renderRepasse() {
       const extra = c.recebe.length > 1 ? ` +${c.recebe.length - 1}` : '';
       return `<span class="badge-recebe"><i class="fa-solid fa-right-long"></i> já vai receber ${formatarNumero(tot)} de ${de}${extra}</span>`;
     })() : '';
-    const sel = APP.repasseDist[c.cod] != null;
-    const cx = APP.repasseDist[c.cod] || 0;
-    const stepper = (sel && distMulti)
-      ? `<div class="dist-stepper" data-cod="${c.cod}">
-           <button data-step="-1">−</button><span>${cx} cx</span><button data-step="1">+</button>
-         </div>`
-      : '';
     return `
     <label class="rede-sel-item ${aviso ? 'item-aviso' : ''} ${c.recebe ? 'item-recebe' : ''}">
-      <input type="checkbox" data-cod="${c.cod}" ${sel ? 'checked' : ''}>
+      <input type="checkbox" data-cod="${c.cod}" ${APP.repasseSel.has(c.cod) ? 'checked' : ''}>
       <div class="rede-sel-info">
         <p class="nome">${c.nome}${c.rede ? ' <span class="rede-badge">REDE</span>' : ''}${aviso ? ' <span class="badge-jatem">já tem · dobraria</span>' : ''}</p>
         <p class="meta">${[c.porta || '', c.cod].filter(Boolean).join(' · ')}${(mostrarCor || aviso) && c.cores ? ` · <span class="repasse-cor-tag">tem em ${c.cores.join(', ')}</span>` : ''}</p>
         ${recebe}
       </div>
-      ${stepper}
     </label>`;
   };
 
   let html = '';
-  if (distMulti) {
-    const d = distribuido();
-    html += `<div class="dist-banner"><span><i class="fa-solid fa-box"></i> ${formatarNumero(pedidoAtual.total)} pares · ${totalCaixas} caixas de ${boxSize}</span><span class="dist-cont">distribuído ${d}/${totalCaixas}</span></div>`;
-  }
   if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Tem o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
   if (tier2.length) html += `<p class="repasse-grupo-titulo neutro">② Não tem este artigo</p><div class="repasse-grupo">${tier2.map(c => item(c, false)).join('')}</div>`;
   if (semCarteira.length) html += `<p class="repasse-grupo-titulo neutro">③ Sem carteira</p><div class="repasse-grupo">${semCarteira.map(c => item(c, false)).join('')}</div>`;
@@ -3203,57 +3132,31 @@ function renderRepasse() {
   if (!tier1.length && !tier2.length && !semCarteira.length && !jaTem.length) html += `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><p>Nenhum destino${busca ? ' encontrado' : ''}</p></div>`;
   $('repasse-body').innerHTML = html;
 
-  $('repasse-body').querySelectorAll('input[data-cod]').forEach(chk => chk.addEventListener('change', (e) => {
-    const cod = chk.dataset.cod;
-    if (chk.checked) {
-      if (distribuido() >= totalCaixas) { e.preventDefault(); chk.checked = false; toast(totalCaixas === 1 ? 'Esta encomenda é 1 caixa só (1 loja)' : 'Todas as caixas já foram distribuídas'); return; }
-      APP.repasseDist[cod] = 1;
-    } else {
-      delete APP.repasseDist[cod];
-    }
-    renderRepasse();
+  $('repasse-body').querySelectorAll('input[data-cod]').forEach(chk => chk.addEventListener('change', () => {
+    if (chk.checked) APP.repasseSel.add(chk.dataset.cod); else APP.repasseSel.delete(chk.dataset.cod);
+    atualizarConfirmarRepasse();
   }));
-
-  $('repasse-body').querySelectorAll('.dist-stepper button').forEach(b => b.addEventListener('click', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    const cod = b.parentElement.dataset.cod;
-    const step = Number(b.dataset.step);
-    const atual = APP.repasseDist[cod] || 0;
-    if (step > 0) {
-      if (distribuido() >= totalCaixas) { toast('Todas as caixas já foram distribuídas'); return; }
-      APP.repasseDist[cod] = atual + 1;
-    } else {
-      if (atual <= 1) delete APP.repasseDist[cod];
-      else APP.repasseDist[cod] = atual - 1;
-    }
-    renderRepasse();
-  }));
-
   atualizarConfirmarRepasse();
 }
 
 function atualizarConfirmarRepasse() {
-  const dist = Object.values(APP.repasseDist || {}).reduce((s, n) => s + n, 0);
-  const nLojas = Object.keys(APP.repasseDist || {}).length;
+  const n = APP.repasseSel.size;
   const btn = $('btn-confirmar-repasse');
-  btn.disabled = nLojas === 0;
-  const totalCaixas = APP.repasseCtx?.totalCaixas || 1;
-  $('btn-confirmar-repasse-label').textContent = nLojas === 0
-    ? 'Selecione um destino'
-    : (totalCaixas > 1 ? `Finalizar · ${dist}/${totalCaixas} cx · ${nLojas} loja${nLojas !== 1 ? 's' : ''}` : `Finalizar · ${nLojas} destino${nLojas !== 1 ? 's' : ''}`);
+  btn.disabled = n === 0;
+  $('btn-confirmar-repasse-label').textContent = n ? `Finalizar · ${n} destino${n !== 1 ? 's' : ''}` : 'Selecione um destino';
 }
 
 function confirmarRepasse() {
-  const nLojas = Object.keys(APP.repasseDist || {}).length;
-  if (nLojas === 0) return;
+  const n = APP.repasseSel.size;
+  if (n === 0) return;
   const p = APP.repasseCtx.pedido;
   const origem = APP.repasseCtx.origem;
-  const destinos = Object.entries(APP.repasseDist).map(([cod, caixas]) => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod), caixas }));
+  const destinos = [...APP.repasseSel].map(cod => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod) }));
   p.acao = 'REPASSAR';
-  p.repasse = { pendente: false, boxSize: APP.repasseCtx.boxSize, totalCaixas: APP.repasseCtx.totalCaixas, destinos };
+  p.repasse = { pendente: false, destinos };
   localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
   registrarAcao(p);
-  toast(`Repasse finalizado · ${destinos.length} loja${destinos.length !== 1 ? 's' : ''}`);
+  toast(`Repasse finalizado · ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
   APP.repasseCtx = null;
   if (origem === 'repasses') {
     preencherFiltrosRepasses();
@@ -3347,7 +3250,7 @@ function renderRepassesLista() {
   body.innerHTML = itens.map(i => {
     const sel = APP.repExportSel.has(i.key);
     const rota = i.finalizado
-      ? `<p class="ri-rota fin"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(i.origemNome)} → ${escHtml(i.destinos.length > 2 ? i.destinos.length + ' lojas' : i.destinos.join(', '))}</p>`
+      ? `<p class="ri-rota fin"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(i.origemNome)} → ${escHtml(i.destinos.join(', '))}</p>`
       : `<p class="ri-rota pend"><i class="fa-solid fa-clock"></i> ${escHtml(i.origemNome)} → destino a definir</p>`;
     return `
       <div class="rep-item ${sel ? 'sel' : ''}" data-k="${escAttr(i.key)}">
@@ -3431,9 +3334,7 @@ function exportarRepassesXLSX() {
   const cabecalho = ['Empresa', 'Prev.fat.', 'Enc.EBM', 'Enc.GCI', 'Cliente', 'Razão', 'Total de pares', 'Família', 'descrição', 'Artigo', 'Cor', 'Destino'];
   const linhas = [cabecalho];
   for (const p of finalizados) {
-    const bs = boxSizeRepasse(p);
     for (const d of (p.repasse.destinos || [])) {
-      const paresLinha = d.caixas ? d.caixas * bs : p.total;
       linhas.push([
         p.empresa || '',
         formatarDataBR(p.prev_fat),
@@ -3441,7 +3342,7 @@ function exportarRepassesXLSX() {
         p.gci || '',
         p.cliente_cod || '',
         p.cliente_razao || p.razao_social || '',
-        paresLinha,
+        p.total || 0,
         '043',
         p.descricao || '',
         p.artigo || '',
@@ -3821,7 +3722,7 @@ function renderCardProduto(p, idx) {
               : (p.acao && p.acao !== 'MANTER'
                 ? `<span class="tag tag-acao ${p.acao.toLowerCase().replace('_cms', '').replace('_', '')}"><i class="fa-solid ${p.acao === 'CANCELAR' ? 'fa-ban' : p.acao === 'REPASSAR' ? 'fa-right-left' : 'fa-gear'}"></i> ${p.acao === 'GESTAO_CMS' ? 'GESTÃO' : p.acao.charAt(0) + p.acao.slice(1).toLowerCase()}</span>`
                 : '')}
-            ${repFinalizado ? `<span class="tag tag-destino"><i class="fa-solid fa-arrow-right-long"></i> ${rotuloDestinoTag(p)}</span>` : ''}
+            ${repFinalizado ? `<span class="tag tag-destino"><i class="fa-solid fa-arrow-right-long"></i> ${(p.repasse.destinos || []).length === 1 ? p.repasse.destinos[0].nome : (p.repasse.destinos || []).length + ' destinos'}</span>` : ''}
             ${p.gci ? `<span class="tag tag-gci"><i class="fa-solid fa-receipt"></i> GCI ${p.gci}</span>` : ''}
             ${mes ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mes}</span>` : ''}
             ${p.ped_cliente ? `<span class="tag tag-ped"><i class="fa-solid fa-tag"></i> ${p.ped_cliente}</span>` : ''}
@@ -3867,7 +3768,7 @@ function renderCardProduto(p, idx) {
           <div>
             <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Ação</div>
             <div class="action-pills">${pillsHtml}</div>
-            ${repFinalizado ? `<div class="repasse-destinos">${breakdownDestinos(p)}</div>` : ''}
+            ${repFinalizado ? `<div class="repasse-destinos"><i class="fa-solid fa-right-long"></i> ${(p.repasse.destinos || []).map(d => d.nome).join(', ')}</div>` : ''}
           </div>
         </div>
       </div>
