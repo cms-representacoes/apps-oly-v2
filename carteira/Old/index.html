@@ -515,7 +515,20 @@
     }
     .rp-thumb.failed { display: none; }
     .rp-thumb.failed + .rp-fallback { display: flex; }
-    .foco-banner {
+    .recebidos-banner {
+      background: var(--primary-soft); border-radius: var(--r-md);
+      padding: 10px 12px; margin-bottom: 10px;
+    }
+    .recebidos-banner .rb-titulo {
+      font-size: 12px; font-weight: 700; color: var(--primary-2);
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    html.dark .recebidos-banner .rb-titulo { color: var(--primary); }
+    .recebidos-banner .rb-linha {
+      display: flex; justify-content: space-between; gap: 10px;
+      font-size: 12px; color: var(--text); padding: 2px 0;
+    }
+    .recebidos-banner .rb-de { color: var(--text-2); white-space: nowrap; font-weight: 600; }
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
       background: var(--primary-soft); color: var(--primary-2);
       border-radius: var(--r-md); padding: 8px 12px; margin-bottom: 10px;
@@ -2676,6 +2689,18 @@ function renderDistribuicaoRede() {
 /* ============================================================
    TELA: PRODUTOS DO CLIENTE
    ============================================================ */
+// Repasses que ESTA loja está recebendo (de outras lojas), opcionalmente de um produto
+function repassesRecebidosPorCliente(cod, artigo, cor) {
+  const out = [];
+  for (const p of APP.pedidos) {
+    if (!p.repasse || !(p.repasse.destinos || []).length) continue;
+    if (artigo && (p.artigo !== artigo || p.cor !== cor)) continue;
+    if (!p.repasse.destinos.some(d => d.codigo === cod)) continue;
+    out.push({ artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: p.total, origemNome: p.razao_social || p.cliente_razao || p.cliente_cod });
+  }
+  return out;
+}
+
 function nomeClienteRepasse(cod) {
   const p = APP.pedidos.find(x => x.cliente_cod === cod);
   if (p) return p.razao_social || p.cliente_razao;
@@ -2952,27 +2977,44 @@ function renderProdutos() {
 
   const listaEl = $('products-list');
 
-  if (pedidosFiltrados.length === 0) {
-    listaEl.innerHTML = `
-      <div class="empty-state">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <p>Nenhum produto encontrado</p>
-      </div>`;
-    $('products-footer').textContent = '';
-    return;
-  }
-
   const focoBanner = APP.focoProduto ? `
     <div class="foco-banner">
       <span><i class="fa-solid fa-bullseye"></i> Focado neste produto da loja</span>
       <button id="btn-ver-tudo-loja">Ver tudo da loja</button>
     </div>` : '';
+
+  const recebidos = repassesRecebidosPorCliente(
+    APP.clienteAtual.codigo,
+    APP.focoProduto?.artigo,
+    APP.focoProduto?.cor
+  );
+  const recebidosBanner = recebidos.length ? `
+    <div class="recebidos-banner">
+      <div class="rb-titulo"><i class="fa-solid fa-arrow-right-to-bracket"></i> Repasses recebidos</div>
+      ${recebidos.map(r => `<div class="rb-linha"><span>${r.descricao || r.artigo} · ${r.cor}</span><span class="rb-de">${formatarNumero(r.pares)} pares de ${r.origemNome}</span></div>`).join('')}
+    </div>` : '';
+
+  const wireVerTudo = () => {
+    const verTudo = $('btn-ver-tudo-loja');
+    if (verTudo) verTudo.addEventListener('click', () => { APP.focoProduto = null; renderProdutos(); });
+  };
+
+  if (pedidosFiltrados.length === 0) {
+    listaEl.innerHTML = focoBanner + recebidosBanner + `
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>${recebidos.length ? 'Esta loja não tem este produto na carteira (só recebendo por repasse)' : 'Nenhum produto encontrado'}</p>
+      </div>`;
+    $('products-footer').textContent = '';
+    wireVerTudo();
+    return;
+  }
+
   const expandidos = new Set([...listaEl.querySelectorAll('.product-card.expanded')].map(c => c.dataset.idx));
-  listaEl.innerHTML = focoBanner + pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
+  listaEl.innerHTML = focoBanner + recebidosBanner + pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
   if (expandidos.size) listaEl.querySelectorAll('.product-card').forEach(c => { if (expandidos.has(c.dataset.idx)) c.classList.add('expanded'); });
 
-  const verTudo = $('btn-ver-tudo-loja');
-  if (verTudo) verTudo.addEventListener('click', () => { APP.focoProduto = null; renderProdutos(); });
+  wireVerTudo();
 
   listaEl.querySelectorAll('.product-main').forEach(el => {
     el.addEventListener('click', (e) => {
