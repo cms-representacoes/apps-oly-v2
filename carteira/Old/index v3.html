@@ -613,11 +613,11 @@
     .rep-selall input { width: 18px; height: 18px; accent-color: var(--primary); }
     .rep-sel-contador { font-size: 12px; color: var(--text-2); }
     .rep-item {
+      display: flex; gap: 10px; align-items: flex-start;
       background: var(--card-bg); border: 1px solid var(--border);
       border-radius: var(--r-lg); padding: 12px; margin-bottom: 8px;
     }
     .rep-item.sel { border-color: var(--primary); }
-    .ri-top { display: flex; gap: 10px; align-items: flex-start; }
     .rep-item input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); flex-shrink: 0; }
     .rep-item .ri-info { flex: 1; min-width: 0; }
     .rep-item .ri-desc { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
@@ -631,13 +631,6 @@
     .rep-pill { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 5px; }
     .rep-pill.fin { background: var(--primary); color: #fff; }
     .rep-pill.pend { background: var(--acao-repassar); color: #fff; }
-    .ri-edit {
-      flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
-      background: transparent; border: 1px solid var(--border-2); color: var(--text-2);
-    }
-    .rep-item.aberto .ri-edit { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .rep-acoes { display: none; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .rep-item.aberto .rep-acoes { display: flex; }
     .repasse-escopo { display: flex; gap: 8px; margin-top: 10px; }
     .repasse-chip {
       font-size: 12px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
@@ -2837,17 +2830,18 @@ function repassesRecebidosPara(artigo, cor, excluir) {
   return mapa;
 }
 
-function abrirRepasse(p, origem = 'produtos') {
-  const origemCod = p.cliente_cod;
+function abrirRepasse(idx) {
+  const p = APP.clienteAtual.pedidos[idx];
+  const origemCod = APP.clienteAtual.codigo;
   const nn = normalizar(nomeFantasiaDe(origemCod));
   const redeNN = (nn && APP.redes[nn]) ? nn : null;
-  APP.repasseCtx = { pedido: p, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN, origem };
+  APP.repasseCtx = { idx, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN };
   APP.repasseEscopo = redeNN ? 'rede' : 'todos';
   APP.repasseSel = new Set((p.repasse?.destinos || []).map(d => d.codigo));
   APP.repassePendente = !!p.repasse?.pendente;
   APP.repasseBusca = '';
   $('repasse-titulo').textContent = `Repassar · ${p.descricao || p.artigo}`;
-  $('repasse-sub').textContent = `${p.cor} · art. ${p.artigo} · de ${p.razao_social || p.cliente_razao}`;
+  $('repasse-sub').textContent = `${p.cor} · art. ${p.artigo} · de ${APP.clienteAtual.razao}`;
   $('busca-repasse').value = '';
   $('repasse-busca-wrap').classList.remove('has-value');
   renderRepasseEscopo();
@@ -2874,7 +2868,7 @@ function renderRepasse() {
   const { artigo, cor, origemCod, redeNN } = APP.repasseCtx;
   const busca = normalizar(APP.repasseBusca || '');
   const peds = obterClientesDoVendedor();
-  const pedidoAtual = APP.repasseCtx.pedido;
+  const pedidoAtual = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
   const recebeMap = repassesRecebidosPara(artigo, cor, pedidoAtual);
 
   const comArtigo = {}, nomeDe = {}, cidadeDe = {};
@@ -2958,8 +2952,7 @@ function atualizarConfirmarRepasse() {
 function confirmarRepasse() {
   const n = APP.repasseSel.size;
   if (n === 0) return;
-  const p = APP.repasseCtx.pedido;
-  const origem = APP.repasseCtx.origem;
+  const p = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
   const destinos = [...APP.repasseSel].map(cod => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod) }));
   p.acao = 'REPASSAR';
   p.repasse = { pendente: false, destinos };
@@ -2967,14 +2960,8 @@ function confirmarRepasse() {
   registrarAcao(p);
   toast(`Repasse finalizado · ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
   APP.repasseCtx = null;
-  if (origem === 'repasses') {
-    preencherFiltrosRepasses();
-    renderRepassesLista();
-    show('screen-repasses');
-  } else {
-    renderProdutos();
-    show('screen-produtos');
-  }
+  renderProdutos();
+  show('screen-produtos');
 }
 
 /* ============================================================
@@ -2984,7 +2971,6 @@ function montarItensRepasse() {
   return obterClientesDoVendedor().filter(p => p.acao === 'REPASSAR').map(p => {
     const fin = repFinalizadoP(p);
     return {
-      p,
       key: keyPedido(p),
       descricao: p.descricao || p.artigo,
       cor: p.cor,
@@ -3062,22 +3048,18 @@ function renderRepassesLista() {
       ? `<p class="ri-rota fin"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(i.origemNome)} → ${escHtml(i.destinos.join(', '))}</p>`
       : `<p class="ri-rota pend"><i class="fa-solid fa-clock"></i> ${escHtml(i.origemNome)} → destino a definir</p>`;
     return `
-      <div class="rep-item ${sel ? 'sel' : ''}" data-k="${escAttr(i.key)}">
-        <div class="ri-top">
-          <input type="checkbox" data-key="${escAttr(i.key)}" ${sel ? 'checked' : ''}>
-          <div class="ri-info">
-            <p class="ri-desc">${escHtml(i.descricao)} · ${escHtml(i.cor)}</p>
-            <p class="ri-sub">art. ${escHtml(i.artigo)} · GCI ${escHtml(i.gci)}</p>
-            ${rota}
-          </div>
-          <div class="ri-dir">
-            <p class="ri-pares">${formatarNumero(i.pares)} pares</p>
-            <span class="rep-pill ${i.finalizado ? 'fin' : 'pend'}">${i.finalizado ? 'repassado' : 'pendente'}</span>
-          </div>
-          <button class="ri-edit" data-key="${escAttr(i.key)}" title="Editar ação"><i class="fa-solid fa-pen"></i></button>
+      <label class="rep-item ${sel ? 'sel' : ''}">
+        <input type="checkbox" data-key="${escAttr(i.key)}" ${sel ? 'checked' : ''}>
+        <div class="ri-info">
+          <p class="ri-desc">${escHtml(i.descricao)} · ${escHtml(i.cor)}</p>
+          <p class="ri-sub">art. ${escHtml(i.artigo)} · GCI ${escHtml(i.gci)}</p>
+          ${rota}
         </div>
-        <div class="rep-acoes">${acoesRepasseItemHTML(i.p)}</div>
-      </div>`;
+        <div class="ri-dir">
+          <p class="ri-pares">${formatarNumero(i.pares)} pares</p>
+          <span class="rep-pill ${i.finalizado ? 'fin' : 'pend'}">${i.finalizado ? 'repassado' : 'pendente'}</span>
+        </div>
+      </label>`;
   }).join('');
   $('repasses-meta').textContent = `${itens.length} repasse${itens.length !== 1 ? 's' : ''}`;
 
@@ -3088,64 +3070,7 @@ function renderRepassesLista() {
     chk.closest('.rep-item').classList.toggle('sel', chk.checked);
     atualizarContadorRepasses();
   }));
-
-  body.querySelectorAll('.ri-edit').forEach(btn => btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    btn.closest('.rep-item').classList.toggle('aberto');
-  }));
-
-  body.querySelectorAll('.rep-acoes .action-pill[data-acao]').forEach(el => el.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (el.classList.contains('bloqueado')) { toast('Só dá pra cancelar com 45+ dias até o faturamento'); return; }
-    const p = pedidoPorKey(el.dataset.key);
-    if (!p) return;
-    p.acao = el.dataset.acao;
-    delete p.repasse;
-    localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
-    registrarAcao(p);
-    toast(`${el.dataset.acao.replace('_', ' ')} aplicado`);
-    preencherFiltrosRepasses();
-    renderRepassesLista();
-  }));
-
-  body.querySelectorAll('.rep-acoes .action-pill[data-rep]').forEach(el => el.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const p = pedidoPorKey(el.dataset.key);
-    if (!p) return;
-    const tipo = el.dataset.rep;
-    if (tipo === 'finalizar' || tipo === 'mudar') { abrirRepasse(p, 'repasses'); return; }
-    if (tipo === 'cancelar') {
-      p.acao = 'MANTER';
-      delete p.repasse;
-      localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
-      registrarAcao(p);
-      toast('Repasse cancelado');
-      preencherFiltrosRepasses();
-      renderRepassesLista();
-    }
-  }));
-
   atualizarContadorRepasses();
-}
-
-function pedidoPorKey(key) {
-  return APP.pedidos.find(p => keyPedido(p) === key);
-}
-
-function acoesRepasseItemHTML(p) {
-  const key = escAttr(keyPedido(p));
-  const podeCancelar = diasAteFat(p) >= MIN_DIAS_CANCELAR;
-  const btns = [
-    `<button class="action-pill" data-key="${key}" data-acao="MANTER">MANTER</button>`,
-    `<button class="action-pill ${podeCancelar ? '' : 'bloqueado'}" data-key="${key}" data-acao="CANCELAR"${podeCancelar ? '' : ' title="Faturamento em menos de 45 dias"'}>CANCELAR</button>`,
-  ];
-  if (repFinalizadoP(p)) {
-    btns.push(`<button class="action-pill rep-mudar" data-key="${key}" data-rep="mudar"><i class="fa-solid fa-pen"></i> Mudar destino</button>`);
-    btns.push(`<button class="action-pill rep-cancelar" data-key="${key}" data-rep="cancelar"><i class="fa-solid fa-xmark"></i> Cancelar repasse</button>`);
-  } else {
-    btns.push(`<button class="action-pill active repassar" data-key="${key}" data-rep="finalizar"><i class="fa-solid fa-right-left"></i> Finalizar repasse</button>`);
-  }
-  return btns.join('');
 }
 
 function atualizarContadorRepasses() {
@@ -3377,7 +3302,7 @@ function renderProdutos() {
       const idx = Number(el.dataset.idx);
       const tipo = el.dataset.rep;
       if (tipo === 'finalizar' || tipo === 'mudar') {
-        abrirRepasse(APP.clienteAtual.pedidos[idx], 'produtos');
+        abrirRepasse(idx);
         return;
       }
       if (tipo === 'cancelar') {
@@ -3842,11 +3767,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Tela de repasse
   $('btn-tema-6').addEventListener('click', toggleTema);
-  $('btn-cancelar-repasse').addEventListener('click', () => {
-    const origem = APP.repasseCtx?.origem;
-    APP.repasseCtx = null;
-    show(origem === 'repasses' ? 'screen-repasses' : 'screen-produtos');
-  });
+  $('btn-cancelar-repasse').addEventListener('click', () => { APP.repasseCtx = null; show('screen-produtos'); });
   $('btn-confirmar-repasse').addEventListener('click', confirmarRepasse);
   let repasseTimer;
   configurarBuscaComX('busca-repasse', 'repasse-busca-wrap', (val) => {
