@@ -1,0 +1,3484 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0D9488">
+  <title>Carteira CMS</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    /* =========================================================
+       VARIÁVEIS DE TEMA
+       ========================================================= */
+    :root {
+      --primary: #0D9488;
+      --primary-2: #0F766E;
+      --primary-soft: #CCFBF1;
+      --primary-bg: #F0FDFA;
+      --primary-rgb: 13, 148, 136;
+
+      --bg-1: #F8FAFC;
+      --bg-2: #F1F5F9;
+      --bg-grad: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+
+      --card-bg: #FFFFFF;
+      --card-bg-2: #F8FAFC;
+
+      --text: #0F172A;
+      --text-2: #475569;
+      --text-3: #94A3B8;
+
+      --border: #E2E8F0;
+      --border-2: #CBD5E1;
+
+      --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-lift: 0 4px 16px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.05);
+
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 20px;
+
+      --acao-manter:   #10B981;
+      --acao-cancelar: #EF4444;
+      --acao-repassar: #F59E0B;
+      --acao-gestao:   #F97316;
+
+      --tag-gci-bg: #E0F2FE;
+      --tag-gci-fg: #075985;
+      --tag-mes-bg: #FEF3C7;
+      --tag-mes-fg: #92400E;
+    }
+
+    html.dark {
+      --primary: #2DD4BF;
+      --primary-2: #5EEAD4;
+      --primary-soft: #134E4A;
+      --primary-bg: #0F2A28;
+      --primary-rgb: 45, 212, 191;
+
+      --bg-1: #0F172A;
+      --bg-2: #1E293B;
+      --bg-grad: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+
+      --card-bg: #1E293B;
+      --card-bg-2: #0F172A;
+
+      --text: #F1F5F9;
+      --text-2: #CBD5E1;
+      --text-3: #64748B;
+
+      --border: #334155;
+      --border-2: #475569;
+
+      --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+      --tag-gci-bg: #0C4A6E;
+      --tag-gci-fg: #BAE6FD;
+      --tag-mes-bg: #78350F;
+      --tag-mes-fg: #FDE68A;
+    }
+
+    /* =========================================================
+       RESET
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-grad);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input { font: inherit; color: inherit; }
+
+    @media (hover: none), (pointer: coarse) {
+      *, *::before, *::after {
+        transition: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+    }
+
+    /* =========================================================
+       LAYOUT GERAL
+       ========================================================= */
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 16px;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .logo-mark {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
+    .logo-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    @keyframes girar360 { to { transform: rotate(360deg); } }
+    .btn-icon.girando i { animation: girar360 .7s linear infinite; }
+    .btn-icon.ativo { background: var(--primary); color: #fff; }
+    .btn-icon.ativo i { color: #fff; }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--card-bg); color: var(--text-2);
+      display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-card);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-icon:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lift);
+      color: var(--primary);
+    }
+    .btn-icon.loading { opacity: .6; pointer-events: none; }
+
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      padding: 10px 18px; border-radius: 10px;
+      font-weight: 600; font-size: 14px;
+      display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+      transition: transform .15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .screen { display: none; flex: 1; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+    .login-wrap {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-lift);
+      padding: 32px 28px;
+      width: 100%; max-width: 380px;
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 20px;
+    }
+    .login-title { font-size: 22px; font-weight: 700; text-align: center; margin: 0 0 6px; }
+    .login-sub { font-size: 13px; color: var(--text-2); text-align: center; margin: 0 0 28px; }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--text-2); margin-bottom: 6px;
+    }
+    .field select, .field input {
+      width: 100%; padding: 11px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      background: var(--card-bg-2); color: var(--text);
+      outline: none;
+    }
+    .field select:focus, .field input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+    }
+    .login-error {
+      background: #FEE2E2; color: #991B1B;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 12px;
+      display: none;
+    }
+    html.dark .login-error { background: #7F1D1D; color: #FECACA; }
+    .login-error.show { display: block; }
+
+    /* =========================================================
+       BUSCA COM X
+       ========================================================= */
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 100%;
+      padding: 14px 46px 14px 46px;
+      font-size: 15px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card-bg); color: var(--text);
+      outline: none;
+      box-shadow: var(--shadow-card);
+    }
+    .search-wrap input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15), var(--shadow-card);
+    }
+    .search-wrap .search-icon {
+      position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); font-size: 15px;
+      pointer-events: none;
+    }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-3);
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .search-clear:hover { background: var(--card-bg-2); color: var(--text); }
+    .search-wrap.has-value .search-clear { display: inline-flex; }
+    input[type="search"]::-webkit-search-cancel-button { display: none; }
+    input[type="search"]::-webkit-search-decoration { display: none; }
+
+    /* =========================================================
+       HEADER CONGELADO (sticky)
+       ========================================================= */
+    .frozen-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-2);
+      padding: 12px 0 14px;
+      margin: -12px 0 0;
+    }
+    .frozen-header::before {
+      content: '';
+      position: absolute;
+      left: -16px; right: -16px;
+      top: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: -1;
+    }
+    .frozen-header::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -10px;
+      height: 10px;
+      background: linear-gradient(180deg, var(--bg-2), transparent);
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       KPIS — tela clientes
+       ========================================================= */
+    .kpis-wrap {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: stretch;
+    }
+    .kpis-wrap.hidden { display: none; }
+    .kpi-card {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 500;
+      margin: 0 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.1;
+    }
+    @media (max-width: 480px) {
+      .kpi-value { font-size: 17px; }
+      .kpi-label { font-size: 10px; }
+    }
+
+    .toggle-kpis {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-2);
+      background: transparent;
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+    .toggle-kpis:hover { color: var(--primary); }
+    .toggle-kpis i { font-size: 10px; }
+
+    /* =========================================================
+       LISTAS
+       ========================================================= */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-2);
+    }
+    .empty-state i {
+      font-size: 48px;
+      color: var(--text-3);
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+    .empty-state p { font-size: 14px; margin: 0; }
+
+    .client-list {
+      background: var(--card-bg);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .client-item {
+      display: flex; flex-direction: column;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .client-row { display: flex; align-items: center; gap: 14px; }
+    .client-item:last-child { border-bottom: none; }
+    .client-item:hover { background: var(--card-bg-2); }
+    .cliente-produtos {
+      margin-top: 10px; padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .cliente-produto + .cliente-produto { margin-top: 8px; }
+    .cp-nome {
+      font-size: 11px; font-weight: 700; color: var(--primary-2);
+      margin: 0 0 6px; letter-spacing: .02em;
+    }
+    html.dark .cp-nome { color: var(--primary); }
+    .cp-linha {
+      display: flex; justify-content: space-between;
+      font-size: 13px; padding: 3px 0; color: var(--text);
+    }
+    .cp-pares { font-weight: 600; }
+    .client-avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      color: var(--primary-2);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+      flex-shrink: 0;
+    }
+    html.dark .client-avatar { background: var(--primary-soft); color: var(--primary); }
+    .client-info { flex: 1; min-width: 0; }
+    .client-info .name {
+      font-size: 14px; font-weight: 600;
+      color: var(--text); margin: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .client-info .meta {
+      font-size: 12px; color: var(--text-2); margin: 2px 0 0;
+    }
+    .client-item .chev { color: var(--text-3); font-size: 14px; }
+    .rede-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: var(--primary-soft); color: var(--primary-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    html.dark .rede-icon { color: var(--primary); }
+    .rede-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: .04em;
+      background: var(--primary-soft); color: var(--primary-2);
+      padding: 1px 6px; border-radius: 5px; margin-left: 6px;
+      vertical-align: middle;
+    }
+    html.dark .rede-badge { color: var(--primary); }
+    .rede-portas { margin-top: 10px; border-top: 1px solid var(--border); }
+    .rede-porta {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 4px 10px 10px;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .rede-porta:last-child { border-bottom: none; }
+    .rede-porta:hover { background: var(--card-bg-2); }
+    .rede-porta .porta-nome {
+      font-size: 13px; font-weight: 600; color: var(--text); margin: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rede-porta .porta-meta { font-size: 11px; color: var(--text-2); margin: 1px 0 0; }
+    .rede-porta i { color: var(--text-3); font-size: 12px; flex-shrink: 0; }
+    .rede-chev { transition: transform .15s; }
+    .client-item.rede-aberta .rede-chev { transform: rotate(90deg); }
+
+    /* Tela rede — seleção de portas */
+    .rede-todas {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 10px; padding: 11px 12px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--r-lg); cursor: pointer;
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .rede-todas input { width: 18px; height: 18px; accent-color: var(--primary); }
+    .rede-todas-count { margin-left: auto; font-size: 12px; color: var(--primary-2); font-weight: 600; }
+    html.dark .rede-todas-count { color: var(--primary); }
+    .rede-sel-list {
+      background: var(--card-bg); border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card); overflow: hidden; margin: 12px 0 90px;
+    }
+    .rede-sel-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .rede-sel-item:last-child { border-bottom: none; }
+    .rede-sel-item input { width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0; }
+    .rede-sel-info { flex: 1; min-width: 0; }
+    .rede-sel-info .nome {
+      font-size: 14px; font-weight: 600; color: var(--text); margin: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rede-sel-info .meta { font-size: 12px; color: var(--text-2); margin: 2px 0 0; }
+    .rede-sel-pares { font-size: 13px; font-weight: 600; color: var(--primary-2); flex-shrink: 0; }
+    html.dark .rede-sel-pares { color: var(--primary); }
+    .rede-sel-pares.zero { color: var(--text-3); font-weight: 400; font-size: 12px; }
+    .rede-actionbar {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      background: var(--card-bg); border-top: 1px solid var(--border);
+      z-index: 30;
+    }
+    .rede-ver-btn {
+      width: 100%; max-width: 720px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: var(--primary); color: #fff; border: none;
+      border-radius: var(--r-md); padding: 14px; font-size: 14px; font-weight: 600;
+    }
+    .rede-ver-btn:disabled { opacity: .5; }
+
+    /* Tela rede — produtos consolidados */
+    .rede-prod-card {
+      background: var(--card-bg); border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card); padding: 12px 14px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+    }
+    .rede-prod-card .info { flex: 1; min-width: 0; }
+    .rede-prod-card .desc { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
+    .rede-prod-card .sub { font-size: 12px; color: var(--text-2); margin: 2px 0 0; }
+    .rede-prod-card .pares { font-size: 14px; font-weight: 700; color: var(--primary-2); flex-shrink: 0; text-align: right; }
+    html.dark .rede-prod-card .pares { color: var(--primary); }
+    .rede-prod-card .pares small { display: block; font-size: 11px; font-weight: 400; color: var(--text-2); }
+    .rp-thumb {
+      width: 56px; height: 56px; border-radius: 10px; object-fit: cover;
+      background: var(--card-bg-2); border: 1px solid var(--border); display: block; flex-shrink: 0;
+    }
+    .rp-fallback {
+      width: 56px; height: 56px; border-radius: 10px; background: var(--card-bg-2);
+      border: 1px dashed var(--border-2); display: none; align-items: center; justify-content: center;
+      color: var(--text-3); font-size: 18px; flex-shrink: 0;
+    }
+    .rp-thumb.failed { display: none; }
+    .rp-thumb.failed + .rp-fallback { display: flex; }
+    .foco-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: var(--primary-soft); color: var(--primary-2);
+      border-radius: var(--r-md); padding: 8px 12px; margin-bottom: 10px;
+      font-size: 12px; font-weight: 600;
+    }
+    html.dark .foco-banner { color: var(--primary); }
+    .foco-banner button {
+      background: transparent; border: 1px solid currentColor; color: inherit;
+      border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+    }
+
+    /* Distribuição por porta */
+    #rede-dist-body { padding: 4px 0 24px; }
+    .dist-head { display: flex; align-items: center; gap: 14px; padding: 4px 4px 14px; }
+    .dist-img {
+      width: 72px; height: 72px; border-radius: 12px; object-fit: cover;
+      background: var(--card-bg-2); border: 1px solid var(--border); flex-shrink: 0;
+    }
+    .dist-fallback {
+      width: 72px; height: 72px; border-radius: 12px; background: var(--card-bg-2);
+      border: 1px dashed var(--border-2); display: none; align-items: center; justify-content: center;
+      color: var(--text-3); font-size: 24px; flex-shrink: 0;
+    }
+    .dist-img.failed { display: none; }
+    .dist-img.failed + .dist-fallback { display: flex; }
+    .dist-resumo { display: flex; gap: 18px; }
+    .dist-kpi { text-align: center; }
+    .dist-kpi .n { display: block; font-size: 20px; font-weight: 700; color: var(--text); }
+    .dist-kpi .n.ok { color: var(--primary-2); }
+    html.dark .dist-kpi .n.ok { color: var(--primary); }
+    .dist-kpi .n.alerta { color: #d97706; }
+    html.dark .dist-kpi .n.alerta { color: #fbbf24; }
+    .dist-kpi .l { font-size: 11px; color: var(--text-2); }
+    .dist-list {
+      background: var(--card-bg); border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card); overflow: hidden;
+    }
+    .dist-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+    }
+    .dist-item:last-child { border-bottom: none; }
+    .dist-item[data-cliente] { cursor: pointer; }
+    .dist-item[data-cliente]:hover { background: var(--card-bg-2); }
+    .dist-item.vazio { opacity: .55; }
+    .dist-saldo { font-size: 11px; font-weight: 600; color: var(--primary-2); margin-top: 3px; }
+    html.dark .dist-saldo { color: var(--primary); }
+    .tag-pendente-rede {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
+      font-size: 11px; font-weight: 700; color: #fff; background: var(--acao-repassar);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .dist-info { min-width: 0; }
+    .dist-info .nome {
+      font-size: 14px; font-weight: 600; color: var(--text); margin: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dist-info .meta { font-size: 11px; color: var(--text-2); margin: 1px 0 0; }
+    .dist-pares { font-size: 13px; font-weight: 600; color: var(--primary-2); flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+    html.dark .dist-pares { color: var(--primary); }
+    .dist-pares.zero { color: var(--text-3); font-weight: 400; }
+    .dist-badge {
+      font-size: 10px; font-weight: 700; background: #fef3c7; color: #92400e;
+      padding: 2px 7px; border-radius: 5px;
+    }
+    html.dark .dist-badge { background: #78350f; color: #fde68a; }
+
+    /* Seletor de destino do repasse */
+    #repasse-body { padding-bottom: 96px; }
+    .repasse-escopo { display: flex; gap: 8px; margin-top: 10px; }
+    .repasse-chip {
+      font-size: 12px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--border-2); color: var(--text-2); background: transparent;
+    }
+    .repasse-chip.ativo { background: var(--primary-soft); color: var(--primary-2); border-color: transparent; font-weight: 600; }
+    html.dark .repasse-chip.ativo { color: var(--primary); }
+    .repasse-grupo-titulo {
+      font-size: 11px; font-weight: 700; letter-spacing: .03em;
+      margin: 14px 2px 6px; text-transform: uppercase;
+    }
+    .repasse-grupo-titulo.bom { color: var(--primary-2); }
+    html.dark .repasse-grupo-titulo.bom { color: var(--primary); }
+    .repasse-grupo-titulo.neutro { color: var(--text-2); }
+    .repasse-grupo-titulo.aviso { color: var(--acao-cancelar); display: flex; align-items: center; gap: 6px; }
+    .rede-sel-item.item-aviso { background: rgba(163,45,45,.06); }
+    .badge-jatem {
+      font-size: 10px; font-weight: 700; color: #fff; background: var(--acao-cancelar);
+      padding: 1px 6px; border-radius: 5px; margin-left: 4px;
+    }
+    .repasse-grupo {
+      background: var(--card-bg); border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card); overflow: hidden;
+    }
+    .repasse-pendente {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; margin: 6px 0 4px;
+      background: var(--card-bg); border: 1px dashed var(--border-2);
+      border-radius: var(--r-lg); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .repasse-pendente input { width: 18px; height: 18px; accent-color: var(--primary); }
+    .repasse-cor-tag { font-size: 11px; color: var(--primary-2); }
+    html.dark .repasse-cor-tag { color: var(--primary); }
+    .repasse-conflito-aviso {
+      font-size: 11px; color: var(--acao-cancelar);
+      margin: 12px 2px 0; display: flex; align-items: center; gap: 6px;
+    }
+    .repasse-destinos {
+      margin-top: 8px; font-size: 12px; font-weight: 600;
+      color: var(--acao-repassar); display: flex; align-items: center; gap: 6px;
+    }
+    .list-footer {
+      text-align: center; font-size: 12px;
+      color: var(--text-3); padding: 12px;
+    }
+
+    /* =========================================================
+       TELA PRODUTOS
+       ========================================================= */
+    .client-strip {
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .client-strip .back {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: var(--card-bg-2); color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .client-info-compact {
+      min-width: 0;
+      flex: 0 0 auto;
+      max-width: 35%;
+    }
+    .client-info-compact .name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .client-info-compact .meta {
+      font-size: 11px;
+      color: var(--text-2);
+      margin: 1px 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-inline {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    .search-inline input {
+      width: 100%;
+      padding: 8px 30px 8px 32px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg-2);
+      color: var(--text);
+      outline: none;
+    }
+    .search-inline input:focus {
+      border-color: var(--primary);
+      background: var(--card-bg);
+    }
+    .search-inline .search-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); font-size: 12px;
+      pointer-events: none;
+    }
+    .search-inline .search-clear {
+      width: 22px; height: 22px;
+      right: 4px;
+      font-size: 11px;
+    }
+    .search-inline.has-value .search-clear { display: inline-flex; }
+
+    .products-summary {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .summary-chip {
+      flex-shrink: 0;
+      background: var(--card-bg);
+      box-shadow: var(--shadow-card);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+    .summary-chip strong { color: var(--text); font-weight: 700; margin-right: 3px; }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      padding: 7px 12px;
+      font-size: 11px;
+      color: var(--text-2);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .filter-chip:hover { color: var(--primary); border-color: var(--primary); }
+    .filter-chip i.fa-chevron-down { font-size: 9px; }
+    .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .filter-chip.active i { color: #fff; }
+    .filter-clear-btn {
+      width: 36px; height: 34px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-3);
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .filter-clear-btn.show { display: inline-flex; }
+    .filter-clear-btn:hover { color: var(--acao-cancelar); border-color: var(--acao-cancelar); }
+
+    .filter-popover {
+      position: fixed;
+      min-width: 220px;
+      max-width: 280px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-lift);
+      z-index: 25;
+      padding: 4px;
+      display: none;
+    }
+    .filter-popover.show { display: block; }
+    .filter-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-option:hover { background: var(--card-bg-2); }
+    .filter-option.active { background: var(--primary-bg); color: var(--primary-2); font-weight: 600; }
+    html.dark .filter-option.active { color: var(--primary); }
+    .filter-option i.check { font-size: 10px; width: 12px; }
+
+    /* =========================================================
+       CARDS DE PRODUTOS
+       ========================================================= */
+    .products-list {
+      display: flex; flex-direction: column;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .product-card {
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .product-main {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    .product-thumb-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .product-thumb {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      background: var(--card-bg-2);
+      object-fit: cover;
+      border: 1px solid var(--border);
+      display: block;
+    }
+    .product-thumb-fallback {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      background: var(--card-bg-2);
+      border: 1px dashed var(--border-2);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 500;
+      text-align: center;
+      padding: 8px;
+    }
+    .product-thumb-fallback i { font-size: 24px; opacity: 0.6; }
+    .product-thumb.failed { display: none; }
+    .product-thumb.failed + .product-thumb-fallback { display: flex; }
+
+    @media (min-width: 768px) {
+      .product-thumb, .product-thumb-fallback { width: 140px; height: 140px; }
+      .product-thumb-fallback i { font-size: 32px; }
+      .product-thumb-fallback { font-size: 12px; }
+    }
+
+    .product-zoom {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.75);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      transition: transform .15s, background .15s;
+      z-index: 2;
+    }
+    .product-zoom:hover {
+      transform: scale(1.1);
+      background: var(--primary);
+    }
+    .product-zoom.hidden { display: none; }
+
+    .product-info { flex: 1; min-width: 0; }
+    .product-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--text); margin: 0 0 4px;
+    }
+    @media (min-width: 768px) {
+      .product-name { font-size: 17px; }
+    }
+    .product-meta {
+      font-size: 12px; color: var(--text-2); margin: 0 0 6px;
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .product-meta .dot { color: var(--text-3); }
+
+    .product-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .tag {
+      font-size: 10.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag i { font-size: 9px; }
+    .tag-gci { background: var(--tag-gci-bg); color: var(--tag-gci-fg); }
+    .tag-mes { background: var(--tag-mes-bg); color: var(--tag-mes-fg); }
+    .tag-ped { background: var(--card-bg-2); color: var(--text-2); border: 1px solid var(--border); }
+
+    .product-price {
+      font-size: 13px; font-weight: 700;
+      color: var(--primary-2);
+      margin-top: 4px;
+    }
+    html.dark .product-price { color: var(--primary); }
+
+    .product-right {
+      display: flex; flex-direction: column;
+      align-items: flex-end; gap: 6px;
+      flex-shrink: 0;
+    }
+    .product-total {
+      background: var(--primary-soft);
+      color: var(--primary-2);
+      font-weight: 700; font-size: 13px;
+      padding: 5px 12px; border-radius: 8px;
+    }
+    html.dark .product-total { color: var(--primary); }
+    .expand-icon {
+      color: var(--text-3); font-size: 12px;
+      transition: transform .2s;
+    }
+    .product-card.expanded .expand-icon { transform: rotate(180deg); }
+
+    .product-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease;
+      border-top: 1px solid transparent;
+    }
+    .product-card.expanded .product-details {
+      max-height: 800px;
+      border-top-color: var(--border);
+    }
+    .product-details-inner {
+      padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .detail-row {
+      display: flex; justify-content: space-between;
+      font-size: 13px;
+    }
+    .detail-row .label { color: var(--text-2); }
+    .detail-row .value { color: var(--text); font-weight: 500; }
+
+    .grade-row {
+      display: flex; gap: 4px;
+      flex-wrap: wrap; margin-top: 4px;
+    }
+    .grade-cell {
+      background: var(--primary-bg);
+      border: 1px solid var(--primary-soft);
+      border-radius: 6px;
+      padding: 4px 6px;
+      min-width: 36px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      line-height: 1.15;
+    }
+    html.dark .grade-cell { background: var(--primary-soft); border-color: var(--primary); }
+    .grade-cell .g-size {
+      display: block; font-size: 9px;
+      color: var(--primary-2); font-weight: 500;
+    }
+    .grade-cell .g-qty {
+      display: block; font-size: 12px;
+      font-weight: 700; color: var(--primary-2);
+    }
+    html.dark .grade-cell .g-size, html.dark .grade-cell .g-qty { color: var(--primary-2); }
+
+    .action-pills {
+      display: flex; gap: 6px;
+      flex-wrap: wrap; margin-top: 6px;
+    }
+    .action-pill {
+      flex: 1; min-width: 80px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      text-align: center;
+      background: var(--card-bg-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .action-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .action-pill.active.manter   { background: var(--acao-manter); color: #fff; border-color: var(--acao-manter); }
+    .action-pill.active.cancelar { background: var(--acao-cancelar); color: #fff; border-color: var(--acao-cancelar); }
+    .action-pill.active.repassar { background: var(--acao-repassar); color: #fff; border-color: var(--acao-repassar); }
+    .action-pill.active.gestao   { background: var(--acao-gestao); color: #fff; border-color: var(--acao-gestao); }
+    .action-pill.bloqueado { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
+    .product-card.acao-cancelar { border: 2px solid var(--acao-cancelar); }
+    .product-card.acao-repassar { border: 2px solid var(--acao-repassar); }
+    .product-card.acao-gestao   { border: 2px solid var(--acao-gestao); }
+    .product-card.acao-repassado { border: 2px solid var(--primary); }
+    .tag.tag-acao { font-weight: 700; color: #fff; }
+    .tag.tag-acao.cancelar { background: var(--acao-cancelar); }
+    .tag.tag-acao.repassar { background: var(--acao-repassar); }
+    .tag.tag-acao.repassado { background: var(--primary); }
+    .tag.tag-acao.gestao   { background: var(--acao-gestao); }
+    .tag.tag-alerta { background: var(--acao-cancelar); color: #fff; font-weight: 700; }
+    .tag.tag-destino { background: var(--primary-soft); color: var(--primary-2); font-weight: 700; }
+    html.dark .tag.tag-destino { color: var(--primary); }
+    .action-pill.rep-cancelar { border-color: var(--acao-cancelar); color: var(--acao-cancelar); }
+    .action-pill.rep-cancelar:hover { background: var(--acao-cancelar); color: #fff; }
+
+    /* =========================================================
+       ZOOM MODAL
+       ========================================================= */
+    .zoom-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .zoom-modal.show { display: flex; opacity: 1; }
+    .zoom-modal img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 12px;
+      cursor: zoom-out;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info p { margin: 0; }
+    .zoom-modal .zoom-info p:first-child { font-size: 16px; font-weight: 700; }
+    .zoom-modal .zoom-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .zoom-modal .zoom-close:hover { background: rgba(255,255,255,0.25); }
+
+    /* =========================================================
+       TOAST + SYNC + BACKDROP
+       ========================================================= */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--text); color: var(--card-bg);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow-lift);
+      transition: transform .3s;
+      z-index: 100;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .sync-indicator {
+      position: fixed;
+      top: 16px; right: 16px;
+      background: var(--primary);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      box-shadow: var(--shadow-lift);
+      display: none;
+      align-items: center; gap: 6px;
+      z-index: 99;
+    }
+    .sync-indicator.show { display: inline-flex; }
+
+    .file-input { display: none; }
+
+    .filter-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+    }
+    .filter-backdrop.show { display: block; }
+
+    @media (max-width: 480px) {
+      .app { padding: 12px; }
+      .login-card { padding: 24px 20px; }
+      .client-info-compact { max-width: 30%; }
+      .client-info-compact .name { font-size: 12px; }
+      .client-info-compact .meta { font-size: 10px; }
+      .kpi-card { padding: 8px 10px; }
+    }
+    @media (min-width: 1024px) {
+      .app { padding: 24px 32px; }
+      .product-main { padding: 18px 20px; gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- =================================================================
+       TELA LOGIN
+       ================================================================= -->
+  <div id="screen-login" class="screen active">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-logo"><i class="fa-solid fa-wallet"></i></div>
+        <h1 class="login-title">Carteira CMS</h1>
+        <p class="login-sub">Gestão de carteira comercial</p>
+
+        <div id="login-error" class="login-error"></div>
+
+        <div class="field">
+          <label>Vendedor</label>
+          <select id="login-vendedor">
+            <option value="">— Selecione —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Código de comissionista</label>
+          <input id="login-codigo" type="tel" inputmode="numeric" placeholder="Digite o código">
+        </div>
+
+        <button class="btn-primary" id="btn-login" style="width:100%; justify-content:center; margin-top:8px;">
+          Entrar <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       TELA CLIENTES
+       ================================================================= -->
+  <div id="screen-clientes" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-so-redes" title="Mostrar só redes">
+          <i class="fa-solid fa-store"></i>
+        </button>
+        <button class="btn-icon" id="btn-atualizar-clientes" title="Atualizar">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        <label class="btn-icon" id="btn-importar" title="Importar XLSX" for="file-input-xlsx">
+          <i class="fa-solid fa-file-import"></i>
+        </label>
+        <input type="file" id="file-input-xlsx" class="file-input" accept=".xlsx,.xls">
+
+        <button class="btn-icon" id="btn-tema" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+
+        <button class="btn-icon" id="btn-sair" title="Sair">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- HEADER CONGELADO da tela clientes -->
+    <div class="frozen-header" id="frozen-header-clientes">
+
+      <button class="toggle-kpis" id="btn-toggle-kpis">
+        <i class="fa-solid fa-chevron-up"></i>
+        <span id="toggle-kpis-label">Ocultar resumo</span>
+      </button>
+
+      <div class="kpis-wrap" id="kpis-wrap">
+        <div class="kpi-card">
+          <p class="kpi-label">Clientes</p>
+          <p class="kpi-value" id="kpi-clientes">0</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Pedidos</p>
+          <p class="kpi-value" id="kpi-pedidos">0</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Pares</p>
+          <p class="kpi-value" id="kpi-pares">0</p>
+        </div>
+      </div>
+
+      <div class="search-wrap" id="search-cliente-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="busca-cliente"
+          inputmode="search"
+          enterkeyhint="search"
+          placeholder="Nome, cidade ou produto · separe por vírgula"
+          autocomplete="off">
+        <button class="search-clear" title="Limpar (ESC)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="client-results">
+      <div class="empty-state" id="empty-no-import">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Importe um arquivo XLSX para começar</p>
+        <p style="margin-top:8px;font-size:12px;">Toque no ícone <i class="fa-solid fa-file-import"></i> no topo</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       TELA PRODUTOS
+       ================================================================= -->
+  <div id="screen-produtos" class="screen">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-2">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-atualizar-produtos" title="Atualizar">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        <button class="btn-icon" id="btn-inicio-produtos" title="Início (clientes)">
+          <i class="fa-solid fa-house"></i>
+        </button>
+        <button class="btn-icon" id="btn-tema-2" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="frozen-header" id="frozen-header">
+
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-clientes" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="client-info-compact">
+          <p class="name" id="cliente-nome">—</p>
+          <p class="meta" id="cliente-meta">—</p>
+        </div>
+        <div class="search-inline" id="search-produto-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input
+            type="search"
+            id="busca-produto"
+            inputmode="search"
+            enterkeyhint="search"
+            placeholder="Buscar produto…"
+            autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="products-summary" id="products-summary"></div>
+
+      <div class="filter-row" id="filter-row">
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ped_cliente">
+            <i class="fa-solid fa-tag"></i>
+            <span>Ped.Cliente</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="mes">
+            <i class="fa-solid fa-calendar"></i>
+            <span>Mês</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="status">
+            <i class="fa-solid fa-circle-half-stroke"></i>
+            <span>Status</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ordem">
+            <i class="fa-solid fa-arrow-down-wide-short"></i>
+            <span id="ordem-label">Mês mais próximo</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-clear-btn" id="btn-limpar-filtros" title="Limpar filtros">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <div class="products-list" id="products-list"></div>
+    <div class="list-footer" id="products-footer"></div>
+  </div>
+
+  <!-- =================================================================
+       TELA REDE — SELEÇÃO DE PORTAS
+       ================================================================= -->
+  <div id="screen-rede" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-store"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-3">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-3" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-clientes-2" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="client-info-compact">
+          <p class="name" id="rede-nome">—</p>
+          <p class="meta" id="rede-meta">—</p>
+        </div>
+      </div>
+      <label class="rede-todas" id="rede-todas-label">
+        <input type="checkbox" id="rede-check-todas">
+        <span>Selecionar todas</span>
+        <span class="rede-todas-count" id="rede-todas-count"></span>
+      </label>
+    </div>
+
+    <div class="rede-sel-list" id="rede-sel-list"></div>
+
+    <div class="rede-actionbar">
+      <button class="rede-ver-btn" id="btn-ver-produtos-rede">
+        <i class="fa-solid fa-box"></i>
+        <span id="btn-ver-produtos-label">Ver produtos</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       TELA REDE — PRODUTOS CONSOLIDADOS
+       ================================================================= -->
+  <div id="screen-rede-produtos" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-store"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-4">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-4" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-rede" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="client-info-compact">
+          <p class="name" id="rede-prod-nome">—</p>
+          <p class="meta" id="rede-prod-meta">—</p>
+        </div>
+        <div class="search-inline" id="search-rede-produto-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="search" id="busca-rede-produto" inputmode="search" enterkeyhint="search" placeholder="Buscar produto…" autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="products-list" id="rede-produtos-list"></div>
+    <div class="list-footer" id="rede-produtos-footer"></div>
+  </div>
+
+  <!-- =================================================================
+       TELA REDE — DISTRIBUIÇÃO DE UM PRODUTO POR PORTA
+       ================================================================= -->
+  <div id="screen-rede-dist" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-store"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-5">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-5" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-rede-prod" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="client-info-compact">
+          <p class="name" id="rede-dist-titulo">—</p>
+          <p class="meta" id="rede-dist-sub">—</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="rede-dist-body"></div>
+  </div>
+
+  <!-- =================================================================
+       TELA REPASSE — SELEÇÃO DE DESTINO(S)
+       ================================================================= -->
+  <div id="screen-repasse" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-right-left"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-6">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-6" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="client-strip">
+        <button class="back" id="btn-cancelar-repasse" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="client-info-compact">
+          <p class="name" id="repasse-titulo">Repassar destino</p>
+          <p class="meta" id="repasse-sub">—</p>
+        </div>
+      </div>
+      <div class="search-wrap" id="repasse-busca-wrap" style="margin-top:10px;">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="search" id="busca-repasse" inputmode="search" enterkeyhint="search" placeholder="Buscar cliente (nome, cidade, código)" autocomplete="off">
+        <button class="search-clear" title="Limpar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="repasse-escopo" id="repasse-escopo"></div>
+    </div>
+
+    <div id="repasse-body"></div>
+
+    <div class="rede-actionbar">
+      <button class="rede-ver-btn" id="btn-confirmar-repasse">
+        <i class="fa-solid fa-check"></i> <span id="btn-confirmar-repasse-label">Selecione um destino</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       MODAL DE ZOOM
+       ================================================================= -->
+  <div class="zoom-modal" id="zoom-modal">
+    <button class="zoom-close" id="zoom-close" aria-label="Fechar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="zoom-img" src="" alt="Produto">
+    <div class="zoom-info">
+      <p id="zoom-name">—</p>
+      <p id="zoom-meta">—</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="sync-indicator" id="sync-indicator">
+    <i class="fa-solid fa-cloud-arrow-up"></i>
+    <span id="sync-text">Sincronizando…</span>
+  </div>
+  <div class="filter-backdrop" id="filter-backdrop"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
+
+const VENDEDORES = [
+  { nome: 'JORGE',   codigo: '114611',  papel: 'vendedor' },
+  { nome: 'MARIANA', codigo: '109839',  papel: 'vendedor' },
+  { nome: 'RAFAEL',  codigo: '1333497', papel: 'vendedor' },
+  { nome: 'WILLAME', codigo: '25471',   papel: 'vendedor' },
+  { nome: 'LEANDRO', codigo: '25745',   papel: 'vendedor' },
+  { nome: 'MARCOS',  codigo: '3616654', papel: 'vendedor' },
+  { nome: 'CMS',     codigo: '25846',   papel: 'admin'    },
+];
+
+const PREPOSTO_MAP = { 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'C': 'CMS' };
+const IMG_PATH = '../imagens_olympikus/';
+
+const STORAGE = {
+  sessao: 'carteira.sessao',
+  tema: 'carteira.tema',
+  pedidos: 'carteira.pedidos',
+  produtos: 'carteira.produtos',
+  clientesInfo: 'carteira.clientesInfo',
+  kpisOcultos: 'carteira.kpisOcultos',
+};
+
+const OPCOES_ORDEM = [
+  { id: 'mes_proximo', label: 'Mês mais próximo' },
+  { id: 'mes_distante', label: 'Mês mais distante' },
+  { id: 'preco_maior', label: 'Maior preço' },
+  { id: 'preco_menor', label: 'Menor preço' },
+  { id: 'mais_pares', label: 'Mais pares' },
+  { id: 'descricao', label: 'A-Z (descrição)' },
+];
+
+const OPCOES_STATUS = [
+  { id: 'MANTER', label: 'Manter' },
+  { id: 'REPASSAR', label: 'Repassar (pendente)' },
+  { id: 'REPASSADO', label: 'Repassado' },
+  { id: 'CANCELAR', label: 'Cancelar' },
+];
+
+// Mapeamento de campanhas → sufixo da condição de pagamento
+const CAMPANHA_SUFIXO = {
+  'CO681': '+ 28 DD',
+  'CO689': '+ 56 DD',
+};
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const APP = {
+  sessao: null,
+  pedidos: [],
+  produtos: {},
+  clientesInfo: {},
+  redes: {},
+  clienteAtual: null,
+  filtroProduto: '',
+  filtros: {
+    ped_cliente: null,
+    mes: null,
+    status: null,
+  },
+  ordem: 'mes_proximo',
+  saveTimer: null,
+  acoesPendentes: false,
+  filtroCliente: '',
+  soRedes: false,
+  redeAtual: null,
+  redeSelecao: new Set(),
+  redeBuscaProduto: '',
+  redeDistKey: null,
+  focoProduto: null,
+  produtosOrigem: 'clientes',
+  repasseCtx: null,
+  repasseSel: new Set(),
+  repasseEscopo: 'todos',
+  repassePendente: false,
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function normalizar(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function toast(msg, ms = 2500) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+function syncShow(texto) {
+  $('sync-text').textContent = texto;
+  $('sync-indicator').classList.add('show');
+}
+function syncHide() {
+  $('sync-indicator').classList.remove('show');
+}
+function iniciais(nome) {
+  return String(nome || '').split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
+}
+function formatarDataBR(v) {
+  if (!v && v !== 0) return '';
+  // Número serial do Excel (ex: 46204) → converte para data
+  if (typeof v === 'number' || (/^\d+(\.\d+)?$/.test(String(v).trim()) && Number(v) > 59 && Number(v) < 90000)) {
+    const serial = Number(v);
+    const d = new Date(Math.round((serial - 25569) * 86400000));
+    if (!isNaN(d)) {
+      const dia = String(d.getUTCDate()).padStart(2, '0');
+      const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+      return `${dia}/${mes}/${d.getUTCFullYear()}`;
+    }
+  }
+  const s = String(v);
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return s;
+}
+function mesAno(v) {
+  const d = formatarDataBR(v);
+  if (d.length >= 10) return d.slice(3);
+  return '';
+}
+function prevFatToNumero(v) {
+  const d = formatarDataBR(v);
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return Infinity;
+  return Number(m[3] + m[2] + m[1]);
+}
+// Dias entre hoje e a data prevista de faturamento (regra dos 45 dias do cancelamento)
+function diasAteFat(p) {
+  const d = formatarDataBR(p.prev_fat);
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return Infinity;
+  const alvo = Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  const h = new Date();
+  const hoje = Date.UTC(h.getFullYear(), h.getMonth(), h.getDate());
+  return Math.round((alvo - hoje) / 86400000);
+}
+const MIN_DIAS_CANCELAR = 45;
+const DIAS_ALERTA_REPASSE = 20;
+function repFinalizadoP(p) { return p.acao === 'REPASSAR' && p.repasse && (p.repasse.destinos || []).length > 0; }
+function repPendenteP(p) { return p.acao === 'REPASSAR' && !repFinalizadoP(p); }
+function alertaRepasse(p) { return repPendenteP(p) && diasAteFat(p) <= DIAS_ALERTA_REPASSE; }
+function statusPedido(p) {
+  if (repFinalizadoP(p)) return 'REPASSADO';
+  if (repPendenteP(p)) return 'REPASSAR';
+  if (p.acao === 'CANCELAR') return 'CANCELAR';
+  if (p.acao === 'GESTAO_CMS') return 'GESTAO_CMS';
+  return 'MANTER';
+}
+function formatarPreco(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (isNaN(n)) return '—';
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+function formatarNumero(n) {
+  return Number(n || 0).toLocaleString('pt-BR');
+}
+function corParaArquivo(cor) {
+  return String(cor || '').replace(/\//g, '_').trim();
+}
+
+// Junta condição + sufixo de campanha (se for uma das conhecidas)
+function condicaoCompleta(cond_pag, campanha) {
+  const c = String(cond_pag || '').trim();
+  const camp = String(campanha || '').trim().toUpperCase();
+  const sufixo = CAMPANHA_SUFIXO[camp];
+  if (c && sufixo) return `${c} ${sufixo}`;
+  if (c && camp) return `${c} · ${camp}`;
+  return c || '—';
+}
+
+/* ============================================================
+   COPIAR AO SELECIONAR
+   ============================================================ */
+function configurarCopiaAoSelecionar() {
+  let timer;
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const sel = window.getSelection();
+      const texto = sel ? sel.toString().trim() : '';
+      if (texto && texto.length > 0 && texto.length < 200) {
+        const node = sel.anchorNode;
+        if (node) {
+          const el = node.nodeType === 1 ? node : node.parentElement;
+          if (el && el.closest('input, textarea, [contenteditable]')) return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(texto).then(() => {
+            toast('Copiado: ' + (texto.length > 30 ? texto.slice(0, 30) + '…' : texto), 1500);
+          }).catch(() => {});
+        }
+      }
+    }, 400);
+  });
+}
+
+/* ============================================================
+   TEMA
+   ============================================================ */
+function aplicarTema() {
+  const t = localStorage.getItem(STORAGE.tema) || 'claro';
+  document.documentElement.classList.toggle('dark', t === 'escuro');
+  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i').forEach(i => {
+    i.className = t === 'escuro' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  });
+}
+function toggleTema() {
+  const atual = localStorage.getItem(STORAGE.tema) || 'claro';
+  localStorage.setItem(STORAGE.tema, atual === 'claro' ? 'escuro' : 'claro');
+  aplicarTema();
+}
+
+/* ============================================================
+   KPIs
+   ============================================================ */
+function aplicarEstadoKpis() {
+  const ocultos = localStorage.getItem(STORAGE.kpisOcultos) === '1';
+  $('kpis-wrap').classList.toggle('hidden', ocultos);
+  const i = $('btn-toggle-kpis').querySelector('i');
+  const label = $('toggle-kpis-label');
+  if (ocultos) {
+    i.className = 'fa-solid fa-chevron-down';
+    label.textContent = 'Exibir resumo';
+  } else {
+    i.className = 'fa-solid fa-chevron-up';
+    label.textContent = 'Ocultar resumo';
+  }
+}
+function toggleKpis() {
+  const atual = localStorage.getItem(STORAGE.kpisOcultos) === '1';
+  localStorage.setItem(STORAGE.kpisOcultos, atual ? '0' : '1');
+  aplicarEstadoKpis();
+}
+
+/* ============================================================
+   API DO WORKER
+   ============================================================ */
+async function workerCall(action, extra = {}) {
+  const r = await fetch(WORKER_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...extra })
+  });
+  if (!r.ok) {
+    let body = '';
+    try { body = await r.text(); } catch {}
+    throw new Error('HTTP ' + r.status + (body ? ' · ' + body.slice(0, 140) : ''));
+  }
+  return r.json();
+}
+
+async function carregarCarteiraDoServidor() {
+  try {
+    syncShow('Buscando…');
+    const data = await workerCall('getCarteira');
+    if (data && Array.isArray(data.pedidos) && data.pedidos.length > 0) {
+      APP.pedidos = data.pedidos;
+      localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+    }
+    await aplicarAcoesDoServidor();
+    syncHide();
+  } catch (e) {
+    console.warn('Falha ao carregar carteira do servidor', e);
+    syncHide();
+  }
+}
+
+// Monta o mapa de produtos a partir de linhas (do worker ou do XLSX).
+// Leitura de colunas à prova de acento e maiúscula/minúscula.
+function montarProdutos(rows) {
+  const acha = (row, ...nomes) => {
+    const alvo = nomes.map(normalizar);
+    for (const k of Object.keys(row)) {
+      if (alvo.includes(normalizar(k))) return row[k];
+    }
+    return '';
+  };
+  const out = {};
+  for (const row of rows) {
+    // A coluna IMAGEM já é a chave ARTIGO_COR; se não houver, monta de CODIGO+COR.
+    let key = String(acha(row, 'IMAGEM') || '').trim();
+    if (!key) {
+      const artigo = String(acha(row, 'CODIGO', 'Artigo') || '').trim();
+      const cor = corParaArquivo(acha(row, 'COR', 'Cor'));
+      if (!artigo || !cor) continue;
+      key = `${artigo}_${cor}`;
+    }
+    out[key] = {
+      preco: acha(row, 'PRECO', 'PREÇO', 'Preço', 'Preco') || '',
+      categoria: acha(row, 'CATEGORIA', 'Categoria') || '',
+      descricao: acha(row, 'Produto', 'Descricao', 'Descrição') || '',
+    };
+  }
+  return out;
+}
+
+async function carregarProdutosDoServidor() {
+  // Fonte principal: Produtos.xlsx publicado no repo (catálogo completo com preço).
+  try {
+    const r = await fetch('../Produtos.xlsx', { cache: 'no-store' });
+    if (r.ok) {
+      const buf = await r.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const p = montarProdutos(rows);
+      if (Object.keys(p).length > 0) {
+        APP.produtos = p;
+        localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
+        if (APP.clienteAtual) renderProdutos();
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('Falha ao ler Produtos.xlsx', e);
+  }
+  // Fallback: worker getProdutos (só se o arquivo não vier).
+  try {
+    const data = await workerCall('getProdutos');
+    if (Array.isArray(data) && data.length > 0) {
+      const p = montarProdutos(data);
+      if (Object.keys(p).length > 0) {
+        APP.produtos = p;
+        localStorage.setItem(STORAGE.produtos, JSON.stringify(APP.produtos));
+        if (APP.clienteAtual) renderProdutos();
+      }
+    }
+  } catch {}
+}
+
+// Monta o mapa código -> { nomeFantasia, porta } a partir de linhas (à prova de acento/caixa).
+function montarClientesInfo(rows) {
+  const acha = (row, ...nomes) => {
+    const alvo = nomes.map(normalizar);
+    for (const k of Object.keys(row)) {
+      if (alvo.includes(normalizar(k))) return row[k];
+    }
+    return '';
+  };
+  const out = {};
+  for (const row of rows) {
+    const codigo = String(acha(row, 'CODIGO', 'Codigo', 'Código') || '').trim();
+    if (!codigo) continue;
+    out[codigo] = {
+      nomeFantasia: String(acha(row, 'NOME FANTASIA', 'Nome Fantasia') || '').trim(),
+      porta: String(acha(row, 'PORTA', 'Porta') || '').trim(),
+    };
+  }
+  return out;
+}
+
+// Índice de redes: nome fantasia (normalizado) com 2+ códigos.
+function montarRedes(clientesInfo) {
+  const porNome = {};
+  for (const [codigo, info] of Object.entries(clientesInfo)) {
+    const nomeNorm = normalizar(info.nomeFantasia);
+    if (!nomeNorm) continue;
+    (porNome[nomeNorm] = porNome[nomeNorm] || { nome: info.nomeFantasia, codigos: [] }).codigos.push(codigo);
+  }
+  const redes = {};
+  for (const [nomeNorm, r] of Object.entries(porNome)) {
+    if (r.codigos.length > 1) redes[nomeNorm] = r;
+  }
+  return redes;
+}
+
+async function carregarClientesDoServidor() {
+  try {
+    const r = await fetch('../Clientes.xlsx', { cache: 'no-store' });
+    if (!r.ok) return;
+    const buf = await r.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const info = montarClientesInfo(rows);
+    if (Object.keys(info).length > 0) {
+      APP.clientesInfo = info;
+      APP.redes = montarRedes(info);
+      localStorage.setItem(STORAGE.clientesInfo, JSON.stringify(info));
+      if (APP.sessao && !APP.clienteAtual) renderClientes($('busca-cliente')?.value || '');
+    }
+  } catch (e) {
+    console.warn('Falha ao ler Clientes.xlsx', e);
+  }
+}
+
+async function salvarCarteiraNoServidor(modo = 'full') {
+  try {
+    syncShow(modo === 'acoes' ? 'Salvando ação…' : 'Salvando…');
+    await workerCall('saveCarteira', {
+      data: {
+        pedidos: APP.pedidos,
+        importadoPor: APP.sessao?.nome || '',
+        modo,
+      }
+    });
+    APP.acoesPendentes = false;
+    syncHide();
+    return true;
+  } catch (e) {
+    syncHide();
+    console.warn('saveCarteira falhou:', e);
+    toast('Não salvou online: ' + (e.message || 'erro'));
+    return false;
+  }
+}
+
+// Chave única de um pedido (distingue até dobrados de mesmo GCI com grades diferentes)
+function keyPedido(p) {
+  return [p.cliente_cod, p.gci, p.artigo, p.cor, p.grade_str || '', p.total].join('|');
+}
+
+// Registra a mudança de ação de um pedido na fila de envio (grava só a chave alterada)
+function registrarAcao(p) {
+  if (!APP.acoesMap) APP.acoesMap = {};
+  APP.acoesMap[keyPedido(p)] = { acao: p.acao || 'MANTER', repasse: p.repasse || null };
+  agendarSaveAcoes();
+}
+
+function agendarSaveAcoes() {
+  clearTimeout(APP.saveTimer);
+  APP.saveTimer = setTimeout(flushSaveAcoes, 400);
+}
+
+// Envia as ações pendentes (arquivo pequeno). Usado pelo debounce, pelo botão Atualizar e ao sair.
+async function flushSaveAcoes() {
+  if (APP.saveTimer) { clearTimeout(APP.saveTimer); APP.saveTimer = null; }
+  const mapa = APP.acoesMap || {};
+  const itens = Object.entries(mapa).map(([key, v]) => ({ key, acao: v.acao, repasse: v.repasse }));
+  if (!itens.length) return true;
+  try {
+    syncShow('Salvando…');
+    await workerCall('saveAcaoCarteira', { itens, por: APP.sessao?.nome || '' });
+    APP.acoesMap = {};
+    syncHide();
+    return true;
+  } catch (e) {
+    syncHide();
+    console.warn('saveAcaoCarteira falhou:', e);
+    toast('Não salvou online: ' + (e.message || 'erro'));
+    return false;
+  }
+}
+
+// Lê o arquivo pequeno de ações e aplica por cima da carteira
+async function aplicarAcoesDoServidor() {
+  try {
+    const data = await workerCall('getAcoesCarteira');
+    const mapa = (data && data.acoes) ? data.acoes : {};
+    let n = 0;
+    for (const p of APP.pedidos) {
+      const v = mapa[keyPedido(p)];
+      if (v) { p.acao = v.acao; p.repasse = v.repasse || undefined; n++; }
+    }
+    if (n) localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+  } catch (e) {
+    console.warn('getAcoesCarteira falhou', e);
+  }
+}
+
+// Botão "Atualizar": garante o envio do que é local, puxa o servidor e re-renderiza a tela atual
+async function atualizarDoServidor(btn) {
+  if (btn) btn.classList.add('girando');
+  try {
+    const ok = await flushSaveAcoes();
+    if (!ok) {
+      toast('Suas marcações ficaram só aqui — não atualizei pra não apagá-las');
+      return;
+    }
+    await carregarCarteiraDoServidor();
+    if (APP.clienteAtual && document.querySelector('#screen-produtos.active')) {
+      const cod = APP.clienteAtual.codigo;
+      APP.clienteAtual.pedidos = obterClientesDoVendedor().filter(p => p.cliente_cod === cod);
+      renderProdutos();
+    } else {
+      renderClientes($('busca-cliente')?.value || '');
+    }
+    toast('Atualizado');
+  } catch (e) {
+    toast('Falha ao atualizar');
+  } finally {
+    if (btn) btn.classList.remove('girando');
+  }
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+function popularDropdownVendedores() {
+  const sel = $('login-vendedor');
+  for (const v of VENDEDORES) {
+    const opt = document.createElement('option');
+    opt.value = v.nome;
+    opt.textContent = v.nome;
+    sel.appendChild(opt);
+  }
+}
+
+async function tentarLogin() {
+  const nome = $('login-vendedor').value;
+  const codigo = $('login-codigo').value.trim();
+  const erroEl = $('login-error');
+
+  if (!nome) { erroEl.textContent = 'Selecione um vendedor'; erroEl.classList.add('show'); return; }
+  if (!codigo) { erroEl.textContent = 'Digite o código'; erroEl.classList.add('show'); return; }
+
+  const v = VENDEDORES.find(x => x.nome === nome && x.codigo === codigo);
+  if (!v) { erroEl.textContent = 'Código incorreto'; erroEl.classList.add('show'); return; }
+
+  APP.sessao = v;
+  localStorage.setItem(STORAGE.sessao, JSON.stringify(v));
+  erroEl.classList.remove('show');
+  irParaClientes();
+
+  carregarCarteiraDoServidor().then(() => renderClientes(''));
+}
+
+function logout() {
+  APP.sessao = null;
+  localStorage.removeItem(STORAGE.sessao);
+  $('login-vendedor').value = '';
+  $('login-codigo').value = '';
+  show('screen-login');
+}
+
+function irParaClientes() {
+  $('topbar-user').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-2').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-3').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-4').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-5').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-6').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  show('screen-clientes');
+  renderClientes(APP.filtroCliente);
+}
+
+/* ============================================================
+   IMPORTAÇÃO XLSX
+   ============================================================ */
+async function importarXLSX(file) {
+  try {
+    $('btn-importar').classList.add('loading');
+    toast('Lendo arquivo…');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+
+    const pedidos = [];
+    for (const sheetName of wb.SheetNames) {
+      if (!/EM ABERTO/i.test(sheetName)) continue;
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      for (const row of rows) {
+        const ped = parseLinhaPedido(row);
+        if (ped) pedidos.push(ped);
+      }
+    }
+
+    if (pedidos.length === 0) {
+      toast('Nenhum pedido encontrado no XLSX');
+      $('btn-importar').classList.remove('loading');
+      return;
+    }
+
+    const chave = p => `${p.preposto}|${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}`;
+    const acoesAnteriores = {};
+    for (const p of APP.pedidos) {
+      acoesAnteriores[chave(p)] = p.acao;
+    }
+    for (const p of pedidos) {
+      const k = chave(p);
+      if (acoesAnteriores[k]) p.acao = acoesAnteriores[k];
+    }
+
+    APP.pedidos = pedidos;
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(pedidos));
+
+    toast(`${pedidos.length} pedidos importados`);
+    renderClientes($('busca-cliente').value);
+
+    await salvarCarteiraNoServidor('full');
+    toast('Sincronizado com servidor');
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao ler o arquivo');
+  } finally {
+    $('btn-importar').classList.remove('loading');
+  }
+}
+
+function parseLinhaPedido(row) {
+  const get = (...keys) => {
+    for (const k of keys) {
+      if (row[k] != null && row[k] !== '') return row[k];
+    }
+    return '';
+  };
+  // Busca por nome de coluna normalizado (à prova de acento/maiúscula).
+  const getNorm = (...nomes) => {
+    const alvo = nomes.map(normalizar);
+    for (const k of Object.keys(row)) {
+      if (alvo.includes(normalizar(k)) && row[k] != null && row[k] !== '') return row[k];
+    }
+    return '';
+  };
+
+  const prepostoBruto = String(get('Preposto', 'preposto')).trim().toUpperCase();
+  const preposto = PREPOSTO_MAP[prepostoBruto] || prepostoBruto;
+  if (!preposto) return null;
+
+  const artigo = String(get('Artigo', 'artigo')).trim();
+  const cor = String(get('Cor', 'cor')).trim();
+  if (!artigo || !cor) return null;
+
+  const grade = {};
+  for (let t = 28; t <= 48; t++) {
+    const v = row[String(t)] ?? row[t];
+    if (v && Number(v) > 0) grade[t] = Number(v);
+  }
+
+  return {
+    marca: String(get('Marca', 'marca')).trim(),
+    cliente_cod: String(get('Cliente', 'cliente')).trim(),
+    cliente_razao: String(get('Razão', 'Razao', 'razão', 'razao')).trim(),
+    razao_social: String(get('Razão Social', 'Razao Social')).trim(),
+    cnpj: String(get('CNPJ', 'cnpj')).trim(),
+    cidade: String(get('Cidade', 'cidade')).trim(),
+    endereco: String(get('Endereço do Cliente', 'Endereco do Cliente')).trim(),
+    ped_cliente: String(get('Ped.Cliente', 'PedCliente')).trim(),
+    empresa: String(get('Empresa', 'empresa')).trim(),
+    cond_pag: String(get('Cond. Pag', 'CondPag')).trim(),
+    prazo: String(get('Prazo', 'prazo')).trim(),
+    campanha: String(get('Campanha Comercial', 'Campanha')).trim(),
+    gci: String(get('Enc.GCI', 'GCI', 'gci')).trim(),
+    ebm: String(get('Enc.EBM', 'EBM', 'ebm')).trim(),
+    preposto: preposto,
+    descricao: String(get('descrição', 'Descrição', 'descricao', 'Descricao')).trim(),
+    artigo: artigo,
+    cor: cor,
+    grade_str: String(get('grade', 'Grade')).trim(),
+    faixa: String(get('Faixa', 'faixa')).trim(),
+    grade: grade,
+    total: Number(get('Total de pares', 'Total') || 0),
+    preco_unit: getNorm('Preço', 'Preco'),
+    total_preco: getNorm('Total Preço', 'Total Preco'),
+    prev_fat: formatarDataBR(get('Prev.fat.', 'PrevFat', 'Prev. Fat.')),
+    acao: 'MANTER',
+  };
+}
+
+/* ============================================================
+   LISTA DE CLIENTES + KPIs
+   ============================================================ */
+function obterClientesDoVendedor() {
+  return APP.sessao.papel === 'admin'
+    ? APP.pedidos
+    : APP.pedidos.filter(p => p.preposto === APP.sessao.nome);
+}
+
+function htmlProdutosCasados(produtos) {
+  if (!produtos || produtos.length === 0) return '';
+  // Agrupa por produto (artigo), e dentro de cada produto agrupa por cor somando pares
+  const porProduto = new Map();
+  for (const p of produtos) {
+    const k = p.artigo || p.descricao || '—';
+    if (!porProduto.has(k)) {
+      porProduto.set(k, { descricao: p.descricao || p.artigo, artigo: p.artigo, cores: new Map() });
+    }
+    const g = porProduto.get(k);
+    const cor = p.cor || '—';
+    g.cores.set(cor, (g.cores.get(cor) || 0) + p.total);
+  }
+  const blocos = [...porProduto.values()].map(g => `
+    <div class="cliente-produto">
+      <p class="cp-nome">${g.descricao}${g.artigo ? ` · art. ${g.artigo}` : ''}</p>
+      ${[...g.cores.entries()].map(([cor, pares]) =>
+        `<div class="cp-linha"><span>${cor}</span><span class="cp-pares">${pares} pares</span></div>`
+      ).join('')}
+    </div>
+  `).join('');
+  return `<div class="cliente-produtos">${blocos}</div>`;
+}
+
+function nomeFantasiaDe(codigo) {
+  return APP.clientesInfo[codigo]?.nomeFantasia || '';
+}
+function portaDe(codigo) {
+  return APP.clientesInfo[codigo]?.porta || '';
+}
+
+function cardAvulsoHTML(c, temTermos) {
+  const temProd = temTermos && c.produtosCasados.length;
+  const nPedidos = temProd ? c.produtosCasados.length : c.totalPedidos;
+  const nPares = temProd ? c.produtosCasados.reduce((s, p) => s + p.total, 0) : c.totalPares;
+  const fant = nomeFantasiaDe(c.codigo);
+  const titulo = (fant && normalizar(fant) !== normalizar(c.razao)) ? `${c.razao} · ${fant}` : c.razao;
+  return `
+    <div class="client-item" data-cliente="${c.codigo}">
+      <div class="client-row">
+        <div class="client-avatar">${iniciais(c.razao)}</div>
+        <div class="client-info">
+          <p class="name">${titulo}</p>
+          <p class="meta">${c.codigo} · ${c.cidade || '—'} · ${nPedidos} pedidos · ${nPares} pares</p>
+        </div>
+        <i class="fa-solid fa-chevron-right chev"></i>
+      </div>
+      ${htmlProdutosCasados(c.produtosCasados)}
+    </div>`;
+}
+
+function cardRedeHTML(grupo, nn, temTermos) {
+  const portas = grupo.portas;
+  const temProd = temTermos && portas.some(c => c.produtosCasados.length);
+  const combinados = [];
+  for (const c of portas) for (const p of c.produtosCasados) combinados.push(p);
+  let pares = 0;
+  for (const c of portas) {
+    const base = temProd ? c.produtosCasados : c.pedidos;
+    pares += base.reduce((s, p) => s + p.total, 0);
+  }
+  return `
+    <div class="client-item rede-card" data-rede="${nn}">
+      <div class="client-row rede-head">
+        <div class="rede-icon"><i class="fa-solid fa-store"></i></div>
+        <div class="client-info">
+          <p class="name">${grupo.nome}<span class="rede-badge">REDE</span></p>
+          <p class="meta">${portas.length} de ${grupo.totalPortas} portas · ${pares} pares</p>
+        </div>
+        <i class="fa-solid fa-chevron-right chev"></i>
+      </div>
+      ${temProd ? htmlProdutosCasados(combinados) : ''}
+    </div>`;
+}
+
+function renderClientes(filtro) {
+  APP.filtroCliente = filtro || '';
+  const container = $('client-results');
+
+  const meusPedidos = obterClientesDoVendedor();
+
+  if (meusPedidos.length === 0) {
+    // Esconde KPIs quando não há dados
+    $('kpis-wrap').style.visibility = 'hidden';
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Importe um arquivo XLSX para começar</p>
+        <p style="margin-top:8px;font-size:12px;">Toque no ícone <i class="fa-solid fa-file-import"></i> no topo</p>
+      </div>`;
+    return;
+  }
+
+  $('kpis-wrap').style.visibility = '';
+
+  // Agrupa por cliente
+  const mapClientes = new Map();
+  for (const p of meusPedidos) {
+    const key = p.cliente_cod;
+    if (!mapClientes.has(key)) {
+      mapClientes.set(key, {
+        codigo: p.cliente_cod,
+        razao: p.razao_social || p.cliente_razao,
+        cidade: p.cidade,
+        totalPedidos: 0,
+        totalPares: 0,
+        pedidos: [],
+      });
+    }
+    const c = mapClientes.get(key);
+    c.totalPedidos += 1;
+    c.totalPares += p.total;
+    c.pedidos.push(p);
+  }
+
+  const clientes = [...mapClientes.values()];
+
+  // Filtra busca: até 3 termos separados por vírgula, com E (todos precisam casar).
+  // Cada termo casa por nome/código/cidade OU por produto (descrição/artigo).
+  const termos = filtro.split(',').map(normalizar).filter(Boolean).slice(0, 3);
+  let filtrados;
+  if (termos.length) {
+    filtrados = [];
+    for (const c of clientes) {
+      const casados = new Set();
+      let todosOk = true;
+      for (const termo of termos) {
+        const casaCliente =
+          normalizar(c.razao).includes(termo) ||
+          normalizar(c.codigo).includes(termo) ||
+          normalizar(c.cidade).includes(termo);
+        const prodMatches = c.pedidos.filter(p =>
+          normalizar(p.descricao).includes(termo) ||
+          normalizar(p.artigo).includes(termo));
+        if (!casaCliente && prodMatches.length === 0) { todosOk = false; break; }
+        prodMatches.forEach(p => casados.add(p));
+      }
+      if (todosOk) {
+        c.produtosCasados = [...casados];
+        filtrados.push(c);
+      }
+    }
+  } else {
+    for (const c of clientes) c.produtosCasados = [];
+    filtrados = clientes;
+  }
+
+  // KPIs respondem ao filtro. Se a busca casa com produto, Pedidos e Pares
+  // refletem só o produto filtrado (cores consolidadas); senão, o total do cliente.
+  const kpiClientes = filtrados.length;
+  let kpiPedidos = 0, kpiPares = 0;
+  for (const c of filtrados) {
+    const base = (termos.length && c.produtosCasados.length) ? c.produtosCasados : c.pedidos;
+    kpiPedidos += base.length;
+    kpiPares += base.reduce((s, p) => s + p.total, 0);
+  }
+
+  $('kpi-clientes').textContent = formatarNumero(kpiClientes);
+  $('kpi-pedidos').textContent = formatarNumero(kpiPedidos);
+  $('kpi-pares').textContent = formatarNumero(kpiPares);
+
+  if (filtrados.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>Nenhum cliente encontrado</p>
+      </div>`;
+    return;
+  }
+
+  // Agrupa: redes viram um card só; avulsos individuais. Preserva a ordem.
+  const temTermos = termos.length > 0;
+  const grupos = new Map();
+  for (const c of filtrados) {
+    const nn = normalizar(nomeFantasiaDe(c.codigo));
+    if (nn && APP.redes[nn]) {
+      if (!grupos.has(nn)) grupos.set(nn, { nome: APP.redes[nn].nome, totalPortas: APP.redes[nn].codigos.length, portas: [] });
+      grupos.get(nn).portas.push(c);
+    }
+  }
+  const renderizadas = new Set();
+  const cards = [];
+  for (const c of filtrados) {
+    const nn = normalizar(nomeFantasiaDe(c.codigo));
+    const ehRede = nn && APP.redes[nn];
+    if (APP.soRedes && !ehRede) continue;
+    if (ehRede) {
+      if (renderizadas.has(nn)) continue;
+      renderizadas.add(nn);
+      cards.push(cardRedeHTML(grupos.get(nn), nn, temTermos));
+    } else {
+      cards.push(cardAvulsoHTML(c, temTermos));
+    }
+  }
+
+  if (cards.length === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-store"></i><p>${APP.soRedes ? 'Nenhuma rede encontrada' : 'Nenhum cliente encontrado'}</p></div>`;
+    return;
+  }
+
+  const rodape = APP.soRedes
+    ? `${cards.length} rede${cards.length !== 1 ? 's' : ''}`
+    : `${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}`;
+  const html = `
+    <div class="client-list">${cards.join('')}</div>
+    <div class="list-footer">${rodape}</div>
+  `;
+  container.innerHTML = html;
+
+  // Avulsos abrem o cliente
+  container.querySelectorAll('[data-cliente]').forEach(el => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); abrirCliente(el.dataset.cliente); });
+  });
+  // Card de rede abre a tela da rede
+  container.querySelectorAll('.rede-card[data-rede]').forEach(el => {
+    el.addEventListener('click', () => abrirRede(el.dataset.rede));
+  });
+}
+
+/* ============================================================
+   TELA: REDE (seleção de portas + produtos consolidados)
+   ============================================================ */
+function dadosPortasDaRede(nn) {
+  const rede = APP.redes[nn];
+  if (!rede) return [];
+  const porCod = {};
+  for (const p of obterClientesDoVendedor()) {
+    (porCod[p.cliente_cod] = porCod[p.cliente_cod] || []).push(p);
+  }
+  return rede.codigos.map(cod => {
+    const peds = porCod[cod] || [];
+    return {
+      codigo: cod,
+      porta: portaDe(cod),
+      razao: peds[0] ? (peds[0].razao_social || peds[0].cliente_razao) : '',
+      cidade: peds[0] ? peds[0].cidade : '',
+      pares: peds.reduce((s, p) => s + p.total, 0),
+      nPedidos: peds.length,
+      temPedido: peds.length > 0,
+    };
+  }).sort((a, b) => b.pares - a.pares);
+}
+
+function abrirRede(nn) {
+  const rede = APP.redes[nn];
+  if (!rede) return;
+  APP.redeAtual = nn;
+  APP.redeSelecao = new Set(rede.codigos);
+  $('rede-nome').textContent = rede.nome;
+  renderRedePortas();
+  show('screen-rede');
+  window.scrollTo(0, 0);
+}
+
+function renderRedePortas() {
+  const portas = dadosPortasDaRede(APP.redeAtual);
+  const comPedido = portas.filter(p => p.temPedido).length;
+  $('rede-meta').textContent = `${portas.length} portas · ${comPedido} com pedido`;
+
+  const cont = $('rede-sel-list');
+  cont.innerHTML = portas.map(p => {
+    const marcado = APP.redeSelecao.has(p.codigo) ? 'checked' : '';
+    const titulo = p.razao || p.porta || p.codigo;
+    const sub = [p.porta || p.cidade || '—', p.codigo].filter(Boolean).join(' · ');
+    const pares = p.temPedido
+      ? `<span class="rede-sel-pares">${formatarNumero(p.pares)} pares</span>`
+      : `<span class="rede-sel-pares zero">sem pedido</span>`;
+    return `
+      <label class="rede-sel-item">
+        <input type="checkbox" data-cod="${p.codigo}" ${marcado}>
+        <div class="rede-sel-info">
+          <p class="nome">${titulo}</p>
+          <p class="meta">${sub}</p>
+        </div>
+        ${pares}
+      </label>`;
+  }).join('');
+
+  cont.querySelectorAll('input[data-cod]').forEach(chk => {
+    chk.addEventListener('change', () => {
+      if (chk.checked) APP.redeSelecao.add(chk.dataset.cod);
+      else APP.redeSelecao.delete(chk.dataset.cod);
+      atualizarSelecaoRede(portas.length);
+    });
+  });
+  atualizarSelecaoRede(portas.length);
+}
+
+function atualizarSelecaoRede(total) {
+  const n = APP.redeSelecao.size;
+  $('rede-todas-count').textContent = `${n} marcadas`;
+  const todas = $('rede-check-todas');
+  todas.checked = n === total && total > 0;
+  todas.indeterminate = n > 0 && n < total;
+  const btn = $('btn-ver-produtos-rede');
+  btn.disabled = n === 0;
+  $('btn-ver-produtos-label').textContent = n
+    ? `Ver produtos · ${n} ${n === 1 ? 'porta' : 'portas'}`
+    : 'Selecione ao menos uma porta';
+}
+
+function toggleTodasPortas(marcar) {
+  const portas = dadosPortasDaRede(APP.redeAtual);
+  APP.redeSelecao = marcar ? new Set(portas.map(p => p.codigo)) : new Set();
+  $('rede-sel-list').querySelectorAll('input[data-cod]').forEach(chk => {
+    chk.checked = APP.redeSelecao.has(chk.dataset.cod);
+  });
+  atualizarSelecaoRede(portas.length);
+}
+
+function verProdutosRede() {
+  if (APP.redeSelecao.size === 0) return;
+  // 1 porta = tela normal do cliente (imagem, GCI, detalhes, ações)
+  if (APP.redeSelecao.size === 1) {
+    const cod = [...APP.redeSelecao][0];
+    abrirCliente(cod);
+    return;
+  }
+  APP.redeBuscaProduto = '';
+  $('busca-rede-produto').value = '';
+  $('search-rede-produto-wrap').classList.remove('has-value');
+  $('rede-prod-nome').textContent = APP.redes[APP.redeAtual].nome;
+  renderRedeProdutos('');
+  show('screen-rede-produtos');
+  window.scrollTo(0, 0);
+}
+
+function renderRedeProdutos(filtro) {
+  const cods = APP.redeSelecao;
+  const filtroNorm = normalizar(filtro);
+  const peds = obterClientesDoVendedor().filter(p => cods.has(p.cliente_cod));
+
+  const mapa = new Map();
+  for (const p of peds) {
+    const key = `${p.artigo}_${p.cor}`;
+    if (!mapa.has(key)) mapa.set(key, { artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: 0, portas: new Set(), pendente: false });
+    const g = mapa.get(key);
+    g.pares += p.total;
+    g.portas.add(p.cliente_cod);
+    if (repPendenteP(p)) g.pendente = true;
+    if (!g.descricao && p.descricao) g.descricao = p.descricao;
+  }
+  let lista = [...mapa.values()];
+  if (filtroNorm) {
+    lista = lista.filter(g =>
+      normalizar(g.descricao).includes(filtroNorm) ||
+      normalizar(g.artigo).includes(filtroNorm) ||
+      normalizar(g.cor).includes(filtroNorm));
+  }
+  lista.sort((a, b) => b.pares - a.pares);
+
+  const totalPortas = cods.size;
+  $('rede-prod-meta').textContent = `${totalPortas} ${totalPortas === 1 ? 'porta' : 'portas'} · ${lista.length} produtos`;
+
+  const cont = $('rede-produtos-list');
+  if (lista.length === 0) {
+    cont.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open"></i><p>Nenhum produto</p></div>`;
+    $('rede-produtos-footer').textContent = '';
+    return;
+  }
+  cont.innerHTML = lista.map(g => {
+    const corArq = corParaArquivo(g.cor);
+    const preco = APP.produtos[`${g.artigo}_${corArq}`]?.preco;
+    const imgUrl = `${IMG_PATH}${g.artigo}_${corArq}.jpg`;
+    const desc = (g.descricao || g.artigo).replace(/"/g, '&quot;');
+    return `
+      <div class="rede-prod-card" data-artigo="${g.artigo}" data-cor="${g.cor}" data-desc="${desc}">
+        <img class="rp-thumb" src="${imgUrl}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+        <div class="rp-fallback"><i class="fa-solid fa-image"></i></div>
+        <div class="info">
+          <p class="desc">${g.descricao || g.artigo}</p>
+          <p class="sub">${g.cor} · art. ${g.artigo}${preco ? ' · ' + formatarPreco(preco) : ''}</p>
+          ${g.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
+        </div>
+        <div class="pares">${formatarNumero(g.pares)}<small>pares · ${g.portas.size} ${g.portas.size === 1 ? 'porta' : 'portas'}</small></div>
+      </div>`;
+  }).join('');
+  $('rede-produtos-footer').textContent = `${lista.length} produto${lista.length !== 1 ? 's' : ''}`;
+
+  cont.querySelectorAll('.rede-prod-card').forEach(card => {
+    card.addEventListener('click', () => {
+      abrirDistribuicaoRede(card.dataset.artigo, card.dataset.cor, card.dataset.desc);
+    });
+  });
+}
+
+function abrirDistribuicaoRede(artigo, cor, descricao) {
+  APP.redeDistKey = { artigo, cor, descricao };
+  renderDistribuicaoRede();
+  show('screen-rede-dist');
+  window.scrollTo(0, 0);
+}
+
+function renderDistribuicaoRede() {
+  const { artigo, cor, descricao } = APP.redeDistKey;
+  const cods = APP.redeSelecao;
+  const portasInfo = dadosPortasDaRede(APP.redeAtual).filter(p => cods.has(p.codigo));
+  const peds = obterClientesDoVendedor().filter(p => cods.has(p.cliente_cod) && p.artigo === artigo && p.cor === cor);
+  const porCod = {};
+  for (const p of peds) (porCod[p.cliente_cod] = porCod[p.cliente_cod] || []).push(p);
+
+  const linhas = portasInfo.map(info => {
+    const ps = porCod[info.codigo] || [];
+    const pares = ps.reduce((s, p) => s + p.total, 0);
+    const repassado = ps.filter(repFinalizadoP).reduce((s, p) => s + p.total, 0);
+    const cancelado = ps.filter(p => p.acao === 'CANCELAR').reduce((s, p) => s + p.total, 0);
+    const saindo = repassado + cancelado;
+    return {
+      ...info,
+      pares,
+      repassado,
+      cancelado,
+      saindo,
+      saldo: pares - saindo,
+      pendente: ps.some(repPendenteP),
+      nLinhas: ps.length,
+      dobrada: ps.length >= 2,
+      tem: ps.length > 0,
+    };
+  }).sort((a, b) => b.pares - a.pares);
+
+  const com = linhas.filter(l => l.tem).length;
+  const sem = linhas.length - com;
+  const dobr = linhas.filter(l => l.dobrada).length;
+  const totalPares = linhas.reduce((s, l) => s + l.pares, 0);
+
+  const corArq = corParaArquivo(cor);
+  const imgUrl = `${IMG_PATH}${artigo}_${corArq}.jpg`;
+
+  $('rede-dist-titulo').textContent = descricao || artigo;
+  $('rede-dist-sub').textContent = `${cor} · art. ${artigo} · ${formatarNumero(totalPares)} pares`;
+
+  $('rede-dist-body').innerHTML = `
+    <div class="dist-head">
+      <img class="dist-img" src="${imgUrl}" alt="" onerror="this.classList.add('failed')">
+      <div class="dist-fallback"><i class="fa-solid fa-image"></i></div>
+      <div class="dist-resumo">
+        <div class="dist-kpi"><span class="n ok">${com}</span><span class="l">com</span></div>
+        <div class="dist-kpi"><span class="n">${sem}</span><span class="l">sem</span></div>
+        <div class="dist-kpi"><span class="n alerta">${dobr}</span><span class="l">dobrada</span></div>
+      </div>
+    </div>
+    <div class="dist-list">
+      ${linhas.map(l => {
+        const porta = l.porta || l.cidade || '—';
+        const dir = l.tem
+          ? `<span class="dist-pares">${l.dobrada ? `<span class="dist-badge">dobrada · ${l.nLinhas}×</span>` : ''}${formatarNumero(l.pares)} pares</span>`
+          : `<span class="dist-pares zero">não recebe</span>`;
+        return `
+          <div class="dist-item ${l.tem ? '' : 'vazio'}" ${l.tem ? `data-cliente="${l.codigo}"` : ''}>
+            <div class="dist-info">
+              <p class="nome">${l.razao || porta}</p>
+              <p class="meta">${porta} · ${l.codigo}</p>
+              ${l.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
+              ${l.saindo > 0 ? `<p class="dist-saldo"><i class="fa-solid fa-right-long"></i> ${[l.repassado ? `repassou ${formatarNumero(l.repassado)}` : '', l.cancelado ? `cancelou ${formatarNumero(l.cancelado)}` : ''].filter(Boolean).join(' · ')} · saldo ${formatarNumero(l.saldo)} pares</p>` : ''}
+            </div>
+            ${dir}
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  $('rede-dist-body').querySelectorAll('.dist-item[data-cliente]').forEach(el => {
+    el.addEventListener('click', () => abrirProdutoNaLoja(el.dataset.cliente, APP.redeDistKey.artigo, APP.redeDistKey.cor));
+  });
+}
+
+/* ============================================================
+   TELA: PRODUTOS DO CLIENTE
+   ============================================================ */
+function nomeClienteRepasse(cod) {
+  const p = APP.pedidos.find(x => x.cliente_cod === cod);
+  if (p) return p.razao_social || p.cliente_razao;
+  return APP.clientesInfo[cod]?.nomeFantasia || cod;
+}
+
+function abrirRepasse(idx) {
+  const p = APP.clienteAtual.pedidos[idx];
+  const origemCod = APP.clienteAtual.codigo;
+  const nn = normalizar(nomeFantasiaDe(origemCod));
+  const redeNN = (nn && APP.redes[nn]) ? nn : null;
+  APP.repasseCtx = { idx, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN };
+  APP.repasseEscopo = redeNN ? 'rede' : 'todos';
+  APP.repasseSel = new Set((p.repasse?.destinos || []).map(d => d.codigo));
+  APP.repassePendente = !!p.repasse?.pendente;
+  APP.repasseBusca = '';
+  $('repasse-titulo').textContent = `Repassar · ${p.descricao || p.artigo}`;
+  $('repasse-sub').textContent = `${p.cor} · art. ${p.artigo} · de ${APP.clienteAtual.razao}`;
+  $('busca-repasse').value = '';
+  $('repasse-busca-wrap').classList.remove('has-value');
+  renderRepasseEscopo();
+  renderRepasse();
+  show('screen-repasse');
+  window.scrollTo(0, 0);
+}
+
+function renderRepasseEscopo() {
+  const redeNN = APP.repasseCtx.redeNN;
+  const el = $('repasse-escopo');
+  if (!redeNN) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <button class="repasse-chip ${APP.repasseEscopo === 'rede' ? 'ativo' : ''}" data-escopo="rede">Rede ${APP.redes[redeNN].nome}</button>
+    <button class="repasse-chip ${APP.repasseEscopo === 'todos' ? 'ativo' : ''}" data-escopo="todos">Todos os clientes</button>`;
+  el.querySelectorAll('.repasse-chip').forEach(b => b.addEventListener('click', () => {
+    APP.repasseEscopo = b.dataset.escopo;
+    renderRepasseEscopo();
+    renderRepasse();
+  }));
+}
+
+function renderRepasse() {
+  const { artigo, cor, origemCod, redeNN } = APP.repasseCtx;
+  const busca = normalizar(APP.repasseBusca || '');
+  const peds = obterClientesDoVendedor();
+
+  const comArtigo = {}, nomeDe = {}, cidadeDe = {};
+  const comCarteira = new Set();
+  for (const pp of peds) {
+    comCarteira.add(pp.cliente_cod);
+    if (!nomeDe[pp.cliente_cod]) { nomeDe[pp.cliente_cod] = pp.razao_social || pp.cliente_razao; cidadeDe[pp.cliente_cod] = pp.cidade; }
+    if (pp.artigo === artigo) (comArtigo[pp.cliente_cod] = comArtigo[pp.cliente_cod] || new Set()).add(pp.cor);
+  }
+
+  let escopoCods;
+  if (APP.repasseEscopo === 'rede' && redeNN) escopoCods = APP.redes[redeNN].codigos.filter(c => c !== origemCod);
+  else escopoCods = [...comCarteira].filter(c => c !== origemCod);
+
+  const naRede = c => redeNN && APP.redes[redeNN].codigos.includes(c);
+  const tier1 = [], tier2 = [], jaTem = [];
+  for (const cod of escopoCods) {
+    const cores = comArtigo[cod];
+    const nome = nomeDe[cod] || APP.clientesInfo[cod]?.nomeFantasia || cod;
+    const porta = portaDe(cod);
+    if (busca) {
+      const txt = normalizar(nome + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
+      if (!txt.includes(busca)) continue;
+    }
+    const obj = { cod, nome, porta, cores: cores ? [...cores] : null, rede: naRede(cod) };
+    if (cores && cores.has(cor)) jaTem.push(obj);
+    else if (cores) tier1.push(obj);
+    else tier2.push(obj);
+  }
+
+  let semCarteira = [];
+  if (busca) {
+    for (const [cod, info] of Object.entries(APP.clientesInfo)) {
+      if (cod === origemCod || comCarteira.has(cod)) continue;
+      if (APP.repasseEscopo === 'rede' && redeNN && !APP.redes[redeNN].codigos.includes(cod)) continue;
+      const txt = normalizar((info.nomeFantasia || '') + ' ' + (info.porta || '') + ' ' + cod);
+      if (txt.includes(busca)) semCarteira.push({ cod, nome: info.nomeFantasia || cod, porta: info.porta, cores: null, rede: naRede(cod) });
+    }
+  }
+
+  const item = (c, mostrarCor, aviso) => `
+    <label class="rede-sel-item ${aviso ? 'item-aviso' : ''}">
+      <input type="checkbox" data-cod="${c.cod}" ${APP.repasseSel.has(c.cod) ? 'checked' : ''}>
+      <div class="rede-sel-info">
+        <p class="nome">${c.nome}${c.rede ? ' <span class="rede-badge">REDE</span>' : ''}${aviso ? ' <span class="badge-jatem">já tem · dobraria</span>' : ''}</p>
+        <p class="meta">${[c.porta || '', c.cod].filter(Boolean).join(' · ')}${(mostrarCor || aviso) && c.cores ? ` · <span class="repasse-cor-tag">tem em ${c.cores.join(', ')}</span>` : ''}</p>
+      </div>
+    </label>`;
+
+  let html = '';
+  if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Tem o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
+  if (tier2.length) html += `<p class="repasse-grupo-titulo neutro">② Não tem este artigo</p><div class="repasse-grupo">${tier2.map(c => item(c, false)).join('')}</div>`;
+  if (semCarteira.length) html += `<p class="repasse-grupo-titulo neutro">③ Sem carteira</p><div class="repasse-grupo">${semCarteira.map(c => item(c, false)).join('')}</div>`;
+  if (jaTem.length) html += `<p class="repasse-grupo-titulo aviso"><i class="fa-solid fa-triangle-exclamation"></i> Já tem este artigo + cor · receberia dobrado</p><div class="repasse-grupo">${jaTem.map(c => item(c, false, true)).join('')}</div>`;
+  if (!tier1.length && !tier2.length && !semCarteira.length && !jaTem.length) html += `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><p>Nenhum destino${busca ? ' encontrado' : ''}</p></div>`;
+  $('repasse-body').innerHTML = html;
+
+  $('repasse-body').querySelectorAll('input[data-cod]').forEach(chk => chk.addEventListener('change', () => {
+    if (chk.checked) APP.repasseSel.add(chk.dataset.cod); else APP.repasseSel.delete(chk.dataset.cod);
+    atualizarConfirmarRepasse();
+  }));
+  atualizarConfirmarRepasse();
+}
+
+function atualizarConfirmarRepasse() {
+  const n = APP.repasseSel.size;
+  const btn = $('btn-confirmar-repasse');
+  btn.disabled = n === 0;
+  $('btn-confirmar-repasse-label').textContent = n ? `Finalizar · ${n} destino${n !== 1 ? 's' : ''}` : 'Selecione um destino';
+}
+
+function confirmarRepasse() {
+  const n = APP.repasseSel.size;
+  if (n === 0) return;
+  const p = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
+  const destinos = [...APP.repasseSel].map(cod => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod) }));
+  p.acao = 'REPASSAR';
+  p.repasse = { pendente: false, destinos };
+  localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+  registrarAcao(p);
+  toast(`Repasse finalizado · ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
+  APP.repasseCtx = null;
+  renderProdutos();
+  show('screen-produtos');
+}
+
+function abrirCliente(codigo) {
+  const meusPedidos = obterClientesDoVendedor();
+  const pedidosCliente = meusPedidos.filter(p => p.cliente_cod === codigo);
+  if (pedidosCliente.length === 0) return;
+
+  APP.clienteAtual = {
+    codigo,
+    razao: pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao,
+    cidade: pedidosCliente[0].cidade,
+    pedidos: pedidosCliente,
+  };
+  APP.filtroProduto = '';
+  APP.filtros = { ped_cliente: null, mes: null, status: null };
+  APP.ordem = 'mes_proximo';
+
+  $('busca-produto').value = '';
+  $('search-produto-wrap').classList.remove('has-value');
+  $('ordem-label').textContent = 'Mês mais próximo';
+
+  $('cliente-nome').textContent = APP.clienteAtual.razao;
+  $('cliente-meta').textContent = `${codigo} · ${APP.clienteAtual.cidade}`;
+
+  atualizarBotoesFiltros();
+  APP.produtosOrigem = 'clientes';
+  APP.focoProduto = null;
+  renderProdutos();
+  show('screen-produtos');
+  window.scrollTo(0, 0);
+}
+
+// Abre a tela de produtos focada num artigo+cor (a partir da distribuição da rede)
+function abrirProdutoNaLoja(codigo, artigo, cor) {
+  abrirCliente(codigo);
+  APP.produtosOrigem = 'rede-dist';
+  APP.focoProduto = { artigo, cor };
+  renderProdutos();
+}
+
+function obterPedidosFiltrados() {
+  if (!APP.clienteAtual) return [];
+  const todos = APP.clienteAtual.pedidos;
+  const filtroNorm = normalizar(APP.filtroProduto);
+
+  let resultado = todos.filter(p => {
+    if (APP.focoProduto && (p.artigo !== APP.focoProduto.artigo || p.cor !== APP.focoProduto.cor)) return false;
+    if (filtroNorm) {
+      const casa =
+        normalizar(p.descricao).includes(filtroNorm) ||
+        normalizar(p.artigo).includes(filtroNorm) ||
+        normalizar(p.cor).includes(filtroNorm) ||
+        normalizar(p.gci).includes(filtroNorm) ||
+        normalizar(p.ebm).includes(filtroNorm) ||
+        normalizar(p.ped_cliente).includes(filtroNorm);
+      if (!casa) return false;
+    }
+    if (APP.filtros.ped_cliente && p.ped_cliente !== APP.filtros.ped_cliente) return false;
+    if (APP.filtros.mes && mesAno(p.prev_fat) !== APP.filtros.mes) return false;
+    if (APP.filtros.status && statusPedido(p) !== APP.filtros.status) return false;
+    return true;
+  });
+
+  const precoDe = p => {
+    const key = `${p.artigo}_${corParaArquivo(p.cor)}`;
+    const v = APP.produtos[key]?.preco;
+    return v ? Number(v) : 0;
+  };
+
+  switch (APP.ordem) {
+    case 'mes_proximo':
+      resultado.sort((a, b) => prevFatToNumero(a.prev_fat) - prevFatToNumero(b.prev_fat));
+      break;
+    case 'mes_distante':
+      resultado.sort((a, b) => prevFatToNumero(b.prev_fat) - prevFatToNumero(a.prev_fat));
+      break;
+    case 'preco_maior':
+      resultado.sort((a, b) => precoDe(b) - precoDe(a));
+      break;
+    case 'preco_menor':
+      resultado.sort((a, b) => precoDe(a) - precoDe(b));
+      break;
+    case 'mais_pares':
+      resultado.sort((a, b) => b.total - a.total);
+      break;
+    case 'descricao':
+      resultado.sort((a, b) => (a.descricao || '').localeCompare(b.descricao || ''));
+      break;
+  }
+
+  // #2/#3: ações sobem ao topo — alerta > pendente > cancelar > repassado > manter (estável)
+  const rankAcao = p => {
+    if (alertaRepasse(p)) return 0;
+    if (repPendenteP(p)) return 1;
+    if (p.acao === 'CANCELAR') return 2;
+    if (repFinalizadoP(p)) return 3;
+    return 4;
+  };
+  resultado.sort((a, b) => rankAcao(a) - rankAcao(b));
+
+  return resultado;
+}
+
+function renderProdutos() {
+  if (!APP.clienteAtual) return;
+  const pedidosCliente = APP.clienteAtual.pedidos;
+  const pedidosFiltrados = obterPedidosFiltrados();
+
+  const totalPares = pedidosFiltrados.reduce((s, p) => s + p.total, 0);
+  const totalProdutos = pedidosFiltrados.length;
+  const mesesUnicos = [...new Set(pedidosFiltrados.map(p => mesAno(p.prev_fat)).filter(Boolean))].length;
+
+  $('products-summary').innerHTML = `
+    <div class="summary-chip"><strong>${totalProdutos}</strong> produtos</div>
+    <div class="summary-chip"><strong>${totalPares}</strong> pares</div>
+    <div class="summary-chip"><strong>${mesesUnicos}</strong> meses</div>
+  `;
+
+  const listaEl = $('products-list');
+
+  if (pedidosFiltrados.length === 0) {
+    listaEl.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>Nenhum produto encontrado</p>
+      </div>`;
+    $('products-footer').textContent = '';
+    return;
+  }
+
+  const focoBanner = APP.focoProduto ? `
+    <div class="foco-banner">
+      <span><i class="fa-solid fa-bullseye"></i> Focado neste produto da loja</span>
+      <button id="btn-ver-tudo-loja">Ver tudo da loja</button>
+    </div>` : '';
+  const expandidos = new Set([...listaEl.querySelectorAll('.product-card.expanded')].map(c => c.dataset.idx));
+  listaEl.innerHTML = focoBanner + pedidosFiltrados.map((p) => renderCardProduto(p, pedidosCliente.indexOf(p))).join('');
+  if (expandidos.size) listaEl.querySelectorAll('.product-card').forEach(c => { if (expandidos.has(c.dataset.idx)) c.classList.add('expanded'); });
+
+  const verTudo = $('btn-ver-tudo-loja');
+  if (verTudo) verTudo.addEventListener('click', () => { APP.focoProduto = null; renderProdutos(); });
+
+  listaEl.querySelectorAll('.product-main').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.product-zoom')) return;
+      el.parentElement.classList.toggle('expanded');
+    });
+  });
+
+  listaEl.querySelectorAll('.product-zoom').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(el.dataset.idx);
+      const p = APP.clienteAtual.pedidos[idx];
+      abrirZoom(p);
+    });
+  });
+
+  const salvarAcao = (p, msg) => {
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+    registrarAcao(p);
+    if (msg) toast(msg);
+    renderProdutos();
+  };
+
+  listaEl.querySelectorAll('.action-pill[data-acao]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (el.classList.contains('bloqueado')) {
+        toast('Só dá pra cancelar com 45+ dias até o faturamento');
+        return;
+      }
+      const idx = Number(el.dataset.idx);
+      const acao = el.dataset.acao;
+      const p = APP.clienteAtual.pedidos[idx];
+      if (acao === 'REPASSAR') {
+        p.acao = 'REPASSAR';
+        p.repasse = { pendente: true, destinos: [] };
+        salvarAcao(p, 'Marcado para repasse · falta finalizar');
+        return;
+      }
+      p.acao = acao;
+      delete p.repasse;
+      salvarAcao(p, `${acao.replace('_', ' ')} aplicado`);
+    });
+  });
+
+  listaEl.querySelectorAll('.action-pill[data-rep]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(el.dataset.idx);
+      const tipo = el.dataset.rep;
+      if (tipo === 'finalizar' || tipo === 'mudar') {
+        abrirRepasse(idx);
+        return;
+      }
+      if (tipo === 'cancelar') {
+        const p = APP.clienteAtual.pedidos[idx];
+        p.acao = 'MANTER';
+        delete p.repasse;
+        salvarAcao(p, 'Repasse cancelado');
+      }
+    });
+  });
+
+  $('products-footer').textContent = pedidosFiltrados.length === pedidosCliente.length
+    ? `${pedidosCliente.length} produto${pedidosCliente.length !== 1 ? 's' : ''}`
+    : `${pedidosFiltrados.length} de ${pedidosCliente.length}`;
+}
+
+function renderCardProduto(p, idx) {
+  const corArquivo = corParaArquivo(p.cor);
+  const imgKey = `${p.artigo}_${corArquivo}`;
+  const imgUrl = `${IMG_PATH}${imgKey}.jpg`;
+  const prod = APP.produtos[imgKey] || {};
+  const mes = mesAno(p.prev_fat);
+
+  const gradeHtml = Object.keys(p.grade).length > 0
+    ? `<div class="grade-row">
+        ${Object.entries(p.grade).map(([t, q]) => `
+          <div class="grade-cell">
+            <span class="g-size">${t}</span>
+            <span class="g-qty">${q}</span>
+          </div>
+        `).join('')}
+      </div>`
+    : '<span style="color:var(--text-3);font-size:12px;">—</span>';
+
+  const podeCancelar = diasAteFat(p) >= MIN_DIAS_CANCELAR;
+  const repFinalizado = repFinalizadoP(p);
+  const repPendente = repPendenteP(p);
+  let pillsHtml;
+  if (repFinalizado) {
+    pillsHtml = `
+      <button class="action-pill rep-mudar" data-idx="${idx}" data-rep="mudar"><i class="fa-solid fa-pen"></i> Mudar destino</button>
+      <button class="action-pill rep-cancelar" data-idx="${idx}" data-rep="cancelar"><i class="fa-solid fa-xmark"></i> Cancelar repasse</button>`;
+  } else {
+    const btns = ['MANTER', 'CANCELAR'].map(a => {
+      const ativo = p.acao === a;
+      const cls = a.toLowerCase();
+      const bloq = (a === 'CANCELAR' && !podeCancelar);
+      return `<button class="action-pill ${ativo ? 'active ' + cls : ''}${bloq ? ' bloqueado' : ''}" data-idx="${idx}" data-acao="${a}"${bloq ? ' title="Faturamento em menos de 45 dias"' : ''}>${a}</button>`;
+    });
+    if (repPendente) {
+      btns.push(`<button class="action-pill active repassar" data-idx="${idx}" data-rep="finalizar"><i class="fa-solid fa-right-left"></i> Finalizar repasse</button>`);
+    } else {
+      btns.push(`<button class="action-pill" data-idx="${idx}" data-acao="REPASSAR">REPASSAR</button>`);
+    }
+    if (APP.sessao.papel === 'admin') {
+      const ativo = p.acao === 'GESTAO_CMS';
+      btns.push(`<button class="action-pill ${ativo ? 'active gestao' : ''}" data-idx="${idx}" data-acao="GESTAO_CMS">GESTÃO</button>`);
+    }
+    pillsHtml = btns.join('');
+  }
+
+  const acaoCls = repFinalizado ? 'acao-repassado' : 'acao-' + (p.acao || 'MANTER').toLowerCase().replace('_cms', '').replace('_', '');
+
+  // Imagem com fallback "Imagem em breve"
+  // Esconde a lupa quando a imagem falha
+  const imgErrorHandler = `
+    this.classList.add('failed');
+    this.parentElement.querySelector('.product-zoom').classList.add('hidden');
+  `.replace(/\s+/g, ' ');
+
+  return `
+    <div class="product-card ${acaoCls}" data-idx="${idx}">
+      <div class="product-main">
+        <div class="product-thumb-wrap">
+          <img class="product-thumb" src="${imgUrl}" alt="${p.descricao}" loading="lazy"
+               onerror="${imgErrorHandler}">
+          <div class="product-thumb-fallback">
+            <i class="fa-solid fa-image"></i>
+            <span>Imagem em breve</span>
+          </div>
+          <button class="product-zoom" data-idx="${idx}" title="Ampliar">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          </button>
+        </div>
+        <div class="product-info">
+          <p class="product-name">${p.descricao || p.artigo}</p>
+          <p class="product-meta">
+            <span>${p.cor}</span>
+            <span class="dot">·</span>
+            <span>Art. ${p.artigo}</span>
+          </p>
+          <div class="product-tags">
+            ${alertaRepasse(p) ? `<span class="tag tag-alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${diasAteFat(p) >= 0 ? 'faltam ' + diasAteFat(p) + ' dias' : 'atrasado'}</span>` : ''}
+            ${repFinalizado
+              ? `<span class="tag tag-acao repassado"><i class="fa-solid fa-check"></i> Repassado</span>`
+              : (p.acao && p.acao !== 'MANTER'
+                ? `<span class="tag tag-acao ${p.acao.toLowerCase().replace('_cms', '').replace('_', '')}"><i class="fa-solid ${p.acao === 'CANCELAR' ? 'fa-ban' : p.acao === 'REPASSAR' ? 'fa-right-left' : 'fa-gear'}"></i> ${p.acao === 'GESTAO_CMS' ? 'GESTÃO' : p.acao.charAt(0) + p.acao.slice(1).toLowerCase()}</span>`
+                : '')}
+            ${repFinalizado ? `<span class="tag tag-destino"><i class="fa-solid fa-arrow-right-long"></i> ${(p.repasse.destinos || []).length === 1 ? p.repasse.destinos[0].nome : (p.repasse.destinos || []).length + ' destinos'}</span>` : ''}
+            ${p.gci ? `<span class="tag tag-gci"><i class="fa-solid fa-receipt"></i> GCI ${p.gci}</span>` : ''}
+            ${mes ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mes}</span>` : ''}
+            ${p.ped_cliente ? `<span class="tag tag-ped"><i class="fa-solid fa-tag"></i> ${p.ped_cliente}</span>` : ''}
+          </div>
+          ${prod.preco ? `<div class="product-price">${formatarPreco(prod.preco)}</div>` : ''}
+        </div>
+        <div class="product-right">
+          <span class="product-total">${p.total} pares</span>
+          <i class="fa-solid fa-chevron-down expand-icon"></i>
+        </div>
+      </div>
+
+      <div class="product-details">
+        <div class="product-details-inner">
+          <div class="detail-row">
+            <span class="label">Preço unitário</span>
+            <span class="value">${formatarPreco(p.preco_unit)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Valor total</span>
+            <span class="value">${formatarPreco(p.total_preco)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Data prevista</span>
+            <span class="value">${formatarDataBR(p.prev_fat) || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">EBM</span>
+            <span class="value">${p.ebm || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Empresa</span>
+            <span class="value">${p.empresa || '—'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Condição</span>
+            <span class="value">${condicaoCompleta(p.cond_pag, p.campanha)}</span>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Grade</div>
+            ${gradeHtml}
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Ação</div>
+            <div class="action-pills">${pillsHtml}</div>
+            ${repFinalizado ? `<div class="repasse-destinos"><i class="fa-solid fa-right-long"></i> ${(p.repasse.destinos || []).map(d => d.nome).join(', ')}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   ZOOM MODAL
+   ============================================================ */
+function abrirZoom(p) {
+  const corArquivo = corParaArquivo(p.cor);
+  const imgUrl = `${IMG_PATH}${p.artigo}_${corArquivo}.jpg`;
+  $('zoom-img').src = imgUrl;
+  $('zoom-name').textContent = p.descricao || p.artigo;
+  $('zoom-meta').textContent = `${p.cor} · Art. ${p.artigo}`;
+  $('zoom-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function fecharZoom() {
+  $('zoom-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+/* ============================================================
+   FILTROS / ORDENAÇÃO
+   ============================================================ */
+function getValoresUnicos(campo) {
+  if (!APP.clienteAtual) return [];
+  const set = new Set();
+  for (const p of APP.clienteAtual.pedidos) {
+    let v = '';
+    if (campo === 'mes') v = mesAno(p.prev_fat);
+    else v = p[campo];
+    if (v) set.add(String(v));
+  }
+  return [...set].sort();
+}
+
+function abrirPopoverFiltro(filtroId, btnEl) {
+  // Se já existe popover ABERTO pra esse mesmo filtro, fecha (toggle)
+  const existente = document.querySelector('.filter-popover.show');
+  fecharTodosPopovers();
+  if (existente && existente.dataset.filtroId === filtroId) {
+    return;
+  }
+
+  // Cria/recria o popover direto no body pra evitar problemas de z-index
+  const pop = document.createElement('div');
+  pop.className = 'filter-popover';
+  pop.dataset.filtroId = filtroId;
+  document.body.appendChild(pop);
+
+  let opcoes = [];
+  let valorAtual = null;
+
+  if (filtroId === 'ordem') {
+    opcoes = OPCOES_ORDEM;
+    valorAtual = APP.ordem;
+  } else if (filtroId === 'status') {
+    opcoes = OPCOES_STATUS;
+    valorAtual = APP.filtros.status;
+  } else {
+    const valores = getValoresUnicos(filtroId);
+    opcoes = valores.map(v => ({ id: v, label: v }));
+    valorAtual = APP.filtros[filtroId];
+  }
+
+  if (opcoes.length === 0) {
+    pop.innerHTML = `<div class="filter-option" style="opacity:.5;cursor:default;">Sem opções</div>`;
+  } else {
+    pop.innerHTML = opcoes.map(o => `
+      <div class="filter-option ${o.id === valorAtual ? 'active' : ''}" data-id="${o.id}">
+        <i class="fa-solid fa-check check" style="visibility:${o.id === valorAtual ? 'visible' : 'hidden'}"></i>
+        <span>${o.label}</span>
+      </div>
+    `).join('');
+
+    pop.querySelectorAll('.filter-option').forEach(el => {
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const id = el.dataset.id;
+        if (filtroId === 'ordem') {
+          APP.ordem = id;
+          const lbl = OPCOES_ORDEM.find(x => x.id === id);
+          if (lbl) $('ordem-label').textContent = lbl.label;
+        } else {
+          if (APP.filtros[filtroId] === id) {
+            APP.filtros[filtroId] = null;
+          } else {
+            APP.filtros[filtroId] = id;
+          }
+        }
+        fecharTodosPopovers();
+        atualizarBotoesFiltros();
+        renderProdutos();
+      });
+    });
+  }
+
+  // Posiciona o popover abaixo do botão
+  const rect = btnEl.getBoundingClientRect();
+  pop.style.top = (rect.bottom + 6) + 'px';
+
+  // Mostra primeiro pra calcular largura
+  pop.classList.add('show');
+  $('filter-backdrop').classList.add('show');
+
+  // Ajusta horizontalmente pra não sair da tela
+  const popRect = pop.getBoundingClientRect();
+  let left = rect.left;
+  if (left + popRect.width > window.innerWidth - 8) {
+    left = window.innerWidth - popRect.width - 8;
+  }
+  if (left < 8) left = 8;
+  pop.style.left = left + 'px';
+}
+
+function fecharTodosPopovers() {
+  document.querySelectorAll('.filter-popover').forEach(p => p.remove());
+  $('filter-backdrop').classList.remove('show');
+}
+
+function atualizarBotoesFiltros() {
+  let temAlgum = false;
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    const f = btn.dataset.filter;
+    if (f === 'ordem') {
+      if (APP.ordem !== 'mes_proximo') {
+        btn.classList.add('active');
+        temAlgum = true;
+      } else {
+        btn.classList.remove('active');
+      }
+    } else {
+      if (APP.filtros[f]) {
+        btn.classList.add('active');
+        const span = btn.querySelector('span');
+        if (span) span.textContent = (f === 'status' ? (OPCOES_STATUS.find(o => o.id === APP.filtros.status)?.label || 'Status') : APP.filtros[f]);
+        temAlgum = true;
+      } else {
+        btn.classList.remove('active');
+        const span = btn.querySelector('span');
+        if (span) {
+          if (f === 'ped_cliente') span.textContent = 'Ped.Cliente';
+          else if (f === 'mes') span.textContent = 'Mês';
+          else if (f === 'status') span.textContent = 'Status';
+        }
+      }
+    }
+  });
+
+  $('btn-limpar-filtros').classList.toggle('show', temAlgum);
+}
+
+function limparFiltros() {
+  APP.filtros = { ped_cliente: null, mes: null, status: null };
+  APP.ordem = 'mes_proximo';
+  $('ordem-label').textContent = 'Mês mais próximo';
+  atualizarBotoesFiltros();
+  renderProdutos();
+}
+
+/* ============================================================
+   CAMPOS DE BUSCA COM X E ESC
+   ============================================================ */
+function configurarBuscaComX(inputId, wrapId, onChange) {
+  const input = $(inputId);
+  const wrap = $(wrapId);
+  const clearBtn = wrap.querySelector('.search-clear');
+
+  function atualizar() {
+    if (input.value.length > 0) wrap.classList.add('has-value');
+    else wrap.classList.remove('has-value');
+    onChange(input.value);
+  }
+
+  input.addEventListener('input', atualizar);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      input.value = '';
+      atualizar();
+      input.blur();
+    }
+  });
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    atualizar();
+    input.focus();
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  aplicarTema();
+  aplicarEstadoKpis();
+  popularDropdownVendedores();
+  configurarCopiaAoSelecionar();
+
+  try {
+    const ped = localStorage.getItem(STORAGE.pedidos);
+    if (ped) APP.pedidos = JSON.parse(ped);
+  } catch {}
+  try {
+    const prod = localStorage.getItem(STORAGE.produtos);
+    if (prod) APP.produtos = JSON.parse(prod);
+  } catch {}
+  try {
+    const ci = localStorage.getItem(STORAGE.clientesInfo);
+    if (ci) {
+      APP.clientesInfo = JSON.parse(ci);
+      APP.redes = montarRedes(APP.clientesInfo);
+    }
+  } catch {}
+
+  const ses = localStorage.getItem(STORAGE.sessao);
+  if (ses) {
+    try {
+      APP.sessao = JSON.parse(ses);
+      irParaClientes();
+    } catch {}
+  }
+
+  $('btn-login').addEventListener('click', tentarLogin);
+  $('login-codigo').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tentarLogin();
+  });
+  $('btn-tema').addEventListener('click', toggleTema);
+  $('btn-tema-2').addEventListener('click', toggleTema);
+  $('btn-sair').addEventListener('click', logout);
+  $('btn-toggle-kpis').addEventListener('click', toggleKpis);
+
+  $('file-input-xlsx').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) importarXLSX(file);
+    e.target.value = '';
+  });
+
+  let buscaTimer;
+  configurarBuscaComX('busca-cliente', 'search-cliente-wrap', (val) => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => renderClientes(val), 200);
+  });
+
+  let produtoTimer;
+  configurarBuscaComX('busca-produto', 'search-produto-wrap', (val) => {
+    clearTimeout(produtoTimer);
+    produtoTimer = setTimeout(() => {
+      APP.filtroProduto = val;
+      renderProdutos();
+    }, 200);
+  });
+
+  $('btn-voltar-clientes').addEventListener('click', () => {
+    if (APP.produtosOrigem === 'rede-dist') {
+      APP.focoProduto = null;
+      renderDistribuicaoRede();
+      show('screen-rede-dist');
+    } else {
+      show('screen-clientes');
+      $('busca-cliente').focus();
+    }
+  });
+
+  // Tela de rede
+  $('btn-tema-3').addEventListener('click', toggleTema);
+  $('btn-tema-4').addEventListener('click', toggleTema);
+  $('btn-voltar-clientes-2').addEventListener('click', () => show('screen-clientes'));
+  $('btn-voltar-rede').addEventListener('click', () => show('screen-rede'));
+  $('btn-tema-5').addEventListener('click', toggleTema);
+  $('btn-voltar-rede-prod').addEventListener('click', () => show('screen-rede-produtos'));
+  $('btn-inicio-produtos').addEventListener('click', () => {
+    APP.focoProduto = null;
+    APP.produtosOrigem = 'clientes';
+    show('screen-clientes');
+  });
+
+  $('btn-atualizar-clientes').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
+  $('btn-so-redes').addEventListener('click', (e) => {
+    APP.soRedes = !APP.soRedes;
+    e.currentTarget.classList.toggle('ativo', APP.soRedes);
+    e.currentTarget.title = APP.soRedes ? 'Mostrar todos' : 'Mostrar só redes';
+    renderClientes($('busca-cliente')?.value || '');
+  });
+  $('btn-atualizar-produtos').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && APP.saveTimer) flushSaveAcoes();
+  });
+
+  // Tela de repasse
+  $('btn-tema-6').addEventListener('click', toggleTema);
+  $('btn-cancelar-repasse').addEventListener('click', () => { APP.repasseCtx = null; show('screen-produtos'); });
+  $('btn-confirmar-repasse').addEventListener('click', confirmarRepasse);
+  let repasseTimer;
+  configurarBuscaComX('busca-repasse', 'repasse-busca-wrap', (val) => {
+    clearTimeout(repasseTimer);
+    repasseTimer = setTimeout(() => { APP.repasseBusca = val; renderRepasse(); }, 200);
+  });
+  $('rede-check-todas').addEventListener('change', (e) => toggleTodasPortas(e.target.checked));
+  $('btn-ver-produtos-rede').addEventListener('click', verProdutosRede);
+
+  let redeProdTimer;
+  configurarBuscaComX('busca-rede-produto', 'search-rede-produto-wrap', (val) => {
+    clearTimeout(redeProdTimer);
+    redeProdTimer = setTimeout(() => {
+      APP.redeBuscaProduto = val;
+      renderRedeProdutos(val);
+    }, 200);
+  });
+
+  // Filtros
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const f = btn.dataset.filter;
+      abrirPopoverFiltro(f, btn);
+    });
+  });
+  $('btn-limpar-filtros').addEventListener('click', limparFiltros);
+  $('filter-backdrop').addEventListener('click', fecharTodosPopovers);
+
+  // Zoom modal
+  $('zoom-close').addEventListener('click', fecharZoom);
+  $('zoom-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'zoom-modal' || e.target.id === 'zoom-img') fecharZoom();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('zoom-modal').classList.contains('show')) {
+      fecharZoom();
+    }
+  });
+
+  // Carrega do servidor
+  carregarProdutosDoServidor();
+  carregarClientesDoServidor();
+  if (APP.sessao) {
+    await carregarCarteiraDoServidor();
+    if (APP.clienteAtual === null) renderClientes(APP.filtroCliente);
+  }
+});
+</script>
+
+</body>
+</html>
