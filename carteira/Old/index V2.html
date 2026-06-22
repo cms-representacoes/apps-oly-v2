@@ -597,40 +597,8 @@
     }
     html.dark .dist-badge { background: #78350f; color: #fde68a; }
 
-    /* Tela Repasses (lista geral) */
-    #repasses-body { padding-bottom: 24px; }
-    .repasses-filtros { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .rep-select {
-      flex: 1; min-width: 0; font-size: 12px; padding: 7px 10px;
-      border: 1px solid var(--border-2); border-radius: var(--r-md);
-      background: var(--card-bg); color: var(--text); appearance: auto;
-    }
-    .repasses-selbar {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
-    }
-    .rep-selall { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
-    .rep-selall input { width: 18px; height: 18px; accent-color: var(--primary); }
-    .rep-sel-contador { font-size: 12px; color: var(--text-2); }
-    .rep-item {
-      display: flex; gap: 10px; align-items: flex-start;
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: var(--r-lg); padding: 12px; margin-bottom: 8px;
-    }
-    .rep-item.sel { border-color: var(--primary); }
-    .rep-item input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); flex-shrink: 0; }
-    .rep-item .ri-info { flex: 1; min-width: 0; }
-    .rep-item .ri-desc { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
-    .rep-item .ri-sub { font-size: 12px; color: var(--text-2); margin: 2px 0; }
-    .rep-item .ri-rota { font-size: 12px; margin: 2px 0 0; display: flex; align-items: center; gap: 5px; }
-    .rep-item .ri-rota.fin { color: var(--primary-2); }
-    html.dark .rep-item .ri-rota.fin { color: var(--primary); }
-    .rep-item .ri-rota.pend { color: var(--acao-repassar); }
-    .rep-item .ri-dir { text-align: right; white-space: nowrap; flex-shrink: 0; }
-    .rep-item .ri-pares { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
-    .rep-pill { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 5px; }
-    .rep-pill.fin { background: var(--primary); color: #fff; }
-    .rep-pill.pend { background: var(--acao-repassar); color: #fff; }
+    /* Seletor de destino do repasse */
+    #repasse-body { padding-bottom: 96px; }
     .repasse-escopo { display: flex; gap: 8px; margin-top: 10px; }
     .repasse-chip {
       font-size: 12px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
@@ -1233,9 +1201,6 @@
         </div>
       </div>
       <div class="topbar-actions">
-        <button class="btn-icon" id="btn-repasses" title="Repasses">
-          <i class="fa-solid fa-truck-fast"></i>
-        </button>
         <button class="btn-icon" id="btn-so-corre" title="Mostrar só linha CORRE">
           <i class="fa-solid fa-person-running"></i>
         </button>
@@ -1570,51 +1535,6 @@
   </div>
 
   <!-- =================================================================
-       TELA REPASSES — LISTA GERAL (base da exportação)
-       ================================================================= -->
-  <div id="screen-repasses" class="screen">
-    <div class="topbar">
-      <div class="topbar-left">
-        <div class="logo-mark"><i class="fa-solid fa-truck-fast"></i></div>
-        <div>
-          <div class="logo-text">Repasses</div>
-          <div class="logo-sub" id="topbar-user-7">—</div>
-        </div>
-      </div>
-      <div class="topbar-actions">
-        <button class="btn-icon" id="btn-atualizar-repasses" title="Atualizar"><i class="fa-solid fa-arrows-rotate"></i></button>
-        <button class="btn-icon" id="btn-tema-7" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
-      </div>
-    </div>
-
-    <div class="frozen-header">
-      <div class="client-strip">
-        <button class="back" id="btn-voltar-repasses" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
-        <div class="client-info-compact">
-          <p class="name">Repasses</p>
-          <p class="meta" id="repasses-meta">—</p>
-        </div>
-      </div>
-      <div class="search-wrap" id="repasses-busca-wrap" style="margin-top:10px;">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="search" id="busca-repasses" inputmode="search" enterkeyhint="search" placeholder="Produto, loja ou cidade · separe por vírgula" autocomplete="off">
-        <button class="search-clear" title="Limpar"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="repasses-filtros">
-        <select id="rep-f-status" class="rep-select"></select>
-        <select id="rep-f-genero" class="rep-select"></select>
-        <select id="rep-f-cliente" class="rep-select"></select>
-      </div>
-      <div class="repasses-selbar">
-        <label class="rep-selall"><input type="checkbox" id="rep-selecionar-todos"> Selecionar todos</label>
-        <span id="rep-sel-contador" class="rep-sel-contador">—</span>
-      </div>
-    </div>
-
-    <div id="repasses-body"></div>
-  </div>
-
-  <!-- =================================================================
        MODAL DE ZOOM
        ================================================================= -->
   <div class="zoom-modal" id="zoom-modal">
@@ -1720,9 +1640,6 @@ const APP = {
   repasseSel: new Set(),
   repasseEscopo: 'todos',
   repassePendente: false,
-  repBusca: '',
-  repFiltros: { status: null, genero: null, cliente: null },
-  repExportSel: new Set(),
 };
 
 /* ============================================================
@@ -1861,7 +1778,7 @@ function configurarCopiaAoSelecionar() {
 function aplicarTema() {
   const t = localStorage.getItem(STORAGE.tema) || 'claro';
   document.documentElement.classList.toggle('dark', t === 'escuro');
-  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i, #btn-tema-7 i').forEach(i => {
+  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i').forEach(i => {
     i.className = t === 'escuro' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   });
 }
@@ -2134,9 +2051,6 @@ async function atualizarDoServidor(btn) {
       const cod = APP.clienteAtual.codigo;
       APP.clienteAtual.pedidos = obterClientesDoVendedor().filter(p => p.cliente_cod === cod);
       renderProdutos();
-    } else if (document.querySelector('#screen-repasses.active')) {
-      preencherFiltrosRepasses();
-      renderRepassesLista();
     } else {
       renderClientes($('busca-cliente')?.value || '');
     }
@@ -2195,7 +2109,6 @@ function irParaClientes() {
   $('topbar-user-4').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-5').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-6').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
-  $('topbar-user-7').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   show('screen-clientes');
   renderClientes(APP.filtroCliente);
 }
@@ -2964,135 +2877,6 @@ function confirmarRepasse() {
   show('screen-produtos');
 }
 
-/* ============================================================
-   TELA: REPASSES (lista geral — base da exportação)
-   ============================================================ */
-function montarItensRepasse() {
-  return obterClientesDoVendedor().filter(p => p.acao === 'REPASSAR').map(p => {
-    const fin = repFinalizadoP(p);
-    return {
-      key: keyPedido(p),
-      descricao: p.descricao || p.artigo,
-      cor: p.cor,
-      artigo: p.artigo,
-      gci: p.gci,
-      pares: p.total,
-      origemNome: p.razao_social || p.cliente_razao,
-      origemCod: p.cliente_cod,
-      cidade: p.cidade,
-      destinos: fin ? (p.repasse.destinos || []).map(d => d.nome) : [],
-      finalizado: fin,
-      genero: generoPedido(p),
-    };
-  });
-}
-
-function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }
-function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-
-function abrirRepasses() {
-  APP.repBusca = '';
-  $('busca-repasses').value = '';
-  $('repasses-busca-wrap').classList.remove('has-value');
-  preencherFiltrosRepasses();
-  renderRepassesLista();
-  show('screen-repasses');
-  window.scrollTo(0, 0);
-}
-
-function preencherFiltrosRepasses() {
-  const itens = montarItensRepasse();
-  const opt = (v, l, sel) => `<option value="${escAttr(v)}" ${sel ? 'selected' : ''}>${escHtml(l)}</option>`;
-  $('rep-f-status').innerHTML = opt('', 'Status: todos', !APP.repFiltros.status)
-    + opt('PENDENTE', 'Pendente', APP.repFiltros.status === 'PENDENTE')
-    + opt('REPASSADO', 'Repassado', APP.repFiltros.status === 'REPASSADO');
-  const gens = [...new Set(itens.map(i => i.genero).filter(Boolean))].sort();
-  $('rep-f-genero').innerHTML = opt('', 'Gênero: todos', !APP.repFiltros.genero)
-    + gens.map(g => opt(g, g, APP.repFiltros.genero === g)).join('');
-  const nomes = new Set();
-  for (const i of itens) { if (i.origemNome) nomes.add(i.origemNome); i.destinos.forEach(d => d && nomes.add(d)); }
-  const lista = [...nomes].sort();
-  $('rep-f-cliente').innerHTML = opt('', 'Cliente: todos', !APP.repFiltros.cliente)
-    + lista.map(n => opt(n, n, APP.repFiltros.cliente === n)).join('');
-}
-
-function renderRepassesLista() {
-  let itens = montarItensRepasse();
-  if (APP.repFiltros.status === 'PENDENTE') itens = itens.filter(i => !i.finalizado);
-  else if (APP.repFiltros.status === 'REPASSADO') itens = itens.filter(i => i.finalizado);
-  if (APP.repFiltros.genero) itens = itens.filter(i => i.genero === APP.repFiltros.genero);
-  if (APP.repFiltros.cliente) itens = itens.filter(i => i.origemNome === APP.repFiltros.cliente || i.destinos.includes(APP.repFiltros.cliente));
-
-  const termos = (APP.repBusca || '').split(',').map(normalizar).filter(Boolean).slice(0, 3);
-  if (termos.length) {
-    itens = itens.filter(i => {
-      const hay = normalizar([i.descricao, i.artigo, i.cor, i.origemNome, i.origemCod, i.cidade, i.gci, i.destinos.join(' ')].join(' '));
-      return termos.every(t => hay.includes(t));
-    });
-  }
-
-  APP.repVisiveis = itens;
-  const body = $('repasses-body');
-  const temFiltro = termos.length || APP.repFiltros.status || APP.repFiltros.genero || APP.repFiltros.cliente;
-
-  if (!itens.length) {
-    body.innerHTML = `<div class="empty-state"><i class="fa-solid fa-truck-fast"></i><p>Nenhum repasse${temFiltro ? ' com esse filtro' : ' marcado ainda'}</p></div>`;
-    $('repasses-meta').textContent = '0 repasses';
-    atualizarContadorRepasses();
-    return;
-  }
-
-  body.innerHTML = itens.map(i => {
-    const sel = APP.repExportSel.has(i.key);
-    const rota = i.finalizado
-      ? `<p class="ri-rota fin"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(i.origemNome)} → ${escHtml(i.destinos.join(', '))}</p>`
-      : `<p class="ri-rota pend"><i class="fa-solid fa-clock"></i> ${escHtml(i.origemNome)} → destino a definir</p>`;
-    return `
-      <label class="rep-item ${sel ? 'sel' : ''}">
-        <input type="checkbox" data-key="${escAttr(i.key)}" ${sel ? 'checked' : ''}>
-        <div class="ri-info">
-          <p class="ri-desc">${escHtml(i.descricao)} · ${escHtml(i.cor)}</p>
-          <p class="ri-sub">art. ${escHtml(i.artigo)} · GCI ${escHtml(i.gci)}</p>
-          ${rota}
-        </div>
-        <div class="ri-dir">
-          <p class="ri-pares">${formatarNumero(i.pares)} pares</p>
-          <span class="rep-pill ${i.finalizado ? 'fin' : 'pend'}">${i.finalizado ? 'repassado' : 'pendente'}</span>
-        </div>
-      </label>`;
-  }).join('');
-  $('repasses-meta').textContent = `${itens.length} repasse${itens.length !== 1 ? 's' : ''}`;
-
-  body.querySelectorAll('input[data-key]').forEach(chk => chk.addEventListener('change', (e) => {
-    e.stopPropagation();
-    const k = chk.dataset.key;
-    if (chk.checked) APP.repExportSel.add(k); else APP.repExportSel.delete(k);
-    chk.closest('.rep-item').classList.toggle('sel', chk.checked);
-    atualizarContadorRepasses();
-  }));
-  atualizarContadorRepasses();
-}
-
-function atualizarContadorRepasses() {
-  let nSel = 0, paresSel = 0;
-  for (const i of montarItensRepasse()) if (APP.repExportSel.has(i.key)) { nSel++; paresSel += i.pares; }
-  $('rep-sel-contador').textContent = nSel ? `${nSel} selecionado${nSel !== 1 ? 's' : ''} · ${formatarNumero(paresSel)} pares` : 'Nenhum selecionado';
-  const vis = APP.repVisiveis || [];
-  const chk = $('rep-selecionar-todos');
-  if (chk) {
-    const todosSel = vis.length > 0 && vis.every(i => APP.repExportSel.has(i.key));
-    chk.checked = todosSel;
-    chk.indeterminate = !todosSel && vis.some(i => APP.repExportSel.has(i.key));
-  }
-}
-
-function toggleTodosRepasses(marcar) {
-  for (const i of (APP.repVisiveis || [])) {
-    if (marcar) APP.repExportSel.add(i.key); else APP.repExportSel.delete(i.key);
-  }
-  renderRepassesLista();
-}
-
 function abrirCliente(codigo) {
   const meusPedidos = obterClientesDoVendedor();
   const pedidosCliente = meusPedidos.filter(p => p.cliente_cod === codigo);
@@ -3744,21 +3528,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.currentTarget.classList.toggle('ativo', APP.soCorre);
     e.currentTarget.title = APP.soCorre ? 'Mostrar todas as linhas' : 'Mostrar só linha CORRE';
     renderClientes($('busca-cliente')?.value || '');
-  });
-
-  // Tela Repasses
-  $('btn-repasses').addEventListener('click', abrirRepasses);
-  $('btn-voltar-repasses').addEventListener('click', () => show('screen-clientes'));
-  $('btn-tema-7').addEventListener('click', toggleTema);
-  $('btn-atualizar-repasses').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
-  $('rep-selecionar-todos').addEventListener('change', (e) => toggleTodosRepasses(e.target.checked));
-  $('rep-f-status').addEventListener('change', (e) => { APP.repFiltros.status = e.target.value || null; renderRepassesLista(); });
-  $('rep-f-genero').addEventListener('change', (e) => { APP.repFiltros.genero = e.target.value || null; renderRepassesLista(); });
-  $('rep-f-cliente').addEventListener('change', (e) => { APP.repFiltros.cliente = e.target.value || null; renderRepassesLista(); });
-  let repassesTimer;
-  configurarBuscaComX('busca-repasses', 'repasses-busca-wrap', (val) => {
-    clearTimeout(repassesTimer);
-    repassesTimer = setTimeout(() => { APP.repBusca = val; renderRepassesLista(); }, 200);
   });
   $('btn-atualizar-produtos').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
   document.addEventListener('visibilitychange', () => {
