@@ -145,6 +145,8 @@
     .topbar-actions { display: flex; align-items: center; gap: 8px; }
     @keyframes girar360 { to { transform: rotate(360deg); } }
     .btn-icon.girando i { animation: girar360 .7s linear infinite; }
+    .btn-icon.ativo { background: var(--primary); color: #fff; }
+    .btn-icon.ativo i { color: #fff; }
 
     .btn-icon {
       width: 36px; height: 36px;
@@ -562,6 +564,11 @@
     .dist-item.vazio { opacity: .55; }
     .dist-saldo { font-size: 11px; font-weight: 600; color: var(--primary-2); margin-top: 3px; }
     html.dark .dist-saldo { color: var(--primary); }
+    .tag-pendente-rede {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
+      font-size: 11px; font-weight: 700; color: #fff; background: var(--acao-repassar);
+      padding: 2px 8px; border-radius: 6px;
+    }
     .dist-info { min-width: 0; }
     .dist-info .nome {
       font-size: 14px; font-weight: 600; color: var(--text); margin: 0;
@@ -1175,6 +1182,9 @@
         </div>
       </div>
       <div class="topbar-actions">
+        <button class="btn-icon" id="btn-so-redes" title="Mostrar só redes">
+          <i class="fa-solid fa-store"></i>
+        </button>
         <button class="btn-icon" id="btn-atualizar-clientes" title="Atualizar">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
@@ -1588,6 +1598,7 @@ const APP = {
   saveTimer: null,
   acoesPendentes: false,
   filtroCliente: '',
+  soRedes: false,
   redeAtual: null,
   redeSelecao: new Set(),
   redeBuscaProduto: '',
@@ -2373,7 +2384,9 @@ function renderClientes(filtro) {
   const cards = [];
   for (const c of filtrados) {
     const nn = normalizar(nomeFantasiaDe(c.codigo));
-    if (nn && APP.redes[nn]) {
+    const ehRede = nn && APP.redes[nn];
+    if (APP.soRedes && !ehRede) continue;
+    if (ehRede) {
       if (renderizadas.has(nn)) continue;
       renderizadas.add(nn);
       cards.push(cardRedeHTML(grupos.get(nn), nn, temTermos));
@@ -2382,9 +2395,17 @@ function renderClientes(filtro) {
     }
   }
 
+  if (cards.length === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-store"></i><p>${APP.soRedes ? 'Nenhuma rede encontrada' : 'Nenhum cliente encontrado'}</p></div>`;
+    return;
+  }
+
+  const rodape = APP.soRedes
+    ? `${cards.length} rede${cards.length !== 1 ? 's' : ''}`
+    : `${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}`;
   const html = `
     <div class="client-list">${cards.join('')}</div>
-    <div class="list-footer">${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}</div>
+    <div class="list-footer">${rodape}</div>
   `;
   container.innerHTML = html;
 
@@ -2514,10 +2535,11 @@ function renderRedeProdutos(filtro) {
   const mapa = new Map();
   for (const p of peds) {
     const key = `${p.artigo}_${p.cor}`;
-    if (!mapa.has(key)) mapa.set(key, { artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: 0, portas: new Set() });
+    if (!mapa.has(key)) mapa.set(key, { artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: 0, portas: new Set(), pendente: false });
     const g = mapa.get(key);
     g.pares += p.total;
     g.portas.add(p.cliente_cod);
+    if (repPendenteP(p)) g.pendente = true;
     if (!g.descricao && p.descricao) g.descricao = p.descricao;
   }
   let lista = [...mapa.values()];
@@ -2550,6 +2572,7 @@ function renderRedeProdutos(filtro) {
         <div class="info">
           <p class="desc">${g.descricao || g.artigo}</p>
           <p class="sub">${g.cor} · art. ${g.artigo}${preco ? ' · ' + formatarPreco(preco) : ''}</p>
+          ${g.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
         </div>
         <div class="pares">${formatarNumero(g.pares)}<small>pares · ${g.portas.size} ${g.portas.size === 1 ? 'porta' : 'portas'}</small></div>
       </div>`;
@@ -2591,6 +2614,7 @@ function renderDistribuicaoRede() {
       cancelado,
       saindo,
       saldo: pares - saindo,
+      pendente: ps.some(repPendenteP),
       nLinhas: ps.length,
       dobrada: ps.length >= 2,
       tem: ps.length > 0,
@@ -2629,6 +2653,7 @@ function renderDistribuicaoRede() {
             <div class="dist-info">
               <p class="nome">${l.razao || porta}</p>
               <p class="meta">${porta} · ${l.codigo}</p>
+              ${l.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
               ${l.saindo > 0 ? `<p class="dist-saldo"><i class="fa-solid fa-right-long"></i> ${[l.repassado ? `repassou ${formatarNumero(l.repassado)}` : '', l.cancelado ? `cancelou ${formatarNumero(l.cancelado)}` : ''].filter(Boolean).join(' · ')} · saldo ${formatarNumero(l.saldo)} pares</p>` : ''}
             </div>
             ${dir}
@@ -3391,6 +3416,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   $('btn-atualizar-clientes').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
+  $('btn-so-redes').addEventListener('click', (e) => {
+    APP.soRedes = !APP.soRedes;
+    e.currentTarget.classList.toggle('ativo', APP.soRedes);
+    e.currentTarget.title = APP.soRedes ? 'Mostrar todos' : 'Mostrar só redes';
+    renderClientes($('busca-cliente')?.value || '');
+  });
   $('btn-atualizar-produtos').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && APP.saveTimer) flushSaveAcoes();

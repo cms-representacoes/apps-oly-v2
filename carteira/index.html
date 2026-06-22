@@ -606,6 +606,12 @@
       font-size: 10px; font-weight: 700; color: #fff; background: var(--acao-cancelar);
       padding: 1px 6px; border-radius: 5px; margin-left: 4px;
     }
+    .badge-recebe {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 3px;
+      font-size: 11px; font-weight: 700; color: #fff; background: var(--acao-repassar);
+      padding: 1px 7px; border-radius: 5px;
+    }
+    .rede-sel-item.item-recebe { background: rgba(202,154,4,.08); }
     .repasse-grupo {
       background: var(--card-bg); border-radius: var(--r-lg);
       box-shadow: var(--shadow-card); overflow: hidden;
@@ -2676,6 +2682,24 @@ function nomeClienteRepasse(cod) {
   return APP.clientesInfo[cod]?.nomeFantasia || cod;
 }
 
+// Mapa: cod destino → [{origemNome, pares, pendente}] de repasses já existentes deste artigo+cor
+function repassesRecebidosPara(artigo, cor, excluir) {
+  const mapa = {};
+  for (const p of APP.pedidos) {
+    if (p === excluir) continue;
+    if (p.artigo !== artigo || p.cor !== cor) continue;
+    if (!p.repasse || !(p.repasse.destinos || []).length) continue;
+    for (const d of p.repasse.destinos) {
+      (mapa[d.codigo] = mapa[d.codigo] || []).push({
+        origemNome: p.razao_social || p.cliente_razao || p.cliente_cod,
+        pares: p.total,
+        pendente: !!p.repasse.pendente,
+      });
+    }
+  }
+  return mapa;
+}
+
 function abrirRepasse(idx) {
   const p = APP.clienteAtual.pedidos[idx];
   const origemCod = APP.clienteAtual.codigo;
@@ -2714,6 +2738,8 @@ function renderRepasse() {
   const { artigo, cor, origemCod, redeNN } = APP.repasseCtx;
   const busca = normalizar(APP.repasseBusca || '');
   const peds = obterClientesDoVendedor();
+  const pedidoAtual = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
+  const recebeMap = repassesRecebidosPara(artigo, cor, pedidoAtual);
 
   const comArtigo = {}, nomeDe = {}, cidadeDe = {};
   const comCarteira = new Set();
@@ -2737,7 +2763,7 @@ function renderRepasse() {
       const txt = normalizar(nome + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
       if (!txt.includes(busca)) continue;
     }
-    const obj = { cod, nome, porta, cores: cores ? [...cores] : null, rede: naRede(cod) };
+    const obj = { cod, nome, porta, cores: cores ? [...cores] : null, rede: naRede(cod), recebe: recebeMap[cod] || null };
     if (cores && cores.has(cor)) jaTem.push(obj);
     else if (cores) tier1.push(obj);
     else tier2.push(obj);
@@ -2749,18 +2775,27 @@ function renderRepasse() {
       if (cod === origemCod || comCarteira.has(cod)) continue;
       if (APP.repasseEscopo === 'rede' && redeNN && !APP.redes[redeNN].codigos.includes(cod)) continue;
       const txt = normalizar((info.nomeFantasia || '') + ' ' + (info.porta || '') + ' ' + cod);
-      if (txt.includes(busca)) semCarteira.push({ cod, nome: info.nomeFantasia || cod, porta: info.porta, cores: null, rede: naRede(cod) });
+      if (txt.includes(busca)) semCarteira.push({ cod, nome: info.nomeFantasia || cod, porta: info.porta, cores: null, rede: naRede(cod), recebe: recebeMap[cod] || null });
     }
   }
 
-  const item = (c, mostrarCor, aviso) => `
-    <label class="rede-sel-item ${aviso ? 'item-aviso' : ''}">
+  const item = (c, mostrarCor, aviso) => {
+    const recebe = c.recebe ? (() => {
+      const tot = c.recebe.reduce((s, r) => s + (r.pares || 0), 0);
+      const de = c.recebe[0].origemNome;
+      const extra = c.recebe.length > 1 ? ` +${c.recebe.length - 1}` : '';
+      return `<span class="badge-recebe"><i class="fa-solid fa-right-long"></i> já vai receber ${formatarNumero(tot)} de ${de}${extra}</span>`;
+    })() : '';
+    return `
+    <label class="rede-sel-item ${aviso ? 'item-aviso' : ''} ${c.recebe ? 'item-recebe' : ''}">
       <input type="checkbox" data-cod="${c.cod}" ${APP.repasseSel.has(c.cod) ? 'checked' : ''}>
       <div class="rede-sel-info">
         <p class="nome">${c.nome}${c.rede ? ' <span class="rede-badge">REDE</span>' : ''}${aviso ? ' <span class="badge-jatem">já tem · dobraria</span>' : ''}</p>
         <p class="meta">${[c.porta || '', c.cod].filter(Boolean).join(' · ')}${(mostrarCor || aviso) && c.cores ? ` · <span class="repasse-cor-tag">tem em ${c.cores.join(', ')}</span>` : ''}</p>
+        ${recebe}
       </div>
     </label>`;
+  };
 
   let html = '';
   if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Tem o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
