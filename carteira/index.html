@@ -1578,7 +1578,7 @@
         </div>
         <div class="search-inline" id="search-rede-produto-wrap">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="search" id="busca-rede-produto" inputmode="search" enterkeyhint="search" placeholder="Buscar produto…" autocomplete="off">
+          <input type="search" id="busca-rede-produto" inputmode="search" enterkeyhint="search" placeholder="Produto, cor · separe por vírgula" autocomplete="off">
           <button class="search-clear" title="Limpar (ESC)"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
@@ -3036,7 +3036,6 @@ function verProdutosRede() {
 
 function renderRedeProdutos(filtro) {
   const cods = APP.redeSelecao;
-  const filtroNorm = normalizar(filtro);
   const peds = obterClientesDoVendedor().filter(p => cods.has(p.cliente_cod));
 
   const mapa = new Map();
@@ -3050,11 +3049,12 @@ function renderRedeProdutos(filtro) {
     if (!g.descricao && p.descricao) g.descricao = p.descricao;
   }
   let lista = [...mapa.values()];
-  if (filtroNorm) {
-    lista = lista.filter(g =>
-      normalizar(g.descricao).includes(filtroNorm) ||
-      normalizar(g.artigo).includes(filtroNorm) ||
-      normalizar(g.cor).includes(filtroNorm));
+  const termos = (filtro || '').split(',').map(normalizar).filter(Boolean).slice(0, 3);
+  if (termos.length) {
+    lista = lista.filter(g => {
+      const hay = normalizar([g.descricao, g.artigo, g.cor].join(' '));
+      return termos.every(t => hay.includes(t));
+    });
   }
   lista.sort((a, b) => b.pares - a.pares);
 
