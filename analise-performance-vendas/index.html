@@ -168,9 +168,7 @@
   </div>
 
   <header class="hero">
-    <p class="eyebrow">FTW Olympikus como referência</p>
     <h1>Análise de Performance de Vendas</h1>
-    <p class="lede">O calçado Olympikus (<code>FTW</code>) é a base — a trilha cheia, 100%. Cada faixa mostra quanto representa em relação ao FTW, em valor e quantidade, faixa a faixa e somadas. Lê-se: para cada R$ 1,00 de FTW Olympikus, quanto o vendedor fatura no restante do mix.</p>
   </header>
 
   <div id="empty" class="drop">
@@ -207,7 +205,11 @@ const FAIXAS = [
 const OLY_MAP = {calcados:'ftw', meias:'meias', acessorios:'acess', vestuario:'conf', chinelos:'chinelos'};
 const NOMES = {cms:'C M S', jorge:'Jorge Luiz das Neves', leandro:'Leandro de Paula',
   mariana:'Mariana Fernandes', rafael:'Rafael Lima Moreira', willame:'Willame Rocha Teixeira'};
-const LS_DATA='apv_xlsx_b64', LS_NAME='apv_xlsx_name';
+const LS_DATA='apv_xlsx_b64', LS_NAME='apv_xlsx_name', LS_TOKEN='apv_admin_token';
+
+// ==== Sincronização entre dispositivos (Cloudflare Worker) ====
+// URL do Worker. Deixe '' para desativar e usar só este navegador.
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
 
 const fmtBRL = v => 'R$ ' + Math.round(v||0).toLocaleString('pt-BR');
 const fmtQtd = v => (v==null) ? '—' : Math.round(v).toLocaleString('pt-BR');
@@ -323,23 +325,50 @@ function render(vendors){
   document.getElementById('footer').style.display='flex';
 }
 
-function ingest(u8, name, persist){
+function setChip(name, status){
+  document.getElementById('filechip').classList.add('ok');
+  document.getElementById('filename').textContent = status ? (name + ' · ' + status) : name;
+}
+function toB64(u8){ let bin='',CH=0x8000; for(let i=0;i<u8.length;i+=CH){bin+=String.fromCharCode.apply(null,u8.subarray(i,i+CH));} return btoa(bin); }
+function fromB64(b64){ const bin=atob(b64); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i); return u8; }
+function cacheLocal(u8,name){ try{ localStorage.setItem(LS_DATA,toB64(u8)); localStorage.setItem(LS_NAME,name); }catch(_){}}
+
+function ingest(u8, name, status){
   const wb=XLSX.read(u8,{type:'array'});
   build(wb);
-  document.getElementById('filechip').classList.add('ok');
-  document.getElementById('filename').textContent=name;
-  if(persist){ try{
-    let bin=''; const CH=0x8000;
-    for(let i=0;i<u8.length;i+=CH){ bin+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); }
-    localStorage.setItem(LS_DATA, btoa(bin));
-    localStorage.setItem(LS_NAME, name);
-  }catch(_){ /* armazenamento indisponível: segue só nesta sessão */ } }
+  setChip(name, status);
 }
+
+// publica a planilha no Worker (visível em qualquer dispositivo)
+async function publishToWorker(u8, name){
+  if(!WORKER_URL) return;
+  let token=''; try{ token=localStorage.getItem(LS_TOKEN)||''; }catch(_){}
+  if(!token){
+    token = prompt('Senha de admin (X-Admin-Token) para publicar para todos os dispositivos:') || '';
+    if(!token){ setChip(name,'salvo só neste navegador'); return; }
+    try{ localStorage.setItem(LS_TOKEN, token); }catch(_){}
+  }
+  setChip(name,'publicando…');
+  try{
+    const res=await fetch(WORKER_URL,{ method:'PATCH',
+      headers:{ 'Content-Type':'application/json', 'X-Admin-Token':token },
+      body: JSON.stringify({ action:'savePerformance', data:{ name, b64: toB64(u8) } }) });
+    if(res.status===401){ try{ localStorage.removeItem(LS_TOKEN); }catch(_){} setChip(name,'senha incorreta — não publicado'); return; }
+    if(!res.ok){ setChip(name,'falha ao publicar'); return; }
+    setChip(name,'publicado para todos');
+  }catch(_){ setChip(name,'sem conexão — salvo só neste navegador'); }
+}
+
 function readFile(file){
   const err=document.getElementById('err'); err.style.display='none';
   const fr=new FileReader();
-  fr.onload=e=>{ try{ ingest(new Uint8Array(e.target.result), file.name, true); }
-    catch(ex){ err.textContent=ex.message||'Não foi possível ler o arquivo.'; err.style.display='block'; } };
+  fr.onload=e=>{
+    const u8=new Uint8Array(e.target.result);
+    try{ ingest(u8, file.name, WORKER_URL?'publicando…':'salvo neste navegador'); }
+    catch(ex){ err.textContent=ex.message||'Não foi possível ler o arquivo.'; err.style.display='block'; return; }
+    cacheLocal(u8, file.name);
+    publishToWorker(u8, file.name);
+  };
   fr.readAsArrayBuffer(file);
 }
 
@@ -359,23 +388,33 @@ totop.onclick=goTop;
 document.querySelectorAll('[data-totop]').forEach(b=>b.onclick=goTop);
 window.addEventListener('scroll',()=>{ totop.classList.toggle('show', window.scrollY>500); });
 
-// carregamento inicial: 1) último upload salvo  2) planilha do repositório  3) dropzone
+// carregamento inicial:
+// 1) Worker (compartilhado entre dispositivos)  2) cache local  3) planilha no repositório  4) dropzone
 (async()=>{
+  if(WORKER_URL){
+    try{
+      const res=await fetch(WORKER_URL,{ method:'PATCH',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ action:'getPerformance' }) });
+      if(res.ok){
+        const j=await res.json();
+        if(j && j.b64){
+          const u8=fromB64(j.b64);
+          ingest(u8, j.name||'planilha.xlsx', 'sincronizado'); cacheLocal(u8, j.name||'planilha.xlsx'); return;
+        }
+      }
+    }catch(_){}
+  }
   try{
     const saved=localStorage.getItem(LS_DATA);
-    if(saved){
-      const bin=atob(saved); const u8=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-      ingest(u8, localStorage.getItem(LS_NAME)||'planilha salva', false);
-      return;
-    }
+    if(saved){ const u8=fromB64(saved);
+      ingest(u8, localStorage.getItem(LS_NAME)||'planilha salva', 'salvo neste navegador'); return; }
   }catch(_){}
   for(const name of ['Performance_de_Vendas.xlsx','dados.xlsx','data.xlsx']){
     try{
       const res=await fetch(name); if(!res.ok) continue;
       const buf=await res.arrayBuffer();
-      ingest(new Uint8Array(buf), name, false);
-      return;
+      ingest(new Uint8Array(buf), name, 'do repositório'); return;
     }catch(_){}
   }
 })();
