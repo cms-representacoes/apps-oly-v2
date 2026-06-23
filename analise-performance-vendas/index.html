@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análise de Performance de Vendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
+    --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
+    --ftw:#E0A100; --meias:#4C6EF5; --acess:#15AABF; --conf:#7950F2;
+    --chinelos:#0CA678; --ua:#2B2E33; --sum:#0E1726;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px 96px}
+  .num,.cval,.cqtd,.crel,.cmix,.ratio-val,.vkpi-val{font-variant-numeric:tabular-nums}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--paper);z-index:20}
+  .logo-mark{width:26px;height:26px;border-radius:8px;flex:none;
+    background:linear-gradient(135deg,var(--ftw),#F4C430)}
+  .topbar .spacer{flex:1}
+  .filechip{font-size:12px;color:var(--slate);display:flex;align-items:center;gap:7px}
+  .filechip .ping{width:7px;height:7px;border-radius:99px;background:#CBD2DC}
+  .filechip.ok .ping{background:#0CA678}
+  .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--navy);border-radius:8px;padding:8px 14px}
+  .btn:hover{border-color:#CBD2DC}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* hero */
+  .hero{padding:56px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:.18em;
+    text-transform:uppercase;font-size:12px;color:var(--ftw);margin:0 0 16px}
+  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(30px,5vw,46px);
+    line-height:1.05;letter-spacing:-.02em;margin:0 0 18px}
+  .lede{color:var(--slate);max-width:64ch;margin:0;font-size:16px}
+  .lede code{background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 7px;
+    font-family:"Space Grotesk",sans-serif;font-size:13px;color:var(--navy)}
+
+  /* dropzone */
+  .drop{margin:48px 0;border:2px dashed #CBD2DC;border-radius:18px;background:#fff;
+    padding:56px 28px;text-align:center;transition:border-color .15s,background .15s}
+  .drop.drag{border-color:var(--ftw);background:#FFFBF0}
+  .drop h2{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:20px;margin:0 0 8px}
+  .drop p{color:var(--slate);margin:0 0 22px}
+  .drop .hint{font-size:12px;color:var(--mute);margin-top:18px}
+  .err{color:#C92A2A;font-size:13px;margin-top:14px;display:none}
+
+  /* blocks */
+  .block{padding:48px 0 8px}
+  .block>h3{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--mute);margin:0 0 20px;display:flex;align-items:center;gap:12px}
+  .block>h3::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .ctable{width:100%;border-collapse:collapse}
+  .ctable thead th{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--mute);text-align:left;padding:0 14px 12px;border-bottom:1px solid var(--line)}
+  .ctable thead th.r{text-align:right}
+  .ctable tbody tr{border-bottom:1px solid var(--line-2)}
+  .ctable tbody tr:hover{background:#FBFCFD}
+  .ctable td{padding:14px;vertical-align:middle}
+  .rk{font-family:"Space Grotesk",sans-serif;color:var(--mute);font-weight:600;width:38px}
+  .who .tag{display:inline-block;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:12px;
+    background:var(--ink);color:#fff;border-radius:5px;padding:2px 8px;margin-right:10px}
+  .who .full{color:var(--navy);font-weight:500}
+  td.num{text-align:right;color:var(--navy);white-space:nowrap}
+  .ctable th.ratio-h{width:32%}
+  .ratio-cell{display:flex;align-items:center;gap:12px}
+  .ratio-track{flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden}
+  .ratio-fill{height:100%;background:linear-gradient(90deg,var(--ftw),#F4C430);border-radius:99px}
+  .ratio-val{font-family:"Space Grotesk",sans-serif;font-weight:600;min-width:54px;text-align:right}
+
+  /* vendor cards */
+  .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 30px;
+    margin-top:22px;box-shadow:0 1px 2px rgba(16,23,38,.03)}
+  .vhead{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+  .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:var(--mute);
+    border:1px solid var(--line);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;flex:none}
+  .vtitle{flex:1;min-width:0}
+  .vtag{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ftw)}
+  .vtitle h2{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:600;margin:2px 0 0;letter-spacing:-.01em}
+  .vkpi{text-align:right;flex:none}
+  .vkpi-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  .vkpi-val{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;line-height:1;color:var(--ftw);margin:3px 0}
+  .vkpi-note{font-size:12px;color:var(--slate)}
+
+  .catgrid{display:flex;flex-direction:column}
+  .catrow{display:grid;grid-template-columns:188px 1fr 96px 128px 78px 70px;align-items:center;gap:16px;
+    padding:11px 0;border-bottom:1px solid var(--line-2)}
+  .catrow.head{padding-bottom:9px;border-bottom:1px solid var(--line);font-family:"Space Grotesk",sans-serif;
+    font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+  .catrow.head .cqtd,.catrow.head .cval,.catrow.head .crel,.catrow.head .cmix{text-align:right}
+  .catrow.head .cbar{color:var(--mute)}
+  .basenote{text-transform:none;letter-spacing:0;color:#B7BECB}
+  .catlabel{display:flex;flex-direction:column;gap:1px;position:relative;padding-left:18px}
+  .dot{position:absolute;left:0;top:5px;width:9px;height:9px;border-radius:3px}
+  .dot-ftw{background:var(--ftw)}.dot-meias{background:var(--meias)}.dot-acess{background:var(--acess)}
+  .dot-conf{background:var(--conf)}.dot-chinelos{background:var(--chinelos)}.dot-ua{background:var(--ua)}
+  .dot-sum{background:var(--sum)}
+  .head .catlabel{padding-left:0}
+  .cname{font-weight:600;color:var(--navy);font-size:14px}
+  .csub{font-size:11px;color:var(--mute)}
+  .cbar-track{height:14px;background:var(--line-2);border-radius:5px;overflow:hidden}
+  .cbar-fill{height:100%;border-radius:5px;min-width:2px}
+  .fill-ftw{background:repeating-linear-gradient(90deg,var(--ftw),var(--ftw) 10px,#EBB42E 10px,#EBB42E 20px)}
+  .fill-meias{background:var(--meias)}.fill-acess{background:var(--acess)}.fill-conf{background:var(--conf)}
+  .fill-chinelos{background:var(--chinelos)}.fill-ua{background:var(--ua)}
+  .fill-sum{background:linear-gradient(90deg,var(--ink),#37425A)}
+  .cqtd{text-align:right;color:var(--slate);font-size:13px;white-space:nowrap}
+  .cval{text-align:right;color:var(--navy);font-size:14px;white-space:nowrap}
+  .crel{text-align:right;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px}
+  .crel.is-base{color:var(--ftw)}
+  .cmix{text-align:right;color:var(--slate);font-size:13px}
+  .catrow.is-zero{opacity:.45}
+  .catrow.sumrow{margin-top:6px;border-top:2px solid var(--ink);border-bottom:none;padding-top:14px}
+  .catrow.sumrow .cname{color:var(--ink)}
+  .catrow.sumrow .cbar-track{height:16px}
+
+  footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--line);color:var(--mute);font-size:12px;
+    display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  footer b{color:var(--slate)}
+  .foot-text{max-width:72ch}
+  .totop-link{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--navy);border-radius:8px;padding:9px 14px;
+    white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+  .totop-link:hover{border-color:#CBD2DC}
+
+  /* botão flutuante voltar ao topo */
+  #totop{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:13px;
+    border:1px solid var(--line);background:#fff;color:var(--navy);font-size:20px;cursor:pointer;
+    box-shadow:0 8px 24px rgba(16,23,38,.14);opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;transform:translateY(10px);z-index:30;display:grid;place-items:center}
+  #totop.show{opacity:1;pointer-events:auto;transform:none}
+  #totop:hover{border-color:#CBD2DC}
+
+  @media (max-width:780px){
+    .catrow{grid-template-columns:1fr auto auto;gap:6px 14px;padding:14px 0}
+    .catrow .cbar{grid-column:1 / -1;order:6}
+    .catrow.head{display:none}
+    .cqtd{order:3}.cval{order:4}.crel{order:5}.cmix{display:none}
+    .vhead{flex-wrap:wrap}.vkpi{text-align:left}
+    .ctable td.num.h-ftw,.ctable th.h-ftw{display:none}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .cbar-fill,.ratio-fill{animation:grow .8s cubic-bezier(.22,1,.36,1) both}
+    @keyframes grow{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1)}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <span class="logo-mark"></span>
+    <span class="spacer"></span>
+    <span id="filechip" class="filechip"><span class="ping"></span><span id="filename">nenhuma planilha carregada</span></span>
+    <button class="btn primary" id="loadBtn">Carregar planilha</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm" style="display:none">
+  </div>
+
+  <header class="hero">
+    <p class="eyebrow">FTW Olympikus como referência</p>
+    <h1>Análise de Performance de Vendas</h1>
+    <p class="lede">O calçado Olympikus (<code>FTW</code>) é a base — a trilha cheia, 100%. Cada faixa mostra quanto representa em relação ao FTW, em valor e quantidade, faixa a faixa e somadas. Lê-se: para cada R$ 1,00 de FTW Olympikus, quanto o vendedor fatura no restante do mix.</p>
+  </header>
+
+  <div id="empty" class="drop">
+    <h2>Carregue a planilha de performance</h2>
+    <p>Arraste o arquivo <strong>.xlsx</strong> aqui ou clique para selecionar.</p>
+    <button class="btn primary" id="loadBtn2">Selecionar arquivo</button>
+    <div class="err" id="err"></div>
+    <div class="hint">Uma aba por vendedor &middot; colunas usadas: <code>Marca</code>, <code>FatP_Qtd</code>, <code>FATP_VLR</code></div>
+  </div>
+
+  <div id="report" style="display:none"></div>
+
+  <footer id="footer" style="display:none">
+    <div class="foot-text">
+      Base: <b>FATP_VLR</b> (faturamento) e <b>FatP_Qtd</b> (quantidade / pares). FTW = calçados Olympikus. Under Armour somado em todas as categorias.
+      <b>% vs FTW</b> = valor da faixa &divide; FTW Olympikus. <b>% do total</b> = participação da faixa no faturamento total do vendedor.
+    </div>
+    <button class="totop-link" data-totop>&uarr; Voltar ao início</button>
+  </footer>
+
+</div>
+
+<button id="totop" title="Voltar ao topo" aria-label="Voltar ao topo">&uarr;</button>
+
+<script>
+const FAIXAS = [
+  {key:'ftw',      label:'FTW Olympikus', sub:'Calçados Olympikus',  cls:'ftw'},
+  {key:'meias',    label:'Meias',         sub:'Olympikus',           cls:'meias'},
+  {key:'acess',    label:'Acessórios',    sub:'Olympikus',           cls:'acess'},
+  {key:'conf',     label:'Confecção',     sub:'Vestuário Olympikus', cls:'conf'},
+  {key:'chinelos', label:'Chinelos',      sub:'Olympikus',           cls:'chinelos'},
+  {key:'ua',       label:'Under Armour',  sub:'Todas as categorias', cls:'ua'},
+];
+const OLY_MAP = {calcados:'ftw', meias:'meias', acessorios:'acess', vestuario:'conf', chinelos:'chinelos'};
+const NOMES = {cms:'C M S', jorge:'Jorge Luiz das Neves', leandro:'Leandro de Paula',
+  mariana:'Mariana Fernandes', rafael:'Rafael Lima Moreira', willame:'Willame Rocha Teixeira'};
+const LS_DATA='apv_xlsx_b64', LS_NAME='apv_xlsx_name';
+
+const fmtBRL = v => 'R$ ' + Math.round(v||0).toLocaleString('pt-BR');
+const fmtQtd = v => (v==null) ? '—' : Math.round(v).toLocaleString('pt-BR');
+const fmtPct = v => (v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const norm = s => (s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+
+function findCol(headerRow, names){
+  for(let i=0;i<headerRow.length;i++){ if(names.includes(norm(headerRow[i]))) return i; }
+  return -1;
+}
+function parseSheet(rows){
+  let h=0;
+  for(let i=0;i<Math.min(rows.length,5);i++){ if(rows[i].some(c=>norm(c)==='marca')) {h=i;break;} }
+  const head=rows[h];
+  const cM = findCol(head,['marca'])>=0 ? findCol(head,['marca']) : 0;
+  const cQ = findCol(head,['fatp_qtd','fatp qtd','qtd']);
+  const cV = findCol(head,['fatp_vlr','fatp vlr','vlr','valor']);
+  if(cV<0) return null;
+  const v={ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0,
+    q:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0}, total_v:0, total_q:0};
+  let brand=null;
+  for(let i=h+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const n=norm(r[cM]); const val=Number(r[cV])||0; const qtd=cQ>=0?(Number(r[cQ])||0):0;
+    if(n==='olympikus'){ brand='oly'; continue; }
+    if(n==='under armour'||n==='underarmour'){ brand='ua'; v.ua=val; v.q.ua=qtd; continue; }
+    if(n==='total'){ v.total_v=val; v.total_q=qtd; continue; }
+    if(brand==='oly' && OLY_MAP[n]){ const k=OLY_MAP[n]; v[k]=val; v.q[k]=qtd; }
+  }
+  if(!v.total_v) v.total_v=v.ftw+v.meias+v.acess+v.conf+v.chinelos+v.ua;
+  if(!v.total_q) v.total_q=v.q.ftw+v.q.meias+v.q.acess+v.q.conf+v.q.chinelos+v.q.ua;
+  v.demais_v=v.total_v-v.ftw; v.demais_q=v.total_q-v.q.ftw; v.ratio=v.ftw?v.demais_v/v.ftw:0;
+  return v;
+}
+function build(workbook){
+  const vendors=[];
+  workbook.SheetNames.forEach(sn=>{
+    const rows=XLSX.utils.sheet_to_json(workbook.Sheets[sn],{header:1,raw:true,defval:null});
+    const v=parseSheet(rows);
+    if(v && v.ftw>0){ v.key=sn; v.nome=NOMES[norm(sn)]||sn; vendors.push(v); }
+  });
+  if(!vendors.length) throw new Error('Nenhuma aba válida encontrada. Confira se cada aba tem as colunas Marca / FatP_Qtd / FATP_VLR e as linhas OLYMPIKUS · Calcados.');
+  render(vendors);
+}
+function render(vendors){
+  const maxRatio=Math.max(...vendors.map(v=>v.ratio),0.0001);
+  const ranked=[...vendors].sort((a,b)=>b.ratio-a.ratio);
+  let crows='';
+  ranked.forEach((c,i)=>{
+    const bw=c.ratio/maxRatio*100;
+    crows+=`<tr>
+      <td class="rk">${String(i+1).padStart(2,'0')}</td>
+      <td class="who"><span class="tag">${c.key}</span><span class="full">${c.nome}</span></td>
+      <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
+      <td class="num">${fmtBRL(c.demais_v)}</td>
+      <td class="ratio-cell"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><span class="ratio-val">${fmtPct(c.ratio)}</span></td>
+    </tr>`;
+  });
+  let secs='';
+  vendors.forEach((v,idx)=>{
+    let rows='';
+    FAIXAS.forEach(f=>{
+      const val=v[f.key], qtd=v.q[f.key], isFtw=f.key==='ftw';
+      const rel=v.ftw?val/v.ftw:0, mix=v.total_v?val/v.total_v:0;
+      const w=isFtw?100:Math.min(rel*100,100);
+      const zero=(!val)?' is-zero':'';
+      rows+=`<div class="catrow${zero}">
+        <div class="catlabel"><span class="dot dot-${f.cls}"></span><span class="cname">${f.label}</span><span class="csub">${f.sub}</span></div>
+        <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-${f.cls}" style="width:${w.toFixed(1)}%"></div></div></div>
+        <div class="cqtd">${fmtQtd(qtd)}</div>
+        <div class="cval">${fmtBRL(val)}</div>
+        <div class="crel ${isFtw?'is-base':''}">${isFtw?'— base —':fmtPct(rel)}</div>
+        <div class="cmix">${fmtPct(mix)}</div>
+      </div>`;
+    });
+    const sumW=Math.min(v.ratio*100,100);
+    secs+=`<section class="vend" id="${v.key}">
+      <header class="vhead">
+        <div class="vindex">${String(idx+1).padStart(2,'0')}</div>
+        <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2></div>
+        <div class="vkpi"><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div></div>
+      </header>
+      <div class="catgrid">
+        <div class="catrow head">
+          <div class="catlabel">Faixa</div>
+          <div class="cbar">Proporção visual <span class="basenote">(FTW = trilha cheia)</span></div>
+          <div class="cqtd">Qtd (pares)</div>
+          <div class="cval">Faturamento</div>
+          <div class="crel">% vs FTW</div>
+          <div class="cmix">% do total</div>
+        </div>
+        ${rows}
+        <div class="catrow sumrow">
+          <div class="catlabel"><span class="dot dot-sum"></span><span class="cname">Todas as faixas somadas</span><span class="csub">exceto FTW</span></div>
+          <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-sum" style="width:${sumW.toFixed(1)}%"></div></div></div>
+          <div class="cqtd">${fmtQtd(v.demais_q)}</div>
+          <div class="cval">${fmtBRL(v.demais_v)}</div>
+          <div class="crel is-base">${fmtPct(v.ratio)}</div>
+          <div class="cmix">${fmtPct(v.total_v?v.demais_v/v.total_v:0)}</div>
+        </div>
+      </div>
+    </section>`;
+  });
+  document.getElementById('report').innerHTML=`
+    <div class="block"><h3>Visão consolidada · ranking por diversificação</h3>
+      <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
+        <th class="r h-ftw">FTW Olympikus</th><th class="r">Demais faixas</th>
+        <th class="r ratio-h">Demais&nbsp;/&nbsp;FTW</th></tr></thead>
+        <tbody>${crows}</tbody></table></div>
+    <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
+  document.getElementById('empty').style.display='none';
+  document.getElementById('report').style.display='block';
+  document.getElementById('footer').style.display='flex';
+}
+
+function ingest(u8, name, persist){
+  const wb=XLSX.read(u8,{type:'array'});
+  build(wb);
+  document.getElementById('filechip').classList.add('ok');
+  document.getElementById('filename').textContent=name;
+  if(persist){ try{
+    let bin=''; const CH=0x8000;
+    for(let i=0;i<u8.length;i+=CH){ bin+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); }
+    localStorage.setItem(LS_DATA, btoa(bin));
+    localStorage.setItem(LS_NAME, name);
+  }catch(_){ /* armazenamento indisponível: segue só nesta sessão */ } }
+}
+function readFile(file){
+  const err=document.getElementById('err'); err.style.display='none';
+  const fr=new FileReader();
+  fr.onload=e=>{ try{ ingest(new Uint8Array(e.target.result), file.name, true); }
+    catch(ex){ err.textContent=ex.message||'Não foi possível ler o arquivo.'; err.style.display='block'; } };
+  fr.readAsArrayBuffer(file);
+}
+
+// inputs
+const input=document.getElementById('fileInput');
+['loadBtn','loadBtn2'].forEach(id=>document.getElementById(id).onclick=()=>input.click());
+input.onchange=()=>{ if(input.files[0]) readFile(input.files[0]); };
+const drop=document.getElementById('empty');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) readFile(f); });
+
+// voltar ao topo
+const totop=document.getElementById('totop');
+const goTop=()=>window.scrollTo({top:0,behavior:'smooth'});
+totop.onclick=goTop;
+document.querySelectorAll('[data-totop]').forEach(b=>b.onclick=goTop);
+window.addEventListener('scroll',()=>{ totop.classList.toggle('show', window.scrollY>500); });
+
+// carregamento inicial: 1) último upload salvo  2) planilha do repositório  3) dropzone
+(async()=>{
+  try{
+    const saved=localStorage.getItem(LS_DATA);
+    if(saved){
+      const bin=atob(saved); const u8=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+      ingest(u8, localStorage.getItem(LS_NAME)||'planilha salva', false);
+      return;
+    }
+  }catch(_){}
+  for(const name of ['Performance_de_Vendas.xlsx','dados.xlsx','data.xlsx']){
+    try{
+      const res=await fetch(name); if(!res.ok) continue;
+      const buf=await res.arrayBuffer();
+      ingest(new Uint8Array(buf), name, false);
+      return;
+    }catch(_){}
+  }
+})();
+</script>
+</body>
+</html>
