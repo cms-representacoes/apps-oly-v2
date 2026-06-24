@@ -78,6 +78,13 @@
   .vkpi-cmp{font-family:"Space Grotesk",sans-serif;font-size:11px;color:var(--slate);margin-top:4px}
   .ratio-rt{display:flex;flex-direction:column;align-items:flex-end;min-width:54px}
   .ratio-cmp{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;color:var(--slate);margin-top:1px}
+  .vindex-sum{font-size:18px;font-weight:700}
+  .conscount{font-weight:500;color:var(--slate);font-size:13px;font-family:"Inter",sans-serif}
+  [data-tip]{cursor:help}
+  .tipbox{position:fixed;background:var(--navy);color:#fff;font-family:"Inter",sans-serif;font-weight:500;
+    font-size:11.5px;line-height:1.5;white-space:pre-line;text-align:left;padding:9px 12px;border-radius:9px;
+    box-shadow:0 10px 30px rgba(15,23,42,.28);max-width:250px;z-index:9999;pointer-events:none}
+  .tipbox[hidden]{display:none}
   /* modal de publicação */
   .modal{position:fixed;inset:0;background:rgba(14,23,38,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
   .modal[hidden]{display:none}
@@ -252,6 +259,7 @@
     <h1>Análise de Performance de Vendas</h1>
     <div class="period" id="period" hidden></div>
     <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Comparar com ano anterior</button>
+    <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Consolidar tudo</button>
   </header>
 
   <div id="empty" class="drop">
@@ -363,28 +371,47 @@ function build(workbook){
   render(vendors);
 }
 let CMP_ON=false;
+let CONS_ON=false;
 function fmtPctSigned(v){ const s=v*100; const t=Math.abs(s).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; return (s>=0?'+':'−')+t; }
+function ppText(dpp){ return (dpp>=0?'+':'−')+Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.'; }
 // selo inline (valor atual vs ano anterior) — entra embaixo do número, sem coluna nova
-function valSelo(cur, prev, yl){
+function valSelo(cur, prev, yl, yWord){
   if(!CMP_ON) return '';
-  if((!prev) && cur>0) return `<div class="selo selo-new">novo ${yl}</div>`;
-  if(prev>0 && (!cur)) return `<div class="selo selo-down">▼ saiu ${yl}</div>`;
+  if((!prev) && cur>0) return `<div class="selo selo-new" data-tip="Atual: ${fmtBRL(cur)}&#10;${yWord}: sem vendas">novo ${yl}</div>`;
+  if(prev>0 && (!cur)) return `<div class="selo selo-down" data-tip="Atual: sem vendas&#10;${yWord}: ${fmtBRL(prev)}&#10;Variação: −100%">▼ saiu ${yl}</div>`;
   if(!prev) return '';
   const d=(cur-prev)/prev, cls=d>=0?'selo-up':'selo-down', arr=d>=0?'▲':'▼';
-  return `<div class="selo ${cls}">${arr} ${fmtPctSigned(d)} ${yl}</div>`;
+  const tip=`Atual: ${fmtBRL(cur)}&#10;${yWord}: ${fmtBRL(prev)}&#10;Variação: ${fmtPctSigned(d)}`;
+  return `<div class="selo ${cls}" data-tip="${tip}">${arr} ${fmtPctSigned(d)} ${yl}</div>`;
 }
 function ratioCmp(v, prevYear){
   if(!CMP_ON) return '';
   if(!v.ly.ftw) return `<div class="vkpi-cmp">sem base em ${prevYear}</div>`;
   const dpp=(v.ratio-v.ratio_ly)*100, arr=dpp>=0?'▲':'▼';
-  const t=Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
-  return `<div class="vkpi-cmp">${fmtPct(v.ratio_ly)} em ${prevYear} · ${arr} ${t} p.p.</div>`;
+  const tip=`Diversificação demais / FTW&#10;Atual: ${fmtPct(v.ratio)}&#10;${prevYear}: ${fmtPct(v.ratio_ly)}&#10;Variação: ${ppText(dpp)}`;
+  return `<div class="vkpi-cmp" data-tip="${tip}">${fmtPct(v.ratio_ly)} em ${prevYear} · ${arr} ${Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</div>`;
 }
-function ratioCmpShort(v){
+function ratioCmpShort(v, yWord){
   if(!CMP_ON) return '';
-  if(!v.ly.ftw) return '<span class="ratio-cmp">novo</span>';
+  if(!v.ly.ftw) return '<span class="ratio-cmp" data-tip="Sem base no ano anterior">novo</span>';
   const dpp=(v.ratio-v.ratio_ly)*100, arr=dpp>=0?'▲':'▼';
-  return `<span class="ratio-cmp">${arr} ${Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</span>`;
+  const tip=`Diversificação demais / FTW&#10;Atual: ${fmtPct(v.ratio)}&#10;${yWord}: ${fmtPct(v.ratio_ly)}&#10;Variação: ${ppText(dpp)}`;
+  return `<span class="ratio-cmp" data-tip="${tip}">${arr} ${Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</span>`;
+}
+function aggregate(vendors){
+  const KS=['ftw','meias','acess','conf','chinelos','ua'];
+  const a={ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0,
+    q:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    ly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    total_v:0,total_q:0,total_v_ly:0};
+  vendors.forEach(v=>{
+    KS.forEach(k=>{ a[k]+=v[k]||0; a.q[k]+=(v.q[k]||0); a.ly[k]+=(v.ly[k]||0); });
+    a.total_v+=v.total_v||0; a.total_q+=v.total_q||0; a.total_v_ly+=v.total_v_ly||0;
+  });
+  a.demais_v=a.total_v-a.ftw; a.demais_q=a.total_q-a.q.ftw; a.ratio=a.ftw?a.demais_v/a.ftw:0;
+  a.demais_v_ly=a.total_v_ly-a.ly.ftw; a.ratio_ly=a.ly.ftw?a.demais_v_ly/a.ly.ftw:0;
+  a.key='TODOS'; a.nome='Consolidado · todos os vendedores';
+  return a;
 }
 function render(vendors){
   const _ano = (CURRENT_KEY && PERIODS[CURRENT_KEY]) ? PERIODS[CURRENT_KEY].ano : '';
@@ -392,19 +419,8 @@ function render(vendors){
   const prevYearShort = (_ano && /^\d{4}$/.test(_ano)) ? String(+_ano-1) : 'ano anterior';
   const maxRatio=Math.max(...vendors.map(v=>v.ratio),0.0001);
   const ranked=[...vendors].sort((a,b)=>b.ratio-a.ratio);
-  let crows='';
-  ranked.forEach((c,i)=>{
-    const bw=c.ratio/maxRatio*100;
-    crows+=`<tr>
-      <td class="rk">${String(i+1).padStart(2,'0')}</td>
-      <td class="who"><span class="tag">${c.key}</span><span class="full">${c.nome}</span></td>
-      <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
-      <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
-      <td class="ratio-cell"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c)}</div></td>
-    </tr>`;
-  });
-  let secs='';
-  ranked.forEach((v,idx)=>{
+
+  function vendorSection(v, idxLabel){
     let rows='';
     FAIXAS.forEach(f=>{
       const val=v[f.key], qtd=v.q[f.key], isFtw=f.key==='ftw';
@@ -415,15 +431,16 @@ function render(vendors){
         <div class="catlabel"><span class="dot dot-${f.cls}"></span><span class="cname">${f.label}</span><span class="csub">${f.sub}</span></div>
         <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-${f.cls}" style="width:${w.toFixed(1)}%"></div></div></div>
         <div class="cqtd">${fmtQtd(qtd)}</div>
-        <div class="cval">${fmtBRL(val)}${valSelo(val, v.ly[f.key], prevYear)}</div>
+        <div class="cval">${fmtBRL(val)}${valSelo(val, v.ly[f.key], prevYear, prevYearShort)}</div>
         <div class="crel ${isFtw?'is-base':''}">${isFtw?'— base —':fmtPct(rel)}</div>
         <div class="cmix">${fmtPct(mix)}</div>
       </div>`;
     });
     const sumW=Math.min(v.ratio*100,100);
-    secs+=`<section class="vend" id="${v.key}">
+    const idx = idxLabel!=null ? `<div class="vindex">${idxLabel}</div>` : `<div class="vindex vindex-sum">Σ</div>`;
+    return `<section class="vend" id="${v.key}">
       <header class="vhead">
-        <div class="vindex">${String(idx+1).padStart(2,'0')}</div>
+        ${idx}
         <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2></div>
         <div class="vkpi"><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
       </header>
@@ -441,24 +458,45 @@ function render(vendors){
           <div class="catlabel"><span class="dot dot-sum"></span><span class="cname">Todas as faixas somadas</span><span class="csub">exceto FTW</span></div>
           <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-sum" style="width:${sumW.toFixed(1)}%"></div></div></div>
           <div class="cqtd">${fmtQtd(v.demais_q)}</div>
-          <div class="cval">${fmtBRL(v.demais_v)}${valSelo(v.demais_v, v.demais_v_ly, prevYear)}</div>
+          <div class="cval">${fmtBRL(v.demais_v)}${valSelo(v.demais_v, v.demais_v_ly, prevYear, prevYearShort)}</div>
           <div class="crel is-base">${fmtPct(v.ratio)}</div>
           <div class="cmix">${fmtPct(v.total_v?v.demais_v/v.total_v:0)}</div>
         </div>
       </div>
     </section>`;
-  });
-  document.getElementById('report').innerHTML=`
-    <div class="block"><h3>Visão consolidada · ranking por diversificação</h3>
-      <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
-        <th class="r h-ftw">FTW Olympikus</th><th class="r h-demais">Demais faixas</th>
-        <th class="r ratio-h">Demais&nbsp;/&nbsp;FTW</th></tr></thead>
-        <tbody>${crows}</tbody></table></div>
-    <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
+  }
+
+  if(CONS_ON){
+    const agg=aggregate(vendors);
+    document.getElementById('report').innerHTML=
+      `<div class="block"><h3>Consolidado · todos os vendedores <span class="conscount">(${vendors.length} vendedores somados)</span></h3>${vendorSection(agg,null)}</div>`;
+  } else {
+    let crows='';
+    ranked.forEach((c,i)=>{
+      const bw=c.ratio/maxRatio*100;
+      crows+=`<tr>
+        <td class="rk">${String(i+1).padStart(2,'0')}</td>
+        <td class="who"><span class="tag">${c.key}</span><span class="full">${c.nome}</span></td>
+        <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
+        <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
+        <td class="ratio-cell"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c, prevYearShort)}</div></td>
+      </tr>`;
+    });
+    let secs='';
+    ranked.forEach((v,idx)=>{ secs+=vendorSection(v, String(idx+1).padStart(2,'0')); });
+    document.getElementById('report').innerHTML=`
+      <div class="block"><h3>Visão consolidada · ranking por diversificação</h3>
+        <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
+          <th class="r h-ftw">FTW Olympikus</th><th class="r h-demais">Demais faixas</th>
+          <th class="r ratio-h">Demais&nbsp;/&nbsp;FTW</th></tr></thead>
+          <tbody>${crows}</tbody></table></div>
+      <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
+  }
   document.getElementById('empty').style.display='none';
   document.getElementById('report').style.display='block';
   document.getElementById('footer').style.display='flex';
   document.getElementById('cmpToggle').hidden=false;
+  document.getElementById('consToggle').hidden=false;
 }
 
 let _toastT;
@@ -607,6 +645,39 @@ document.querySelectorAll('.swatch').forEach(s=> s.onclick=()=>applyAccent(s.dat
     t.classList.toggle('on', CMP_ON);
     t.setAttribute('aria-pressed', CMP_ON?'true':'false');
     if(CURRENT_KEY) showPeriod(CURRENT_KEY);
+  });
+})();
+
+// consolidar tudo (soma todos os vendedores e oculta os individuais)
+(function(){
+  const t=document.getElementById('consToggle');
+  t.addEventListener('click', function(){
+    CONS_ON=!CONS_ON;
+    t.classList.toggle('on', CONS_ON);
+    t.setAttribute('aria-pressed', CONS_ON?'true':'false');
+    if(CURRENT_KEY) showPeriod(CURRENT_KEY);
+  });
+})();
+
+// balão (tooltip) nas informações de comparativo
+(function(){
+  const tip=document.createElement('div'); tip.className='tipbox'; tip.hidden=true;
+  document.body.appendChild(tip);
+  function place(e){
+    const pad=14; const r=tip.getBoundingClientRect();
+    let x=e.clientX+pad, y=e.clientY+pad;
+    if(x+r.width>window.innerWidth-8) x=e.clientX-r.width-pad;
+    if(y+r.height>window.innerHeight-8) y=e.clientY-r.height-pad;
+    tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';
+  }
+  document.addEventListener('mouseover', function(e){
+    const el=e.target.closest && e.target.closest('[data-tip]');
+    if(el){ tip.textContent=el.getAttribute('data-tip'); tip.hidden=false; place(e); }
+  });
+  document.addEventListener('mousemove', function(e){
+    if(tip.hidden) return;
+    const el=e.target.closest && e.target.closest('[data-tip]');
+    if(el) place(e); else tip.hidden=true;
   });
 })();
 
