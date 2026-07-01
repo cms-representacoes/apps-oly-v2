@@ -736,91 +736,127 @@ function applyTheme(mode){
   });
 })();
 
-// ===== exportar para Excel (espelha o que está na tela) =====
+// ===== exportar para Excel (ExcelJS · formatação igual às planilhas) =====
 (function(){
   const FILL=hex=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+hex}});
-  const bs={style:'thin',color:{argb:'FFBFBFBF'}}; const BORD={top:bs,left:bs,right:bs,bottom:bs};
-  const AR=(b,c)=>({name:'Arial',size:11,bold:!!b,color:c?{argb:c}:undefined});
-  const PCT='0.0%', CUR='R$ #,##0', INT='#,##0';
-  function hcell(ws,r,c,txt){ const cell=ws.getCell(r,c); cell.value=txt; cell.font=AR(true,'FFFFFFFF');
-    cell.fill=FILL('1F4E78'); cell.alignment={horizontal:c===1?'left':'right',vertical:'middle'}; cell.border=BORD; return cell; }
-  function put(ws,r,c,val,fmt,opt){ const cell=ws.getCell(r,c);
-    cell.value=(val===null||val===undefined||val==='')?null:val; cell.font=AR(opt&&opt.bold); cell.border=BORD;
-    cell.alignment={horizontal:(opt&&opt.left)?'left':(c===1?'left':'right')};
-    if(fmt) cell.numFmt=fmt; if(opt&&opt.fill) cell.fill=FILL(opt.fill); return cell; }
+  const bside={style:'thin',color:{argb:'FFBFBFBF'}};
+  const BORD={top:bside,left:bside,right:bside,bottom:bside};
+  const H11=['Marca','FatP_Qtd','FatP_Qtd_LY','Var_Qtde','Dif_Qtde_LY','FATP_VLR','FATP_VLR_LY','%_TTL_VLR','PM','PM_LY','Var_PM'];
+  const FMT11={2:'#,##0',3:'#,##0',4:'0.00%',5:'#,##0',6:'R$ #,##0',7:'R$ #,##0',8:'0.0%',9:'R$ #,##0',10:'R$ #,##0.00',11:'0.00%'};
+  const hnorm=s=>String(s==null?'':s).toLowerCase().replace(/[^a-z0-9%]/g,'');
+  const colIndex=(head,name)=>{ const t=hnorm(name); for(let i=0;i<head.length;i++){ if(hnorm(head[i])===t) return i; } return -1; };
 
-  function kpiTable(ws, v, startRow, cmp, ly){
-    (cmp?['Indicador','Valor','Variação vs '+ly]:['Indicador','Valor']).forEach((h,i)=>hcell(ws,startRow,i+1,h));
-    const varFat=v.total_v_ly>0?v.total_v/v.total_v_ly-1:null;
-    const varPar=v.total_q_ly>0?v.total_q/v.total_q_ly-1:null;
-    const varRat=(v.ly&&v.ly.ftw>0)?v.ratio-v.ratio_ly:null;
-    const rows=[['Faturamento total',v.total_v,CUR,varFat],['Pares totais',v.total_q,INT,varPar],['Demais faixas / FTW',v.ratio,PCT,varRat]];
-    let r=startRow+1;
-    rows.forEach(row=>{ let c=1; put(ws,r,c++,row[0],null,{left:true,bold:true}); put(ws,r,c++,row[1],row[2]); if(cmp) put(ws,r,c++,row[3],PCT); r++; });
-    return r;
+  function headerRow(ws){
+    H11.forEach((h,i)=>{ const c=ws.getCell(1,i+1); c.value=h;
+      c.font={name:'Arial',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+      c.fill=FILL('1F4E78'); c.alignment={horizontal:'center',vertical:'middle'}; c.border=BORD; });
   }
-  function faixaTable(ws, v, startRow, cmp){
-    (cmp?['Faixa','Qtd (pares)','Var. qtd','Faturamento','Var. fat.','% vs FTW','% do total']
-        :['Faixa','Qtd (pares)','Faturamento','% vs FTW','% do total']).forEach((h,i)=>hcell(ws,startRow,i+1,h));
-    const FAIXA=[{k:'ftw',l:'FTW Olympikus'},{k:'meias',l:'Meias'},{k:'acess',l:'Acessórios'},{k:'conf',l:'Confecção'},{k:'chinelos',l:'Chinelos'},{k:'ua',l:'Under Armour'}];
-    let r=startRow+1;
-    FAIXA.forEach(f=>{ const val=v[f.k]||0, qtd=(v.q&&v.q[f.k])||0, isF=f.k==='ftw';
-      const rel=isF?'— base —':(v.ftw?val/v.ftw:0), mix=v.total_v?val/v.total_v:0;
-      const valLY=(v.ly&&v.ly[f.k])||0, qtyLY=(v.qly&&v.qly[f.k])||0;
-      let c=1; put(ws,r,c++,f.l,null,{left:true}); put(ws,r,c++,qtd,INT);
-      if(cmp) put(ws,r,c++, qtyLY>0?qtd/qtyLY-1:null, PCT);
-      put(ws,r,c++,val,CUR); if(cmp) put(ws,r,c++, valLY>0?val/valLY-1:null, PCT);
-      put(ws,r,c++, rel, isF?null:PCT); put(ws,r,c++, mix, PCT); r++;
+  function styleWidths(ws){
+    ws.getColumn(1).width=16; [2,3,4,5].forEach(i=>ws.getColumn(i).width=13);
+    [6,7].forEach(i=>ws.getColumn(i).width=16); ws.getColumn(8).width=11;
+    [9,10,11].forEach(i=>ws.getColumn(i).width=11); ws.views=[{state:'frozen',ySplit:1}];
+  }
+  function writeDetail(wb,name,rows){
+    const ws=wb.addWorksheet(name); headerRow(ws);
+    rows.forEach((r,ri)=>{ const rn=ri+2, bold=(r.type==='brand'||r.type==='total');
+      r.cells.forEach((val,ci)=>{ const c=ws.getCell(rn,ci+1);
+        c.value=(val===null||val===undefined||val==='')?null:val;
+        c.font={name:'Arial',size:11,bold}; c.border=BORD;
+        if(ci===0) c.alignment={horizontal:'left'};
+        else { c.alignment={horizontal:'right'}; if(FMT11[ci+1]) c.numFmt=FMT11[ci+1]; }
+        if(r.type==='brand') c.fill=FILL('DDEBF7'); else if(r.type==='total') c.fill=FILL('D9D9D9');
+      });
     });
-    const dq=v.demais_q||0, dv=v.demais_v||0, dr=v.ratio||0, dmix=v.total_v?dv/v.total_v:0, dqLY=v.demais_q_ly||0, dvLY=v.demais_v_ly||0;
-    const T={bold:true,fill:'D9D9D9'}; let c=1;
-    put(ws,r,c++,'Demais faixas (exceto FTW)',null,{bold:true,fill:'D9D9D9',left:true});
-    put(ws,r,c++,dq,INT,T); if(cmp) put(ws,r,c++, dqLY>0?dq/dqLY-1:null, PCT,T);
-    put(ws,r,c++,dv,CUR,T); if(cmp) put(ws,r,c++, dvLY>0?dv/dvLY-1:null, PCT,T);
-    put(ws,r,c++,dr,PCT,T); put(ws,r,c++,dmix,PCT,T);
-    return r;
+    styleWidths(ws);
   }
-  function vendorSheet(wb, v, name, cmp, ly){
-    const ws=wb.addWorksheet(name);
-    const kEnd=kpiTable(ws, v, 1, cmp, ly);
-    faixaTable(ws, v, kEnd+1, cmp);
-    ws.getColumn(1).width=28; for(let i=2;i<=7;i++) ws.getColumn(i).width=15;
-    return ws;
+  function vendorRows(aoa){
+    let h=0; for(let i=0;i<Math.min(aoa.length,5);i++){ if(aoa[i]&&aoa[i].some(c=>norm(c)==='marca')){h=i;break;} }
+    const head=aoa[h]||[]; const idx=H11.map(n=>colIndex(head,n)); const cM=idx[0]>=0?idx[0]:0;
+    const rows=[];
+    for(let i=h+1;i<aoa.length;i++){ const r=aoa[i]; if(!r) continue;
+      const raw=r[cM]; if(raw==null||String(raw).trim()==='') continue;
+      const n=norm(raw); let type='sub';
+      if(n==='olympikus'||n==='under armour'||n==='underarmour') type='brand';
+      else if(n==='total') type='total';
+      rows.push({type, cells: idx.map((ci,k)=> k===0 ? raw : (ci>=0 ? r[ci] : null))});
+    }
+    return rows;
   }
-  function rankingSheet(wb, vendors, cmp, ly){
-    const ws=wb.addWorksheet('Ranking');
-    (cmp?['Vendedor','FTW Olympikus','Demais faixas','Demais / FTW','Var. (p.p.) vs '+ly]
-        :['Vendedor','FTW Olympikus','Demais faixas','Demais / FTW']).forEach((h,i)=>hcell(ws,1,i+1,h));
-    let r=2;
-    [...vendors].sort((a,b)=>b.ratio-a.ratio).forEach(v=>{ let c=1;
-      put(ws,r,c++,v.key,null,{left:true}); put(ws,r,c++,v.ftw,CUR); put(ws,r,c++,v.demais_v,CUR); put(ws,r,c++,v.ratio,PCT);
-      if(cmp) put(ws,r,c++, (v.ly&&v.ly.ftw>0)?v.ratio-v.ratio_ly:null, PCT); r++;
+  function consolidadoRows(aoas){
+    const oly={},ua={},olyO=[],uaO=[];
+    aoas.forEach(aoa=>{
+      let h=0; for(let i=0;i<Math.min(aoa.length,5);i++){ if(aoa[i]&&aoa[i].some(c=>norm(c)==='marca')){h=i;break;} }
+      const head=aoa[h]||[]; const cM=colIndex(head,'Marca')>=0?colIndex(head,'Marca'):0;
+      const cQ=colIndex(head,'FatP_Qtd'),cQly=colIndex(head,'FatP_Qtd_LY'),cV=colIndex(head,'FATP_VLR'),cVly=colIndex(head,'FATP_VLR_LY');
+      let brand=null;
+      for(let i=h+1;i<aoa.length;i++){ const r=aoa[i]; if(!r) continue; const raw=r[cM]; if(raw==null) continue;
+        const n=norm(raw);
+        if(n==='olympikus'){brand='oly';continue;}
+        if(n==='under armour'||n==='underarmour'){brand='ua';continue;}
+        if(n==='total'){continue;}
+        if(!brand) continue;
+        const cat=String(raw).trim(); const nv=c=> c>=0?(Number(r[c])||0):0;
+        const bk=brand==='oly'?oly:ua, od=brand==='oly'?olyO:uaO;
+        if(!bk[cat]){ bk[cat]={q:0,qly:0,v:0,vly:0}; od.push(cat); }
+        const o=bk[cat]; o.q+=nv(cQ); o.qly+=nv(cQly); o.v+=nv(cV); o.vly+=nv(cVly);
+      }
     });
-    ws.getColumn(1).width=18; ws.getColumn(2).width=16; ws.getColumn(3).width=16; ws.getColumn(4).width=13; if(cmp) ws.getColumn(5).width=17;
+    const sum=b=>Object.values(b).reduce((a,o)=>({q:a.q+o.q,qly:a.qly+o.qly,v:a.v+o.v,vly:a.vly+o.vly}),{q:0,qly:0,v:0,vly:0});
+    const oT=sum(oly),uT=sum(ua),gT={q:oT.q+uT.q,qly:oT.qly+uT.qly,v:oT.v+uT.v,vly:oT.vly+uT.vly};
+    const ORD=['Calcados','Meias','Chinelos','Acessorios','Vestuario'];
+    const ordered=(bk,seen)=>ORD.filter(c=>bk[c]).concat(seen.filter(c=>!ORD.includes(c)));
+    const mk=(marca,o,type)=>({type, cells:[marca, o.q||null, o.qly||null,
+      o.qly>0?(o.q-o.qly)/o.qly:null, o.q-o.qly, o.v||null, o.vly||null,
+      gT.v?o.v/gT.v:null, o.q>0?o.v/o.q:null, o.qly>0?o.vly/o.qly:null,
+      (o.q>0&&o.qly>0)?(o.v/o.q)/(o.vly/o.qly)-1:null]});
+    const rows=[mk('OLYMPIKUS',oT,'brand')];
+    ordered(oly,olyO).forEach(c=>rows.push(mk('   '+c,oly[c],'sub')));
+    rows.push(mk('UNDER ARMOUR',uT,'brand'));
+    ordered(ua,uaO).forEach(c=>rows.push(mk('   '+c,ua[c],'sub')));
+    rows.push(mk('Total',gT,'total'));
+    return rows;
+  }
+  function writeResumo(wb,vendors){
+    const ws=wb.addWorksheet('Resumo');
+    const H=['Vendedor','Pares','Var. pares','Faturamento','PM','% FTW'];
+    const FMT={2:'#,##0',3:'0.0%',4:'R$ #,##0',5:'R$ #,##0',6:'0.0%'};
+    H.forEach((h,i)=>{ const c=ws.getCell(1,i+1); c.value=h;
+      c.font={name:'Arial',size:11,bold:true,color:{argb:'FFFFFFFF'}}; c.fill=FILL('1F4E78');
+      c.alignment={horizontal:i===0?'left':'center',vertical:'middle'}; c.border=BORD; });
+    const row=(rn,cells,isT)=>cells.forEach((val,ci)=>{ const c=ws.getCell(rn,ci+1);
+      c.value=(val===null||val===undefined)?null:val; c.font={name:'Arial',size:11,bold:isT}; c.border=BORD;
+      if(ci===0) c.alignment={horizontal:'left'};
+      else { c.alignment={horizontal:'right'}; if(FMT[ci+1]) c.numFmt=FMT[ci+1]; }
+      if(isT) c.fill=FILL('D9D9D9'); });
+    let sQ=0,sV=0,sQly=0,sFtw=0;
+    vendors.forEach((v,ri)=>{ sQ+=v.total_q; sV+=v.total_v; sQly+=v.total_q_ly; sFtw+=v.ftw;
+      row(ri+2,[v.key, v.total_q, v.total_q_ly>0?(v.total_q-v.total_q_ly)/v.total_q_ly:null,
+        v.total_v, v.total_q>0?v.total_v/v.total_q:null, v.total_v>0?v.ftw/v.total_v:null], false); });
+    row(vendors.length+2,['Total', sQ, sQly>0?(sQ-sQly)/sQly:null, sV, sQ>0?sV/sQ:null, sV>0?sFtw/sV:null], true);
+    ws.getColumn(1).width=18; ws.getColumn(2).width=12; ws.getColumn(3).width=12;
+    ws.getColumn(4).width=18; ws.getColumn(5).width=10; ws.getColumn(6).width=10;
     ws.views=[{state:'frozen',ySplit:1}];
-    return ws;
   }
+
   async function exportExcel(){
     if(!CURRENT_KEY || !PERIODS[CURRENT_KEY] || typeof ExcelJS==='undefined' || typeof XLSX==='undefined') return;
     const P=PERIODS[CURRENT_KEY];
     const src=XLSX.read(fromB64(P.b64),{type:'array'});
-    const vendors=[];
-    src.SheetNames.forEach(sn=>{ const aoa=XLSX.utils.sheet_to_json(src.Sheets[sn],{header:1,raw:true,defval:null});
-      const v=parseSheet(aoa); if(v&&v.ftw>0){ v.key=sn; v.nome=NOMES[norm(sn)]||sn; vendors.push(v); } });
-    if(!vendors.length) return;
-    const cmp=CMP_ON, ly=/^\d{4}$/.test(P.ano)?String(+P.ano-1):'ano ant.';
-    const wb=new ExcelJS.Workbook(); let fname;
-    if(CONS_ON){
-      vendorSheet(wb, aggregate(vendors), 'Consolidado', cmp, ly);
-      fname='Performance · Consolidado · '+periodLabel(P.ano,P.sem)+'.xlsx';
-    } else {
-      rankingSheet(wb, vendors, cmp, ly);
-      [...vendors].sort((a,b)=>b.ratio-a.ratio).forEach(v=> vendorSheet(wb, v, String(v.key).slice(0,31), cmp, ly));
-      fname='Performance · '+periodLabel(P.ano,P.sem)+'.xlsx';
-    }
+    const valid=[];
+    src.SheetNames.forEach(sn=>{
+      const aoa=XLSX.utils.sheet_to_json(src.Sheets[sn],{header:1,raw:true,defval:null});
+      const v=parseSheet(aoa);
+      if(v&&v.ftw>0){ v.key=sn; valid.push({sn,v,aoa}); }
+    });
+    if(!valid.length) return;
+    const wb=new ExcelJS.Workbook();
+    writeResumo(wb, valid.map(x=>x.v));
+    valid.forEach(x=> writeDetail(wb, x.sn.slice(0,31), vendorRows(x.aoa)));
+    writeDetail(wb, 'Consolidado', consolidadoRows(valid.map(x=>x.aoa)));
     const buf=await wb.xlsx.writeBuffer();
     const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='Performance · '+periodLabel(P.ano,P.sem)+'.xlsx';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1500);
   }
   const btn=document.getElementById('exportBtn');
