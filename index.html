@@ -2711,7 +2711,7 @@
     </div>
 
     <!-- Modal genérico de confirmação (reaproveitável) -->
-    <div id="confirmModal" class="hidden fixed inset-0 z-[90]">
+    <div id="confirmModal" class="hidden fixed inset-0 z-[95]">
       <div class="absolute inset-0 bg-black/50" id="confirmBackdrop"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-[420px] bg-white rounded-2xl shadow-lift overflow-hidden" style="background:var(--card-bg,#fff);color:var(--text)">
         <div class="px-5 pt-5 pb-2">
@@ -2733,7 +2733,7 @@
     </div>
 
     <!-- Modal genérico de seleção de data (reaproveitável) -->
-    <div id="datePickModal" class="hidden fixed inset-0 z-[90]">
+    <div id="datePickModal" class="hidden fixed inset-0 z-[95]">
       <div class="absolute inset-0 bg-black/50" id="datePickBackdrop"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-[380px] bg-white rounded-2xl shadow-lift overflow-hidden" style="background:var(--card-bg,#fff);color:var(--text)">
         <div class="px-5 pt-5 pb-2">
@@ -2758,7 +2758,7 @@
     </div>
 
     <!-- Modal genérico de entrada de texto (reaproveitável) -->
-    <div id="textPromptModal" class="hidden fixed inset-0 z-[90]">
+    <div id="textPromptModal" class="hidden fixed inset-0 z-[95]">
       <div class="absolute inset-0 bg-black/50" id="textPromptBackdrop"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-[400px] bg-white rounded-2xl shadow-lift overflow-hidden" style="background:var(--card-bg,#fff);color:var(--text)">
         <div class="px-5 pt-5 pb-2">
@@ -6990,6 +6990,20 @@ function flashPendingCartItems(items){
 async function openOrderExportModal(opts = {}){
   if(state.cart.size === 0){ toast("Sacola vazia ✅"); return; }
 
+  // ⚡ Sempre sincroniza a lista de prepostos com o backend antes de abrir o modal.
+  // Isso garante que o dropdown Comissionista reflete adições/edições/exclusões
+  // feitas em outros dispositivos ou anteriormente na mesma sessão.
+  try {
+    const dataPrep = await fetchPrepostos();
+    if(Array.isArray(dataPrep) && dataPrep.length > 0){
+      PrepostosMgr.lista = dataPrep;
+      _sincronizaComissionistas();
+    }
+  } catch(e){
+    console.warn("Sincronização de prepostos ao abrir modal falhou:", e);
+    // Sem bloquear: se falhou, segue com a lista em memória.
+  }
+
   // Gate de grade: só vale pra FINALIZAR pedido.
   // Quando aberto para salvar rascunho, não exige grade (rascunho pode ser completado depois).
   const modoRascunho = !!opts.paraRascunho;
@@ -8628,6 +8642,58 @@ function appConfirm(opts = {}){
 }
 
 /**
+ * Modal de sucesso premium (reusa a estrutura do confirmModal).
+ * appSuccess({ title, message, okText, autoClose }) -> Promise<void>
+ */
+function appSuccess(opts = {}){
+  return new Promise((resolve)=>{
+    const modal   = document.getElementById("confirmModal");
+    const okBtn   = document.getElementById("confirmOkBtn");
+    const cancel  = document.getElementById("confirmCancelBtn");
+    const backd   = document.getElementById("confirmBackdrop");
+    const titleEl = document.getElementById("confirmTitle");
+    const msgEl   = document.getElementById("confirmMessage");
+    const iconWrap= document.getElementById("confirmIconWrap");
+    const iconEl  = document.getElementById("confirmIcon");
+    if(!modal || !okBtn){ resolve(); return; }
+
+    titleEl.textContent = opts.title || "Concluído";
+    msgEl.innerHTML = opts.message || "Operação realizada com sucesso.";
+    okBtn.textContent = opts.okText || "OK";
+    if(cancel) cancel.classList.add("hidden");
+    iconWrap.setAttribute("style", "background:rgba(34,197,94,.14);color:#16a34a");
+    iconEl.className = "fa-solid fa-circle-check text-lg";
+    okBtn.setAttribute("style", "background:#16a34a");
+
+    modal.classList.remove("hidden");
+    setTimeout(()=> okBtn.focus(), 30);
+
+    let timer = null;
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      if(cancel) cancel.classList.remove("hidden");
+      iconWrap.setAttribute("style", "background:rgba(124,58,237,.1);color:var(--primary)");
+      iconEl.className = "fa-solid fa-circle-question text-lg";
+      okBtn.setAttribute("style", "background:var(--primary)");
+      okBtn.removeEventListener("click", onOk);
+      backd.removeEventListener("click", onOk);
+      document.removeEventListener("keydown", onKey);
+      if(timer) clearTimeout(timer);
+      resolve();
+    };
+    const onOk = () => cleanup();
+    const onKey = (e) => { if(e.key === "Escape" || e.key === "Enter") cleanup(); };
+
+    okBtn.addEventListener("click", onOk);
+    backd.addEventListener("click", onOk);
+    document.addEventListener("keydown", onKey);
+    if(opts.autoClose && opts.autoClose > 0){
+      timer = setTimeout(cleanup, opts.autoClose);
+    }
+  });
+}
+
+/**
  * Modal reutilizável para escolher uma data.
  * appDatePick({ title, message, initial, okText, cancelText }) -> Promise<string|null>
  *   resolve com a data ISO (YYYY-MM-DD) ou null se cancelar.
@@ -9892,15 +9958,18 @@ function fecharMenuConfiguracoes(){
   $("configMenuModal")?.classList.add("hidden");
   document.body.style.overflow = "";
 }
-document.getElementById("configMenuClose")?.addEventListener("click", fecharMenuConfiguracoes);
-document.getElementById("configMenuBackdrop")?.addEventListener("click", fecharMenuConfiguracoes);
-document.getElementById("btnCfgImagens")?.addEventListener("click", ()=>{
-  fecharMenuConfiguracoes();
-  abrirModalImagensCategorias();
-});
-document.getElementById("btnCfgPrepostos")?.addEventListener("click", ()=>{
-  fecharMenuConfiguracoes();
-  abrirModalPrepostos();
+// ── Delegação de eventos: funciona mesmo que o HTML dos modais seja
+//    carregado APÓS este script (é o caso aqui — script está antes do HTML).
+document.addEventListener("click", (e)=>{
+  if(e.target.closest("#configMenuClose") || e.target.closest("#configMenuBackdrop")){
+    fecharMenuConfiguracoes();
+  } else if(e.target.closest("#btnCfgImagens")){
+    fecharMenuConfiguracoes();
+    abrirModalImagensCategorias();
+  } else if(e.target.closest("#btnCfgPrepostos")){
+    fecharMenuConfiguracoes();
+    abrirModalPrepostos();
+  }
 });
 
 // ────── Prepostos: estado + API ──────
@@ -10031,7 +10100,14 @@ async function _prepostoSalvar(){
     _prepostosResetForm();
     _prepostosRender();
     _sincronizaComissionistas();
-    toast(isEdit ? "Preposto atualizado ✅" : "Preposto adicionado ✅");
+    await appSuccess({
+      title: isEdit ? "Preposto atualizado" : "Preposto cadastrado",
+      message: isEdit
+        ? `O preposto <strong>${_mpEscape(nome)}</strong> foi atualizado com sucesso.`
+        : `O preposto <strong>${_mpEscape(nome)}</strong> (código ${_mpEscape(codigo)}) foi cadastrado com sucesso.`,
+      okText: "OK",
+      autoClose: 2500
+    });
   } catch(e){
     _prepostoShowError("Erro ao salvar: " + (e.message || "verifique a conexão"));
   } finally {
@@ -10067,7 +10143,12 @@ async function _prepostoRemover(codigo){
     await savePrepostos(PrepostosMgr.lista);
     _prepostosRender();
     _sincronizaComissionistas();
-    toast("Preposto excluído ✅");
+    await appSuccess({
+      title: "Preposto excluído",
+      message: `<strong>${_mpEscape(p.nome)}</strong> foi removido da lista.`,
+      okText: "OK",
+      autoClose: 2500
+    });
   } catch(e){
     toast("Erro ao excluir: " + (e.message || "verifique a conexão"));
   }
@@ -10100,22 +10181,29 @@ function _sincronizaComissionistas(){
   }
 })();
 
-// Listeners do modal prepostos
-document.getElementById("prepostosClose")?.addEventListener("click", fecharModalPrepostos);
-document.getElementById("prepostosBackdrop")?.addEventListener("click", fecharModalPrepostos);
-document.getElementById("prepostoSaveBtn")?.addEventListener("click", _prepostoSalvar);
-document.getElementById("prepostoCancelEditBtn")?.addEventListener("click", _prepostosResetForm);
-document.getElementById("prepostoNome")?.addEventListener("keydown", (e)=>{
-  if(e.key === "Enter") _prepostoSalvar();
-});
-document.getElementById("prepostoCodigo")?.addEventListener("keydown", (e)=>{
-  if(e.key === "Enter") $("prepostoNome").focus();
-});
-document.getElementById("prepostosList")?.addEventListener("click", (e)=>{
+// Listeners do modal prepostos — via delegação (funciona antes/depois do DOM)
+document.addEventListener("click", (e)=>{
+  if(e.target.closest("#prepostosClose") || e.target.closest("#prepostosBackdrop")){
+    fecharModalPrepostos();
+  } else if(e.target.closest("#prepostoSaveBtn")){
+    _prepostoSalvar();
+  } else if(e.target.closest("#prepostoCancelEditBtn")){
+    _prepostosResetForm();
+  }
+  // Delegação da lista (editar/remover)
   const editBtn = e.target.closest("[data-prep-edit]");
   const rmBtn = e.target.closest("[data-prep-remove]");
-  if(editBtn) _prepostoIniciarEdicao(editBtn.getAttribute("data-prep-edit"));
-  if(rmBtn) _prepostoRemover(rmBtn.getAttribute("data-prep-remove"));
+  if(editBtn && document.getElementById("prepostosList")?.contains(editBtn)){
+    _prepostoIniciarEdicao(editBtn.getAttribute("data-prep-edit"));
+  }
+  if(rmBtn && document.getElementById("prepostosList")?.contains(rmBtn)){
+    _prepostoRemover(rmBtn.getAttribute("data-prep-remove"));
+  }
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key !== "Enter") return;
+  if(e.target.id === "prepostoNome"){ _prepostoSalvar(); }
+  else if(e.target.id === "prepostoCodigo"){ document.getElementById("prepostoNome")?.focus(); }
 });
 
 function abrirModalImagensCategorias(){
@@ -11516,17 +11604,17 @@ loadCatalog({ cacheBust:false });
 <div id="configMenuModal" class="hidden fixed inset-0 z-[91]">
   <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="configMenuBackdrop"></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-    <div class="ci-sheet" style="max-width:520px">
-      <div class="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border">
+    <div class="ci-sheet" style="max-width:520px;background:var(--card-bg,#fff);border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)">
+      <div class="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border" style="background:var(--card-bg,#fff);color:var(--text,#0F172A)">
         <div>
-          <div class="text-[10px] font-bold uppercase tracking-[.18em] text-oly-muted">Área restrita</div>
-          <div class="text-lg sm:text-xl font-extrabold text-oly-text">Configurações</div>
+          <div class="text-[10px] font-bold uppercase tracking-[.18em]" style="color:var(--muted,#6B7280)">Área restrita</div>
+          <div class="text-lg sm:text-xl font-extrabold" style="color:var(--text,#0F172A)">Configurações</div>
         </div>
         <button id="configMenuClose" type="button" class="focus-ring h-10 w-10 rounded-full border border-oly-border hover:bg-oly-bg" title="Fechar" aria-label="Fechar">
           <i class="fa-solid fa-xmark text-oly-blue"></i>
         </button>
       </div>
-      <div class="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4" style="background:var(--card-bg,#fff)">
         <button id="btnCfgImagens" type="button" class="focus-ring text-left rounded-2xl border border-oly-border bg-white hover:bg-oly-bg p-5 transition">
           <div class="h-12 w-12 rounded-2xl flex items-center justify-center mb-3" style="background:linear-gradient(140deg,#F8FAFC 0%,#EFF6FF 55%,#DBEAFE 100%);box-shadow:0 1px 2px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.6);">
             <i class="fa-solid fa-images" style="color:#1d4ed8;font-size:20px"></i>
@@ -11550,17 +11638,17 @@ loadCatalog({ cacheBust:false });
 <div id="prepostosModal" class="hidden fixed inset-0 z-[92]">
   <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="prepostosBackdrop"></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-    <div class="ci-sheet" style="max-width:560px">
-      <div class="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border">
+    <div class="ci-sheet" style="max-width:560px;background:var(--card-bg,#fff);border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)">
+      <div class="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border" style="background:var(--card-bg,#fff);color:var(--text,#0F172A)">
         <div>
-          <div class="text-[10px] font-bold uppercase tracking-[.18em] text-oly-muted">Cadastro</div>
-          <div class="text-lg sm:text-xl font-extrabold text-oly-text">Prepostos</div>
+          <div class="text-[10px] font-bold uppercase tracking-[.18em]" style="color:var(--muted,#6B7280)">Cadastro</div>
+          <div class="text-lg sm:text-xl font-extrabold" style="color:var(--text,#0F172A)">Prepostos</div>
         </div>
         <button id="prepostosClose" type="button" class="focus-ring h-10 w-10 rounded-full border border-oly-border hover:bg-oly-bg" title="Fechar" aria-label="Fechar">
           <i class="fa-solid fa-xmark text-oly-blue"></i>
         </button>
       </div>
-      <div class="ci-body">
+      <div class="ci-body" style="background:var(--card-bg,#fff)">
         <!-- Formulário de adicionar/editar -->
         <div class="rounded-2xl border border-oly-border bg-oly-bg p-4 mb-4">
           <div class="text-[11px] font-bold uppercase tracking-[.14em] text-oly-muted mb-2" id="prepostoFormLabel">Novo preposto</div>

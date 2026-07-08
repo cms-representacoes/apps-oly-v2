@@ -152,7 +152,7 @@
   .tag.m612{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange)}
   .tag.m12{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
   /* resumo por cliente (matriz de categorias) */
-  .rsm-head,.rsm-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2.3fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr);gap:10px;align-items:center}
+  .rsm-head,.rsm-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2.3fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr);gap:10px;align-items:center}
   .rsm-head>div,.rsm-row>div{min-width:0}
   .rsm-row .c-cli,.rsm-row .c-cod,.rsm-row .c-can{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rsm-head{position:sticky;top:var(--toph);z-index:5;background:var(--card);padding:10px 0;border-bottom:2px solid var(--line);font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--navy);white-space:nowrap}
@@ -176,7 +176,7 @@
     .vfreeze,.rsm-head{position:static}
     .vfreeze,.rtable,.rrow{min-width:760px}
     .rsmwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-    .rsm-head,.rsm-row{min-width:820px}
+    .rsm-head,.rsm-row{min-width:740px}
   }
 </style>
 </head>
@@ -287,8 +287,7 @@ function toB64(u8){ let bin='',CH=0x8000; for(let i=0;i<u8.length;i+=CH){bin+=St
 function fromB64(b64){ const bin=atob(String(b64||'').replace(/\s/g,'')); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i); return u8; }
 function fmtWhen(iso){ try{ const d=new Date(iso); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return ''; } }
 
-const OLY_CATS=['Tênis','Acessórios','Chinelo','Meia','Vestuário']; // categorias Olympikus (Campanha 360 e "Compr.")
-const CAT_ORDER=[...OLY_CATS,'Under Armour'];                        // exibição: as 5 + Under Armour
+const CAT_ORDER=['Tênis','Acessórios','Chinelo','Meia','Vestuário'];
 let VIEW='vendedor';
 const fmtH=n=>(!n)?'—':Number(n).toLocaleString('pt-BR');
 function catFromName(name){
@@ -298,7 +297,6 @@ function catFromName(name){
   if(n.includes('chinelo')) return 'Chinelo';
   if(n.includes('meia')) return 'Meia';
   if(n.includes('vestuario')) return 'Vestuário';
-  if(n.includes('under')||n.includes('armour')) return 'Under Armour';
   return null;
 }
 // recência -> rótulo/classe/severidade
@@ -461,7 +459,7 @@ function computeCli360(){
   const m={};
   DATA.forEach(d=>{ const k=cliKey(d); if(!m[k])m[k]={}; m[k][d.cat]=(m[k][d.cat]||0)+d.s2; });
   CLI360=new Set();
-  for(const k in m){ if(OLY_CATS.every(c=>(m[k][c]||0)>0)) CLI360.add(k); }
+  for(const k in m){ if(CATS.every(c=>(m[k][c]||0)>0)) CLI360.add(k); }
 }
 
 // ---- controles ----
@@ -639,7 +637,7 @@ function renderResumo(){
   let arr=Object.values(map);
   if(F.f360) arr=arr.filter(r=>CLI360.has(r.cod||r.cli));
   arr.forEach(r=>{
-    r.compradas=OLY_CATS.filter(c=>r.cats[c]&&qof(r.cats[c])>0).length;
+    r.compradas=CAT_ORDER.filter(c=>r.cats[c]&&qof(r.cats[c])>0).length;
     r.totalQ=CAT_ORDER.reduce((s,c)=>s+qof(r.cats[c]),0);
     r.is360=CLI360.has(r.cod||r.cli);
   });
@@ -652,7 +650,7 @@ function renderResumo(){
   const so1=arr.filter(r=>r.compradas===1).length;
   document.getElementById('catsum').innerHTML=
     kpi('Clientes na carteira',fmtN(tc),'somando as categorias','var(--ftw)')+
-    kpi('Campanha 360',fmtN(s360),'compram as '+OLY_CATS.length+' no '+semLab,'#7C3AED')+
+    kpi('Campanha 360',fmtN(s360),'compram as 5 no 2S26','#7C3AED')+
     kpi('Compram 1 só ('+semLab+')',fmtN(so1),'oportunidade de cross-sell','var(--amber)');
 
   let html='<p class="rcaption">Pares do '+semLab+' por categoria · cor = recência · "—" = não está naquela categoria</p><div class="rsmwrap"><div class="rsm-head"><div>Código</div><div>Cliente</div><div>Vendedor</div>'+
@@ -661,7 +659,7 @@ function renderResumo(){
   arr.forEach(r=>{
     html+='<div class="rsm-row"><div class="c-cod">'+(r.cod||'—')+'</div><div class="c-cli">'+r.cli+'</div><div class="c-can">'+vendName(r.vend)[0]+'</div>'+
       CAT_ORDER.map(c=>'<div class="ctr">'+catCell(r.cats[c],sem)+'</div>').join('')+
-      '<div class="ativas">'+r.compradas+'/'+OLY_CATS.length+'</div></div>';
+      '<div class="ativas">'+r.compradas+'/5</div></div>';
   });
   html+='</div>';
   document.getElementById('report').innerHTML=html;
