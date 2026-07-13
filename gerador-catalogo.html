@@ -446,7 +446,12 @@ async function processarArquivo(file){
       // colunas extras do formato grupo_ideal (não são tamanho)
       "NOME FANTASIA","CODIGO","CÓDIGO","PORTA","MARCA",
       "FABRICA","FÁBRICA","FILIAL","NF","OC","GCI",
-      "FAT","DATA FAT","STATUS 1","STATUS 2","STATUS 3"
+      "FAT","DATA FAT","STATUS 1","STATUS 2","STATUS 3",
+      // colunas extras do formato "REPASSES" (relatório de repasse Talentus)
+      "CLIENTE","RAZÃO","RAZAO","RAZÃO SOCIAL","RAZAO SOCIAL","CNPJ",
+      "CIDADE","EMPRESA","COND. PAG","COND PAG","PRAZO",
+      "CAMPANHA COMERCIAL","ENC.GCI","ENC.EBM","ENCGCI","ENCEBM",
+      "PREPOSTO","ARTIGO","GRADE","FAIXA","TOTAL DE PARES","AÇÃO","ACAO","OBS"
     ]);
     const colsTam = Object.keys(json[0]).filter(k =>
       !CONHECIDAS.has(String(k).trim().toUpperCase())
@@ -455,18 +460,23 @@ async function processarArquivo(file){
     // Detecta quais colunas extras a planilha tem
     const keysUC = Object.keys(json[0]).map(k => String(k).trim().toUpperCase());
     temColuna.marca   = keysUC.includes("MARCA");
-    temColuna.porta   = keysUC.includes("PORTA");
-    temColuna.cliente = keysUC.includes("CODIGO") || keysUC.includes("CÓDIGO");
+    temColuna.porta   = keysUC.includes("PORTA") || keysUC.includes("EMPRESA");
+    temColuna.cliente = keysUC.includes("CODIGO") || keysUC.includes("CÓDIGO") || keysUC.includes("CLIENTE");
     nomesClientes.clear();
 
     // Lê linhas da carteira
     const linhas = [];
     for(const r of json){
-      const ref = String(r["REFERENCIA"] ?? r["Referencia"] ?? r["REFERÊNCIA"] ?? r["referencia"] ?? "").trim();
-      const desc = String(r["DESCRICAO"] ?? r["Descricao"] ?? r["DESCRIÇÃO"] ?? r["descricao"] ?? "").trim();
+      const ref = String(r["REFERENCIA"] ?? r["Referencia"] ?? r["REFERÊNCIA"] ?? r["referencia"]
+        ?? r["Artigo"] ?? r["ARTIGO"] ?? r["artigo"] ?? "").trim();
+      const desc = String(r["DESCRICAO"] ?? r["Descricao"] ?? r["DESCRIÇÃO"] ?? r["descricao"]
+        ?? r["descrição"] ?? r["Descrição"] ?? "").trim();
       const cor = String(r["COR"] ?? r["Cor"] ?? r["cor"] ?? "").trim();
       const fatRaw = r["PREV FAT"] ?? r["Prev.fat."] ?? r["Prev Fat"] ?? r["PREVFAT"] ?? r["prev fat"] ?? "";
-      const cart = Number(r["CART"] ?? r["Cart"] ?? r["cart"] ?? 0) || 0;
+      // CART: em relatórios de repasse (formato "REPASSES") não existe coluna CART,
+      // a quantidade total vem em "Total de pares"
+      const cart = Number(r["CART"] ?? r["Cart"] ?? r["cart"]
+        ?? r["Total de pares"] ?? r["TOTAL DE PARES"] ?? r["total de pares"] ?? 0) || 0;
       if(!ref) continue;
       const fat = excelDateToJS(fatRaw);
       // grade: { tamanho → qtd }, ignora vazios/zeros
@@ -475,11 +485,17 @@ async function processarArquivo(file){
         const q = Number(r[ct]) || 0;
         if(q > 0) grade.push({ tam:String(ct).trim(), qtd:q });
       }
-      // colunas extras (formato grupo_ideal)
+      // colunas extras (formato grupo_ideal / formato REPASSES)
       const marca   = String(r["MARCA"] ?? r["Marca"] ?? r["marca"] ?? "").trim();
-      const porta   = String(r["PORTA"] ?? r["Porta"] ?? r["porta"] ?? "").trim();
-      const cliente = String(r["CODIGO"] ?? r["Codigo"] ?? r["CÓDIGO"] ?? r["código"] ?? r["codigo"] ?? "").trim();
-      const nomeFant= String(r["NOME FANTASIA"] ?? r["Nome Fantasia"] ?? r["nome fantasia"] ?? "").trim();
+      // PORTA (grupo_ideal) ou EMPRESA (repasses) = loja/filial do pedido
+      const porta   = String(r["PORTA"] ?? r["Porta"] ?? r["porta"]
+        ?? r["Empresa"] ?? r["EMPRESA"] ?? r["empresa"] ?? "").trim();
+      // CODIGO (grupo_ideal) ou CLIENTE (repasses) = código do cliente
+      const cliente = String(r["CODIGO"] ?? r["Codigo"] ?? r["CÓDIGO"] ?? r["código"] ?? r["codigo"]
+        ?? r["Cliente"] ?? r["CLIENTE"] ?? r["cliente"] ?? "").trim();
+      // NOME FANTASIA (grupo_ideal) ou Razão Social (repasses) = nome do cliente
+      const nomeFant= String(r["NOME FANTASIA"] ?? r["Nome Fantasia"] ?? r["nome fantasia"]
+        ?? r["Razão Social"] ?? r["RAZÃO SOCIAL"] ?? r["razão social"] ?? r["Razao Social"] ?? "").trim();
       if(cliente && nomeFant && !nomesClientes.has(cliente)){
         nomesClientes.set(cliente, nomeFant);
       }
