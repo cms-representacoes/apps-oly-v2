@@ -472,7 +472,7 @@ async function processarArquivo(file){
       const desc = String(r["DESCRICAO"] ?? r["Descricao"] ?? r["DESCRIÇÃO"] ?? r["descricao"]
         ?? r["descrição"] ?? r["Descrição"] ?? "").trim();
       const cor = String(r["COR"] ?? r["Cor"] ?? r["cor"] ?? "").trim();
-      const fatRaw = r["PREV FAT"] ?? r["Prev.fat."] ?? r["Prev Fat"] ?? r["PREVFAT"] ?? r["prev fat"] ?? "";
+      const fatRaw = r["PREV FAT"] ?? r["Prev.fat."] ?? r["Prev Fat"] ?? r["Prev fat"] ?? r["PREVFAT"] ?? r["prev fat"] ?? "";
       // CART: em relatórios de repasse (formato "REPASSES") não existe coluna CART,
       // a quantidade total vem em "Total de pares"
       const cart = Number(r["CART"] ?? r["Cart"] ?? r["cart"]
