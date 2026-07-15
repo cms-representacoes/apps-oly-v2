@@ -220,7 +220,7 @@ let mostrarResolvidos = false;
 let pendingUploadTarget = null; // { artigo, cor, row }
 
 function $(id){ return document.getElementById(id); }
-function imgUrl(artigo, cor){ return IMG_BASE + encodeURIComponent(artigo) + '_' + encodeURIComponent(cor) + '.jpg'; }
+function imgUrl(artigo, cor){ const corArquivo = String(cor || '').replace(/\//g, '_'); return IMG_BASE + encodeURIComponent(artigo) + '_' + encodeURIComponent(corArquivo) + '.jpg'; }
 function fmtData(iso){
   if(!iso) return null;
   const d = new Date(iso);

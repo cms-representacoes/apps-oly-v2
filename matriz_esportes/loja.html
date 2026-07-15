@@ -358,7 +358,8 @@ function toast(msg, isErr){
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 function imgUrl(artigo, cor){
-  return IMG_BASE + encodeURIComponent(artigo) + '_' + encodeURIComponent(cor) + '.jpg';
+  const corArquivo = String(cor || '').replace(/\//g, '_');
+  return IMG_BASE + encodeURIComponent(artigo) + '_' + encodeURIComponent(corArquivo) + '.jpg';
 }
 function fmtData(iso){
   if(!iso) return null;
