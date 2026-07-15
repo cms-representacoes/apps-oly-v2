@@ -52,6 +52,9 @@
   .kpi{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:12px;padding:12px 18px;min-width:140px;animation:kpiGlow 2.6s ease-in-out infinite}
   .kpi .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
   .kpi .v{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:700;margin-top:2px;color:var(--purple)}
+  .kpi-sub{font-size:11.5px;color:var(--mute);margin-top:4px}
+  .kpi-sub b.est{color:var(--purple);font-weight:700}
+  .kpi-sub b.venda{color:var(--green);font-weight:700}
   .kpi.venda .v{color:var(--green)}
   .kpi.venda{border-color:color-mix(in srgb,var(--green) 45%,var(--line))}
   .kpi.venda{animation-name:kpiGlowGreen}
@@ -173,6 +176,10 @@
   .cf-box h2{font-family:"Space Grotesk",sans-serif;font-size:17px;margin:0 0 8px}
   .cf-box p{font-size:13.5px;color:var(--slate);margin:0}
   .cf-box .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+  .np-item{padding:7px 0;border-bottom:1px solid var(--line-2);font-size:12.5px}
+  .np-item:last-child{border-bottom:none}
+  .np-item b{font-family:"Space Grotesk",sans-serif;font-weight:600;color:var(--ink)}
+  .np-item span{color:var(--mute)}
 
   .zoom-bg{position:fixed;inset:0;background:rgba(10,14,22,.75);display:flex;align-items:center;justify-content:center;z-index:120;padding:30px}
   .zoom-bg[hidden]{display:none}
@@ -230,8 +237,8 @@
 
   <div class="stickybar">
     <div class="kpis">
-      <div class="kpi"><div class="l">Estoque total</div><div class="v tnum" id="kpiEstoque">0</div></div>
-      <div class="kpi venda"><div class="l">Venda total</div><div class="v tnum" id="kpiVenda">0</div></div>
+      <div class="kpi"><div class="l">Estoque total</div><div class="v tnum" id="kpiEstoque">0</div><div class="kpi-sub">Todas as categorias: <b id="kpiEstoqueGeral" class="est">0</b></div></div>
+      <div class="kpi venda"><div class="l">Venda total</div><div class="v tnum" id="kpiVenda">0</div><div class="kpi-sub">Todas as categorias: <b id="kpiVendaGeral" class="venda">0</b></div></div>
     </div>
     <div class="searchwrap">
       <input class="search" id="search" type="text" placeholder="Buscar por descrição, cor ou artigo…">
@@ -325,6 +332,18 @@
     <div class="actions">
       <button class="btn" id="cfCancel" type="button">Cancelar</button>
       <button class="btn primary" id="cfOk" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="cf-bg" id="naoPreenchidoBg" hidden>
+  <div class="cf-box" style="max-width:460px">
+    <h2>Alguns produtos parecem sem preenchimento</h2>
+    <p>Estes itens estão com estoque e venda em zero — confira se está certo antes de enviar:</p>
+    <div id="naoPreenchidoLista" style="max-height:220px;overflow-y:auto;margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:6px 10px"></div>
+    <div class="actions">
+      <button class="btn" id="naoPreenchidoRevisar" type="button">Revisar</button>
+      <button class="btn primary" id="naoPreenchidoEnviar" type="button">Enviar mesmo assim</button>
     </div>
   </div>
 </div>
@@ -485,6 +504,7 @@ function renderItems(){
   filtered.forEach(it => { estoqueTotal += Number(it.estoqueAtual)||0; vendaTotal += Number(it.venda)||0; });
   $('kpiEstoque').textContent = estoqueTotal;
   $('kpiVenda').textContent = vendaTotal;
+  updateKpisGerais();
 
   if(STATE.view === 'grade'){
     $('grid').style.display = ''; $('list').style.display = 'none';
@@ -493,6 +513,16 @@ function renderItems(){
     $('grid').style.display = 'none'; $('list').style.display = '';
     renderList(filtered);
   }
+}
+
+function updateKpisGerais(){
+  if(!STATE.loja) return;
+  let estoqueGeral = 0, vendaGeral = 0;
+  Object.values(STATE.loja.marcas || {}).forEach(itens => {
+    itens.forEach(it => { estoqueGeral += Number(it.estoqueAtual)||0; vendaGeral += Number(it.venda)||0; });
+  });
+  $('kpiEstoqueGeral').textContent = estoqueGeral;
+  $('kpiVendaGeral').textContent = vendaGeral;
 }
 
 function qtyRow(cls, value){
@@ -655,6 +685,7 @@ function wireItemCards(nodes, itens){
     function commit(){
       item.estoqueAtual = Math.max(0, Number(estInput.value) || 0);
       item.venda = Math.max(0, Number(vndInput.value) || 0);
+      item.atualizadoEm = new Date().toISOString();
       estInput.value = item.estoqueAtual; vndInput.value = item.venda;
       markDirty(id, card);
       recomputeKpis();
@@ -694,6 +725,7 @@ function recomputeKpis(){
   filtered.forEach(it => { estoqueTotal += Number(it.estoqueAtual)||0; vendaTotal += Number(it.venda)||0; });
   $('kpiEstoque').textContent = estoqueTotal;
   $('kpiVenda').textContent = vendaTotal;
+  updateKpisGerais();
 }
 
 function markDirty(id, card){
@@ -779,7 +811,33 @@ $('searchClear').onclick = () => { $('search').value = ''; $('searchClear').clas
 $('viewGrade').onclick = () => { STATE.view = 'grade'; $('viewGrade').classList.add('on'); $('viewLista').classList.remove('on'); renderItems(); };
 $('viewLista').onclick = () => { STATE.view = 'lista'; $('viewLista').classList.add('on'); $('viewGrade').classList.remove('on'); renderItems(); };
 
-$('saveBtn').onclick = () => saveNow('manual');
+function getItensNaoPreenchidos(){
+  if(!STATE.loja) return [];
+  const lista = [];
+  Object.entries(STATE.loja.marcas || {}).forEach(([marca, itens]) => {
+    itens.forEach(it => {
+      if((Number(it.estoqueAtual)||0) === 0 && (Number(it.venda)||0) === 0 && !STATE.flagged.has(it.id)){
+        lista.push({ marca, item: it });
+      }
+    });
+  });
+  return lista;
+}
+
+$('saveBtn').onclick = () => {
+  const naoPreenchidos = getItensNaoPreenchidos();
+  if(naoPreenchidos.length > 0){
+    $('naoPreenchidoLista').innerHTML = naoPreenchidos.map(({marca, item}) => `
+      <div class="np-item"><b>${item.descricao} — ${item.cor}</b><br><span>${MARCA_LABELS[marca] || marca} · Artigo ${item.artigo}</span></div>
+    `).join('');
+    $('naoPreenchidoBg').hidden = false;
+  }else{
+    saveNow('manual');
+  }
+};
+$('naoPreenchidoRevisar').onclick = () => { $('naoPreenchidoBg').hidden = true; };
+$('naoPreenchidoBg').addEventListener('click', e => { if(e.target === $('naoPreenchidoBg')) $('naoPreenchidoBg').hidden = true; });
+$('naoPreenchidoEnviar').onclick = () => { $('naoPreenchidoBg').hidden = true; saveNow('manual'); };
 
 function buildCatalogoGlobal(lojas){
   const porMarca = {};

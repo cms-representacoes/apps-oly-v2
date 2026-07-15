@@ -105,6 +105,8 @@
   .vend.open .vbody{display:block}
   .marcafilter{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
   .mchip{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--slate);cursor:pointer}
+  .mchip.semimg{margin-left:auto;border-color:color-mix(in srgb,var(--red) 35%,var(--line));color:var(--red)}
+  .mchip.semimg.on{background:var(--red);color:#fff;border-color:var(--red)}
   .mchip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
 
   .bulkbar{display:none;align-items:center;gap:10px;background:color-mix(in srgb,var(--red) 8%,transparent);border:1px solid color-mix(in srgb,var(--red) 30%,var(--line));border-radius:10px;padding:10px 14px;margin-bottom:12px}
@@ -118,6 +120,9 @@
   .rrow{display:contents;font-size:13px}
   .rrow.selected > *{background:color-mix(in srgb,var(--purple) 10%,var(--card))}
   .rrow.selected .thumb{box-shadow:0 0 0 2px var(--purple)}
+  .rrow-updated > *{background:color-mix(in srgb,var(--green) 8%,var(--card))}
+  .rrow-updated .thumb{box-shadow:0 0 0 2px var(--green)}
+  .tag-recente{display:inline-block;background:var(--green);color:#fff;font-family:"Space Grotesk",sans-serif;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;margin-right:7px;vertical-align:middle}
   .rdiv{grid-column:1/-1;height:1px;background:var(--line-2)}
   input[type=checkbox]{width:16px;height:16px;accent-color:var(--red);cursor:pointer}
   .rrow .thumb{position:relative;width:108px;height:108px;background:var(--line-2);border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;cursor:zoom-in}
@@ -382,9 +387,24 @@ function renderPendentes(){
 
   $('pendToggleWrap').innerHTML = resolvidosNaLista ? `
     <button class="pfchip" id="pendToggleResolvidos" style="margin-bottom:14px">${mostrarResolvidos ? '▾ Ocultar resolvidos' : '▸ Mostrar resolvidos'} (${resolvidosNaLista})</button>
+    ${mostrarResolvidos ? `<button class="pfchip" id="pendLimparHistorico" style="margin-bottom:14px;margin-left:8px;color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))">🗑 Limpar histórico</button>` : ''}
   ` : '';
   const toggleBtn = $('pendToggleResolvidos');
   if(toggleBtn) toggleBtn.onclick = () => { mostrarResolvidos = !mostrarResolvidos; renderPendentes(); };
+  const limparBtn = $('pendLimparHistorico');
+  if(limparBtn) limparBtn.onclick = async () => {
+    const ok = await askConfirm('Limpar histórico de pendências', `Isso vai apagar definitivamente o histórico de ${resolvidosNaLista} pendência(s) já resolvida(s). As pendências ainda em aberto não são afetadas. Confirma?`, 'Limpar histórico');
+    if(!ok) return;
+    limparBtn.disabled = true;
+    try{
+      await callWorker({ action: 'limparHistoricoMatriz' });
+      mostrarResolvidos = false;
+      await load();
+      toast('Histórico de pendências limpo.');
+    }catch(e){
+      alert('Erro: ' + e.message);
+    }
+  };
 
   $('pendBulkWrap').innerHTML = pendAbertosNaLista.length ? `
     <div class="pendbulk" id="pendBulkBar" style="display:none">
@@ -513,6 +533,7 @@ function renderLojas(){
       <div class="vbody">
         <div class="marcafilter" id="mf-${i}">
           ${marcas.map((m,mi) => `<button class="mchip ${mi===0?'on':''}" data-marca="${m}" title="Ver produtos de ${MARCA_LABELS[m]||m}">${MARCA_LABELS[m]||m}</button>`).join('')}
+          <button class="mchip semimg" id="semimg-${i}" title="Mostrar só produtos sem imagem cadastrada">📷 Sem imagem</button>
         </div>
         <div class="bulkbar" id="bulk-${i}">
           <input type="checkbox" id="selall-${i}">
@@ -537,13 +558,38 @@ function renderLojas(){
       }
       updateStickyOffsets();
     };
-    $('mf-'+i).querySelectorAll('.mchip').forEach(chip => {
+    $('mf-'+i).querySelectorAll('.mchip:not(.semimg)').forEach(chip => {
       chip.onclick = () => {
-        $('mf-'+i).querySelectorAll('.mchip').forEach(c => c.classList.remove('on'));
+        $('mf-'+i).querySelectorAll('.mchip:not(.semimg)').forEach(c => c.classList.remove('on'));
         chip.classList.add('on');
+        $('semimg-'+i).classList.remove('on');
         renderTabelaLoja(i, l, chip.dataset.marca);
       };
     });
+    $('semimg-'+i).onclick = async () => {
+      const btn = $('semimg-'+i);
+      const marcaAtual = $('mf-'+i).querySelector('.mchip.on:not(.semimg)').dataset.marca;
+      if(btn.classList.contains('on')){
+        btn.classList.remove('on');
+        btn.textContent = '📷 Sem imagem';
+        renderTabelaLoja(i, l, marcaAtual);
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '⏳ Verificando…';
+      const itens = (l.marcas[marcaAtual] || []);
+      const semImg = [];
+      await Promise.all(itens.map(it => new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => { semImg.push(it); resolve(); };
+        img.src = imgUrl(it.artigo, it.cor);
+      })));
+      btn.disabled = false;
+      btn.classList.add('on');
+      btn.textContent = `📷 Sem imagem (${semImg.length})`;
+      renderTabelaLoja(i, l, marcaAtual, semImg);
+    };
   });
 
   $('lojasList').querySelectorAll('[data-copy]').forEach(btn => {
@@ -554,21 +600,24 @@ function renderLojas(){
   });
 }
 
-function renderTabelaLoja(i, loja, marca){
-  const itens = (loja.marcas[marca] || []);
+function renderTabelaLoja(i, loja, marca, itensOverride){
+  const itens = itensOverride || (loja.marcas[marca] || []);
+  const agora = Date.now();
   $('rt-'+i).innerHTML = `
     <div class="rhead rgrid-cols">
       <input type="checkbox" id="rowselall-${i}">
       <div>Imagem</div><div>Produto</div><div>Artigo</div><div>Cor</div><div class="tnum">Venda</div><div class="tnum">Estoque</div><div>Ações</div>
     </div>
     <div class="rtable-grid rgrid-cols">
-    ${itens.map(it => `
-      <div class="rrow" data-id="${it.id}">
+    ${itens.map(it => {
+      const recente = it.atualizadoEm && (agora - new Date(it.atualizadoEm).getTime()) < 24*60*60*1000;
+      return `
+      <div class="rrow ${recente?'rrow-updated':''}" data-id="${it.id}">
         <input type="checkbox" class="row-check" data-id="${it.id}">
         <div class="thumb" data-artigo="${it.artigo}" data-cor="${it.cor}" data-cap="${it.descricao} · ${it.cor} · Artigo ${it.artigo}" title="Clique para ampliar">
           <img src="${imgUrl(it.artigo,it.cor)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=&quot;ph&quot;>Sem imagem</span>'">
         </div>
-        <div class="desccell">${it.descricao}</div>
+        <div class="desccell">${recente ? '<span class="tag-recente">✓ Atualizado</span>' : ''}${it.descricao}</div>
         <div class="tnum">${it.artigo}</div>
         <div class="cor">${it.cor}</div>
         <div class="tnum">${it.venda ?? 0}</div>
@@ -579,7 +628,8 @@ function renderTabelaLoja(i, loja, marca){
         </div>
       </div>
       <div class="rdiv"></div>
-    `).join('')}
+    `;
+    }).join('')}
     </div>
 
   `;
