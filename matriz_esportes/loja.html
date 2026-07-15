@@ -94,6 +94,10 @@
   .item .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
   .item.dirty{border:2px solid var(--purple);box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 16%,transparent);background:color-mix(in srgb,var(--purple) 4%,var(--card))}
   .badge-updated{position:absolute;top:8px;left:8px;background:var(--green);color:#fff;font-family:"Space Grotesk",sans-serif;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;z-index:2;display:flex;align-items:center;gap:3px}
+  .badge-flagged{position:absolute;top:8px;right:8px;background:var(--red);color:#fff;font-family:"Space Grotesk",sans-serif;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:2;cursor:pointer;border:none;display:flex;align-items:center;gap:4px}
+  .badge-flagged:hover{filter:brightness(1.08)}
+  .litem .badge-flagged{position:static;margin-left:8px}
+  .item.selected,.litem.selected{outline:2px solid var(--navy);outline-offset:2px}
 
   .qty label{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--purple);display:block;margin-bottom:5px}
   .qty-row{display:flex;align-items:stretch;border:1.5px solid color-mix(in srgb,var(--purple) 35%,var(--line));border-radius:8px;overflow:hidden;background:var(--purple-soft)}
@@ -326,7 +330,7 @@ const MARCA_LABELS = { 'OLY FTW': 'Olympikus Tênis', 'OLY CHI': 'Olympikus Chin
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || '';
 
-let STATE = { loja: null, marcaAtiva: null, dirty: new Set(), view: 'grade', flagged: new Set(), synced: new Set(), catalogoGlobal: {} };
+let STATE = { loja: null, marcaAtiva: null, dirty: new Set(), view: 'grade', flagged: new Set(), synced: new Set(), catalogoGlobal: {}, preFlagValues: new Map() };
 
 function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); localStorage.setItem('matriz-theme', t); }
 (function initTheme(){
@@ -491,8 +495,13 @@ function qtyRow(cls, value){
 }
 
 function flagBtnHtml(it){
-  const flagged = STATE.flagged.has(it.id);
-  return `<button type="button" class="flagbtn" data-flag="${it.id}" ${flagged?'disabled':''} title="${flagged ? 'A CMS já foi avisada' : 'Avisar que este produto não existe na sua loja'}">${flagged ? 'Já sinalizado — aguardando CMS' : 'Não tenho esse produto'}</button>`;
+  if(STATE.flagged.has(it.id)) return '';
+  return `<button type="button" class="flagbtn" data-flag="${it.id}" title="Avisar que este produto não existe na sua loja">Não tenho esse produto</button>`;
+}
+
+function badgeFlaggedHtml(it){
+  if(!STATE.flagged.has(it.id)) return '';
+  return `<button type="button" class="badge-flagged" data-unflag="${it.id}" title="Clique para desfazer, se marcou por engano">⚠ Sinalizado — desfazer</button>`;
 }
 
 function renderGrid(filtered){
@@ -503,9 +512,11 @@ function renderGrid(filtered){
   $('grid').innerHTML = filtered.map(it => {
     const dirty = STATE.dirty.has(it.id) ? ' dirty' : '';
     const updated = (!dirty && STATE.synced.has(it.id)) ? `<span class="badge-updated">✓ Atualizado</span>` : '';
+    const flagged = badgeFlaggedHtml(it);
     return `
     <div class="item${dirty}" data-id="${it.id}">
       ${updated}
+      ${flagged}
       <div class="img"><img src="${imgUrl(it.artigo, it.cor)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;ph&quot;>Sem imagem</div>'"><button type="button" class="zoombtn" data-zoom="${it.id}" title="Ampliar imagem" aria-label="Ampliar imagem">🔍</button></div>
       <div class="body">
         <div class="desc">${it.descricao || ''}</div>
@@ -530,12 +541,13 @@ function renderList(filtered){
   $('list').innerHTML = filtered.map(it => {
     const dirty = STATE.dirty.has(it.id) ? ' dirty' : '';
     const updated = (!dirty && STATE.synced.has(it.id)) ? `<span class="badge-updated">✓ Atualizado</span>` : '';
+    const flagged = badgeFlaggedHtml(it);
     return `
     <div class="litem${dirty}" data-id="${it.id}">
       ${updated}
       <div class="img"><img src="${imgUrl(it.artigo, it.cor)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;ph&quot;>Sem imagem</div>'"><button type="button" class="zoombtn" data-zoom="${it.id}" title="Ampliar imagem" aria-label="Ampliar imagem">🔍</button></div>
       <div class="info">
-        <div class="desc">${it.descricao || ''}</div>
+        <div class="desc">${it.descricao || ''} ${flagged}</div>
         <div class="meta">${it.cor || ''} · Artigo ${it.artigo || ''}${it.preposto ? ' · Vendedor: '+it.preposto : ''}</div>
         ${flagBtnHtml(it)}
       </div>
@@ -575,7 +587,7 @@ function askConfirm(title, msg, okLabel){
 async function flagInexistente(it, btn){
   const ok = await askConfirm(
     'Produto não existe na loja?',
-    `Confirma que "${it.descricao} — ${it.cor}" não existe na sua loja? Isso vai avisar a CMS para remover esse produto da sua lista.`,
+    `Confirma que "${it.descricao} — ${it.cor}" não existe na sua loja? O estoque e a venda dele vão ser zerados, e isso vai avisar a CMS para remover esse produto da sua lista.`,
     'Sim, não existe'
   );
   if(!ok) return;
@@ -583,13 +595,43 @@ async function flagInexistente(it, btn){
   btn.textContent = 'Enviando…';
   try{
     await callWorker({ action: 'flagMatrizRemocao', token: TOKEN, marca: STATE.marcaAtiva, itemId: it.id });
+    STATE.preFlagValues.set(it.id, { estoqueAtual: it.estoqueAtual, venda: it.venda });
+    it.estoqueAtual = 0;
+    it.venda = 0;
     STATE.flagged.add(it.id);
-    btn.textContent = 'Já sinalizado — aguardando CMS';
-    toast('Produto sinalizado para remoção.');
+    STATE.dirty.add(it.id);
+    STATE.synced.delete(it.id);
+    renderItems();
+    updateSaveBar();
+    scheduleAutosave();
+    toast('Produto sinalizado — estoque e venda zerados.');
   }catch(e){
     btn.disabled = false;
     btn.textContent = 'Não tenho esse produto';
     toast('Erro ao sinalizar: ' + e.message, true);
+  }
+}
+
+async function cancelFlag(it){
+  const ok = await askConfirm(
+    'Desfazer sinalização?',
+    `Isso avisa a CMS que "${it.descricao} — ${it.cor}" existe sim na sua loja, e cancela a remoção pendente.`,
+    'Desfazer'
+  );
+  if(!ok) return;
+  try{
+    await callWorker({ action: 'cancelarMatrizRemocao', token: TOKEN, itemId: it.id });
+    STATE.flagged.delete(it.id);
+    const prev = STATE.preFlagValues.get(it.id);
+    if(prev){ it.estoqueAtual = prev.estoqueAtual; it.venda = prev.venda; STATE.preFlagValues.delete(it.id); }
+    STATE.dirty.add(it.id);
+    STATE.synced.delete(it.id);
+    renderItems();
+    updateSaveBar();
+    scheduleAutosave();
+    toast('Sinalização desfeita.');
+  }catch(e){
+    toast('Erro ao desfazer: ' + e.message, true);
   }
 }
 
@@ -622,6 +664,13 @@ function wireItemCards(nodes, itens){
     if(zoomBtn) zoomBtn.onclick = () => openZoom(item);
     const flagBtn = card.querySelector('.flagbtn');
     if(flagBtn && !flagBtn.disabled) flagBtn.onclick = () => flagInexistente(item, flagBtn);
+    const unflagBtn = card.querySelector('.badge-flagged');
+    if(unflagBtn) unflagBtn.onclick = () => cancelFlag(item);
+
+    card.addEventListener('click', e => {
+      if(e.target.closest('button, input')) return;
+      card.classList.toggle('selected');
+    });
   });
 
 }
