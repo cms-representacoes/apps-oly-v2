@@ -26,7 +26,7 @@
   .wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px}
   .tnum{font-variant-numeric:tabular-nums}
 
-  .topbar{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:20;flex-wrap:wrap}
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:22;flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:12px;min-width:0}
   .cms-logo{width:46px;height:46px;border-radius:14px;flex:none;display:grid;place-items:center;background:linear-gradient(135deg,#9B6BF0,#7C3AED);color:#fff;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:15px;box-shadow:0 4px 12px rgba(124,58,237,.25)}
   .brand-txt{display:flex;flex-direction:column;line-height:1.18;min-width:0}
@@ -35,26 +35,43 @@
   .spacer{flex:1}
   .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:9px 15px;white-space:nowrap}
   .btn.primary{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
   .btn:hover{filter:brightness(.98)}
+  .btn:disabled{opacity:.45;cursor:default}
   .theme-btn{height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 14px}
+  .iconbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--navy)}
+  .iconbtn:hover{filter:brightness(.97)}
+  .iconbtn.trash{color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
+  .iconbtn.trash:hover{background:color-mix(in srgb,var(--red) 8%,transparent)}
+  .iconbtn.upload{color:var(--purple);border-color:color-mix(in srgb,var(--purple) 35%,var(--line))}
+  .iconbtn.upload:hover{background:color-mix(in srgb,var(--purple) 8%,transparent)}
 
   .hero{padding:36px 0 24px;border-bottom:1px solid var(--line)}
   .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(24px,3.6vw,34px);letter-spacing:-.02em;margin:0 0 8px}
   .hero .lede{color:var(--slate);margin:0;font-size:14.5px}
 
-  .ksum-row{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0 0}
+  .stickykpis{position:sticky;top:var(--toph);z-index:19;background:var(--paper);padding:16px 0;border-bottom:1px solid var(--line)}
+  .ksum-row{display:flex;flex-wrap:wrap;gap:14px}
   .ksum{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 35%,var(--line));border-radius:12px;padding:14px 18px;min-width:140px;flex:1}
   .ksum .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
   .ksum .v{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;margin-top:3px;color:var(--purple)}
   .ksum.warn{border-color:color-mix(in srgb,var(--red) 45%,var(--line))}
   .ksum.warn .v{color:var(--red)}
 
-  .section-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  .section-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;margin:34px 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .section-title .badge{font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:99px;padding:2px 9px}
+
+  .pendfilter{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+  .pfchip{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
+  .pfchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  .pendbulk{display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--red) 8%,transparent);border:1px solid color-mix(in srgb,var(--red) 30%,var(--line));border-radius:10px;padding:10px 14px;margin-bottom:10px}
+  .pendbulk span{font-size:13px;color:var(--navy);flex:1}
 
   .pend{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .pend.tipo-remocao{border-left:4px solid var(--red)}
   .pend.tipo-novo{border-left:4px solid var(--purple)}
+  .pend input[type=checkbox]{width:17px;height:17px;accent-color:var(--red);flex:none}
   .pend .tag{font-family:"Space Grotesk",sans-serif;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:3px 7px;flex:none}
   .pend .tag.novo{background:color-mix(in srgb,var(--purple) 15%,transparent);color:var(--purple)}
   .pend .tag.remocao{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
@@ -85,18 +102,33 @@
 
   .vbody{display:none;margin-top:14px}
   .vend.open .vbody{display:block}
+  .marcafilter{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+  .mchip{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--slate);cursor:pointer}
+  .mchip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+  .bulkbar{display:none;align-items:center;gap:10px;background:color-mix(in srgb,var(--red) 8%,transparent);border:1px solid color-mix(in srgb,var(--red) 30%,var(--line));border-radius:10px;padding:10px 14px;margin-bottom:12px}
+  .bulkbar.show{display:flex}
+  .bulkbar span{font-size:13px;color:var(--navy);flex:1}
+
   .rtable{width:100%;overflow-x:auto}
-  .rhead,.rrow{display:grid;grid-template-columns:.9fr 2.1fr .9fr .9fr .8fr .8fr;gap:10px;align-items:center;min-width:640px}
+  .rhead,.rrow{display:grid;grid-template-columns:28px 108px 2fr .8fr .8fr .7fr .7fr 76px;gap:12px;align-items:center;min-width:760px}
   .rhead{padding:8px 0;border-bottom:2px solid var(--line);font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
-  .rrow{padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px}
-  .rrow .thumb{position:relative;width:56px;height:56px;background:var(--line-2);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:5px;cursor:zoom-in}
+  .rrow{padding:12px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  input[type=checkbox]{width:16px;height:16px;accent-color:var(--red);cursor:pointer}
+  .rrow .thumb{position:relative;width:108px;height:108px;background:var(--line-2);border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;cursor:zoom-in}
   .rrow .thumb img{width:100%;height:100%;object-fit:contain}
+  .rrow .thumb .ph{font-size:9px;color:var(--mute);font-family:"Space Grotesk",sans-serif;text-align:center}
   .rrow .desccell{display:flex;align-items:center;gap:9px}
   .rrow .cor{color:var(--purple);font-weight:600;font-size:12px}
   .rrow .tnum{text-align:right}
-  .marcafilter{display:flex;gap:8px;margin:14px 0 0;flex-wrap:wrap}
-  .mchip{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--slate);cursor:pointer}
-  .mchip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .rrow .rowacts{display:flex;gap:6px}
+
+  .cf-bg{position:fixed;inset:0;background:rgba(10,14,22,.55);display:flex;align-items:center;justify-content:center;z-index:130;padding:20px}
+  .cf-bg[hidden]{display:none}
+  .cf-box{background:var(--card);border-radius:16px;max-width:400px;width:100%;padding:24px;border:1px solid var(--line)}
+  .cf-box h2{font-family:"Space Grotesk",sans-serif;font-size:17px;margin:0 0 8px}
+  .cf-box p{font-size:13.5px;color:var(--slate);margin:0}
+  .cf-box .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
   .zoom-bg{position:fixed;inset:0;background:rgba(10,14,22,.75);display:flex;align-items:center;justify-content:center;z-index:120;padding:30px}
   .zoom-bg[hidden]{display:none}
@@ -132,15 +164,32 @@
     <p class="lede">Sellout reportado por cada loja do grupo — estoque atual e vendas, por marca e produto.</p>
   </header>
 
-  <div class="ksum-row" id="kpis"></div>
+  <div class="stickykpis"><div class="ksum-row" id="kpis"></div></div>
 
   <div class="section-title">Pendências das lojas <span class="badge" id="pendBadge" hidden>0</span></div>
+  <div class="pendfilter" id="pendFilter">
+    <button class="pfchip on" data-f="todos" title="Ver tudo">Todos</button>
+    <button class="pfchip" data-f="novo" title="Produtos que as lojas relataram fora da lista">Novo produto</button>
+    <button class="pfchip" data-f="remocao" title="Produtos que as lojas marcaram como inexistentes">Não existe</button>
+  </div>
+  <div id="pendBulkWrap"></div>
   <div id="pendList"></div>
 
   <div class="section-title" style="margin-top:38px">Lojas</div>
   <div id="lojasList"></div>
 
   <footer>Estoque Virtual · CMS Representações · ferramenta interna</footer>
+</div>
+
+<div class="cf-bg" id="cfBg" hidden>
+  <div class="cf-box">
+    <h2 id="cfTitle">Confirmar</h2>
+    <p id="cfMsg"></p>
+    <div class="actions">
+      <button class="btn" id="cfCancel" type="button">Cancelar</button>
+      <button class="btn danger" id="cfOk" type="button">Excluir</button>
+    </div>
+  </div>
 </div>
 
 <div class="zoom-bg" id="zoomBg" hidden>
@@ -151,6 +200,8 @@
   </div>
 </div>
 
+<input type="file" id="fileInput" accept="image/*" hidden>
+
 <button class="totop" id="totopBtn" type="button" title="Voltar ao topo da página">↑ Voltar ao topo</button>
 
 <script>
@@ -160,6 +211,8 @@ const LOJA_PAGE = 'loja.html';
 const MARCA_LABELS = { 'OLY FTW': 'Olympikus Tênis', 'OLY CHI': 'Olympikus Chinelo', 'UA FTW': 'Under Armour Tênis' };
 
 let DATA = { lojas: [], pendentes: [] };
+let pendFilter = 'todos';
+let pendingUploadTarget = null; // { artigo, cor, row }
 
 function $(id){ return document.getElementById(id); }
 function imgUrl(artigo, cor){ return IMG_BASE + encodeURIComponent(artigo) + '_' + encodeURIComponent(cor) + '.jpg'; }
@@ -167,6 +220,20 @@ function fmtData(iso){
   if(!iso) return null;
   const d = new Date(iso);
   return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+function toast(msg, isErr){
+  let t = $('adminToast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'adminToast';
+    t.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:11px 20px;border-radius:99px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = isErr ? 'var(--red)' : 'var(--ink)';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2800);
 }
 
 function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); localStorage.setItem('matriz-theme', t); }
@@ -193,12 +260,29 @@ window.addEventListener('scroll', () => {
 $('totopBtn').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
 function openZoom(artigo, cor, cap){
-  $('zoomImg').src = imgUrl(artigo, cor);
+  $('zoomImg').src = imgUrl(artigo, cor) + '?v=' + Date.now();
   $('zoomCap').textContent = cap;
   $('zoomBg').hidden = false;
 }
 $('zoomClose').onclick = () => { $('zoomBg').hidden = true; };
 $('zoomBg').onclick = e => { if(e.target === $('zoomBg')) $('zoomBg').hidden = true; };
+
+// ---------- modal de confirmação (mesmo padrão visual do site) ----------
+function askConfirm(title, msg, okLabel){
+  return new Promise(resolve => {
+    $('cfTitle').textContent = title;
+    $('cfMsg').textContent = msg;
+    $('cfOk').textContent = okLabel || 'Excluir';
+    $('cfBg').hidden = false;
+    const cleanup = (result) => {
+      $('cfBg').hidden = true;
+      $('cfOk').onclick = null; $('cfCancel').onclick = null;
+      resolve(result);
+    };
+    $('cfOk').onclick = () => cleanup(true);
+    $('cfCancel').onclick = () => cleanup(false);
+  });
+}
 
 async function callWorker(body){
   const res = await fetch(WORKER_URL, {
@@ -243,14 +327,37 @@ function renderKpis(){
   `;
 }
 
+// ---------- pendências ----------
+$('pendFilter').querySelectorAll('.pfchip').forEach(chip => {
+  chip.onclick = () => {
+    pendFilter = chip.dataset.f;
+    $('pendFilter').querySelectorAll('.pfchip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+    renderPendentes();
+  };
+});
+
 function renderPendentes(){
-  const pend = (DATA.pendentes || []).slice().sort((a,b) => (b.criadoEm||'').localeCompare(a.criadoEm||''));
-  const abertos = pend.filter(p => p.status === 'pendente');
+  const all = (DATA.pendentes || []).slice().sort((a,b) => (b.criadoEm||'').localeCompare(a.criadoEm||''));
+  const abertos = all.filter(p => p.status === 'pendente');
   $('pendBadge').hidden = abertos.length === 0;
   $('pendBadge').textContent = abertos.length;
 
+  const pend = pendFilter === 'todos' ? all : all.filter(p => (p.tipo || 'novo') === pendFilter);
+
+  if(pendFilter === 'remocao'){
+    $('pendBulkWrap').innerHTML = `
+      <div class="pendbulk" id="pendBulkBar" style="display:none">
+        <input type="checkbox" id="pendSelectAll">
+        <span id="pendBulkCount">0 selecionado(s)</span>
+        <button class="btn danger" id="pendBulkDelete">Confirmar remoção dos selecionados</button>
+      </div>`;
+  }else{
+    $('pendBulkWrap').innerHTML = '';
+  }
+
   if(pend.length === 0){
-    $('pendList').innerHTML = `<div class="empty">Nenhuma pendência no momento.</div>`;
+    $('pendList').innerHTML = `<div class="empty">Nenhuma pendência ${pendFilter!=='todos' ? 'deste tipo' : ''} no momento.</div>`;
     return;
   }
 
@@ -258,8 +365,10 @@ function renderPendentes(){
     const isRemocao = p.tipo === 'remocao';
     const marcaLabel = MARCA_LABELS[p.marca] || p.marca;
     const statusTxt = p.status === 'aprovado' ? (isRemocao ? 'Removido do catálogo' : 'Cadastrado') : 'Rejeitado';
+    const showCheckbox = pendFilter === 'remocao' && p.status === 'pendente';
     return `
     <div class="pend tipo-${isRemocao?'remocao':'novo'} ${p.status!=='pendente'?'resolved':''}" data-id="${p.id}">
+      ${showCheckbox ? `<input type="checkbox" class="pend-check" data-id="${p.id}">` : ''}
       <span class="tag ${isRemocao?'remocao':'novo'}">${isRemocao ? 'Não existe' : 'Novo produto'}</span>
       <div class="info">
         <b>${p.descricao} — ${p.cor}</b>
@@ -279,18 +388,53 @@ function renderPendentes(){
     btn.onclick = async () => {
       const row = btn.closest('.pend');
       const id = row.dataset.id;
+      const isRemocao = row.classList.contains('tipo-remocao');
       const status = btn.dataset.act === 'aprovar' ? 'aprovado' : 'rejeitado';
+      if(status === 'aprovado' && isRemocao){
+        const ok = await askConfirm('Remover produto do catálogo', 'Isso vai excluir este item da lista da loja de vez. Confirma?', 'Remover');
+        if(!ok) return;
+      }
       btn.closest('.acts').querySelectorAll('button').forEach(b => b.disabled = true);
       try{
         await callWorker({ action: 'resolverMatrizPendente', id, status });
         await load();
+        toast('Pendência resolvida.');
       }catch(e){
         alert('Erro: ' + e.message);
       }
     };
   });
+
+  if(pendFilter === 'remocao'){
+    const bar = $('pendBulkBar');
+    const checks = () => Array.from($('pendList').querySelectorAll('.pend-check'));
+    function updateBar(){
+      const sel = checks().filter(c => c.checked);
+      bar.style.display = sel.length ? 'flex' : 'none';
+      $('pendBulkCount').textContent = sel.length + ' selecionado(s)';
+    }
+    $('pendSelectAll').onchange = e => { checks().forEach(c => c.checked = e.target.checked); updateBar(); };
+    checks().forEach(c => c.onchange = updateBar);
+    $('pendBulkDelete').onclick = async () => {
+      const ids = checks().filter(c => c.checked).map(c => c.dataset.id);
+      if(!ids.length) return;
+      const ok = await askConfirm('Remover produtos selecionados', `Isso vai excluir ${ids.length} item(ns) do catálogo das lojas correspondentes. Confirma?`, 'Remover todos');
+      if(!ok) return;
+      $('pendBulkDelete').disabled = true;
+      try{
+        for(const id of ids){
+          await callWorker({ action: 'resolverMatrizPendente', id, status: 'aprovado' });
+        }
+        await load();
+        toast(ids.length + ' produto(s) removido(s).');
+      }catch(e){
+        alert('Erro: ' + e.message);
+      }
+    };
+  }
 }
 
+// ---------- lojas / catálogo ----------
 function renderLojas(){
   const lojas = DATA.lojas || [];
   $('lojasList').innerHTML = lojas.map((l, i) => {
@@ -316,6 +460,11 @@ function renderLojas(){
       <div class="vbody">
         <div class="marcafilter" id="mf-${i}">
           ${marcas.map((m,mi) => `<button class="mchip ${mi===0?'on':''}" data-marca="${m}" title="Ver produtos de ${MARCA_LABELS[m]||m}">${MARCA_LABELS[m]||m}</button>`).join('')}
+        </div>
+        <div class="bulkbar" id="bulk-${i}">
+          <input type="checkbox" id="selall-${i}">
+          <span id="bulkcount-${i}">0 selecionado(s)</span>
+          <button class="btn danger" id="bulkdel-${i}">Excluir selecionados</button>
         </div>
         <div class="rtable" id="rt-${i}"></div>
       </div>
@@ -347,22 +496,118 @@ function renderLojas(){
 function renderTabelaLoja(i, loja, marca){
   const itens = (loja.marcas[marca] || []);
   $('rt-'+i).innerHTML = `
-    <div class="rhead"><div>Imagem</div><div>Produto</div><div>Artigo</div><div>Cor</div><div class="tnum">Estoque</div><div class="tnum">Venda</div></div>
+    <div class="rhead">
+      <input type="checkbox" id="rowselall-${i}">
+      <div>Imagem</div><div>Produto</div><div>Artigo</div><div>Cor</div><div class="tnum">Estoque</div><div class="tnum">Venda</div><div>Ações</div>
+    </div>
     ${itens.map(it => `
-      <div class="rrow">
-        <div class="thumb" data-zoom-artigo="${it.artigo}" data-zoom-cor="${it.cor}" data-zoom-cap="${it.descricao} · ${it.cor} · Artigo ${it.artigo}" title="Clique para ampliar"><img src="${imgUrl(it.artigo,it.cor)}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=\\'font-size:9px;color:var(--mute);font-family:Space Grotesk\\'>Sem imagem</span>'"></div>
+      <div class="rrow" data-id="${it.id}">
+        <input type="checkbox" class="row-check" data-id="${it.id}">
+        <div class="thumb" data-artigo="${it.artigo}" data-cor="${it.cor}" data-cap="${it.descricao} · ${it.cor} · Artigo ${it.artigo}" title="Clique para ampliar">
+          <img src="${imgUrl(it.artigo,it.cor)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=&quot;ph&quot;>Sem imagem</span>'">
+        </div>
         <div class="desccell">${it.descricao}</div>
         <div class="tnum">${it.artigo}</div>
         <div class="cor">${it.cor}</div>
         <div class="tnum">${it.estoqueAtual ?? 0}</div>
         <div class="tnum">${it.venda ?? 0}</div>
+        <div class="rowacts">
+          <button class="iconbtn upload" data-upload="${it.id}" title="Adicionar/trocar imagem deste produto">📷</button>
+          <button class="iconbtn trash" data-del="${it.id}" title="Excluir este produto do catálogo da loja">🗑</button>
+        </div>
       </div>
     `).join('')}
   `;
+
   $('rt-'+i).querySelectorAll('.thumb').forEach(t => {
-    t.onclick = () => openZoom(t.dataset.zoomArtigo, t.dataset.zoomCor, t.dataset.zoomCap);
+    t.onclick = () => openZoom(t.dataset.artigo, t.dataset.cor, t.dataset.cap);
+  });
+
+  const checks = () => Array.from($('rt-'+i).querySelectorAll('.row-check'));
+  function updateBulk(){
+    const sel = checks().filter(c => c.checked);
+    $('bulk-'+i).classList.toggle('show', sel.length > 0);
+    $('bulkcount-'+i).textContent = sel.length + ' selecionado(s)';
+  }
+  $('rowselall-'+i).onchange = e => { checks().forEach(c => c.checked = e.target.checked); $('selall-'+i).checked = e.target.checked; updateBulk(); };
+  $('selall-'+i).onchange = e => { checks().forEach(c => c.checked = e.target.checked); $('rowselall-'+i).checked = e.target.checked; updateBulk(); };
+  checks().forEach(c => c.onchange = updateBulk);
+
+  $('bulkdel-'+i).onclick = async () => {
+    const ids = checks().filter(c => c.checked).map(c => c.dataset.id);
+    if(!ids.length) return;
+    const ok = await askConfirm('Excluir produtos selecionados', `Isso vai excluir ${ids.length} produto(s) do catálogo de ${loja.nome}. Essa ação não pode ser desfeita. Confirma?`, 'Excluir');
+    if(!ok) return;
+    $('bulkdel-'+i).disabled = true;
+    try{
+      await callWorker({ action: 'deleteMatrizItens', lojaCodigo: loja.codigo, marca, itemIds: ids });
+      await load();
+      const novoIdx = (DATA.lojas||[]).findIndex(l => l.codigo === loja.codigo);
+      if(novoIdx > -1){ $('vend-'+novoIdx).classList.add('open'); renderTabelaLoja(novoIdx, DATA.lojas[novoIdx], marca); }
+      toast(ids.length + ' produto(s) excluído(s).');
+    }catch(e){
+      alert('Erro: ' + e.message);
+    }
+  };
+
+  $('rt-'+i).querySelectorAll('[data-del]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.del;
+      const item = itens.find(it => it.id === id);
+      const ok = await askConfirm('Excluir produto', `Excluir "${item.descricao} — ${item.cor}" do catálogo de ${loja.nome}? Essa ação não pode ser desfeita.`, 'Excluir');
+      if(!ok) return;
+      btn.disabled = true;
+      try{
+        await callWorker({ action: 'deleteMatrizItens', lojaCodigo: loja.codigo, marca, itemIds: [id] });
+        await load();
+        const novoIdx = (DATA.lojas||[]).findIndex(l => l.codigo === loja.codigo);
+        if(novoIdx > -1){ $('vend-'+novoIdx).classList.add('open'); renderTabelaLoja(novoIdx, DATA.lojas[novoIdx], marca); }
+        toast('Produto excluído.');
+      }catch(e){
+        alert('Erro: ' + e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+
+  $('rt-'+i).querySelectorAll('[data-upload]').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.upload;
+      const item = itens.find(it => it.id === id);
+      pendingUploadTarget = { artigo: item.artigo, cor: item.cor, row: btn.closest('.rrow') };
+      $('fileInput').click();
+    };
   });
 }
+
+$('fileInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !pendingUploadTarget) return;
+  const { artigo, cor, row } = pendingUploadTarget;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const nomeArquivo = `${artigo}_${cor}.${ext === 'png' ? 'jpg' : ext}`;
+  const btn = row.querySelector('[data-upload]');
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try{
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    await callWorker({ action: 'uploadMatrizImagem', nomeArquivo, base64 });
+    row.querySelector('.thumb').innerHTML = `<img src="${imgUrl(artigo,cor)}?v=${Date.now()}">`;
+    toast('Imagem enviada com sucesso!');
+  }catch(err){
+    toast('Erro ao enviar imagem: ' + err.message, true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '📷';
+    pendingUploadTarget = null;
+  }
+};
 
 $('exportBtn').onclick = () => {
   const rows = [];
