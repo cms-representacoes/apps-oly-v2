@@ -12,8 +12,8 @@
   :root{
     --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
     --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
-    --acc:#E0A100; --acc-ink:#23170A;
-    --green:#0CA678; --amber:#E0A100; --red:#C92A2A; --purple:#7C3AED;
+    --acc:#E0A100; --acc-ink:#23170A; --purple:#7C3AED;
+    --green:#0CA678; --amber:#E0A100; --red:#C92A2A;
     --toph:82px;
   }
   [data-theme="dark"]{
@@ -26,32 +26,38 @@
   .wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px}
   .tnum{font-variant-numeric:tabular-nums}
 
-  .topbar{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:20}
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:20;flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:12px;min-width:0}
   .cms-logo{width:46px;height:46px;border-radius:14px;flex:none;display:grid;place-items:center;background:linear-gradient(135deg,#9B6BF0,#7C3AED);color:#fff;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:15px;box-shadow:0 4px 12px rgba(124,58,237,.25)}
   .brand-txt{display:flex;flex-direction:column;line-height:1.18;min-width:0}
   .brand-name{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
   .brand-sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
   .spacer{flex:1}
-  .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:9px 15px}
-  .btn.primary{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+  .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:9px 15px;white-space:nowrap}
+  .btn.primary{background:var(--purple);color:#fff;border-color:var(--purple)}
   .btn:hover{filter:brightness(.98)}
-  .theme-btn{width:38px;height:38px;display:grid;place-items:center;padding:0}
+  .theme-btn{height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 14px}
 
   .hero{padding:36px 0 24px;border-bottom:1px solid var(--line)}
   .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(24px,3.6vw,34px);letter-spacing:-.02em;margin:0 0 8px}
   .hero .lede{color:var(--slate);margin:0;font-size:14.5px}
 
   .ksum-row{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0 0}
-  .ksum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;min-width:140px;flex:1}
+  .ksum{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 35%,var(--line));border-radius:12px;padding:14px 18px;min-width:140px;flex:1}
   .ksum .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-  .ksum .v{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;margin-top:3px}
+  .ksum .v{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;margin-top:3px;color:var(--purple)}
+  .ksum.warn{border-color:color-mix(in srgb,var(--red) 45%,var(--line))}
   .ksum.warn .v{color:var(--red)}
 
   .section-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
   .section-title .badge{font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:99px;padding:2px 9px}
 
   .pend{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .pend.tipo-remocao{border-left:4px solid var(--red)}
+  .pend.tipo-novo{border-left:4px solid var(--purple)}
+  .pend .tag{font-family:"Space Grotesk",sans-serif;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:3px 7px;flex:none}
+  .pend .tag.novo{background:color-mix(in srgb,var(--purple) 15%,transparent);color:var(--purple)}
+  .pend .tag.remocao{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
   .pend .info{flex:1;min-width:200px}
   .pend .info b{font-family:"Space Grotesk",sans-serif}
   .pend .info .sub{font-size:12px;color:var(--slate);margin-top:2px}
@@ -63,7 +69,7 @@
 
   .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-top:16px}
   .vhead{display:flex;align-items:center;gap:16px;margin-bottom:6px;flex-wrap:wrap;cursor:pointer}
-  .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 42%,transparent);background:color-mix(in srgb,var(--acc) 12%,transparent);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;flex:none}
+  .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 42%,transparent);background:color-mix(in srgb,var(--purple) 12%,transparent);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;flex:none}
   .vtitle{flex:1;min-width:160px}
   .vtitle h2{font-family:"Space Grotesk",sans-serif;font-size:18px;font-weight:600;margin:0}
   .vtitle .sub{font-size:12.5px;color:var(--slate)}
@@ -82,14 +88,26 @@
   .rtable{width:100%;overflow-x:auto}
   .rhead,.rrow{display:grid;grid-template-columns:.9fr 2.1fr .9fr .9fr .8fr .8fr;gap:10px;align-items:center;min-width:640px}
   .rhead{padding:8px 0;border-bottom:2px solid var(--line);font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
-  .rrow{padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13px}
-  .rrow img{width:34px;height:34px;object-fit:cover;border-radius:6px;background:var(--line-2)}
+  .rrow{padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  .rrow .thumb{position:relative;width:56px;height:56px;background:var(--line-2);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:5px;cursor:zoom-in}
+  .rrow .thumb img{width:100%;height:100%;object-fit:contain}
   .rrow .desccell{display:flex;align-items:center;gap:9px}
-  .rrow .cor{color:var(--slate);font-size:12px}
+  .rrow .cor{color:var(--purple);font-weight:600;font-size:12px}
   .rrow .tnum{text-align:right}
   .marcafilter{display:flex;gap:8px;margin:14px 0 0;flex-wrap:wrap}
   .mchip{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--slate);cursor:pointer}
-  .mchip.on{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+  .mchip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+  .zoom-bg{position:fixed;inset:0;background:rgba(10,14,22,.75);display:flex;align-items:center;justify-content:center;z-index:120;padding:30px}
+  .zoom-bg[hidden]{display:none}
+  .zoom-box{max-width:520px;width:100%;background:var(--card);border-radius:16px;padding:16px;text-align:center}
+  .zoom-box img{max-width:100%;max-height:60vh;object-fit:contain}
+  .zoom-box .cap{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;margin-top:10px}
+  .zoom-box .close{margin-top:14px}
+
+  .totop{position:fixed;right:22px;bottom:26px;height:44px;border-radius:999px;border:none;background:var(--purple);color:#fff;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;box-shadow:0 4px 14px rgba(124,58,237,.35);cursor:pointer;display:none;align-items:center;gap:7px;padding:0 16px;z-index:40}
+  .totop.show{display:flex}
+  .totop:hover{filter:brightness(1.06)}
 
   footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:var(--mute);font-size:12px}
 </style>
@@ -103,9 +121,10 @@
       <div class="brand-txt"><span class="brand-name">CMS Representações</span><span class="brand-sub">Estoque Virtual · Matriz Esportes · Admin</span></div>
     </div>
     <span class="spacer"></span>
-    <button class="btn" id="refreshBtn">Atualizar</button>
-    <button class="btn primary" id="exportBtn">Exportar .xlsx</button>
-    <button class="theme-btn btn" id="themeBtn" type="button">◐</button>
+    <button class="btn" id="refreshBtn" title="Recarregar os dados mais recentes">Atualizar</button>
+    <button class="btn primary" id="exportBtn" title="Baixar planilha .xlsx consolidada">Exportar .xlsx</button>
+    <button class="theme-btn btn" id="fsBtn" type="button" title="Ativar/sair da tela cheia"><span id="fsIcon">⛶</span> Tela cheia</button>
+    <button class="theme-btn btn" id="themeBtn" type="button" title="Alternar tema claro/escuro"><span id="themeIcon">◐</span> Tema</button>
   </div>
 
   <header class="hero">
@@ -115,7 +134,7 @@
 
   <div class="ksum-row" id="kpis"></div>
 
-  <div class="section-title">Produtos pendentes de cadastro <span class="badge" id="pendBadge" hidden>0</span></div>
+  <div class="section-title">Pendências das lojas <span class="badge" id="pendBadge" hidden>0</span></div>
   <div id="pendList"></div>
 
   <div class="section-title" style="margin-top:38px">Lojas</div>
@@ -124,10 +143,21 @@
   <footer>Estoque Virtual · CMS Representações · ferramenta interna</footer>
 </div>
 
+<div class="zoom-bg" id="zoomBg" hidden>
+  <div class="zoom-box">
+    <img id="zoomImg" src="" alt="">
+    <div class="cap" id="zoomCap"></div>
+    <button class="btn close" id="zoomClose" type="button" title="Fechar imagem ampliada">Fechar</button>
+  </div>
+</div>
+
+<button class="totop" id="totopBtn" type="button" title="Voltar ao topo da página">↑ Voltar ao topo</button>
+
 <script>
 const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
 const IMG_BASE = '../imagens_olympikus/';
 const LOJA_PAGE = 'loja.html';
+const MARCA_LABELS = { 'OLY FTW': 'Olympikus Tênis', 'OLY CHI': 'Olympikus Chinelo', 'UA FTW': 'Under Armour Tênis' };
 
 let DATA = { lojas: [], pendentes: [] };
 
@@ -148,6 +178,27 @@ $('themeBtn').onclick = () => {
   const cur = document.documentElement.getAttribute('data-theme');
   applyTheme(cur === 'dark' ? 'light' : 'dark');
 };
+
+$('fsBtn').onclick = () => {
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
+  else{ document.exitFullscreen().catch(()=>{}); }
+};
+document.addEventListener('fullscreenchange', () => {
+  $('fsIcon').textContent = document.fullscreenElement ? '⛝' : '⛶';
+});
+
+window.addEventListener('scroll', () => {
+  $('totopBtn').classList.toggle('show', window.scrollY > 420);
+});
+$('totopBtn').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+function openZoom(artigo, cor, cap){
+  $('zoomImg').src = imgUrl(artigo, cor);
+  $('zoomCap').textContent = cap;
+  $('zoomBg').hidden = false;
+}
+$('zoomClose').onclick = () => { $('zoomBg').hidden = true; };
+$('zoomBg').onclick = e => { if(e.target === $('zoomBg')) $('zoomBg').hidden = true; };
 
 async function callWorker(body){
   const res = await fetch(WORKER_URL, {
@@ -187,7 +238,7 @@ function renderKpis(){
   $('kpis').innerHTML = `
     <div class="ksum"><div class="l">Lojas</div><div class="v tnum">${lojas.length}</div></div>
     <div class="ksum"><div class="l">Itens cadastrados</div><div class="v tnum">${totalItens}</div></div>
-    <div class="ksum ${pendAbertos?'warn':''}"><div class="l">Pendentes de cadastro</div><div class="v tnum">${pendAbertos}</div></div>
+    <div class="ksum ${pendAbertos?'warn':''}"><div class="l">Pendências abertas</div><div class="v tnum">${pendAbertos}</div></div>
     <div class="ksum ${naoAtualizadas?'warn':''}"><div class="l">Lojas sem envio</div><div class="v tnum">${naoAtualizadas}</div></div>
   `;
 }
@@ -199,24 +250,30 @@ function renderPendentes(){
   $('pendBadge').textContent = abertos.length;
 
   if(pend.length === 0){
-    $('pendList').innerHTML = `<div class="empty">Nenhum produto pendente de cadastro.</div>`;
+    $('pendList').innerHTML = `<div class="empty">Nenhuma pendência no momento.</div>`;
     return;
   }
 
-  $('pendList').innerHTML = pend.map(p => `
-    <div class="pend ${p.status!=='pendente'?'resolved':''}" data-id="${p.id}">
+  $('pendList').innerHTML = pend.map(p => {
+    const isRemocao = p.tipo === 'remocao';
+    const marcaLabel = MARCA_LABELS[p.marca] || p.marca;
+    const statusTxt = p.status === 'aprovado' ? (isRemocao ? 'Removido do catálogo' : 'Cadastrado') : 'Rejeitado';
+    return `
+    <div class="pend tipo-${isRemocao?'remocao':'novo'} ${p.status!=='pendente'?'resolved':''}" data-id="${p.id}">
+      <span class="tag ${isRemocao?'remocao':'novo'}">${isRemocao ? 'Não existe' : 'Novo produto'}</span>
       <div class="info">
         <b>${p.descricao} — ${p.cor}</b>
-        <div class="sub">${p.lojaNome} · ${p.marca} · Artigo ${p.artigo}${p.status!=='pendente' ? ' · ' + (p.status==='aprovado'?'Aprovado':'Rejeitado') : ''}</div>
+        <div class="sub">${p.lojaNome} · ${marcaLabel} · Artigo ${p.artigo}${p.status!=='pendente' ? ' · ' + statusTxt : ''}</div>
       </div>
-      <div class="nums tnum">Estoque: ${p.estoqueAtual} · Venda: ${p.venda}</div>
+      ${isRemocao ? '' : `<div class="nums tnum">Estoque: ${p.estoqueAtual ?? 0} · Venda: ${p.venda ?? 0}</div>`}
       ${p.status === 'pendente' ? `
       <div class="acts">
-        <button class="btn primary" data-act="aprovar">Marcar cadastrado</button>
-        <button class="btn" data-act="rejeitar">Rejeitar</button>
+        <button class="btn primary" data-act="aprovar" title="${isRemocao ? 'Remover este item do catálogo da loja' : 'Marcar como já cadastrado corretamente'}">${isRemocao ? 'Confirmar remoção' : 'Marcar cadastrado'}</button>
+        <button class="btn" data-act="rejeitar" title="${isRemocao ? 'Manter o item no catálogo da loja' : 'Descartar esse pedido de cadastro'}">${isRemocao ? 'Manter no catálogo' : 'Rejeitar'}</button>
       </div>` : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   $('pendList').querySelectorAll('[data-act]').forEach(btn => {
     btn.onclick = async () => {
@@ -242,7 +299,7 @@ function renderLojas(){
     const marcas = Object.keys(l.marcas || {});
     return `
     <div class="vend" id="vend-${i}">
-      <div class="vhead" data-toggle="${i}">
+      <div class="vhead" data-toggle="${i}" title="Clique para expandir/recolher os produtos desta loja">
         <div class="vindex tnum">${String(i+1).padStart(2,'0')}</div>
         <div class="vtitle"><h2>${l.nome}</h2><div class="sub">${l.cidade || ''}</div></div>
         <div class="vkpi"><div class="l">Itens</div><div class="v tnum">${totalItens}</div></div>
@@ -253,12 +310,12 @@ function renderLojas(){
         <div class="vchev">▾</div>
       </div>
       <div class="linkrow">
-        <input readonly value="${link}">
-        <button class="btn" data-copy="${link}">Copiar link</button>
+        <input readonly value="${link}" title="Link exclusivo desta loja">
+        <button class="btn" data-copy="${link}" title="Copiar o link desta loja para a área de transferência">Copiar link</button>
       </div>
       <div class="vbody">
         <div class="marcafilter" id="mf-${i}">
-          ${marcas.map((m,mi) => `<button class="mchip ${mi===0?'on':''}" data-marca="${m}">${m}</button>`).join('')}
+          ${marcas.map((m,mi) => `<button class="mchip ${mi===0?'on':''}" data-marca="${m}" title="Ver produtos de ${MARCA_LABELS[m]||m}">${MARCA_LABELS[m]||m}</button>`).join('')}
         </div>
         <div class="rtable" id="rt-${i}"></div>
       </div>
@@ -293,7 +350,7 @@ function renderTabelaLoja(i, loja, marca){
     <div class="rhead"><div>Imagem</div><div>Produto</div><div>Artigo</div><div>Cor</div><div class="tnum">Estoque</div><div class="tnum">Venda</div></div>
     ${itens.map(it => `
       <div class="rrow">
-        <div><img src="${imgUrl(it.artigo,it.cor)}" loading="lazy" onerror="this.style.visibility='hidden'"></div>
+        <div class="thumb" data-zoom-artigo="${it.artigo}" data-zoom-cor="${it.cor}" data-zoom-cap="${it.descricao} · ${it.cor} · Artigo ${it.artigo}" title="Clique para ampliar"><img src="${imgUrl(it.artigo,it.cor)}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=\\'font-size:9px;color:var(--mute);font-family:Space Grotesk\\'>Sem imagem</span>'"></div>
         <div class="desccell">${it.descricao}</div>
         <div class="tnum">${it.artigo}</div>
         <div class="cor">${it.cor}</div>
@@ -302,6 +359,9 @@ function renderTabelaLoja(i, loja, marca){
       </div>
     `).join('')}
   `;
+  $('rt-'+i).querySelectorAll('.thumb').forEach(t => {
+    t.onclick = () => openZoom(t.dataset.zoomArtigo, t.dataset.zoomCor, t.dataset.zoomCap);
+  });
 }
 
 $('exportBtn').onclick = () => {
@@ -310,7 +370,7 @@ $('exportBtn').onclick = () => {
     Object.entries(l.marcas || {}).forEach(([marca, itens]) => {
       itens.forEach(it => {
         rows.push({
-          Loja: l.nome, Cidade: l.cidade, Marca: marca, Artigo: it.artigo,
+          Loja: l.nome, Cidade: l.cidade, Marca: MARCA_LABELS[marca] || marca, Artigo: it.artigo,
           Descrição: it.descricao, Cor: it.cor, 'Estoque atual': it.estoqueAtual ?? 0,
           Venda: it.venda ?? 0, 'Último envio da loja': l.ultimaAtualizacaoLoja ? fmtData(l.ultimaAtualizacaoLoja) : ''
         });
