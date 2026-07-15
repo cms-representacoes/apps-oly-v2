@@ -84,7 +84,8 @@
   .pend.resolved{opacity:.5}
   .empty{color:var(--mute);font-size:13.5px;padding:16px 0}
 
-  .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-top:16px}
+  .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-top:16px;transition:border-color .15s,box-shadow .15s}
+  .vend.open{border:2px solid var(--purple);box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 14%,transparent)}
   .vhead{display:flex;align-items:center;gap:16px;margin-bottom:6px;flex-wrap:wrap;cursor:pointer}
   .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:var(--purple);border:1px solid color-mix(in srgb,var(--purple) 42%,transparent);background:color-mix(in srgb,var(--purple) 12%,transparent);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;flex:none}
   .vtitle{flex:1;min-width:160px}
@@ -111,9 +112,11 @@
   .bulkbar span{font-size:13px;color:var(--navy);flex:1}
 
   .rtable{width:100%;overflow-x:auto}
-  .rhead,.rrow{display:grid;grid-template-columns:28px 108px 2fr .8fr .8fr .7fr .7fr 76px;gap:12px;align-items:center;min-width:760px}
-  .rhead{padding:8px 0;border-bottom:2px solid var(--line);font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
-  .rrow{padding:12px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  .rgrid-cols{grid-template-columns:28px 108px minmax(0,2fr) minmax(0,.8fr) minmax(0,.8fr) minmax(0,.7fr) minmax(0,.7fr) 76px}
+  .rhead{display:grid;column-gap:12px;align-items:center;min-width:760px;position:sticky;top:var(--theadtop,170px);z-index:6;background:var(--card);padding:10px 0;border-bottom:2px solid var(--line);font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
+  .rtable-grid{display:grid;column-gap:12px;row-gap:14px;align-items:center;min-width:760px;padding-top:10px}
+  .rrow{display:contents;font-size:13px}
+  .rdiv{grid-column:1/-1;height:1px;background:var(--line-2)}
   input[type=checkbox]{width:16px;height:16px;accent-color:var(--red);cursor:pointer}
   .rrow .thumb{position:relative;width:108px;height:108px;background:var(--line-2);border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;cursor:zoom-in}
   .rrow .thumb img{width:100%;height:100%;object-fit:contain}
@@ -311,10 +314,33 @@ function render(){
   renderKpis();
   renderPendentes();
   renderLojas();
+  updateStickyOffsets();
 }
 
-function renderKpis(){
+function updateStickyOffsets(){
+  const topbar = document.querySelector('.topbar');
+  const kpis = document.querySelector('.stickykpis');
+  const h = (topbar ? topbar.offsetHeight : 0) + (kpis ? kpis.offsetHeight : 0);
+  document.documentElement.style.setProperty('--theadtop', h + 'px');
+}
+window.addEventListener('resize', updateStickyOffsets);
+
+function renderKpis(lojaFoco){
   const lojas = DATA.lojas || [];
+
+  if(lojaFoco){
+    const totalItensLoja = Object.values(lojaFoco.marcas||{}).reduce((s,arr)=>s+arr.length,0);
+    const pendLoja = (DATA.pendentes||[]).filter(p => p.status === 'pendente' && p.lojaCodigo === lojaFoco.codigo).length;
+    const vendaTotal = Object.values(lojaFoco.marcas||{}).reduce((s,arr)=>s+arr.reduce((s2,it)=>s2+(Number(it.venda)||0),0),0);
+    $('kpis').innerHTML = `
+      <div class="ksum"><div class="l">Loja em foco</div><div class="v" style="font-size:18px">${lojaFoco.nome}</div></div>
+      <div class="ksum"><div class="l">Itens desta loja</div><div class="v tnum">${totalItensLoja}</div></div>
+      <div class="ksum"><div class="l">Venda total (desta loja)</div><div class="v tnum">${vendaTotal}</div></div>
+      <div class="ksum ${pendLoja?'warn':''}"><div class="l">Pendências desta loja</div><div class="v tnum">${pendLoja}</div></div>
+    `;
+    return;
+  }
+
   const totalItens = lojas.reduce((s,l) => s + Object.values(l.marcas||{}).reduce((s2,arr)=>s2+arr.length,0), 0);
   const pendAbertos = (DATA.pendentes||[]).filter(p => p.status === 'pendente').length;
   const naoAtualizadas = lojas.filter(l => !l.ultimaAtualizacaoLoja).length;
@@ -473,8 +499,16 @@ function renderLojas(){
 
   lojas.forEach((l, i) => {
     $('vend-'+i).querySelector('[data-toggle]').onclick = () => {
-      $('vend-'+i).classList.toggle('open');
-      renderTabelaLoja(i, l, Object.keys(l.marcas||{})[0]);
+      const jaAberta = $('vend-'+i).classList.contains('open');
+      lojas.forEach((_, j) => $('vend-'+j).classList.remove('open'));
+      if(jaAberta){
+        renderKpis();
+      }else{
+        $('vend-'+i).classList.add('open');
+        renderTabelaLoja(i, l, Object.keys(l.marcas||{})[0]);
+        renderKpis(l);
+      }
+      updateStickyOffsets();
     };
     $('mf-'+i).querySelectorAll('.mchip').forEach(chip => {
       chip.onclick = () => {
@@ -496,10 +530,11 @@ function renderLojas(){
 function renderTabelaLoja(i, loja, marca){
   const itens = (loja.marcas[marca] || []);
   $('rt-'+i).innerHTML = `
-    <div class="rhead">
+    <div class="rhead rgrid-cols">
       <input type="checkbox" id="rowselall-${i}">
-      <div>Imagem</div><div>Produto</div><div>Artigo</div><div>Cor</div><div class="tnum">Estoque</div><div class="tnum">Venda</div><div>Ações</div>
+      <div>Imagem</div><div>Produto</div><div>Artigo</div><div>Cor</div><div class="tnum">Venda</div><div class="tnum">Estoque</div><div>Ações</div>
     </div>
+    <div class="rtable-grid rgrid-cols">
     ${itens.map(it => `
       <div class="rrow" data-id="${it.id}">
         <input type="checkbox" class="row-check" data-id="${it.id}">
@@ -509,14 +544,17 @@ function renderTabelaLoja(i, loja, marca){
         <div class="desccell">${it.descricao}</div>
         <div class="tnum">${it.artigo}</div>
         <div class="cor">${it.cor}</div>
-        <div class="tnum">${it.estoqueAtual ?? 0}</div>
         <div class="tnum">${it.venda ?? 0}</div>
+        <div class="tnum">${it.estoqueAtual ?? 0}</div>
         <div class="rowacts">
           <button class="iconbtn upload" data-upload="${it.id}" title="Adicionar/trocar imagem deste produto">📷</button>
           <button class="iconbtn trash" data-del="${it.id}" title="Excluir este produto do catálogo da loja">🗑</button>
         </div>
       </div>
+      <div class="rdiv"></div>
     `).join('')}
+    </div>
+
   `;
 
   $('rt-'+i).querySelectorAll('.thumb').forEach(t => {
@@ -543,7 +581,7 @@ function renderTabelaLoja(i, loja, marca){
       await callWorker({ action: 'deleteMatrizItens', lojaCodigo: loja.codigo, marca, itemIds: ids });
       await load();
       const novoIdx = (DATA.lojas||[]).findIndex(l => l.codigo === loja.codigo);
-      if(novoIdx > -1){ $('vend-'+novoIdx).classList.add('open'); renderTabelaLoja(novoIdx, DATA.lojas[novoIdx], marca); }
+      if(novoIdx > -1){ $('vend-'+novoIdx).classList.add('open'); renderTabelaLoja(novoIdx, DATA.lojas[novoIdx], marca); renderKpis(DATA.lojas[novoIdx]); }
       toast(ids.length + ' produto(s) excluído(s).');
     }catch(e){
       alert('Erro: ' + e.message);
@@ -561,7 +599,7 @@ function renderTabelaLoja(i, loja, marca){
         await callWorker({ action: 'deleteMatrizItens', lojaCodigo: loja.codigo, marca, itemIds: [id] });
         await load();
         const novoIdx = (DATA.lojas||[]).findIndex(l => l.codigo === loja.codigo);
-        if(novoIdx > -1){ $('vend-'+novoIdx).classList.add('open'); renderTabelaLoja(novoIdx, DATA.lojas[novoIdx], marca); }
+        if(novoIdx > -1){ $('vend-'+novoIdx).classList.add('open'); renderTabelaLoja(novoIdx, DATA.lojas[novoIdx], marca); renderKpis(DATA.lojas[novoIdx]); }
         toast('Produto excluído.');
       }catch(e){
         alert('Erro: ' + e.message);
