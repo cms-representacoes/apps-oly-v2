@@ -10733,6 +10733,8 @@ function _mpRenderFinalizados(){
   const empty = $("mpEmpty");
   const loading = $("mpLoading");
   loading.classList.add("hidden");
+  // Sincroniza visibilidade do botão Limpar tudo
+  _mpAtualizarBotaoLimpar();
 
   if(!filtrados.length){
     ul.classList.add("hidden");
@@ -10910,6 +10912,16 @@ function _mpTrocarAba(aba){
   renderListaPedidos();
   // Entrar na aba rascunhos desliga o pulse (vendedor já viu)
   _mpAtualizarPulseRascunhos();
+  // Botão "Limpar tudo" só na aba Finalizados (e só quando há pedidos — controlado no render)
+  _mpAtualizarBotaoLimpar();
+}
+// Atualiza visibilidade do botão Limpar tudo
+function _mpAtualizarBotaoLimpar(){
+  const btn = document.getElementById("mpBtnClearHistorico");
+  if(!btn) return;
+  const naAbaFin = MP.abaAtiva === "finalizados";
+  const temPedidos = naAbaFin && ((MP.pedidosCache[MP.filtroComissionista] || []).length > 0);
+  btn.classList.toggle("hidden", !temPedidos);
 }
 
 // Carrega item de rascunho de volta pra sacola (reaproveita conversor de pedido)
@@ -11160,6 +11172,63 @@ function mpBaixarExcel(id){
   toast("Excel gerado do histórico ✅");
 }
 
+// Limpa TODOS os pedidos finalizados do comissionista atual (com backup automático no Worker)
+async function mpLimparHistorico(){
+  const com = MP.filtroComissionista;
+  if(!com){ toast("Selecione um comissionista antes"); return; }
+  const lista = MP.pedidosCache[com] || [];
+  const totalAtual = lista.length;
+  if(totalAtual === 0){ toast("Nada para limpar ✅"); return; }
+  const nomeCom = getComissionistaNome(com) || com;
+  const ok = await appConfirm({
+    title: "Limpar histórico",
+    message: `Vai apagar <strong>TODOS os ${totalAtual} pedidos finalizados</strong> de <strong>${_mpEscape(nomeCom)}</strong>.<br><br>Um backup é criado automaticamente antes da limpeza. Esta ação é permanente na lista, mas os pedidos podem ser recuperados do backup em caso de erro.`,
+    okText: "Apagar tudo",
+    cancelText: "Cancelar",
+    tone: "danger"
+  });
+  if(!ok) return;
+  const btn = document.getElementById("mpBtnClearHistorico");
+  if(btn){ btn.disabled = true; const sp = btn.querySelector("span"); if(sp) sp.textContent = "Limpando..."; }
+  try {
+    // Tenta POST primeiro. Se falhar, tenta PATCH (algumas versões antigas do Worker).
+    let data = null;
+    let ok2 = false;
+    for(const method of ["POST", "PATCH"]){
+      try {
+        const res = await fetch(WORKER_URL, {
+          method,
+          headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN_TOKEN },
+          body: JSON.stringify({ action: "clearPedidosHistorico", comissionista: com })
+        });
+        data = await res.json().catch(()=> null);
+        if(res.ok && data && data.success){ ok2 = true; break; }
+      } catch(_){}
+    }
+    if(!ok2) throw new Error((data && data.error) || "Erro no servidor");
+    // Sucesso: limpa cache local e re-renderiza
+    MP.pedidosCache[com] = [];
+    _mpAtualizarBotaoLimpar();
+    renderListaPedidos();
+    const cf = $("mpCountFinalizados");
+    if(cf) cf.textContent = "0";
+    await appSuccess({
+      title: "Histórico limpo",
+      message: `<strong>${data.cleared || totalAtual} pedidos</strong> foram apagados.<br><br>Um backup foi criado em <code>data/backups/catalogo-historico/</code> caso precise recuperar.`,
+      okText: "OK",
+      autoClose: 3500
+    });
+  } catch(e){
+    toast("Erro ao limpar: " + (e.message || "verifique a conexão"));
+  } finally {
+    if(btn){ btn.disabled = false; const sp = btn.querySelector("span"); if(sp) sp.textContent = "Limpar tudo"; }
+  }
+}
+// Listener do botão via delegação (o botão está dentro de modal, o script executa antes do HTML)
+document.addEventListener("click", (e)=>{
+  if(e.target.closest("#mpBtnClearHistorico")) mpLimparHistorico();
+});
+
 // Baixar PDF: usa "Reordenar silencioso" + chama o PDF da sacola
 function mpBaixarPDF(id){
   if(state.cart.size !== 0){
@@ -11178,12 +11247,27 @@ function mpBaixarPDF(id){
       grade: it.grade ? { ...it.grade } : null
     });
   }
+  // 🔧 Restaura o cfg histórico do pedido (payment, priceTable, campaign, etc)
+  // Sem isso, o PDF cai no fallback do PDV. Guarda o cfg anterior pra restaurar depois.
+  const cfgAnterior = state.lastOrderCfg;
+  state.lastOrderCfg = {
+    commission: pedido.comissionista || "",
+    clientCode: pedido.clientCode || "",
+    payment: pedido.payment || "",
+    priceTable: pedido.priceTable || "",
+    campaign: pedido.campaign || "",
+    pedidoCliente: pedido.pedidoCliente || "",
+    _generatedAt: pedido.createdAt ? Date.parse(pedido.createdAt) : Date.now(),
+    _restauradoDoHistorico: true
+  };
   // Aciona o PDF da sacola (deve existir uma função no app)
   const btnPdf = document.querySelector("[data-action='export-pdf'], #btnExportPdf, #btnSacolaPdf");
   closeMeusPedidosModal();
   setTimeout(() => {
     if(btnPdf) btnPdf.click();
     else toast("Função PDF não encontrada — abra a sacola e exporte manualmente");
+    // Restaura o cfg anterior após um tempo (deixa o PDF processar)
+    setTimeout(() => { state.lastOrderCfg = cfgAnterior; }, 3000);
   }, 300);
 }
 
@@ -11475,9 +11559,15 @@ loadCatalog({ cacheBust:false });
       </div>
 
       <!-- Stats -->
-      <div class="mp-sheet-stats px-5 sm:px-6 py-2 border-b border-oly-border">
-        <span class="text-xs font-bold" id="mpStatsTxt" style="color:var(--muted)">— pedidos</span>
-        <span class="text-xs font-black" id="mpStatsTotal" style="color:var(--primary)"></span>
+      <div class="mp-sheet-stats px-5 sm:px-6 py-2 border-b border-oly-border flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <span class="text-xs font-bold" id="mpStatsTxt" style="color:var(--muted)">— pedidos</span>
+          <span class="text-xs font-black" id="mpStatsTotal" style="color:var(--primary)"></span>
+        </div>
+        <button id="mpBtnClearHistorico" type="button" class="hidden focus-ring inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-2.5 py-1 hover:bg-oly-bg" style="color:var(--muted);border:1px solid var(--border);" title="Apagar todos os pedidos finalizados">
+          <i class="fa-solid fa-trash-can" style="font-size:10px"></i>
+          <span>Limpar tudo</span>
+        </button>
       </div>
 
       <!-- Lista -->
