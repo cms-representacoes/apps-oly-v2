@@ -48,13 +48,14 @@
   .topbtns{display:flex;align-items:center;gap:8px}
 
   .stickybar{position:sticky;top:var(--toph);z-index:19;background:var(--paper);padding:14px 0 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-  .kpis{display:flex;gap:12px;flex-wrap:wrap}
-  .kpi{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:12px;padding:12px 18px;min-width:140px;animation:kpiGlow 2.6s ease-in-out infinite}
-  .kpi .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-  .kpi .v{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:700;margin-top:2px;color:var(--purple)}
-  .kpi-sub{font-size:11.5px;color:var(--mute);margin-top:4px}
-  .kpi-sub b.est{color:var(--purple);font-weight:700}
-  .kpi-sub b.venda{color:var(--green);font-weight:700}
+  .kpis{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 4px}
+  .kpi{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:12px;padding:10px 16px;min-width:190px;animation:kpiGlow 2.6s ease-in-out infinite}
+  .kpi .l{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  .kpi-line{display:flex;align-items:baseline;gap:6px;margin-top:2px}
+  .kpi .v{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;color:var(--purple)}
+  .kpi-of{font-size:12px;color:var(--mute)}
+  .kpi-of b.est{color:var(--purple);font-weight:700}
+  .kpi-of b.venda{color:var(--green);font-weight:700}
   .kpi.venda .v{color:var(--green)}
   .kpi.venda{border-color:color-mix(in srgb,var(--green) 45%,var(--line))}
   .kpi.venda{animation-name:kpiGlowGreen}
@@ -235,11 +236,12 @@
     <div class="lastupd" id="lastUpd"><span class="dot"></span><span>Ainda não enviado</span></div>
   </header>
 
+  <div class="kpis">
+    <div class="kpi"><div class="l">Estoque total</div><div class="kpi-line"><span class="v tnum" id="kpiEstoque">0</span><span class="kpi-of">de <b id="kpiEstoqueGeral" class="est tnum">0</b> no total</span></div></div>
+    <div class="kpi venda"><div class="l">Venda total</div><div class="kpi-line"><span class="v tnum" id="kpiVenda">0</span><span class="kpi-of">de <b id="kpiVendaGeral" class="venda tnum">0</b> no total</span></div></div>
+  </div>
+
   <div class="stickybar">
-    <div class="kpis">
-      <div class="kpi"><div class="l">Estoque total</div><div class="v tnum" id="kpiEstoque">0</div><div class="kpi-sub">Todas as categorias: <b id="kpiEstoqueGeral" class="est">0</b></div></div>
-      <div class="kpi venda"><div class="l">Venda total</div><div class="v tnum" id="kpiVenda">0</div><div class="kpi-sub">Todas as categorias: <b id="kpiVendaGeral" class="venda">0</b></div></div>
-    </div>
     <div class="searchwrap">
       <input class="search" id="search" type="text" placeholder="Buscar por descrição, cor ou artigo…">
       <button class="search-clear" id="searchClear" type="button" title="Limpar busca" aria-label="Limpar busca">✕</button>
