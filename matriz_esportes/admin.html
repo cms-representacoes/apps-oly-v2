@@ -56,6 +56,23 @@
   .ksum .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
   .ksum .v{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;margin-top:3px;color:var(--purple)}
   .ksum.warn{border-color:color-mix(in srgb,var(--red) 45%,var(--line))}
+
+  .rs-table{background:var(--card);border-radius:14px;border:1px solid var(--line);overflow:hidden}
+  .rs-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line-2);cursor:pointer}
+  .rs-row:last-child{border-bottom:none}
+  .rs-row:hover{background:var(--line-2)}
+  .rs-row.head{background:var(--paper);font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);cursor:default}
+  .rs-row.head:hover{background:var(--paper)}
+  .rs-loja{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;color:var(--ink)}
+  .rs-loja .sub{font-size:11.5px;color:var(--mute);font-weight:400;margin-top:2px}
+  .rs-v{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:16px}
+  .rs-v.venda{color:var(--green)}
+  .rs-v.est{color:var(--purple)}
+  .rs-cov{display:inline-flex;align-items:center;padding:4px 11px;border-radius:99px;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px}
+  .rs-cov.alta{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+  .rs-cov.media{background:color-mix(in srgb,var(--amber) 20%,transparent);color:color-mix(in srgb,var(--amber) 70%,black)}
+  .rs-cov.boa{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+  .rs-cov.neutra{background:var(--line-2);color:var(--mute)}
   .ksum.warn .v{color:var(--red)}
 
   .section-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;margin:34px 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -176,7 +193,11 @@
     <p class="lede">Sellout reportado por cada loja do grupo — estoque atual e vendas, por marca e produto.</p>
   </header>
 
-  <div class="stickykpis"><div class="ksum-row" id="kpis"></div></div>
+  <div class="section-title">Visão geral <button class="pfchip" id="toggleKpis" style="margin-left:auto">▾ Ocultar</button></div>
+  <div class="stickykpis" id="kpisWrap"><div class="ksum-row" id="kpis"></div></div>
+
+  <div class="section-title">Resumo das lojas <button class="pfchip" id="toggleResumo" style="margin-left:auto">▾ Ocultar</button></div>
+  <div id="resumoLojasWrap"></div>
 
   <div class="section-title">Pendências das lojas <span class="badge" id="pendBadge" hidden>0</span></div>
   <div class="pendfilter" id="pendFilter">
@@ -334,9 +355,11 @@ $('refreshBtn').onclick = load;
 
 function render(){
   renderKpis();
+  renderResumoLojas();
   renderPendentes();
   renderLojas();
   updateStickyOffsets();
+  aplicarVisibilidade();
 }
 
 function updateStickyOffsets(){
@@ -521,6 +544,77 @@ function renderPendentes(){
 }
 
 // ---------- lojas / catálogo ----------
+function renderResumoLojas(){
+  const lojas = DATA.lojas || [];
+  const linhas = lojas.map((l, i) => {
+    let vendaTotal = 0, estoqueTotal = 0;
+    Object.values(l.marcas || {}).forEach(itens => {
+      itens.forEach(it => { vendaTotal += Number(it.venda)||0; estoqueTotal += Number(it.estoqueAtual)||0; });
+    });
+    let covTxt, covClass;
+    if(vendaTotal === 0){
+      covTxt = '∞'; covClass = 'neutra';
+    }else{
+      const cov = estoqueTotal / vendaTotal;
+      covTxt = cov.toFixed(1) + 'x';
+      covClass = cov < 1 ? 'alta' : (cov <= 2 ? 'media' : 'boa');
+    }
+    return `
+      <div class="rs-row" data-idx="${i}" title="Clique para abrir esta loja">
+        <div class="rs-loja">${l.nome}<div class="sub">${l.cidade || ''}</div></div>
+        <div class="rs-v venda tnum">${vendaTotal}</div>
+        <div class="rs-v est tnum">${estoqueTotal}</div>
+        <div><span class="rs-cov ${covClass}">${covTxt}</span></div>
+      </div>`;
+  }).join('');
+
+  $('resumoLojasWrap').innerHTML = `
+    <div class="rs-table">
+      <div class="rs-row head"><div>Loja</div><div>Venda total</div><div>Estoque total</div><div>Cobertura</div></div>
+      ${linhas}
+    </div>
+  `;
+
+  $('resumoLojasWrap').querySelectorAll('.rs-row[data-idx]').forEach(row => {
+    row.onclick = () => {
+      const i = Number(row.dataset.idx);
+      abrirLojaExclusiva(i);
+      document.getElementById('vend-'+i).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+}
+
+function aplicarVisibilidade(){
+  const kpisOff = localStorage.getItem('matriz-hide-kpis') === '1';
+  const resumoOff = localStorage.getItem('matriz-hide-resumo') === '1';
+  $('kpisWrap').style.display = kpisOff ? 'none' : '';
+  $('toggleKpis').textContent = kpisOff ? '▸ Mostrar' : '▾ Ocultar';
+  $('resumoLojasWrap').style.display = resumoOff ? 'none' : '';
+  $('toggleResumo').textContent = resumoOff ? '▸ Mostrar' : '▾ Ocultar';
+  updateStickyOffsets();
+}
+$('toggleKpis').onclick = () => {
+  const off = localStorage.getItem('matriz-hide-kpis') === '1';
+  localStorage.setItem('matriz-hide-kpis', off ? '0' : '1');
+  aplicarVisibilidade();
+};
+$('toggleResumo').onclick = () => {
+  const off = localStorage.getItem('matriz-hide-resumo') === '1';
+  localStorage.setItem('matriz-hide-resumo', off ? '0' : '1');
+  aplicarVisibilidade();
+};
+
+function abrirLojaExclusiva(i){
+  const lojas = DATA.lojas || [];
+  const l = lojas[i];
+  if(!l) return;
+  lojas.forEach((_, j) => { const el = $('vend-'+j); if(el) el.classList.remove('open'); });
+  $('vend-'+i).classList.add('open');
+  renderTabelaLoja(i, l, Object.keys(l.marcas||{})[0]);
+  renderKpis(l);
+  updateStickyOffsets();
+}
+
 function renderLojas(){
   const lojas = DATA.lojas || [];
   $('lojasList').innerHTML = lojas.map((l, i) => {
@@ -562,15 +656,13 @@ function renderLojas(){
   lojas.forEach((l, i) => {
     $('vend-'+i).querySelector('[data-toggle]').onclick = () => {
       const jaAberta = $('vend-'+i).classList.contains('open');
-      lojas.forEach((_, j) => $('vend-'+j).classList.remove('open'));
       if(jaAberta){
+        $('vend-'+i).classList.remove('open');
         renderKpis();
+        updateStickyOffsets();
       }else{
-        $('vend-'+i).classList.add('open');
-        renderTabelaLoja(i, l, Object.keys(l.marcas||{})[0]);
-        renderKpis(l);
+        abrirLojaExclusiva(i);
       }
-      updateStickyOffsets();
     };
     $('mf-'+i).querySelectorAll('.mchip:not(.semimg)').forEach(chip => {
       chip.onclick = () => {
