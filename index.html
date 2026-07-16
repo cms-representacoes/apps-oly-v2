@@ -1408,6 +1408,50 @@
     }
     .mp-periodo-pill:hover { border-color:var(--primary); color:var(--primary); }
     .mp-periodo-pill.active { background:var(--primary); color:#fff; border-color:var(--primary); box-shadow:0 2px 6px rgba(var(--primary-rgb),.25); }
+    /* Barra inline (novo layout compacto) */
+    .mp-filters-inline {
+      display:flex; align-items:center; gap:8px;
+      flex-wrap:wrap;
+    }
+    .mp-filter-inline-select {
+      flex: 0 1 220px;
+      min-width: 160px;
+      padding: 7px 30px 7px 12px;
+    }
+    .mp-filter-search-wrap {
+      position: relative;
+      flex: 1 1 220px;
+      min-width: 180px;
+      display:flex;
+      align-items:center;
+    }
+    .mp-filter-search-icon {
+      position:absolute;
+      left:12px;
+      color: var(--muted);
+      font-size:12px;
+      pointer-events:none;
+    }
+    .mp-filter-inline-search {
+      width: 100%;
+      padding: 7px 12px 7px 32px;
+      background-image: none !important;
+    }
+    .mp-filter-inline-pills {
+      flex: 0 0 auto;
+      display:flex; gap:4px;
+      flex-wrap: nowrap;
+    }
+    .mp-filter-inline-pills .mp-periodo-pill {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    @media (max-width: 600px){
+      .mp-filter-inline-select { flex: 1 1 100%; min-width: 100%; }
+      .mp-filter-search-wrap { flex: 1 1 100%; min-width: 100%; }
+      .mp-filter-inline-pills { flex: 1 1 100%; justify-content: space-between; }
+      .mp-filter-inline-pills .mp-periodo-pill { flex: 1; text-align: center; }
+    }
     .mp-empty {
       text-align:center; padding:40px 20px;
       color:var(--muted); font-size:13px;
@@ -10909,7 +10953,8 @@ function _mpTrocarAba(aba){
   // Filtro de período só faz sentido pra finalizados
   const filtrosPeriodo = document.querySelector(".mp-periodo-pills");
   if(filtrosPeriodo){
-    filtrosPeriodo.closest(".mp-filter-row").style.display = (aba === "finalizados") ? "" : "none";
+    // Novo layout: pílulas ficam inline, esconde só o container das pílulas
+    filtrosPeriodo.style.display = (aba === "finalizados") ? "" : "none";
   }
   $("mpCustomDates")?.classList.add("hidden");
   renderListaPedidos();
@@ -11293,11 +11338,14 @@ function openMeusPedidosModal(){
   sel.innerHTML = '<option value="">— Selecione —</option>' +
     COMISSIONISTAS.map(c => `<option value="${c.codigo}">${c.codigo} - ${c.nome}</option>`).join("");
 
-  // Tenta usar último comissionista salvo no localStorage (do export anterior)
+  // Tenta usar último comissionista escolhido em "Meus Pedidos" (dedicado); depois cai no do modal EBM
   let lastCom = "";
   try{
-    const cfg = JSON.parse(localStorage.getItem("orderExportConfig") || "{}");
-    if(cfg.commission) lastCom = String(cfg.commission);
+    lastCom = String(localStorage.getItem("mpLastComissionista") || "");
+    if(!lastCom){
+      const cfg = JSON.parse(localStorage.getItem("orderExportConfig") || "{}");
+      if(cfg.commission) lastCom = String(cfg.commission);
+    }
   }catch(_){}
   if(lastCom && COMISSIONISTAS.some(c => c.codigo === lastCom)){
     sel.value = lastCom;
@@ -11421,6 +11469,11 @@ async function _onSalvarRascunho(){
 document.addEventListener("change", (e) => {
   if(e.target.id === "mpComissionista"){
     MP.filtroComissionista = e.target.value;
+    // Memoriza escolha pra próxima abertura de "Meus Pedidos"
+    try{
+      if(MP.filtroComissionista) localStorage.setItem("mpLastComissionista", MP.filtroComissionista);
+      else localStorage.removeItem("mpLastComissionista");
+    }catch(_){}
     if(MP.filtroComissionista) _mpLoad();
     else {
       $("mpLista")?.classList.add("hidden");
@@ -11520,19 +11573,16 @@ loadCatalog({ cacheBust:false });
   <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="mpBackdrop"></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
     <div class="mp-sheet">
-      <!-- Header -->
-      <div class="mp-sheet-header flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border">
-        <div class="min-w-0">
-          <div class="text-xs font-extrabold uppercase tracking-[0.12em]" style="color:var(--primary)">Histórico</div>
-          <div class="text-lg sm:text-xl font-black text-oly-text">📋 Meus pedidos</div>
-        </div>
-        <button id="btnCloseMeusPedidos" class="focus-ring h-11 w-11 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0" aria-label="Fechar histórico">
+      <!-- Header (compacto: uma linha só) -->
+      <div class="mp-sheet-header flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-b border-oly-border">
+        <div class="text-base sm:text-lg font-black text-oly-text">📋 Meus pedidos</div>
+        <button id="btnCloseMeusPedidos" class="focus-ring h-10 w-10 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0" aria-label="Fechar histórico" title="Fechar">
           <i class="fa-solid fa-xmark text-oly-blue"></i>
         </button>
       </div>
 
       <!-- Abas -->
-      <div class="flex gap-1.5 px-5 sm:px-6 pt-3 pb-1" style="background:var(--bg)">
+      <div class="flex gap-1.5 px-5 sm:px-6 pt-2 pb-1" style="background:var(--bg)">
         <button class="mp-aba mp-aba-active" data-aba="rascunhos">
           <i class="fa-solid fa-pen-ruler"></i>
           <span>Rascunhos</span>
@@ -11545,26 +11595,22 @@ loadCatalog({ cacheBust:false });
         </button>
       </div>
 
-      <!-- Filtros -->
-      <div class="mp-sheet-filters px-5 sm:px-6 py-4 border-b border-oly-border" style="background:var(--bg)">
-        <div class="mp-filter-row">
-          <label class="mp-filter-label">Comissionista</label>
-          <select id="mpComissionista" class="mp-filter-select"></select>
-        </div>
-        <div class="mp-filter-row">
-          <label class="mp-filter-label">Buscar</label>
-          <input id="mpBusca" type="search" class="mp-filter-search" placeholder="Cliente, produto, pedido...">
-        </div>
-        <div class="mp-filter-row">
-          <label class="mp-filter-label">Período</label>
-          <div class="mp-periodo-pills">
-            <button class="mp-periodo-pill" data-periodo="7d">7 dias</button>
-            <button class="mp-periodo-pill active" data-periodo="mes">Este mês</button>
-            <button class="mp-periodo-pill" data-periodo="mes-passado">Mês passado</button>
-            <button class="mp-periodo-pill" data-periodo="custom">Personalizado</button>
+      <!-- Filtros (barra única condensada) -->
+      <div class="mp-sheet-filters px-5 sm:px-6 py-3 border-b border-oly-border" style="background:var(--bg)">
+        <div class="mp-filters-inline">
+          <select id="mpComissionista" class="mp-filter-select mp-filter-inline-select" title="Filtrar por comissionista"></select>
+          <div class="mp-filter-search-wrap">
+            <i class="fa-solid fa-magnifying-glass mp-filter-search-icon"></i>
+            <input id="mpBusca" type="search" class="mp-filter-search mp-filter-inline-search" placeholder="Cliente, produto, pedido...">
+          </div>
+          <div class="mp-periodo-pills mp-filter-inline-pills">
+            <button class="mp-periodo-pill" data-periodo="7d" title="Últimos 7 dias">7d</button>
+            <button class="mp-periodo-pill active" data-periodo="mes" title="Este mês">Mês</button>
+            <button class="mp-periodo-pill" data-periodo="mes-passado" title="Mês passado">Anterior</button>
+            <button class="mp-periodo-pill" data-periodo="custom" title="Período personalizado"><i class="fa-solid fa-calendar-days" style="font-size:11px"></i></button>
           </div>
         </div>
-        <div id="mpCustomDates" class="mp-filter-row hidden">
+        <div id="mpCustomDates" class="mp-filter-row hidden" style="margin-top:8px">
           <label class="mp-filter-label">De/Até</label>
           <div style="display:flex;gap:6px;flex:1;">
             <input id="mpDataDe" type="date" class="mp-filter-search" style="flex:1;padding-left:12px;background-image:none;">
