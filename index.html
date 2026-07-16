@@ -10450,6 +10450,9 @@ function buildPedidoSnapshot(cfg){
       qty: Number(it.qty) || 0,
       totalQty,
       preco,
+      // 🔧 Preserva precosPrazo pra que o PDF do histórico calcule o Custo por prazo depois.
+      // Sem esse campo, ao restaurar da lista de "Meus Pedidos", o PDF cai no fallback do PDV.
+      precosPrazo: it.precosPrazo || null,
       colecao: it.colecao || "",
       imagem: it.imagem || "",
       imgSrc: it.imgSrc || "",
@@ -11260,14 +11263,26 @@ function mpBaixarPDF(id){
     _generatedAt: pedido.createdAt ? Date.parse(pedido.createdAt) : Date.now(),
     _restauradoDoHistorico: true
   };
-  // Aciona o PDF da sacola (deve existir uma função no app)
-  const btnPdf = document.querySelector("[data-action='export-pdf'], #btnExportPdf, #btnSacolaPdf");
   closeMeusPedidosModal();
-  setTimeout(() => {
-    if(btnPdf) btnPdf.click();
-    else toast("Função PDF não encontrada — abra a sacola e exporte manualmente");
-    // Restaura o cfg anterior após um tempo (deixa o PDF processar)
-    setTimeout(() => { state.lastOrderCfg = cfgAnterior; }, 3000);
+  // 🔧 Chama exportOrderPdf DIRETAMENTE (não clica no btnExportPdf, que só abre um menu dropdown).
+  setTimeout(async () => {
+    try {
+      if(typeof exportOrderPdf === "function"){
+        await exportOrderPdf(true); // true = com grade
+      } else {
+        toast("Função de PDF não encontrada");
+      }
+    } catch(e){
+      toast("Erro ao gerar PDF: " + (e.message || ""));
+    } finally {
+      // Restaura o cfg anterior (não polui a sessão do vendedor)
+      state.lastOrderCfg = cfgAnterior;
+      // Limpa a sacola (pedido histórico não deve virar sacola ativa)
+      state.cart.clear();
+      if(typeof saveCartToStorage === "function") saveCartToStorage();
+      if(typeof renderCartUI === "function") renderCartUI();
+      if(typeof updateCartBadge === "function") updateCartBadge();
+    }
   }, 300);
 }
 
