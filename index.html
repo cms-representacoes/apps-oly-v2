@@ -1089,9 +1089,9 @@
     #homeScreen { background: var(--bg, #F9FAFB); min-height: 100vh; }
     .dark-mode #homeScreen { background: var(--bg, #111827); }
 
-    .home-hero { position:relative; width:100%; height:110px; overflow:hidden; flex-shrink:0; border-radius: 0 0 24px 24px; }
-    @media(min-width:480px){ .home-hero { height:130px; } }
-    @media(min-width:1024px){ .home-hero { height:160px; } }
+    .home-hero { position:relative; width:100%; height:90px; overflow:hidden; flex-shrink:0; border-radius: 0 0 24px 24px; }
+    @media(min-width:480px){ .home-hero { height:110px; } }
+    @media(min-width:1024px){ .home-hero { height:130px; } }
     .home-hero-grid { display:grid; grid-template-columns:1fr 1fr 1fr; height:100%; gap:2px; }
     .home-hero-cell { overflow:hidden; background:#111; position:relative; }
     .home-hero-cell-img { width:100%; height:100%; object-fit:cover; object-position:center 20%; display:block; transition:transform 0.6s cubic-bezier(.2,.7,.2,1); }
@@ -1130,24 +1130,26 @@
       max-width: 720px;
       margin: 0 auto;
     }
-    /* Card "Ver todos" ocupa linha inteira (mantém proeminência) */
-    .home-cat-grid > .home-cat-all { grid-column: 1 / -1; }
-    /* Em 2 colunas, a miniatura à direita fica apertada — some, ícone à esquerda basta */
-    .home-cat-grid > .home-cat-card:not(.home-cat-all) .home-cat-img-wrap { display: none; }
-    /* Seta chevron também some pra dar respiro ao texto */
-    .home-cat-grid > .home-cat-card:not(.home-cat-all) .home-cat-arrow { display: none; }
+    /* Em 2 colunas, a miniatura à direita é bem compacta (não pode dominar o card) */
+    .home-cat-grid > .home-cat-card .home-cat-img-wrap {
+      width: 48px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+    /* Seta chevron some pra dar respiro ao texto */
+    .home-cat-grid > .home-cat-card .home-cat-arrow { display: none; }
     /* Descrição menor pra caber sem estourar */
-    .home-cat-grid > .home-cat-card:not(.home-cat-all) .home-cat-sub {
+    .home-cat-grid > .home-cat-card .home-cat-sub {
       font-size: 10.5px;
       display: -webkit-box;
       -webkit-line-clamp: 1;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .home-cat-grid > .home-cat-card:not(.home-cat-all) .home-cat-name { font-size: 14px; }
+    .home-cat-grid > .home-cat-card .home-cat-name { font-size: 14px; }
     /* Info empacota melhor no card estreito */
-    .home-cat-grid > .home-cat-card:not(.home-cat-all) .home-cat-info { gap: 10px; flex: 1; min-width: 0; }
-    .home-cat-grid > .home-cat-card:not(.home-cat-all) .home-cat-label { min-width: 0; }
+    .home-cat-grid > .home-cat-card .home-cat-info { gap: 10px; flex: 1; min-width: 0; }
+    .home-cat-grid > .home-cat-card .home-cat-label { min-width: 0; }
 
     .home-cat-card { width:100%; display:flex; align-items:center; gap:12px; background:var(--card-bg,#fff); border:1px solid var(--border,#E5E7EB); border-radius:20px; padding:12px 14px; cursor:pointer; transition:transform 0.18s ease,box-shadow 0.22s ease,border-color 0.18s ease; text-align:left; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 20px rgba(15,23,42,.06); position:relative; overflow:hidden; }
     .home-cat-card:active { transform:scale(0.98); box-shadow:0 1px 2px rgba(15,23,42,.06); }
@@ -1251,6 +1253,83 @@
     .tier-bar-wrap { display:none; }
     /* Quando ativa (2S26 selecionada), aparece como flex inline com a coleção */
     .tier-bar-wrap.show { display:flex; align-items:center; gap:6px; }
+    /* Botão-popover (novo layout compacto) */
+    .tier-popover-wrap { position: relative; }
+    .tier-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      border: 1.5px solid var(--border, #E5E7EB);
+      border-radius: 999px;
+      padding: 6px 12px 6px 11px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted, #6B7280);
+      cursor: pointer;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .tier-toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .tier-toggle-btn.has-filter {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(124,58,237,.06);
+    }
+    .tier-toggle-btn.open {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+    }
+    .tier-toggle-label { font-weight: 700; opacity: .8; }
+    .tier-toggle-value {
+      font-weight: 900;
+      color: var(--text);
+    }
+    .tier-toggle-btn.has-filter .tier-toggle-value { color: var(--primary); }
+    .tier-toggle-chevron { transition: transform .18s ease; }
+    .tier-toggle-btn.open .tier-toggle-chevron { transform: rotate(180deg); }
+    /* Popover propriamente */
+    .tier-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 280px;
+      max-width: 92vw;
+      background: #fff;
+      border: 1px solid var(--border, #E5E7EB);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15,23,42,.12), 0 2px 4px rgba(15,23,42,.05);
+      padding: 12px;
+      z-index: 40;
+      display: none;
+      animation: tierPopIn .18s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .tier-popover.show { display: block; }
+    @keyframes tierPopIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tier-popover-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      padding: 0 4px 8px;
+    }
+    .tier-popover .tier-bar {
+      flex-wrap: wrap;
+      overflow: visible;
+      padding: 4px;
+    }
+    @media (prefers-reduced-motion: reduce){
+      .tier-popover { animation: none; }
+    }
+    /* Em mobile, popover ancora à esquerda pra não sair da tela */
+    @media (max-width: 500px){
+      .tier-popover { left: 0; right: auto; }
+    }
     .tier-bar-label {
       font-size: 11px; font-weight: 800;
       color: var(--muted, #6B7280);
@@ -1810,19 +1889,28 @@
             </button>
           </div>
 
-          <!-- Classificação por tier (só visível em 2S26) -->
-          <div id="tierBarWrap" class="tier-bar-wrap home-filters-group">
-            <span class="home-filters-group-label">Classificação</span>
-            <div class="tier-bar" id="tierBar">
-              <button type="button" class="tier-pill active" data-tier="">Todos</button>
-              <div class="tier-bar-divider"></div>
-              <button type="button" class="tier-pill" data-tier="sg1" data-tip="Sporting Goods · Tier 1">SG·1</button>
-              <button type="button" class="tier-pill" data-tier="sg2" data-tip="Sporting Goods · Tier 2">SG·2</button>
-              <button type="button" class="tier-pill" data-tier="sg3" data-tip="Sporting Goods · Tier 3">SG·3</button>
-              <div class="tier-bar-divider"></div>
-              <button type="button" class="tier-pill fam" data-tier="ftw1" data-tip="Family FTW · Tier 1">FF·1</button>
-              <button type="button" class="tier-pill fam" data-tier="ftw2" data-tip="Family FTW · Tier 2">FF·2</button>
-              <button type="button" class="tier-pill fam" data-tier="ftw3" data-tip="Family FTW · Tier 3">FF·3</button>
+          <!-- Classificação por tier: botão que abre popover (só visível em 2S26) -->
+          <div id="tierBarWrap" class="tier-bar-wrap home-filters-group tier-popover-wrap">
+            <button type="button" id="tierToggleBtn" class="tier-toggle-btn focus-ring" aria-haspopup="true" aria-expanded="false" title="Filtrar por classificação do cliente">
+              <i class="fa-solid fa-filter" style="font-size:11px;opacity:.7"></i>
+              <span class="tier-toggle-label">Classificação:</span>
+              <span class="tier-toggle-value" id="tierToggleValue">Todos</span>
+              <i class="fa-solid fa-chevron-down tier-toggle-chevron" style="font-size:9px;opacity:.6"></i>
+            </button>
+            <!-- Popover invisível por padrão; abre ao clicar no botão -->
+            <div id="tierPopover" class="tier-popover" role="menu" aria-labelledby="tierToggleBtn">
+              <div class="tier-popover-title">Classificação do cliente</div>
+              <div class="tier-bar" id="tierBar">
+                <button type="button" class="tier-pill active" data-tier="">Todos</button>
+                <div class="tier-bar-divider"></div>
+                <button type="button" class="tier-pill" data-tier="sg1" data-tip="Sporting Goods · Tier 1">SG·1</button>
+                <button type="button" class="tier-pill" data-tier="sg2" data-tip="Sporting Goods · Tier 2">SG·2</button>
+                <button type="button" class="tier-pill" data-tier="sg3" data-tip="Sporting Goods · Tier 3">SG·3</button>
+                <div class="tier-bar-divider"></div>
+                <button type="button" class="tier-pill fam" data-tier="ftw1" data-tip="Family FTW · Tier 1">FF·1</button>
+                <button type="button" class="tier-pill fam" data-tier="ftw2" data-tip="Family FTW · Tier 2">FF·2</button>
+                <button type="button" class="tier-pill fam" data-tier="ftw3" data-tip="Family FTW · Tier 3">FF·3</button>
+              </div>
             </div>
           </div>
         </div>
@@ -4096,7 +4184,51 @@ function syncTierBar(){
   document.querySelectorAll(".tier-pill").forEach(btn => {
     btn.classList.toggle("active", (btn.dataset.tier || "") === state.filters.tier);
   });
+  // Sincroniza o botão-toggle: mostra o filtro ativo
+  const btnToggle = document.getElementById("tierToggleBtn");
+  const valueEl = document.getElementById("tierToggleValue");
+  if(btnToggle && valueEl){
+    const tier = state.filters.tier || "";
+    if(tier){
+      // Label curto: SG-1, FF-2, etc (formato humano do dataset)
+      const btnAtiva = document.querySelector(`.tier-pill[data-tier="${tier}"]`);
+      const rotulo = btnAtiva ? btnAtiva.textContent.trim() : tier;
+      valueEl.textContent = rotulo;
+      btnToggle.classList.add("has-filter");
+    } else {
+      valueEl.textContent = "Todos";
+      btnToggle.classList.remove("has-filter");
+    }
+  }
 }
+// Abre/fecha popover de classificação
+function _tierPopoverToggle(force){
+  const pop = document.getElementById("tierPopover");
+  const btn = document.getElementById("tierToggleBtn");
+  if(!pop || !btn) return;
+  const abrir = force === true ? true : (force === false ? false : !pop.classList.contains("show"));
+  pop.classList.toggle("show", abrir);
+  btn.classList.toggle("open", abrir);
+  btn.setAttribute("aria-expanded", String(abrir));
+}
+// Listeners via delegação (à prova de reordenação do HTML)
+document.addEventListener("click", (e) => {
+  const trg = e.target;
+  // Toggle no botão
+  if(trg.closest("#tierToggleBtn")){
+    e.stopPropagation();
+    _tierPopoverToggle();
+    return;
+  }
+  // Clique dentro do popover — não fecha (as pílulas cuidam do fechamento)
+  if(trg.closest("#tierPopover")) return;
+  // Clique fora fecha
+  _tierPopoverToggle(false);
+});
+// Esc fecha popover
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape") _tierPopoverToggle(false);
+});
 const TIER_LABELS = {
   sg1: "Sporting Goods · Tier 1",
   sg2: "Sporting Goods · Tier 2",
@@ -4108,7 +4240,10 @@ const TIER_LABELS = {
 document.querySelectorAll(".tier-pill").forEach(btn => {
   btn.addEventListener("click", () => {
     const sel = btn.dataset.tier || "";
-    if(state.filters.tier === sel) return;
+    if(state.filters.tier === sel){
+      _tierPopoverToggle(false);
+      return;
+    }
     state.filters.tier = sel;
     syncTierBar();
     if(typeof toast === "function"){
@@ -4116,6 +4251,7 @@ document.querySelectorAll(".tier-pill").forEach(btn => {
       else toast("Mostrando todos");
     }
     if(typeof refreshView === "function") refreshView(true);
+    _tierPopoverToggle(false);
   });
 });
 syncTierBar();
