@@ -86,6 +86,11 @@
   .plabel{display:inline-flex;align-items:center;gap:7px;font-family:"Space Grotesk",sans-serif;font-size:12.5px;
     font-weight:600;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 14px}
   /* comparar com ano anterior */
+  .vend-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .vend-tab{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:99px;
+    border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
+  .vend-tab:hover{border-color:#CBD2DC}
+  .vend-tab.on{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
   .cmp-toggle{margin-top:16px;margin-left:12px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
     font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;color:var(--slate);
     background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 14px;transition:color .15s,border-color .15s}
@@ -289,6 +294,7 @@
     <div class="period" id="period" hidden></div>
     <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Comparar com ano anterior</button>
     <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Consolidar tudo</button>
+    <div class="vend-tabs" id="vendTabs" hidden></div>
   </header>
 
   <div id="empty" class="drop">
@@ -405,6 +411,28 @@ function build(workbook){
 }
 let CMP_ON=false;
 let CONS_ON=false;
+let CUR_VEND='';   // '' = Todos; senão, a key da aba do vendedor
+// primeiro nome do vendedor (CMS fica "CMS")
+function firstName(v){
+  const nome=(v.nome||v.key||'').trim();
+  if(norm(v.key)==='cms' || norm(nome)==='c m s') return 'CMS';
+  return nome.split(/\s+/)[0] || v.key;
+}
+function buildVendTabs(vendors){
+  const box=document.getElementById('vendTabs');
+  if(!box) return;
+  if(CONS_ON || !vendors.length){ box.hidden=true; box.innerHTML=''; return; }
+  if(CUR_VEND && !vendors.some(v=>v.key===CUR_VEND)) CUR_VEND='';
+  box.hidden=false; box.innerHTML='';
+  const mk=(label,key)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='vend-tab'+(CUR_VEND===key?' on':''); b.textContent=label;
+    b.onclick=()=>{ CUR_VEND=key; render(vendors); };
+    box.appendChild(b);
+  };
+  mk('Todos','');
+  vendors.forEach(v=> mk(firstName(v), v.key));
+}
 function fmtPctSigned(v){ const s=v*100; const t=Math.abs(s).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; return (s>=0?'+':'−')+t; }
 function ppText(dpp){ return (dpp>=0?'+':'−')+Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.'; }
 // selo inline (atual vs ano anterior) — entra embaixo do número, sem coluna nova
@@ -470,6 +498,7 @@ function aggregate(vendors){
   return a;
 }
 function render(vendors){
+  buildVendTabs(vendors);
   const _ano = (CURRENT_KEY && PERIODS[CURRENT_KEY]) ? PERIODS[CURRENT_KEY].ano : '';
   const prevYear = (_ano && /^\d{4}$/.test(_ano)) ? ('vs '+(+_ano-1)) : 'vs ano anterior';
   const prevYearShort = (_ano && /^\d{4}$/.test(_ano)) ? String(+_ano-1) : 'ano anterior';
@@ -528,6 +557,13 @@ function render(vendors){
     const agg=aggregate(vendors);
     document.getElementById('report').innerHTML=
       `<div class="block"><h3>Consolidado · todos os vendedores <span class="conscount">(${vendors.length} vendedores somados)</span></h3>${vendorSection(agg,null)}</div>`;
+  } else if(CUR_VEND){
+    const v=vendors.find(x=>x.key===CUR_VEND);
+    if(v){
+      const pos=ranked.findIndex(x=>x.key===CUR_VEND)+1;
+      document.getElementById('report').innerHTML=
+        `<div class="block"><h3>Detalhamento por vendedor</h3>${vendorSection(v, String(pos).padStart(2,'0'))}</div>`;
+    }
   } else {
     let crows='';
     ranked.forEach((c,i)=>{
@@ -689,6 +725,7 @@ function applyAccent(key){
   const c=ACCENTS[key]||ACCENTS.gold;
   document.documentElement.style.setProperty('--ftw', c.a);
   document.documentElement.style.setProperty('--ftw-lite', c.l);
+  document.documentElement.style.setProperty('--ftw-ink', key==='purple'?'#FFFFFF':'#23170A');
   document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active', s.dataset.accent===key));
   try{ localStorage.setItem(LS_ACCENT, key); }catch(_){}
 }
