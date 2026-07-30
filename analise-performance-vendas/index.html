@@ -368,6 +368,29 @@ const FAIXAS = [
   {key:'ua',       label:'Under Armour',  sub:'Todas as categorias', cls:'ua'},
 ];
 const OLY_MAP = {calcados:'ftw', meias:'meias', acessorios:'acess', vestuario:'conf', chinelos:'chinelos'};
+// ==== formato novo (aba DADOS do PERFORMANCE_<ano>.xlsx) ====
+const FAIXA_MAP = {ftw:'ftw', meias:'meias', acessorios:'acess', acess:'acess',
+  confeccao:'conf', conf:'conf', vestuario:'conf', chinelos:'chinelos',
+  under_armour:'ua', 'under armour':'ua', ua:'ua', calcados:'ftw'};
+const MES_NOME = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const RECORTES = [
+  {id:'ANO', label:'Ano completo',            meses:[1,2,3,4,5,6,7,8,9,10,11,12]},
+  {id:'S1',  label:'1º Semestre (Jan-Jun)',   meses:[1,2,3,4,5,6]},
+  {id:'S2',  label:'2º Semestre (Jul-Dez)',   meses:[7,8,9,10,11,12]},
+  {id:'T1',  label:'1º Trimestre (Jan-Mar)',  meses:[1,2,3]},
+  {id:'T2',  label:'2º Trimestre (Abr-Jun)',  meses:[4,5,6]},
+  {id:'T3',  label:'3º Trimestre (Jul-Set)',  meses:[7,8,9]},
+  {id:'T4',  label:'4º Trimestre (Out-Dez)',  meses:[10,11,12]},
+];
+function recortesDe(mesesDisp){
+  const s = new Set(mesesDisp.map(Number));
+  const out = RECORTES.filter(r => r.meses.some(m => s.has(m)))
+    .map(r => ({id:r.id, label:r.label, meses:r.meses.filter(m => s.has(m))}));
+  [...s].sort((a,b)=>a-b).forEach(m =>
+    out.push({id:'M'+m, label:MES_NOME[m], meses:[m]}));
+  return out;
+}
 const NOMES = {cms:'C M S', jorge:'Jorge Luiz das Neves', leandro:'Leandro de Paula',
   mariana:'Mariana Fernandes', rafael:'Rafael Lima Moreira', willame:'Willame Rocha Teixeira'};
 const LS_DATA='apv_xlsx_b64', LS_NAME='apv_xlsx_name', LS_ANO='apv_ano_base', LS_ACCENT='apv_accent', LS_PERIODS='apv_periods';
@@ -427,6 +450,80 @@ function build(workbook){
     if(v && v.ftw>0){ v.key=sn; v.nome=NOMES[norm(sn)]||sn; vendors.push(v); }
   });
   if(!vendors.length) throw new Error('Nenhuma aba válida encontrada. Confira se cada aba tem as colunas Marca / FatP_Qtd / FATP_VLR e as linhas OLYMPIKUS · Calcados.');
+  finishBuild(vendors);
+}
+
+// ==== leitura do formato novo (aba DADOS) ====
+function novoV(){
+  return {ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0,
+    q:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    ly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    qly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    total_v:0,total_q:0,total_v_ly:0,total_q_ly:0};
+}
+function fecharV(v){
+  v.total_v    = v.ftw+v.meias+v.acess+v.conf+v.chinelos+v.ua;
+  v.total_q    = v.q.ftw+v.q.meias+v.q.acess+v.q.conf+v.q.chinelos+v.q.ua;
+  v.total_v_ly = v.ly.ftw+v.ly.meias+v.ly.acess+v.ly.conf+v.ly.chinelos+v.ly.ua;
+  v.total_q_ly = v.qly.ftw+v.qly.meias+v.qly.acess+v.qly.conf+v.qly.chinelos+v.qly.ua;
+  v.demais_v = v.total_v - v.ftw;
+  v.demais_q = v.total_q - v.q.ftw;
+  v.ratio    = v.ftw ? v.demais_v/v.ftw : 0;
+  v.demais_v_ly = v.total_v_ly - v.ly.ftw;
+  v.demais_q_ly = v.total_q_ly - v.qly.ftw;
+  v.ratio_ly = v.ly.ftw ? v.demais_v_ly/v.ly.ftw : 0;
+  return v;
+}
+// converte a aba DADOS num array compacto [vend, mes, faixa, q, v, qly, vly]
+function sheetToDados(ws){
+  const rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  let h=-1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    if(rows[i] && rows[i].some(c=>norm(c)==='vendedor')){ h=i; break; }
+  }
+  if(h<0) return null;
+  const head=rows[h];
+  const cVe=findCol(head,['vendedor']), cMe=findCol(head,['mes','mês']),
+        cFa=findCol(head,['faixa']), cQ=findCol(head,['qtd']),
+        cV=findCol(head,['valor']), cQl=findCol(head,['qtd_ly']),
+        cVl=findCol(head,['valor_ly']);
+  if(cVe<0||cMe<0||cFa<0||cV<0) return null;
+  const out=[];
+  for(let i=h+1;i<rows.length;i++){
+    const r=rows[i]; if(!r||r[cVe]==null) continue;
+    const mes=Number(String(r[cMe]).replace(/\D/g,''));
+    if(!mes||mes<1||mes>12) continue;
+    out.push([String(r[cVe]).trim(), mes, String(r[cFa]||'').trim(),
+      Number(r[cQ])||0, Number(r[cV])||0,
+      cQl>=0?(Number(r[cQl])||0):0, cVl>=0?(Number(r[cVl])||0):0]);
+  }
+  return out.length ? out : null;
+}
+function vendorsFromDados(dados, meses){
+  const setM=new Set(meses.map(Number));
+  const map={}, ordem=[];
+  dados.forEach(r=>{
+    const vend=r[0], mes=Number(r[1]);
+    if(!setM.has(mes)) return;
+    const k=FAIXA_MAP[norm(r[2])]; if(!k) return;
+    let o=map[vend];
+    if(!o){ o=map[vend]=novoV(); ordem.push(vend); }
+    o[k]      += Number(r[4])||0;
+    o.q[k]    += Number(r[3])||0;
+    o.ly[k]   += Number(r[6])||0;
+    o.qly[k]  += Number(r[5])||0;
+  });
+  return ordem.map(vk=>{
+    const v=fecharV(map[vk]); v.key=vk; v.nome=NOMES[norm(vk)]||vk; return v;
+  }).filter(v=>v.total_v>0 || v.total_v_ly>0);
+}
+function buildFromDados(dados, meses){
+  const vendors=vendorsFromDados(dados, meses);
+  if(!vendors.length) throw new Error('Nenhum dado no período selecionado.');
+  finishBuild(vendors);
+}
+
+function finishBuild(vendors){
   const eb=document.getElementById('exportBtn'); if(eb) eb.hidden=!IS_ADMIN_LIKE;
 
   if(!IS_ADMIN_LIKE){
@@ -646,12 +743,18 @@ function showToast(msg){
 function toB64(u8){ let bin='',CH=0x8000; for(let i=0;i<u8.length;i+=CH){bin+=String.fromCharCode.apply(null,u8.subarray(i,i+CH));} return btoa(bin); }
 function fromB64(b64){ const bin=atob(b64); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i); return u8; }
 
-// ===== períodos (ano + semestre) =====
-let PERIODS = {};      // chave "2025-ALL" -> {ano, sem, name, b64}
-let CURRENT_KEY = null;
+// ===== períodos =====
+// Chave "<ano>-ALL" para o formato novo (aba DADOS, JSON) e as chaves
+// antigas "<ano>-S1/S2/ALL" (xlsx em base64) continuam funcionando.
+let PERIODS = {};
+let CURRENT_KEY = null;    // chave do período carregado
+let CURRENT_SEL = null;    // 'K:<chave>' (legado) ou 'R:<recorte>' (novo)
+let DATASET = null;        // {ano, dados:[], meses:[]} do formato novo
+
 const semText = s => s==='S1' ? '1º semestre' : s==='S2' ? '2º semestre' : 'Ano todo';
 const semOrder = s => s==='S2' ? 2 : s==='S1' ? 1 : 0;
 const periodLabel = (ano,sem) => ano + ' · ' + semText(sem);
+
 function sortedKeys(){
   return Object.keys(PERIODS).sort((a,b)=>{
     const A=PERIODS[a], B=PERIODS[b];
@@ -667,81 +770,172 @@ function normalizePeriods(j){
 }
 function cachePeriods(){ try{ localStorage.setItem(LS_PERIODS, JSON.stringify(PERIODS)); }catch(_){}}
 
+// --- base64 <-> texto (UTF-8) ---
+function textToB64(txt){ return toB64(new TextEncoder().encode(txt)); }
+function b64ToText(b64){ return new TextDecoder('utf-8').decode(fromB64(b64)); }
+
+// Descobre se o período é do formato novo (JSON) ou antigo (xlsx).
+function hydrate(p){
+  if(p._hyd) return p;
+  p._hyd = true;
+  p.kind = 'xlsx';
+  try{
+    if(atob(p.b64.slice(0,8)).charCodeAt(0) === 0x7B){   // '{' => JSON
+      const j = JSON.parse(b64ToText(p.b64));
+      if(j && Array.isArray(j.dados) && j.dados.length){
+        p.kind  = 'dados';
+        p.dados = j.dados;
+        p.meses = [...new Set(j.dados.map(r=>Number(r[1])))].sort((a,b)=>a-b);
+      }
+    }
+  }catch(_){ p.kind='xlsx'; }
+  return p;
+}
+
+function anosDisponiveis(){
+  return [...new Set(Object.keys(PERIODS).map(k=>PERIODS[k].ano))].sort((a,b)=>+b-+a);
+}
+// Opções do seletor de período para um ano.
+function opcoesDoAno(ano){
+  const ops=[];
+  const chaves = sortedKeys().filter(k=>PERIODS[k].ano===ano);
+  const novo = chaves.map(k=>hydrate(PERIODS[k])).find(p=>p.kind==='dados');
+  if(novo){
+    recortesDe(novo.meses).forEach(r=>ops.push({val:'R:'+r.id, label:r.label, meses:r.meses}));
+  }
+  chaves.forEach(k=>{
+    if(hydrate(PERIODS[k]).kind==='xlsx') ops.push({val:'K:'+k, label:semText(PERIODS[k].sem)+' (importação antiga)'});
+  });
+  return ops;
+}
+
 function buildControls(){
   const el=document.getElementById('period');
-  const keys=sortedKeys();
-  if(!keys.length){ el.hidden=true; el.innerHTML=''; return; }
-  if(keys.length===1){
-    const p=PERIODS[keys[0]];
-    el.innerHTML='<span class="plabel"><i class="ti"></i>'+periodLabel(p.ano,p.sem)+'</span>';
-    el.hidden=false; return;
-  }
-  const cur=PERIODS[CURRENT_KEY];
-  const anos=[...new Set(keys.map(k=>PERIODS[k].ano))].sort((a,b)=>+b-+a);
-  const sems=keys.filter(k=>PERIODS[k].ano===cur.ano).map(k=>PERIODS[k].sem).sort((a,b)=>semOrder(b)-semOrder(a));
+  const anos=anosDisponiveis();
+  if(!anos.length){ el.hidden=true; el.innerHTML=''; return; }
+  const ano = (CURRENT_KEY && PERIODS[CURRENT_KEY]) ? PERIODS[CURRENT_KEY].ano : anos[0];
+  const ops = opcoesDoAno(ano);
   el.innerHTML =
     '<div class="pgroup"><label>Ano</label><select id="selAno">'+
-      anos.map(a=>'<option value="'+a+'"'+(a===cur.ano?' selected':'')+'>'+a+'</option>').join('')+'</select></div>'+
-    '<div class="pgroup"><label>Semestre</label><select id="selSem">'+
-      sems.map(s=>'<option value="'+s+'"'+(s===cur.sem?' selected':'')+'>'+semText(s)+'</option>').join('')+'</select></div>';
+      anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+
+    '</select></div>'+
+    '<div class="pgroup"><label>Período</label><select id="selRec">'+
+      ops.map(o=>'<option value="'+o.val+'"'+(o.val===CURRENT_SEL?' selected':'')+'>'+o.label+'</option>').join('')+
+    '</select></div>';
   el.hidden=false;
   document.getElementById('selAno').onchange=e=>{
-    const ks=sortedKeys().filter(k=>PERIODS[k].ano===e.target.value);
-    if(ks.length) showPeriod(ks[0]);
+    const ops2=opcoesDoAno(e.target.value);
+    if(ops2.length) aplicarSelecao(e.target.value, ops2[0].val);
   };
-  document.getElementById('selSem').onchange=e=>{
-    const ano=document.getElementById('selAno').value;
-    const key=ano+'-'+e.target.value;
-    if(PERIODS[key]) showPeriod(key);
+  document.getElementById('selRec').onchange=e=>{
+    aplicarSelecao(document.getElementById('selAno').value, e.target.value);
   };
 }
-function showPeriod(key){
-  if(!PERIODS[key]) return;
-  CURRENT_KEY=key;
-  const wb=XLSX.read(fromB64(PERIODS[key].b64),{type:'array'});
-  build(wb);
+
+function aplicarSelecao(ano, sel){
+  const err=document.getElementById('err');
+  try{
+    if(sel.startsWith('K:')){          // período antigo (xlsx)
+      const key=sel.slice(2);
+      const p=hydrate(PERIODS[key]); if(!p) return;
+      CURRENT_KEY=key; CURRENT_SEL=sel; DATASET=null;
+      build(XLSX.read(fromB64(p.b64),{type:'array'}));
+    }else{                             // recorte do formato novo
+      const key=ano+'-ALL';
+      let p=PERIODS[key] ? hydrate(PERIODS[key]) : null;
+      if(!p || p.kind!=='dados'){
+        p = sortedKeys().map(k=>hydrate(PERIODS[k]))
+              .find(x=>x.ano===ano && x.kind==='dados');
+        if(!p) return;
+        CURRENT_KEY = Object.keys(PERIODS).find(k=>PERIODS[k]===p);
+      }else{ CURRENT_KEY=key; }
+      CURRENT_SEL=sel; DATASET=p;
+      const rid=sel.slice(2);
+      const rec=recortesDe(p.meses).find(r=>r.id===rid) || {meses:p.meses};
+      buildFromDados(p.dados, rec.meses);
+    }
+    if(err) err.style.display='none';
+  }catch(ex){
+    if(err){ err.textContent=ex.message||'Falha ao montar o período.'; err.style.display='block'; }
+  }
   buildControls();
+}
+
+function showPeriod(key){
+  const p=PERIODS[key]; if(!p) return;
+  hydrate(p);
+  const sel = p.kind==='dados' ? 'R:'+(recortesDe(p.meses)[0]||{id:'ANO'}).id : 'K:'+key;
+  aplicarSelecao(p.ano, sel);
 }
 function loadPeriods(obj){
   PERIODS = obj || {};
   const keys=sortedKeys();
   if(!keys.length) return false;
-  showPeriod(keys[0]);
+  const preferida = keys.map(k=>({k,p:hydrate(PERIODS[k])})).find(x=>x.p.kind==='dados');
+  showPeriod(preferida ? preferida.k : keys[0]);
   return true;
 }
 
-// ===== upload (pergunta ano + semestre num modal) =====
+// ===== upload =====
+// Arquivo com aba DADOS  -> formato novo (guarda JSON, pergunta só o ano)
+// Arquivo sem aba DADOS  -> formato antigo (pergunta ano + semestre)
 let _pending=null;
 function readFile(file){
   const err=document.getElementById('err'); err.style.display='none';
   const fr=new FileReader();
   fr.onload=e=>{
     const u8=new Uint8Array(e.target.result);
-    try{ XLSX.read(u8,{type:'array'}); }
+    let wb;
+    try{ wb=XLSX.read(u8,{type:'array'}); }
     catch(ex){ err.textContent='Não foi possível ler o arquivo (.xlsx inválido).'; err.style.display='block'; return; }
-    _pending={u8, name:file.name};
-    const m=document.getElementById('pubModal');
-    document.getElementById('pubFile').textContent=file.name;
-    document.getElementById('pubAno').value=(CURRENT_KEY && PERIODS[CURRENT_KEY] && PERIODS[CURRENT_KEY].ano) || String(new Date().getFullYear());
-    document.getElementById('pubSem').value='ALL';
-    m.hidden=false; document.getElementById('pubAno').focus();
+
+    let dados=null;
+    const abaDados = wb.SheetNames.find(sn=>norm(sn)==='dados');
+    if(abaDados) dados = sheetToDados(wb.Sheets[abaDados]);
+
+    if(abaDados && !dados){
+      err.textContent='A aba DADOS existe mas está fora do padrão (VENDEDOR / MES / FAIXA / QTD / VALOR).';
+      err.style.display='block'; return;
+    }
+
+    _pending = dados ? {dados, name:file.name} : {u8, name:file.name};
+    const anoArq = (file.name.match(/(20\d{2})/)||[])[1];
+    document.getElementById('pubFile').textContent =
+      file.name + (dados ? ' — '+dados.length+' linhas' : '');
+    document.getElementById('pubAno').value = anoArq ||
+      (CURRENT_KEY && PERIODS[CURRENT_KEY] && PERIODS[CURRENT_KEY].ano) ||
+      String(new Date().getFullYear());
+    const selSem=document.getElementById('pubSem');
+    selSem.value='ALL';
+    const lblSem=selSem.closest('label'); if(lblSem) lblSem.style.display = dados ? 'none' : '';
+    document.getElementById('pubModal').hidden=false;
+    document.getElementById('pubAno').focus();
   };
   fr.readAsArrayBuffer(file);
 }
 function closePubModal(){ document.getElementById('pubModal').hidden=true; _pending=null; }
+
 async function confirmPublish(){
   if(!_pending) return;
   const ano=String(document.getElementById('pubAno').value||'').trim();
-  const sem=document.getElementById('pubSem').value;
   if(!/^\d{4}$/.test(ano)){ alert('Informe um ano válido (4 dígitos).'); return; }
-  const key=ano+'-'+sem;
-  PERIODS[key]={ano, sem, name:_pending.name, b64:toB64(_pending.u8)};
+  const ehNovo = !!_pending.dados;
+  const sem = ehNovo ? 'ALL' : document.getElementById('pubSem').value;
+  const key = ano+'-'+sem;
+
+  // O Worker exige o campo b64. No formato novo enviamos o JSON codificado
+  // em base64 — assim nada muda no Worker e o payload fica ~20x menor.
+  const b64 = ehNovo ? textToB64(JSON.stringify({ano, dados:_pending.dados}))
+                     : toB64(_pending.u8);
+
+  PERIODS[key]={ano, sem, name:_pending.name, b64};
   document.getElementById('pubModal').hidden=true;
   cachePeriods();
   showPeriod(key);
   const p=PERIODS[key]; _pending=null;
+
   if(!WORKER_URL){ showToast('Salvo neste navegador'); return; }
-  showToast('Publicando ' + periodLabel(ano,sem) + '…');
+  showToast('Publicando ' + ano + (ehNovo?'':' · '+semText(sem)) + '…');
   try{
     const res=await fetch(WORKER_URL,{ method:'PATCH',
       headers:{ 'Content-Type':'application/json' },

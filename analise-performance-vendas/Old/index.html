@@ -279,6 +279,8 @@
       </div>
     </div>
     <span class="spacer"></span>
+    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">&larr; Portal</a>
+    <span id="sessaoVendedorNome" style="font-weight:700;opacity:.85;margin:0 4px"></span>
     <div class="palette" id="palette" title="Cor do tema">
       <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
       <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
@@ -338,6 +340,25 @@
 </div>
 
 <script>
+// ── SSO do Portal ────────────────────────────────────────────────────────────
+function getPortalSession(){
+  try{
+    const raw = localStorage.getItem('cms_portal_session_v1');
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !s.expiraEm || new Date(s.expiraEm).getTime() < Date.now()) return null;
+    return s;
+  }catch(_){ return null; }
+}
+const PORTAL_SESSION = getPortalSession();
+if(!PORTAL_SESSION){
+  window.location.replace('https://cms-representacoes.github.io/apps-oly/');
+}
+// CMS e Christian Lucas têm acesso total (igual admin) — os demais vendedores
+// só veem a própria aba, sem poder trocar pra ver a de outra pessoa.
+const SESSION_NOME = String(PORTAL_SESSION?.nome || '').trim().toUpperCase();
+const IS_ADMIN_LIKE = SESSION_NOME === 'CMS' || SESSION_NOME === 'CHRISTIAN LUCAS';
+
 const FAIXAS = [
   {key:'ftw',      label:'FTW Olympikus', sub:'Calçados Olympikus',  cls:'ftw'},
   {key:'meias',    label:'Meias',         sub:'Olympikus',           cls:'meias'},
@@ -406,12 +427,35 @@ function build(workbook){
     if(v && v.ftw>0){ v.key=sn; v.nome=NOMES[norm(sn)]||sn; vendors.push(v); }
   });
   if(!vendors.length) throw new Error('Nenhuma aba válida encontrada. Confira se cada aba tem as colunas Marca / FatP_Qtd / FATP_VLR e as linhas OLYMPIKUS · Calcados.');
-  const eb=document.getElementById('exportBtn'); if(eb) eb.hidden=false;
+  const eb=document.getElementById('exportBtn'); if(eb) eb.hidden=!IS_ADMIN_LIKE;
+
+  if(!IS_ADMIN_LIKE){
+    // Vendedor comum: trava direto na própria aba, sem opção de trocar.
+    const meu = vendors.find(v => norm(firstName(v)) === norm(SESSION_NOME));
+    if(!meu){
+      showNoDataForVendor();
+      return;
+    }
+    CUR_VEND = meu.key;
+  }
   render(vendors);
 }
 let CMP_ON=false;
 let CONS_ON=false;
 let CUR_VEND='';   // '' = Todos; senão, a key da aba do vendedor
+
+function showNoDataForVendor(){
+  const empty=document.getElementById('empty');
+  const report=document.getElementById('report');
+  const footer=document.getElementById('footer');
+  if(report) report.style.display='none';
+  if(footer) footer.style.display='none';
+  if(empty){
+    empty.style.display='';
+    empty.innerHTML = `<h2>Nenhum dado disponível ainda</h2>
+      <p>Não encontramos uma aba de performance com o seu nome na planilha atual. Assim que ela for atualizada com os seus dados, aparece aqui automaticamente.</p>`;
+  }
+}
 // primeiro nome do vendedor (CMS fica "CMS")
 function firstName(v){
   const nome=(v.nome||v.key||'').trim();
@@ -421,7 +465,7 @@ function firstName(v){
 function buildVendTabs(vendors){
   const box=document.getElementById('vendTabs');
   if(!box) return;
-  if(CONS_ON || !vendors.length){ box.hidden=true; box.innerHTML=''; return; }
+  if(!IS_ADMIN_LIKE || CONS_ON || !vendors.length){ box.hidden=true; box.innerHTML=''; return; }
   if(CUR_VEND && !vendors.some(v=>v.key===CUR_VEND)) CUR_VEND='';
   box.hidden=false; box.innerHTML='';
   const mk=(label,key)=>{
@@ -590,7 +634,7 @@ function render(vendors){
   document.getElementById('report').style.display='block';
   document.getElementById('footer').style.display='flex';
   document.getElementById('cmpToggle').hidden=false;
-  document.getElementById('consToggle').hidden=false;
+  document.getElementById('consToggle').hidden=!IS_ADMIN_LIKE;
 }
 
 let _toastT;
@@ -731,6 +775,10 @@ function applyAccent(key){
 }
 document.querySelectorAll('.swatch').forEach(s=> s.onclick=()=>applyAccent(s.dataset.accent));
 (function(){ let k='gold'; try{ k=localStorage.getItem(LS_ACCENT)||'gold'; }catch(_){} applyAccent(k); })();
+(function(){
+  const el=document.getElementById('sessaoVendedorNome');
+  if(el && PORTAL_SESSION) el.textContent = PORTAL_SESSION.nome || '';
+})();
 
 // tema claro/escuro (padrão: escuro)
 const LS_THEME='apv_theme';
