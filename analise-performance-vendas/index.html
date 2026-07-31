@@ -167,8 +167,7 @@
   .ratio-val{font-family:"Space Grotesk",sans-serif;font-weight:600;min-width:54px;text-align:right}
   /* carta campanha */
   .cc-ok{--cc:#12a150;--cc-bg:rgba(18,161,80,.12)}
-  .cc-near{--cc:#c98a00;--cc-bg:rgba(201,138,0,.14)}
-  .cc-low{--cc:#d64545;--cc-bg:rgba(214,69,69,.12)}
+  .cc-low{--cc:#c98a00;--cc-bg:rgba(201,138,0,.14)}
   .cc-pct{font-family:"Space Grotesk",sans-serif;font-weight:700;color:var(--cc);font-variant-numeric:tabular-nums}
   .cc-badge{display:inline-block;font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:700;
     letter-spacing:.04em;padding:3px 9px;border-radius:99px;background:var(--cc-bg);color:var(--cc);white-space:nowrap}
@@ -182,6 +181,27 @@
     text-transform:uppercase;color:var(--mute)}
   .cc-card .val{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;margin-top:2px}
   .cc-note{font-size:11.5px;color:var(--mute);margin:-8px 0 16px}
+  /* painel do vendedor logado - compacto, sem rolagem */
+  .ccp{border:1px solid var(--line);border-left:5px solid var(--cc);border-radius:14px;background:var(--card);
+       padding:14px 20px;margin:0 0 20px}
+  .ccp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .ccp-lbl{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.1em;
+           text-transform:uppercase;color:var(--mute)}
+  .ccp-st{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:700;color:var(--cc);margin-top:2px}
+  .ccp-rt{text-align:right;line-height:1.05}
+  .ccp-pct{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;color:var(--cc);
+           font-variant-numeric:tabular-nums}
+  .ccp-meta{font-size:12px;color:var(--mute);margin-top:2px}
+  .ccp-track{position:relative;height:9px;background:var(--line-2);border-radius:99px;margin-top:12px}
+  .ccp-fill{height:100%;background:var(--cc);border-radius:99px}
+  .ccp-mark{position:absolute;left:75%;top:-3px;width:2px;height:15px;background:var(--ink);opacity:.5}
+  .ccp-foot{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12px;
+            color:var(--mute);margin-top:9px}
+  @media (max-width:720px){
+    .ccp{padding:12px 14px}
+    .ccp-pct{font-size:26px}
+    .ccp-st{font-size:16px}
+  }
   .upd{font-size:11.5px;color:var(--mute);margin-left:2px;white-space:nowrap}
 
   /* vendor cards */
@@ -611,18 +631,40 @@ function deltaSelo(cur, prev, yl, yWord, fmt){
 function valSelo(cur, prev, yl, yWord){ return deltaSelo(cur, prev, yl, yWord, x=>fmtBRL(x)); }
 function qtySelo(cur, prev, yl, yWord){ return deltaSelo(cur, prev, yl, yWord, x=>fmtQtd(x)+' pares'); }
 // ===== Carta Campanha =====
-// Meta trimestral: participação das Demais faixas no faturamento total
-// do vendedor. Ex.: demais 1.381.771 / total 7.894.038 = 17,5%.
-const CC_META = 0.15;      // meta oficial
-const CC_PERTO = 0.12;     // a partir daqui conta como "perto"
+// Meta trimestral: razão Demais faixas / FTW Olympikus (a mesma conta da
+// coluna "Demais / FTW"). Ex.: 618.499 / 3.882.809 = 15,9%.
+const CC_META = 0.15;                        // meta oficial
 const CC_ATIVO_EM = ['T1','T2','T3','T4'];   // só vale em trimestre
 
-function ccPart(v){ return v.total_v ? v.demais_v/v.total_v : 0; }
+function ccPart(v){ return v.ratio || 0; }   // demais / FTW
+function ppTxt(x){ return Math.abs(x).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.'; }
 function ccStatus(v){
-  const p=ccPart(v);
-  if(p>=CC_META)  return {cls:'cc-ok',   txt:'Atingida',    p};
-  if(p>=CC_PERTO) return {cls:'cc-near', txt:'Faltam '+((CC_META-p)*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.', p};
-  return {cls:'cc-low', txt:'Abaixo', p};
+  const p=ccPart(v), d=(p-CC_META)*100;
+  return p>=CC_META
+    ? {cls:'cc-ok', txt:'Meta atingida', curto:'Atingida', delta:'+'+ppTxt(d)+' acima da meta', p}
+    : {cls:'cc-low', txt:'Faltam '+ppTxt(d)+' para a meta', curto:'Faltam '+ppTxt(d), delta:ppTxt(d)+' para a meta', p};
+}
+
+// Referência: trimestre anterior do mesmo ano; se não houver, o mesmo
+// trimestre do ano anterior (as colunas _LY já vêm por mês).
+function ccRef(v){
+  const rid = CURRENT_SEL ? CURRENT_SEL.slice(2) : '';
+  const n = Number(String(rid).replace('T',''));
+  if(n>1 && DATASET && DATASET.dados){
+    const rec = recortesDe(DATASET.meses).find(r=>r.id==='T'+(n-1));
+    if(rec){
+      const ant = vendorsFromDados(DATASET.dados, rec.meses).find(x=>x.key===v.key);
+      if(ant && ant.ftw>0){
+        const d=(ccPart(v)-ant.ratio)*100;
+        return {txt:'T'+(n-1)+' fechou em '+fmtPct(ant.ratio), dpp:d};
+      }
+    }
+  }
+  if(v.ly && v.ly.ftw>0){
+    const d=(ccPart(v)-v.ratio_ly)*100;
+    return {txt:'mesmo trimestre do ano anterior: '+fmtPct(v.ratio_ly), dpp:d};
+  }
+  return null;
 }
 // A campanha é trimestral: fora de T1-T4 a coluna não aparece.
 function ccVisivel(){
@@ -631,19 +673,40 @@ function ccVisivel(){
 }
 function ccCell(v){
   const st=ccStatus(v);
-  return `<td class="cc-cell ${st.cls}"><span class="cc-pct">${fmtPct(st.p)}</span><span class="cc-badge">${st.txt}</span></td>`;
+  return `<td class="cc-cell ${st.cls}"><span class="cc-pct">${fmtPct(st.p)}</span><span class="cc-badge">${st.curto}</span></td>`;
 }
+// Painel do vendedor logado. Compacto: cabe na tela sem rolagem.
+function ccPainel(v){
+  const st=ccStatus(v), ref=ccRef(v);
+  const rid=CURRENT_SEL.slice(2), nome=(recortesDe(DATASET?DATASET.meses:[]).find(r=>r.id===rid)||{label:rid}).label;
+  const w=Math.min(ccPart(v)/0.20*100,100);      // escala 0-20%, meta em 75%
+  const seta = ref ? (ref.dpp>=0?'&#9650;':'&#9660;') : '';
+  return `<div class="ccp ${st.cls}">
+    <div class="ccp-top">
+      <div class="ccp-left">
+        <div class="ccp-lbl">Carta campanha &middot; ${nome}</div>
+        <div class="ccp-st">${st.txt}</div>
+      </div>
+      <div class="ccp-rt"><div class="ccp-pct">${fmtPct(ccPart(v))}</div><div class="ccp-meta">meta ${fmtPct(CC_META)}</div></div>
+    </div>
+    <div class="ccp-track"><div class="ccp-fill" style="width:${w.toFixed(1)}%"></div><div class="ccp-mark"></div></div>
+    <div class="ccp-foot">
+      <span>${fmtBRL(v.demais_v)} em demais faixas sobre ${fmtBRL(v.ftw)} de FTW</span>
+      ${ref?`<span>${ref.txt} &middot; ${seta} ${ppTxt(ref.dpp)}</span>`:''}
+    </div>
+  </div>`;
+}
+
 function ccCards(vendors){
   const sts=vendors.map(ccStatus);
   const ok=sts.filter(x=>x.cls==='cc-ok').length;
-  const near=sts.filter(x=>x.cls==='cc-near').length;
   const n=vendors.length;
   return `<div class="cc-cards">
     <div class="cc-card cc-ok"><div class="lbl">Meta atingida</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
-    <div class="cc-card cc-near"><div class="lbl">Perto da meta</div><div class="val" style="color:var(--cc)">${near} de ${n}</div></div>
+    <div class="cc-card cc-low"><div class="lbl">Abaixo da meta</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
     <div class="cc-card"><div class="lbl">Meta trimestral</div><div class="val">${fmtPct(CC_META)}</div></div>
   </div>
-  <div class="cc-note">Participação das demais faixas no faturamento total. Perto = a partir de ${fmtPct(CC_PERTO)}.</div>`;
+  <div class="cc-note">Demais faixas sobre FTW Olympikus, no trimestre.</div>`;
 }
 
 function ratioCmp(v, prevYear){
@@ -724,7 +787,7 @@ function render(vendors){
     return `<section class="vend" id="${v.key}">
       <header class="vhead">
         ${idx}
-        <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2>${ccVisivel()?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).txt}</span>`:''}</div>
+        <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2>${(ccVisivel()&&IS_ADMIN_LIKE)?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).curto}</span>`:''}</div>
         <div class="vkpi vkpi-total"><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
         <div class="vkpi vkpi-pares"><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
         <div class="vkpi"><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
@@ -759,8 +822,10 @@ function render(vendors){
     const v=vendors.find(x=>x.key===CUR_VEND);
     if(v){
       const pos=ranked.findIndex(x=>x.key===CUR_VEND)+1;
+      // Painel da carta campanha só para o vendedor logado, e só em trimestre.
+      const painel = (!IS_ADMIN_LIKE && ccVisivel()) ? ccPainel(v) : '';
       document.getElementById('report').innerHTML=
-        `<div class="block"><h3>Detalhamento por vendedor</h3>${vendorSection(v, String(pos).padStart(2,'0'))}</div>`;
+        `${painel}<div class="block"><h3>Detalhamento por vendedor</h3>${vendorSection(v, String(pos).padStart(2,'0'))}</div>`;
     }
   } else {
     const ccOn=ccVisivel();
@@ -947,10 +1012,23 @@ function aplicarSelecao(ano, sel){
   renderUpdatedAt();
 }
 
+// Recorte inicial: trimestre vigente (pela data de hoje). Se não houver
+// dado nele, cai no último trimestre com dado; por fim, no ano completo.
+function recorteInicial(p){
+  const ops = recortesDe(p.meses).map(r=>r.id);
+  const hoje = new Date();
+  if(String(hoje.getFullYear())===String(p.ano)){
+    const tri = 'T'+(Math.floor(hoje.getMonth()/3)+1);
+    if(ops.includes(tri)) return tri;
+  }
+  const tris = ops.filter(x=>/^T[1-4]$/.test(x));
+  if(tris.length) return tris[tris.length-1];
+  return ops[0] || 'ANO';
+}
 function showPeriod(key){
   const p=PERIODS[key]; if(!p) return;
   hydrate(p);
-  const sel = p.kind==='dados' ? 'R:'+(recortesDe(p.meses)[0]||{id:'ANO'}).id : 'K:'+key;
+  const sel = p.kind==='dados' ? 'R:'+recorteInicial(p) : 'K:'+key;
   aplicarSelecao(p.ano, sel);
 }
 function loadPeriods(obj){
