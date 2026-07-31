@@ -45,6 +45,13 @@
   .theme-btn{width:38px;height:38px;display:grid;place-items:center;padding:0}
   .btn{padding:8px 14px}
   .btn.primary{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
+  /* tela cheia */
+  #fsBtn{background:color-mix(in srgb, var(--ftw) 14%, transparent);
+    border-color:color-mix(in srgb, var(--ftw) 45%, transparent);color:var(--ftw);
+    display:inline-flex;align-items:center;gap:7px;font-weight:700}
+  #fsBtn:hover{background:color-mix(in srgb, var(--ftw) 24%, transparent);border-color:var(--ftw)}
+  #fsBtn svg{width:14px;height:14px;flex:none}
+  body.is-fs .hide-fs{display:none!important}
   .btn.pub{background:#7C3AED;color:#fff;border-color:#7C3AED}
   .btn.pub:hover{background:#6D28D9;border-color:#6D28D9;filter:none}
   .btn.pub.done{background:var(--card);color:var(--navy);border-color:var(--line)}
@@ -69,13 +76,14 @@
   .val-bad{background:rgba(201,42,42,.1)}
 
   /* controls */
-  .ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin:28px 0 6px}
+  .ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:22px 0 6px}
+  .ctrls>.viewseg,.ctrls>.cat-tabs{flex:none}
   .ctrls.frow{margin:10px 0 6px}
   .ctrls.frow[hidden]{display:none}
   /* botoes de ocultar */
   .tgl{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;
     border:1px solid var(--line);background:var(--card);color:var(--slate);border-radius:8px;
-    padding:7px 12px;display:inline-flex;align-items:center;gap:6px}
+    padding:6px 10px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .tgl:hover{border-color:#CBD2DC}
   .tgl.off{color:var(--mute);background:transparent}
   .tgl svg{width:13px;height:13px;flex:none}
@@ -86,11 +94,11 @@
   .cbg-tenis{background:#E0A100}.cbg-acess{background:#15AABF}.cbg-chinelo{background:#0CA678}
   .cbg-meia{background:#4C6EF5}.cbg-vest{background:#7950F2}.cbg-ua{background:#2B2E33}
   [data-theme="dark"] .cbg-ua{background:#6B7280}
-  .catleg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--mute);
-    margin:6px 0 0}
+  .catleg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end;
+    font-size:11px;color:var(--mute);margin:0 0 6px;padding-top:2px}
   .catleg span{display:inline-flex;align-items:center;gap:4px}
-  .cat-tabs{display:flex;gap:8px;flex-wrap:wrap}
-  .cat-tab{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
+  .cat-tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .cat-tab{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer;white-space:nowrap}
   .cat-tab.on{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
   .fgroup{display:flex;align-items:center;gap:8px}
   .fgroup label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
@@ -105,7 +113,7 @@
   .chip .x{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--card);color:var(--slate);cursor:pointer;font-size:13px;line-height:1}
   .chip .x:hover{color:var(--red)}
   .chip.clear{background:none;border:none;color:var(--slate);cursor:pointer;text-decoration:underline;padding:5px 4px}
-  .mapbtn{display:inline-flex;align-items:center;gap:6px;background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw);box-shadow:0 2px 8px color-mix(in srgb,var(--ftw) 40%,transparent)}
+  .mapbtn{display:inline-flex;align-items:center;gap:6px;background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw);box-shadow:0 2px 8px color-mix(in srgb,var(--ftw) 40%,transparent);white-space:nowrap;padding:7px 12px}
   .mapbtn:hover{filter:brightness(1.05)}
   .map-modal{position:fixed;inset:0;z-index:300;background:var(--paper);display:flex;flex-direction:column}
   .map-modal[hidden]{display:none}
@@ -145,8 +153,8 @@
   .recleg b{font-size:13px;line-height:0}
 
   /* view toggle */
-  .viewseg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden}
-  .vbtn{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border:none;background:var(--card);color:var(--slate);cursor:pointer}
+  .viewseg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;white-space:nowrap}
+  .vbtn{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:6px 12px;border:none;background:var(--card);color:var(--slate);cursor:pointer;white-space:nowrap}
   .vbtn.on{background:var(--ftw);color:var(--ftw-ink)}
   /* client table (por vendedor) */
   .rtable{width:100%}
@@ -210,16 +218,20 @@
       <div class="brand-txt"><span class="brand-name">CMS Representações</span><span class="brand-sub">Olympikus · Under Armour</span></div>
     </div>
     <span class="spacer"></span>
-    <div class="palette" id="palette" title="Cor do tema">
+    <div class="palette hide-fs" id="palette" title="Cor do tema">
       <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
       <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
     </div>
-    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none" title="Voltar ao Portal">
+    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none" title="Voltar ao Portal">
       <span>← Portal</span>
     </a>
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Tema claro/escuro"></button>
-    <button class="btn primary" id="importBtn">Importar arquivos</button>
-    <button class="btn pub" id="pubBtn" type="button" hidden>Publicar</button>
+    <button id="fsBtn" class="btn" type="button" title="Abre o relatório em tela cheia, sem as barras do navegador (Esc para sair)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      <span id="fsTxt">Tela cheia</span>
+    </button>
+    <button class="theme-btn hide-fs" id="themeBtn" type="button" aria-label="Tema claro/escuro"></button>
+    <button class="btn primary hide-fs" id="importBtn">Importar arquivos</button>
+    <button class="btn pub hide-fs" id="pubBtn" type="button" hidden>Publicar</button>
     <span class="pubstatus" id="pubStatus" hidden></span>
     <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
   </div>
@@ -240,7 +252,7 @@
     <div class="ctrls">
       <div class="viewseg" id="viewseg">
         <button class="vbtn on" data-view="vendedor" type="button">Por vendedor</button>
-        <button class="vbtn" data-view="resumo" type="button">Resumo por cliente</button>
+        <button class="vbtn" data-view="resumo" type="button" title="Matriz de categorias por cliente">Por cliente</button>
       </div>
       <div class="cat-tabs" id="catTabs"></div>
       <span class="spacer"></span>
@@ -479,6 +491,39 @@ function parseRows(rows,hi,cat){
 }
 
 // ---- nome amigável do vendedor ----
+// ---- Tela cheia ----
+// Usa a Fullscreen API. Em tela cheia esconde o que é navegação (.hide-fs).
+(function(){
+  const btn=document.getElementById('fsBtn');
+  if(!btn) return;
+  const txt=document.getElementById('fsTxt');
+  const suportado = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if(!suportado){ btn.hidden=true; return; }
+
+  function entrar(){
+    const el=document.documentElement;
+    (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
+  }
+  function sair(){
+    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
+  }
+  const ativo=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+
+  btn.onclick=()=>{ ativo()?sair():entrar(); };
+
+  function sincronizar(){
+    const on=ativo();
+    document.body.classList.toggle('is-fs',on);
+    if(txt) txt.textContent = on ? 'Sair da tela cheia' : 'Tela cheia';
+    btn.title = on
+      ? 'Voltar ao modo normal (Esc)'
+      : 'Abre o relatório em tela cheia, sem as barras do navegador (Esc para sair)';
+  }
+  document.addEventListener('fullscreenchange',sincronizar);
+  document.addEventListener('webkitfullscreenchange',sincronizar);
+  sincronizar();
+})();
+
 // ---- Sessão compartilhada do Portal (login único) ----
 function getPortalSession(){
   try{
@@ -533,9 +578,11 @@ function computeCli360(){
 // ---- controles ----
 function buildControls(){
   const tabs=document.getElementById('catTabs'); tabs.innerHTML='';
+  // rótulo curto só para exibição; o valor da categoria continua o original
+  const catLabel = c => c==='Under Armour' ? 'UA' : c;
   ['Todos',...CATS].forEach(c=>{
     const b=document.createElement('button');
-    b.className='cat-tab'+(c===CURCAT?' on':''); b.textContent=c;
+    b.className='cat-tab'+(c===CURCAT?' on':''); b.textContent=catLabel(c); b.title=c;
     b.onclick=()=>{ CURCAT=c; buildControls(); render(); };
     tabs.appendChild(b);
   });
@@ -709,9 +756,8 @@ function renderVendedor(){
           <span><b style="color:var(--orange)">●</b> 6–12 meses: ${c6}</span>
           <span><b style="color:var(--red)">●</b> +12 meses: ${c12}</span>
         </div>
-        <p class="rcaption">Histórico em pares · 1S26 = 1º semestre · 2S26 = 2º semestre · a Corrente entra no semestre da importação (${CUR_LABEL})</p>
-        <div class="rhead"><div>Código</div><div>Cliente</div><div class="r-end">2024</div><div class="r-end">2025</div><div class="r-end">1S26</div><div class="r-end">2S26</div><div class="r-end">Recência</div></div>
         ${CURCAT==='Todos'?catLegenda():''}
+        <div class="rhead"><div>Código</div><div>Cliente</div><div class="r-end">2024</div><div class="r-end">2025</div><div class="r-end">1S26</div><div class="r-end">2S26</div><div class="r-end">Recência</div></div>
       </div>
       <div class="rtable">${rowsHtml}</div>
     </section>`;
