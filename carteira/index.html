@@ -753,6 +753,8 @@
     .repasse-pendente input { width: 18px; height: 18px; accent-color: var(--primary); }
     .repasse-cor-tag { font-size: 11px; color: var(--primary-2); }
     html.dark .repasse-cor-tag { color: var(--primary); }
+    .repasse-cor-tag.fat { color: #b45309; font-weight: 600; }
+    html.dark .repasse-cor-tag.fat { color: #fbbf24; }
     .repasse-conflito-aviso {
       font-size: 11px; color: var(--acao-cancelar);
       margin: 12px 2px 0; display: flex; align-items: center; gap: 6px;
@@ -1807,6 +1809,7 @@ const STORAGE = {
   produtos: 'carteira.produtos',
   clientesInfo: 'carteira.clientesInfo',
   clientesCadastrados: 'carteira.clientesCadastrados',
+  faturados: 'carteira.faturados',
   kpisOcultos: 'carteira.kpisOcultos',
 };
 
@@ -1841,6 +1844,7 @@ const APP = {
   produtos: {},
   clientesInfo: {},
   clientesCadastrados: {},
+  faturados: {},
   redes: {},
   clienteAtual: null,
   filtroProduto: '',
@@ -2253,6 +2257,16 @@ async function carregarClientesCadastrados() {
   }
 }
 
+async function carregarFaturados() {
+  try {
+    const data = await workerCall('getFaturados');
+    APP.faturados = (data && data.faturados) ? data.faturados : {};
+    localStorage.setItem(STORAGE.faturados, JSON.stringify(APP.faturados));
+  } catch (e) {
+    console.warn('getFaturados falhou', e);
+  }
+}
+
 function cardSemCompraHTML(c) {
   const nome = c.razao || c.nomeFantasia || c.codigo;
   return `
@@ -2413,6 +2427,7 @@ async function atualizarDoServidor(btn) {
     }
     await carregarCarteiraDoServidor();
     await carregarClientesCadastrados();
+    await carregarFaturados();
     atualizarCabecalhoMarca();
     if (APP.clienteAtual && document.querySelector('#screen-produtos.active')) {
       const cod = APP.clienteAtual.codigo;
@@ -2508,7 +2523,28 @@ async function importarXLSX(file) {
       }
     }
 
-    if (pedidos.length === 0) {
+    // Histórico de faturados: cod -> artigo -> { desc, cores: { cor: pares } }
+    const faturados = {};
+    let nFat = 0;
+    for (const sheetName of wb.SheetNames) {
+      if (!/FATURADO/i.test(sheetName)) continue;
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+      for (const row of rows) {
+        const cod = String(row['Cliente'] ?? '').trim();
+        const artigo = String(row['Artigo'] ?? '').trim();
+        const cor = String(row['Cor'] ?? '').trim();
+        if (!cod || !artigo || !cor) continue;
+        const desc = String(row['descrição'] ?? row['Descrição'] ?? '').trim();
+        const pares = Number(row['Total de pares'] || 0);
+        const cli = (faturados[cod] = faturados[cod] || {});
+        const art = (cli[artigo] = cli[artigo] || { desc, cores: {} });
+        if (desc && !art.desc) art.desc = desc;
+        art.cores[cor] = (art.cores[cor] || 0) + pares;
+        nFat++;
+      }
+    }
+
+    if (pedidos.length === 0 && nFat === 0) {
       toast('Nenhum pedido encontrado no XLSX');
       $('btn-importar').classList.remove('loading');
       return;
@@ -2534,12 +2570,20 @@ async function importarXLSX(file) {
     await aplicarAcoesDoServidor();
     localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
 
-    toast(`${APP.pedidos.length} pedidos importados`);
+    APP.faturados = faturados;
+    localStorage.setItem(STORAGE.faturados, JSON.stringify(faturados));
+
+    toast(`${APP.pedidos.length} pedidos · ${nFat} faturados`);
     atualizarCabecalhoMarca();
     renderClientes($('busca-cliente').value);
 
     await salvarCarteiraNoServidor('full');
-    toast('Sincronizado com servidor');
+    try {
+      await workerCall('saveFaturados', { faturados, por: APP.sessao?.nome || '' });
+      toast('Sincronizado com servidor');
+    } catch (e) {
+      toast('Carteira sincronizada · faturados só localmente');
+    }
   } catch (e) {
     console.error(e);
     toast('Erro ao ler o arquivo');
@@ -3251,6 +3295,15 @@ function renderRepasseEscopo() {
   }));
 }
 
+function tagCoresHTML(coresDisplay) {
+  const cart = coresDisplay.filter(x => x.fonte === 'carteira').map(x => x.cor);
+  const fat = coresDisplay.filter(x => x.fonte === 'faturado').map(x => x.cor);
+  const parts = [];
+  if (cart.length) parts.push(`<span class="repasse-cor-tag">tem ${cart.join(', ')}</span>`);
+  if (fat.length) parts.push(`<span class="repasse-cor-tag fat">recebeu ${fat.join(', ')}</span>`);
+  return parts.join(' ');
+}
+
 function renderRepasse() {
   const { artigo, cor, origemCod, redeNN } = APP.repasseCtx;
   const busca = normalizar(APP.repasseBusca || '');
@@ -3273,16 +3326,22 @@ function renderRepasse() {
   const naRede = c => redeNN && APP.redes[redeNN].codigos.includes(c);
   const tier1 = [], tier2 = [], jaTem = [];
   for (const cod of escopoCods) {
-    const cores = comArtigo[cod];
+    const coresCart = comArtigo[cod];
+    const fatCores = (APP.faturados[cod] && APP.faturados[cod][artigo] && APP.faturados[cod][artigo].cores) || {};
     const nome = nomeDe[cod] || APP.clientesInfo[cod]?.nomeFantasia || cod;
     const porta = portaDe(cod);
     if (busca) {
       const txt = normalizar(nome + ' ' + nomeFantasiaDe(cod) + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
       if (!txt.includes(busca)) continue;
     }
-    const obj = { cod, nome, porta, cores: cores ? [...cores] : null, rede: naRede(cod), recebe: recebeMap[cod] || null };
-    if (cores && cores.has(cor)) jaTem.push(obj);
-    else if (cores) tier1.push(obj);
+    const coresDisplay = [];
+    if (coresCart) for (const c of coresCart) coresDisplay.push({ cor: c, fonte: 'carteira' });
+    for (const c of Object.keys(fatCores)) if (!coresCart || !coresCart.has(c)) coresDisplay.push({ cor: c, fonte: 'faturado' });
+    const jaTemCor = (coresCart && coresCart.has(cor)) || (fatCores[cor] != null);
+    const temArtigo = (coresCart && coresCart.size) || Object.keys(fatCores).length;
+    const obj = { cod, nome, porta, coresDisplay, rede: naRede(cod), recebe: recebeMap[cod] || null };
+    if (jaTemCor) jaTem.push(obj);
+    else if (temArtigo) tier1.push(obj);
     else tier2.push(obj);
   }
 
@@ -3320,7 +3379,7 @@ function renderRepasse() {
       <input type="checkbox" data-cod="${c.cod}" ${sel ? 'checked' : ''}>
       <div class="rede-sel-info">
         <p class="nome">${c.nome}${c.rede ? ' <span class="rede-badge">REDE</span>' : ''}${aviso ? ' <span class="badge-jatem">já tem · dobraria</span>' : ''}</p>
-        <p class="meta">${[c.porta || '', c.cod].filter(Boolean).join(' · ')}${(mostrarCor || aviso) && c.cores ? ` · <span class="repasse-cor-tag">tem em ${c.cores.join(', ')}</span>` : ''}</p>
+        <p class="meta">${[c.porta || '', c.cod].filter(Boolean).join(' · ')}${(mostrarCor || aviso) && c.coresDisplay && c.coresDisplay.length ? ' · ' + tagCoresHTML(c.coresDisplay) : ''}</p>
         ${recebe}
       </div>
       ${stepper}
@@ -3332,10 +3391,10 @@ function renderRepasse() {
     const d = distribuido();
     html += `<div class="dist-banner"><span><i class="fa-solid fa-box"></i> ${formatarNumero(pedidoAtual.total)} pares · ${totalCaixas} caixas de ${boxSize}</span><span class="dist-cont">distribuído ${d}/${totalCaixas}</span></div>`;
   }
-  if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Tem o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
+  if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Já tem/recebeu o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
   if (tier2.length) html += `<p class="repasse-grupo-titulo neutro">② Não tem este artigo</p><div class="repasse-grupo">${tier2.map(c => item(c, false)).join('')}</div>`;
   if (semCarteira.length) html += `<p class="repasse-grupo-titulo neutro">③ Sem carteira</p><div class="repasse-grupo">${semCarteira.map(c => item(c, false)).join('')}</div>`;
-  if (jaTem.length) html += `<p class="repasse-grupo-titulo aviso"><i class="fa-solid fa-triangle-exclamation"></i> Já tem este artigo + cor · receberia dobrado</p><div class="repasse-grupo">${jaTem.map(c => item(c, false, true)).join('')}</div>`;
+  if (jaTem.length) html += `<p class="repasse-grupo-titulo aviso"><i class="fa-solid fa-triangle-exclamation"></i> Já tem/recebeu este artigo + cor · receberia dobrado</p><div class="repasse-grupo">${jaTem.map(c => item(c, false, true)).join('')}</div>`;
   if (!tier1.length && !tier2.length && !semCarteira.length && !jaTem.length) html += `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><p>Nenhum destino${busca ? ' encontrado' : ''}</p></div>`;
   $('repasse-body').innerHTML = html;
 
@@ -4241,6 +4300,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cc) APP.clientesCadastrados = JSON.parse(cc);
   } catch {}
   try {
+    const fa = localStorage.getItem(STORAGE.faturados);
+    if (fa) APP.faturados = JSON.parse(fa);
+  } catch {}
+  try {
     const ci = localStorage.getItem(STORAGE.clientesInfo);
     if (ci) {
       APP.clientesInfo = JSON.parse(ci);
@@ -4403,6 +4466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarProdutosDoServidor();
   carregarClientesDoServidor();
   carregarClientesCadastrados();
+  carregarFaturados();
   if (APP.sessao) {
     await carregarCarteiraDoServidor();
     atualizarCabecalhoMarca();

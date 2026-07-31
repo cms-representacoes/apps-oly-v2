@@ -142,6 +142,21 @@
     }
     .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
     .logo-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .marca-switch { display: flex; align-items: center; gap: 6px; }
+    .marca-badge {
+      width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+      object-fit: cover; opacity: 0.32; filter: grayscale(0.55);
+      box-shadow: 0 0 0 1px var(--border-2); transition: opacity .15s, filter .15s, box-shadow .15s;
+    }
+    .marca-badge.ativo { opacity: 1; filter: none; box-shadow: 0 0 0 2px var(--primary); }
+    .marca-badge.escondida { display: none; }
+    .tipo-chips { display: flex; gap: 6px; margin-bottom: 10px; }
+    .tipo-chips.escondida { display: none; }
+    .tipo-chip {
+      font-size: 12px; padding: 5px 13px; border-radius: 16px; cursor: pointer;
+      border: 1px solid var(--border-2); background: var(--card-bg); color: var(--text-2);
+    }
+    .tipo-chip.ativo { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
     .topbar-actions { display: flex; align-items: center; gap: 8px; }
     @keyframes girar360 { to { transform: rotate(360deg); } }
     .btn-icon.girando i { animation: girar360 .7s linear infinite; }
@@ -467,6 +482,19 @@
       display: flex; align-items: center; gap: 12px;
       padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
     }
+    .dist-banner {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      background: var(--primary-soft); color: var(--primary-2); border-radius: var(--r-md);
+      padding: 9px 12px; margin-bottom: 10px; font-size: 12px; font-weight: 600;
+    }
+    html.dark .dist-banner { color: var(--primary); }
+    .dist-banner .dist-cont { font-weight: 700; white-space: nowrap; }
+    .dist-stepper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+    .dist-stepper button {
+      width: 28px; height: 28px; border: 1px solid var(--border-2); background: var(--card-bg);
+      color: var(--text); border-radius: 6px; font-size: 16px; line-height: 1; cursor: pointer;
+    }
+    .dist-stepper span { font-size: 13px; font-weight: 700; min-width: 40px; text-align: center; color: var(--text); }
     .rede-sel-item:last-child { border-bottom: none; }
     .rede-sel-item input { width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0; }
     .rede-sel-info { flex: 1; min-width: 0; }
@@ -597,8 +625,95 @@
     }
     html.dark .dist-badge { background: #78350f; color: #fde68a; }
 
-    /* Seletor de destino do repasse */
-    #repasse-body { padding-bottom: 96px; }
+    /* Cadastro de cliente */
+    .cad-form {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 14px; margin-bottom: 16px;
+    }
+    .cad-form label { display: block; font-size: 12px; color: var(--text-2); margin: 8px 0 4px; }
+    .cad-form label:first-child { margin-top: 0; }
+    .cad-form input {
+      width: 100%; font-size: 14px; padding: 9px 11px; color: var(--text);
+      border: 1px solid var(--border-2); border-radius: var(--r-md); background: var(--card-bg-2);
+    }
+    .cad-salvar {
+      width: 100%; margin-top: 14px; background: var(--primary); color: #fff; border: none;
+      border-radius: var(--r-md); padding: 11px; font-weight: 700; font-size: 14px; cursor: pointer;
+    }
+    .cad-lista-titulo { font-size: 12px; color: var(--text-2); margin: 0 2px 6px; }
+    .cad-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 6px;
+    }
+    .cad-item .ci-nome { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+    .cad-item .ci-meta { font-size: 12px; color: var(--text-2); margin: 2px 0 0; }
+    .cad-item .ci-del { background: transparent; border: none; color: var(--acao-cancelar); cursor: pointer; font-size: 16px; padding: 6px; }
+    .tag-semcompra { font-size: 10px; font-weight: 700; background: var(--acao-repassar); color: #fff; padding: 1px 7px; border-radius: 5px; margin-left: 6px; }
+    .repasses-filtros { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .rep-toprow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rep-toprow .rep-strip { flex: 0 0 auto; padding: 0; border: none; margin: 0; }
+    .rep-toprow .rep-strip .name { font-size: 15px; }
+    .rep-toprow .rep-strip .meta { font-size: 11px; }
+    .rep-toprow .rep-search { flex: 1 1 200px; min-width: 160px; margin: 0; }
+    .rep-toprow .rep-select { flex: 0 1 160px; min-width: 120px; }
+    .rep-select {
+      flex: 1; min-width: 0; font-size: 12px; padding: 7px 10px;
+      border: 1px solid var(--border-2); border-radius: var(--r-md);
+      background: var(--card-bg); color: var(--text); appearance: auto;
+    }
+    .repasses-selbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    .rep-fab {
+      position: fixed; right: 18px; bottom: 18px; z-index: 60;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--primary); color: #fff; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 21px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.28);
+    }
+    .rep-fab:disabled { opacity: .4; cursor: default; }
+    .rep-fab .rep-fab-count {
+      position: absolute; top: -5px; right: -5px; min-width: 21px; height: 21px;
+      background: #fff; color: var(--primary); border-radius: 11px; padding: 0 5px;
+      font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    }
+    .rep-fab.pulsando { animation: repfab-pulse 1.5s ease-out infinite; }
+    @keyframes repfab-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(13,148,136,.55), 0 4px 14px rgba(0,0,0,.28); }
+      70%  { box-shadow: 0 0 0 16px rgba(13,148,136,0), 0 4px 14px rgba(0,0,0,.28); }
+      100% { box-shadow: 0 0 0 0 rgba(13,148,136,0), 0 4px 14px rgba(0,0,0,.28); }
+    }
+    .rep-selall { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
+    .rep-selall input { width: 18px; height: 18px; accent-color: var(--primary); }
+    .rep-sel-contador { font-size: 12px; color: var(--text-2); }
+    .rep-item {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 12px; margin-bottom: 8px;
+    }
+    .rep-item.sel { border-color: var(--primary); }
+    .ri-top { display: flex; gap: 10px; align-items: flex-start; }
+    .rep-item input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); flex-shrink: 0; }
+    .rep-item .ri-info { flex: 1; min-width: 0; }
+    .rep-item .ri-desc { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
+    .rep-item .ri-sub { font-size: 12px; color: var(--text-2); margin: 2px 0; }
+    .rep-item .ri-rota { font-size: 12px; margin: 2px 0 0; display: flex; align-items: center; gap: 5px; }
+    .rep-item .ri-rota.fin { color: var(--primary-2); }
+    html.dark .rep-item .ri-rota.fin { color: var(--primary); }
+    .rep-item .ri-rota.pend { color: var(--acao-repassar); }
+    .rep-item .ri-dir { text-align: right; white-space: nowrap; flex-shrink: 0; }
+    .rep-item .ri-pares { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+    .rep-pill { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 5px; }
+    .rep-pill.fin { background: var(--primary); color: #fff; }
+    .rep-pill.pend { background: var(--acao-repassar); color: #fff; }
+    .ri-edit {
+      flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+      background: transparent; border: 1px solid var(--border-2); color: var(--text-2);
+    }
+    .rep-item.aberto .ri-edit { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .rep-acoes { display: none; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .rep-item.aberto .rep-acoes { display: flex; }
     .repasse-escopo { display: flex; gap: 8px; margin-top: 10px; }
     .repasse-chip {
       font-size: 12px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
@@ -643,9 +758,13 @@
       margin: 12px 2px 0; display: flex; align-items: center; gap: 6px;
     }
     .repasse-destinos {
-      margin-top: 8px; font-size: 12px; font-weight: 600;
-      color: var(--acao-repassar); display: flex; align-items: center; gap: 6px;
+      margin-top: 8px; font-size: 12px; display: block;
     }
+    .repasse-destinos .rd-linha {
+      display: flex; justify-content: space-between; gap: 10px; padding: 3px 0;
+      color: var(--text);
+    }
+    .repasse-destinos .rd-det { color: var(--text-2); font-weight: 600; white-space: nowrap; }
     .list-footer {
       text-align: center; font-size: 12px;
       color: var(--text-3); padding: 12px;
@@ -1194,18 +1313,30 @@
   <div id="screen-clientes" class="screen">
     <div class="topbar">
       <div class="topbar-left">
-        <div class="logo-mark"><i class="fa-solid fa-wallet"></i></div>
+        <div class="marca-switch" id="marca-switch">
+          <img class="marca-badge ativo" id="marca-oly" data-marca="OLY" alt="Olympikus">
+          <img class="marca-badge" id="marca-ua" data-marca="UA" alt="Under Armour">
+        </div>
         <div>
           <div class="logo-text">Carteira CMS</div>
           <div class="logo-sub" id="topbar-user">—</div>
         </div>
       </div>
       <div class="topbar-actions">
+        <button class="btn-icon" id="btn-repasses" title="Repasses">
+          <i class="fa-solid fa-truck-fast"></i>
+        </button>
+        <button class="btn-icon" id="btn-so-corre" title="Mostrar só linha CORRE">
+          <i class="fa-solid fa-person-running"></i>
+        </button>
         <button class="btn-icon" id="btn-so-redes" title="Mostrar só redes">
           <i class="fa-solid fa-store"></i>
         </button>
         <button class="btn-icon" id="btn-atualizar-clientes" title="Atualizar">
           <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        <button class="btn-icon" id="btn-cad-cliente" title="Cadastrar cliente">
+          <i class="fa-solid fa-user-plus"></i>
         </button>
         <label class="btn-icon" id="btn-importar" title="Importar XLSX" for="file-input-xlsx">
           <i class="fa-solid fa-file-import"></i>
@@ -1244,6 +1375,8 @@
           <p class="kpi-value" id="kpi-pares">0</p>
         </div>
       </div>
+
+      <div class="tipo-chips" id="tipo-chips"></div>
 
       <div class="search-wrap" id="search-cliente-wrap">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -1312,7 +1445,7 @@
             id="busca-produto"
             inputmode="search"
             enterkeyhint="search"
-            placeholder="Buscar produto…"
+            placeholder="Produto, cor, GCI · separe por vírgula"
             autocomplete="off">
           <button class="search-clear" title="Limpar (ESC)">
             <i class="fa-solid fa-xmark"></i>
@@ -1341,6 +1474,13 @@
           <button class="filter-chip" data-filter="status">
             <i class="fa-solid fa-circle-half-stroke"></i>
             <span>Status</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="genero">
+            <i class="fa-solid fa-venus-mars"></i>
+            <span>Gênero</span>
             <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
@@ -1438,7 +1578,7 @@
         </div>
         <div class="search-inline" id="search-rede-produto-wrap">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="search" id="busca-rede-produto" inputmode="search" enterkeyhint="search" placeholder="Buscar produto…" autocomplete="off">
+          <input type="search" id="busca-rede-produto" inputmode="search" enterkeyhint="search" placeholder="Produto, cor · separe por vírgula" autocomplete="off">
           <button class="search-clear" title="Limpar (ESC)"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
@@ -1525,6 +1665,100 @@
   </div>
 
   <!-- =================================================================
+       TELA REPASSES — LISTA GERAL (base da exportação)
+       ================================================================= -->
+  <div id="screen-repasses" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-truck-fast"></i></div>
+        <div>
+          <div class="logo-text">Repasses</div>
+          <div class="logo-sub" id="topbar-user-7">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-atualizar-repasses" title="Atualizar"><i class="fa-solid fa-arrows-rotate"></i></button>
+        <button class="btn-icon" id="btn-tema-7" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="rep-toprow">
+        <div class="client-strip rep-strip">
+          <button class="back" id="btn-voltar-repasses" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
+          <div class="client-info-compact">
+            <p class="name">Repasses</p>
+            <p class="meta" id="repasses-meta">—</p>
+          </div>
+        </div>
+        <div class="search-wrap rep-search" id="repasses-busca-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="search" id="busca-repasses" inputmode="search" enterkeyhint="search" placeholder="Buscar · separe por vírgula" autocomplete="off">
+          <button class="search-clear" title="Limpar"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <select id="rep-f-status" class="rep-select"></select>
+        <select id="rep-f-genero" class="rep-select"></select>
+        <select id="rep-f-cliente" class="rep-select"></select>
+      </div>
+      <div class="repasses-selbar">
+        <label class="rep-selall"><input type="checkbox" id="rep-selecionar-todos"> Selecionar todos</label>
+        <span id="rep-sel-contador" class="rep-sel-contador">—</span>
+      </div>
+    </div>
+
+    <div id="repasses-body"></div>
+
+    <button class="rep-fab" id="btn-exportar-repasses" disabled title="Exportar XLSX" aria-label="Exportar XLSX">
+      <i class="fa-solid fa-file-excel"></i>
+      <span class="rep-fab-count" id="btn-exportar-label"></span>
+    </button>
+  </div>
+
+  <!-- =================================================================
+       TELA CADASTRAR CLIENTE (sem compra)
+       ================================================================= -->
+  <div id="screen-cad-cliente" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark"><i class="fa-solid fa-user-plus"></i></div>
+        <div>
+          <div class="logo-text">Carteira CMS</div>
+          <div class="logo-sub" id="topbar-user-8">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-8" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-cad" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="client-info-compact">
+          <p class="name">Cadastrar cliente</p>
+          <p class="meta">Clientes sem compra · aparecem na busca</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="cad-body" style="padding-bottom:24px;">
+      <div class="cad-form">
+        <label>Código</label>
+        <input type="text" id="cad-codigo" inputmode="numeric" placeholder="Ex.: 998877" autocomplete="off">
+        <label>Razão</label>
+        <input type="text" id="cad-razao" placeholder="Ex.: NOVA LOJA COMERCIO LTDA" autocomplete="off">
+        <label>Nome fantasia</label>
+        <input type="text" id="cad-fantasia" placeholder="Ex.: NOVA LOJA" autocomplete="off">
+        <label>Porta</label>
+        <input type="text" id="cad-porta" placeholder="Ex.: CENTRO" autocomplete="off">
+        <button class="cad-salvar" id="btn-salvar-cad"><i class="fa-solid fa-check"></i> Salvar cliente</button>
+      </div>
+      <p class="cad-lista-titulo">Já cadastrados</p>
+      <div id="cad-lista"></div>
+    </div>
+  </div>
+
+  <!-- =================================================================
        MODAL DE ZOOM
        ================================================================= -->
   <div class="zoom-modal" id="zoom-modal">
@@ -1572,6 +1806,7 @@ const STORAGE = {
   pedidos: 'carteira.pedidos',
   produtos: 'carteira.produtos',
   clientesInfo: 'carteira.clientesInfo',
+  clientesCadastrados: 'carteira.clientesCadastrados',
   kpisOcultos: 'carteira.kpisOcultos',
 };
 
@@ -1605,6 +1840,7 @@ const APP = {
   pedidos: [],
   produtos: {},
   clientesInfo: {},
+  clientesCadastrados: {},
   redes: {},
   clienteAtual: null,
   filtroProduto: '',
@@ -1612,12 +1848,16 @@ const APP = {
     ped_cliente: null,
     mes: null,
     status: null,
+    genero: null,
   },
   ordem: 'mes_proximo',
   saveTimer: null,
   acoesPendentes: false,
   filtroCliente: '',
   soRedes: false,
+  soCorre: false,
+  marca: 'OLY',
+  tipo: null,
   redeAtual: null,
   redeSelecao: new Set(),
   redeBuscaProduto: '',
@@ -1628,6 +1868,9 @@ const APP = {
   repasseSel: new Set(),
   repasseEscopo: 'todos',
   repassePendente: false,
+  repBusca: '',
+  repFiltros: { status: null, genero: null, cliente: null },
+  repExportSel: new Set(),
 };
 
 /* ============================================================
@@ -1708,6 +1951,44 @@ function statusPedido(p) {
   if (p.acao === 'GESTAO_CMS') return 'GESTAO_CMS';
   return 'MANTER';
 }
+function generoPedido(p) {
+  return APP.produtos[`${p.artigo}_${corParaArquivo(p.cor)}`]?.genero || '';
+}
+// Tamanho da caixa fechada = soma dos dígitos da grade (ex.: 1232211 = 12; 1221 = 6)
+function tamanhoCaixa(p) {
+  const gs = String(p.grade_str || '').replace(/\D/g, '');
+  if (gs) {
+    const soma = [...gs].reduce((s, d) => s + Number(d), 0);
+    if (soma > 0 && (p.total || 0) % soma === 0) return soma;
+  }
+  return p.total || 1;
+}
+function numCaixas(p) {
+  const t = tamanhoCaixa(p);
+  return Math.max(1, Math.round((p.total || 0) / t));
+}
+// Tamanho da caixa guardado no repasse (ou recalculado a partir do pedido, p/ dados antigos)
+function boxSizeRepasse(p) {
+  return (p.repasse && p.repasse.boxSize) || tamanhoCaixa(p);
+}
+function paresDestino(d, p) {
+  if (d.caixas) return d.caixas * boxSizeRepasse(p);
+  return null;
+}
+function rotuloDestinoTag(p) {
+  const dests = (p.repasse && p.repasse.destinos) || [];
+  if (dests.length === 1) return dests[0].nome;
+  const totCx = dests.reduce((s, d) => s + (d.caixas || 0), 0);
+  return `${dests.length} lojas${totCx ? ` · ${totCx} cx` : ''}`;
+}
+function breakdownDestinos(p) {
+  const dests = (p.repasse && p.repasse.destinos) || [];
+  return dests.map(d => {
+    const pares = paresDestino(d, p);
+    const det = [d.caixas ? `${d.caixas} cx` : '', pares ? `${formatarNumero(pares)} pares` : ''].filter(Boolean).join(' · ');
+    return `<div class="rd-linha"><span><i class="fa-solid fa-arrow-right-long"></i> ${d.nome}</span><span class="rd-det">${det}</span></div>`;
+  }).join('');
+}
 function formatarPreco(v) {
   if (v == null || v === '') return '—';
   const n = Number(v);
@@ -1739,6 +2020,9 @@ function configurarCopiaAoSelecionar() {
   document.addEventListener('selectionchange', () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
+      // Nunca interfere quando o usuário está num campo (digitando ou colando)
+      const ativo = document.activeElement;
+      if (ativo && /^(INPUT|TEXTAREA|SELECT)$/.test(ativo.tagName)) return;
       const sel = window.getSelection();
       const texto = sel ? sel.toString().trim() : '';
       if (texto && texto.length > 0 && texto.length < 200) {
@@ -1763,7 +2047,7 @@ function configurarCopiaAoSelecionar() {
 function aplicarTema() {
   const t = localStorage.getItem(STORAGE.tema) || 'claro';
   document.documentElement.classList.toggle('dark', t === 'escuro');
-  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i').forEach(i => {
+  document.querySelectorAll('#btn-tema i, #btn-tema-2 i, #btn-tema-3 i, #btn-tema-4 i, #btn-tema-5 i, #btn-tema-6 i, #btn-tema-7 i, #btn-tema-8 i').forEach(i => {
     i.className = t === 'escuro' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   });
 }
@@ -1852,6 +2136,7 @@ function montarProdutos(rows) {
       preco: acha(row, 'PRECO', 'PREÇO', 'Preço', 'Preco') || '',
       categoria: acha(row, 'CATEGORIA', 'Categoria') || '',
       descricao: acha(row, 'Produto', 'Descricao', 'Descrição') || '',
+      genero: String(acha(row, 'GÊNERO', 'GENERO', 'Genero', 'Gênero') || '').trim(),
     };
   }
   return out;
@@ -1940,11 +2225,107 @@ async function carregarClientesDoServidor() {
       APP.clientesInfo = info;
       APP.redes = montarRedes(info);
       localStorage.setItem(STORAGE.clientesInfo, JSON.stringify(info));
+      aplicarCadastrados();
       if (APP.sessao && !APP.clienteAtual) renderClientes($('busca-cliente')?.value || '');
     }
   } catch (e) {
     console.warn('Falha ao ler Clientes.xlsx', e);
   }
+}
+
+// Mescla os clientes cadastrados manualmente no clientesInfo e recalcula as redes
+function aplicarCadastrados() {
+  for (const [cod, c] of Object.entries(APP.clientesCadastrados || {})) {
+    APP.clientesInfo[cod] = { nomeFantasia: c.nomeFantasia || '', porta: c.porta || '' };
+  }
+  APP.redes = montarRedes(APP.clientesInfo);
+}
+
+async function carregarClientesCadastrados() {
+  try {
+    const data = await workerCall('getClientesCadastrados');
+    APP.clientesCadastrados = (data && data.clientes) ? data.clientes : {};
+    localStorage.setItem(STORAGE.clientesCadastrados, JSON.stringify(APP.clientesCadastrados));
+    aplicarCadastrados();
+    if (APP.sessao && !APP.clienteAtual) renderClientes($('busca-cliente')?.value || '');
+  } catch (e) {
+    console.warn('getClientesCadastrados falhou', e);
+  }
+}
+
+function cardSemCompraHTML(c) {
+  const nome = c.razao || c.nomeFantasia || c.codigo;
+  return `
+    <div class="client-item" data-cliente="${escAttr(c.codigo)}">
+      <div class="client-row">
+        <div class="client-avatar"><i class="fa-solid fa-user-plus"></i></div>
+        <div class="client-info">
+          <p class="name">${escHtml(nome)} <span class="tag-semcompra">sem compra</span></p>
+          <p class="meta">${[c.codigo, c.porta, c.nomeFantasia].filter(Boolean).map(escHtml).join(' · ')} · 0 pedidos</p>
+        </div>
+        <i class="fa-solid fa-chevron-right chev"></i>
+      </div>
+    </div>`;
+}
+
+function abrirCadastro() {
+  $('cad-codigo').value = '';
+  $('cad-razao').value = '';
+  $('cad-fantasia').value = '';
+  $('cad-porta').value = '';
+  renderCadastrados();
+  show('screen-cad-cliente');
+  window.scrollTo(0, 0);
+  setTimeout(() => $('cad-codigo').focus(), 50);
+}
+
+function renderCadastrados() {
+  const lista = Object.values(APP.clientesCadastrados || {}).sort((a, b) => (a.razao || a.nomeFantasia || '').localeCompare(b.razao || b.nomeFantasia || ''));
+  const el = $('cad-lista');
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:20px 0;"><i class="fa-solid fa-user-plus"></i><p>Nenhum cliente cadastrado ainda</p></div>`;
+    return;
+  }
+  el.innerHTML = lista.map(c => `
+    <div class="cad-item">
+      <div>
+        <p class="ci-nome">${escHtml(c.razao || c.nomeFantasia || c.codigo)}</p>
+        <p class="ci-meta">${[c.nomeFantasia, c.porta, c.codigo].filter(Boolean).map(escHtml).join(' · ')}</p>
+      </div>
+      <button class="ci-del" data-cod="${escAttr(c.codigo)}" title="Remover"><i class="fa-solid fa-trash"></i></button>
+    </div>`).join('');
+  el.querySelectorAll('.ci-del').forEach(b => b.addEventListener('click', () => removerCadastro(b.dataset.cod)));
+}
+
+async function salvarCadastro() {
+  const codigo = $('cad-codigo').value.trim();
+  const razao = $('cad-razao').value.trim();
+  const nomeFantasia = $('cad-fantasia').value.trim();
+  const porta = $('cad-porta').value.trim();
+  if (!codigo) { toast('Informe o código'); return; }
+  if (!razao && !nomeFantasia) { toast('Informe a razão ou o nome fantasia'); return; }
+  if (APP.pedidos.some(p => p.cliente_cod === codigo)) { toast('Esse código já existe na carteira'); return; }
+  const c = { codigo, razao, nomeFantasia, porta };
+  APP.clientesCadastrados[codigo] = c;
+  localStorage.setItem(STORAGE.clientesCadastrados, JSON.stringify(APP.clientesCadastrados));
+  aplicarCadastrados();
+  renderCadastrados();
+  $('cad-codigo').value = ''; $('cad-razao').value = ''; $('cad-fantasia').value = ''; $('cad-porta').value = '';
+  $('cad-codigo').focus();
+  toast('Cliente cadastrado');
+  try { await workerCall('saveClientesCadastrados', { itens: [c], por: APP.sessao?.nome || '' }); }
+  catch (e) { toast('Salvou local · falha no servidor: ' + (e.message || '')); }
+}
+
+async function removerCadastro(cod) {
+  delete APP.clientesCadastrados[cod];
+  delete APP.clientesInfo[cod];
+  localStorage.setItem(STORAGE.clientesCadastrados, JSON.stringify(APP.clientesCadastrados));
+  APP.redes = montarRedes(APP.clientesInfo);
+  renderCadastrados();
+  toast('Removido');
+  try { await workerCall('saveClientesCadastrados', { itens: [{ codigo: cod, remover: true }], por: APP.sessao?.nome || '' }); }
+  catch (e) { toast('Removeu local · falha no servidor'); }
 }
 
 async function salvarCarteiraNoServidor(modo = 'full') {
@@ -2031,10 +2412,15 @@ async function atualizarDoServidor(btn) {
       return;
     }
     await carregarCarteiraDoServidor();
+    await carregarClientesCadastrados();
+    atualizarCabecalhoMarca();
     if (APP.clienteAtual && document.querySelector('#screen-produtos.active')) {
       const cod = APP.clienteAtual.codigo;
       APP.clienteAtual.pedidos = obterClientesDoVendedor().filter(p => p.cliente_cod === cod);
       renderProdutos();
+    } else if (document.querySelector('#screen-repasses.active')) {
+      preencherFiltrosRepasses();
+      renderRepassesLista();
     } else {
       renderClientes($('busca-cliente')?.value || '');
     }
@@ -2093,7 +2479,10 @@ function irParaClientes() {
   $('topbar-user-4').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-5').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   $('topbar-user-6').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-7').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
+  $('topbar-user-8').textContent = `${APP.sessao.nome} · ${APP.sessao.papel}`;
   show('screen-clientes');
+  atualizarCabecalhoMarca();
   renderClientes(APP.filtroCliente);
 }
 
@@ -2110,10 +2499,11 @@ async function importarXLSX(file) {
     const pedidos = [];
     for (const sheetName of wb.SheetNames) {
       if (!/EM ABERTO/i.test(sheetName)) continue;
+      const tipo = /CHI/i.test(sheetName) ? 'chinelo' : 'calcado';
       const ws = wb.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
       for (const row of rows) {
-        const ped = parseLinhaPedido(row);
+        const ped = parseLinhaPedido(row, tipo);
         if (ped) pedidos.push(ped);
       }
     }
@@ -2124,20 +2514,28 @@ async function importarXLSX(file) {
       return;
     }
 
-    const chave = p => `${p.preposto}|${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}`;
+    // Preserva a ação COMPLETA (inclui o "finalizar": destinos/caixas) do que já estava em memória.
+    // Chave por cliente+gci+artigo+cor+grade (sem o total) — sobrevive a faturamento parcial e distingue grades.
+    const chave = p => `${p.cliente_cod}|${p.gci}|${p.artigo}|${p.cor}|${p.grade_str || ''}`;
     const acoesAnteriores = {};
     for (const p of APP.pedidos) {
-      acoesAnteriores[chave(p)] = p.acao;
+      acoesAnteriores[chave(p)] = { acao: p.acao, repasse: p.repasse || null };
     }
     for (const p of pedidos) {
-      const k = chave(p);
-      if (acoesAnteriores[k]) p.acao = acoesAnteriores[k];
+      const prev = acoesAnteriores[chave(p)];
+      if (prev) {
+        p.acao = prev.acao;
+        if (prev.repasse) p.repasse = prev.repasse;
+      }
     }
 
     APP.pedidos = pedidos;
-    localStorage.setItem(STORAGE.pedidos, JSON.stringify(pedidos));
+    // Reaplica o arquivo de ações do servidor (canônico / outros aparelhos) por cima
+    await aplicarAcoesDoServidor();
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
 
-    toast(`${pedidos.length} pedidos importados`);
+    toast(`${APP.pedidos.length} pedidos importados`);
+    atualizarCabecalhoMarca();
     renderClientes($('busca-cliente').value);
 
     await salvarCarteiraNoServidor('full');
@@ -2150,7 +2548,7 @@ async function importarXLSX(file) {
   }
 }
 
-function parseLinhaPedido(row) {
+function parseLinhaPedido(row, tipo = 'calcado') {
   const get = (...keys) => {
     for (const k of keys) {
       if (row[k] != null && row[k] !== '') return row[k];
@@ -2174,14 +2572,26 @@ function parseLinhaPedido(row) {
   const cor = String(get('Cor', 'cor')).trim();
   if (!artigo || !cor) return null;
 
+  // Calçado: tamanhos 28–48. Chinelo: tamanhos em pares (33/34 … 43/44).
   const grade = {};
-  for (let t = 28; t <= 48; t++) {
-    const v = row[String(t)] ?? row[t];
-    if (v && Number(v) > 0) grade[t] = Number(v);
+  if (tipo === 'chinelo') {
+    for (const par of ['33/34', '35/36', '37/38', '39/40', '41/42', '43/44']) {
+      const v = row[par];
+      if (v && Number(v) > 0) grade[par] = Number(v);
+    }
+  } else {
+    for (let t = 28; t <= 48; t++) {
+      const v = row[String(t)] ?? row[t];
+      if (v && Number(v) > 0) grade[t] = Number(v);
+    }
   }
 
+  const marcaBruta = String(get('Marca', 'marca')).trim().toUpperCase();
+  const marca = marcaBruta.startsWith('UA') ? 'UA' : 'OLY';
+
   return {
-    marca: String(get('Marca', 'marca')).trim(),
+    marca: marca,
+    tipo: tipo,
     cliente_cod: String(get('Cliente', 'cliente')).trim(),
     cliente_razao: String(get('Razão', 'Razao', 'razão', 'razao')).trim(),
     razao_social: String(get('Razão Social', 'Razao Social')).trim(),
@@ -2190,6 +2600,7 @@ function parseLinhaPedido(row) {
     endereco: String(get('Endereço do Cliente', 'Endereco do Cliente')).trim(),
     ped_cliente: String(get('Ped.Cliente', 'PedCliente')).trim(),
     empresa: String(get('Empresa', 'empresa')).trim(),
+    nota_fiscal: String(get('Nota Fiscal', 'NotaFiscal', 'NF')).trim(),
     cond_pag: String(get('Cond. Pag', 'CondPag')).trim(),
     prazo: String(get('Prazo', 'prazo')).trim(),
     campanha: String(get('Campanha Comercial', 'Campanha')).trim(),
@@ -2214,10 +2625,75 @@ function parseLinhaPedido(row) {
    LISTA DE CLIENTES + KPIs
    ============================================================ */
 function obterClientesDoVendedor() {
-  return APP.sessao.papel === 'admin'
+  let lista = APP.sessao.papel === 'admin'
     ? APP.pedidos
     : APP.pedidos.filter(p => p.preposto === APP.sessao.nome);
+  lista = lista.filter(p => (p.marca || 'OLY') === APP.marca);
+  if (APP.tipo) lista = lista.filter(p => (p.tipo || 'calcado') === APP.tipo);
+  if (APP.soCorre) lista = lista.filter(p => normalizar(p.descricao).includes('corre'));
+  return lista;
 }
+
+// Marcas/tipos presentes na carteira do vendedor (ignora o filtro de marca/tipo atual)
+function marcasDisponiveis() {
+  const base = APP.sessao.papel === 'admin' ? APP.pedidos : APP.pedidos.filter(p => p.preposto === APP.sessao.nome);
+  return new Set(base.map(p => p.marca || 'OLY'));
+}
+function tiposDisponiveis() {
+  const base = (APP.sessao.papel === 'admin' ? APP.pedidos : APP.pedidos.filter(p => p.preposto === APP.sessao.nome))
+    .filter(p => (p.marca || 'OLY') === APP.marca);
+  return new Set(base.map(p => p.tipo || 'calcado'));
+}
+
+const LOGO_OLY = 'data:image/jpeg;base64,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';
+const LOGO_UA = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFRIWFhUSFBQXGiEcFxgfGRQUHScdHyIjJSUlFhwpLCgkKyEkJST/2wBDAQYGBgkICREJCREkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCT/wAARCABgAGADASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAcIAgUGAQME/8QAPRAAAQMDAgMDCAgEBwAAAAAAAQACAwQFEQYHEiExQVGBCBMjYXFykaEUFSIkMkJDYnSSsrMzNjdSY4Kx/8QAHAEAAwACAwEAAAAAAAAAAAAAAAUGAQQCAwcI/8QALhEAAQMDAQYEBgMAAAAAAAAAAQACAwQFESEGEjFRobEyQXHBIlJhYoHRI3Lh/9oADAMBAAIRAxEAPwDj0RFLL6DRF5kA4yM9y9QhEREIRERCERF5kZxkZ7kIXqIiEKQtNbIaovoZLWRx2mndz4qnnIR6mDn8SFJlk2F0tbQ11f8ASrrKOvnn8Ef8rcfMlSUBgr1P46OJnln1XjlbtPX1R8e6OTdOvHquL1ZpiyWXQ18FutFDS8NDNgxQNDvwHtxlVaVudwP8kX3+Bm/pKqMtG4gBzcKs2Je58MpccnI7IiIlyt0REQhB1VltsNP2i8bbWYXC2UVXxRPB89C1x/xHdpGVWlWl2dOdt7L7j/7jlv28AvOeSjdtXObSRlpwd72K1162K0ldA51JDUWuU9DTSZbn3HZHwwo11JsPqS0B01sdFd4BzxH6OYD3CcHwKsehTCSjif5Y9FGUW0tfSnR+8OTtevHqsY5GyMD2Oa5rhkEHII71kq0bebv3HR7Y7dXsfX2kcmsz6WAfsJ6j9p8CFPum9X2TVVKKi018VQPzR54ZI/U5p5hcoKlko048l1XWx1Nved8ZZ5OHD/Csdc08lXo69wRDMj6GYNHeeAqoQOQD3q7Dm8TSORz2FRDVeTxbJ7rVVP1xPT0UkhfHTxRNzGDzLeInoDnHLotetp3ykFicbLXunoGyMqDgHBGmfwoFRS7drLtDpR7oKmruV3qmcnRQTl+D6y3haPiufl1bt7EcUu3zpQOjqiveCfAZS51Pu6OcFcRXh043oYHkc8AdyFwSLvI9XaAkOKnbwMH+6C4PyPA4W8tVDs9qR7YeO5WSofyDZ5y1pPqceJvxIQ2nDtGuCJbu+Eb0tO8D6AHs4qJx1Vqdo4JKfbqxtkaWuMJfg9znuI+RC4t/k62yWohlpb9UupC9rnsfG1xezPMNe3HMjtwpgpqeKjp4qeFjY4omBjGN6NaBgAeCYUVM+JxL1F7U32mroY4qc5wcnTGNMe6+iEhay+6ktOm6R1Vdq+CkiHTjd9p3qa3qT7AoJ3C3qrNRxy2yxNlobc8Fskzjiacd3L8DfV1PyW1NUMiHxHVILXZam4PxE3DfNx4D9+i0Gg9sLvriQTx/c7a12H1kjch3eGD8x+Q7+xWB0ht1p/RjA63UYdV8PC+rm+1K4dvP8o9QwF0NJSQUNPHTU0McMETQxkbG4a0DoAF9lxgpWRDPErYu+0NTcHFpO6z5R78+yE4CjOt310rDc6y21MFbJBE90P0iONskcuOTuWc4zkdOa7PWdZJb9J3iqhJbLFRTOYR2HgOCqfjkAF1VlS6IgNTDZixQXBsj584GAMHGvNS5drPtFqIme26gNimdz4PNuEWfccMDwIWgl2ytT3fctwNNSs7POyGM/IlcEiWOna7VzB2V3Da54BuxVLsfcA7qRld5HtjbmOH0rX+mImdpjlLz8Mhbu16c2msThNdtUfXUjf0o2uEZ/wCrASfFyihMoEzG6hg6lZltlRMN2Spdj7Q1vXGVYVm+2j7c6mobfR1opGlsXEyBsccLOmQ0nOB3AKUopGTRtkY4PY4BzXNOQQe0KlCtXtPVy1u3tklmcXPEBjyT2NcWj5AJjR1TpXFrlD7TWCCgiZLATqcHJz9f2v36p0NYdYQhl2oWSStHDHUMPDLH7rh/4cj1KAtf7R3XRrX11M43C1DmZ2tw+Ef8je79w5exWcWMkbZWOY9oc1wIIIyCO4rYnpmSjXjzSe1X6qt7gGHLPlPD8clkir5prygbzbw2G+UkdziHLz0eIpR7fyu+AUmWPePR974W/WYoZj+lWt80f5vwn4ojqon8Cit2er6Q/HGSOY1H7H5C3Gv+eiL7/ATf0FVFHRW01rV09ZoW+SU08U7DQTYdE8OH4D2hVLHRaFy8TVYbDgiCUHmOyIiJarlEREIRWl2d/wBN7L7kn9xyq0rQ7STxU22dmkmkZEwRyEue4NA9I7tKYW7xn0UZtuM0cf8Ab2K7hFx173a0hYuNst4iqZW/pUfpnHxHIeJUa6k8oW41QdDp+3somHkKipxJJ7Q0fZHjlMZKmOPiVD0Vhrqs/wAcZA5nQdfZRCiIp5e1rOOaSFrmxSPjDhhwY4tDh3HHVYIiMrAAGoRERCyiIiEIs3zSyRtifLI6NvJrHOJa32DoFgiFggHinRERCyv/2Q==';
+
+function nomeMarca(m) { return m === 'UA' ? 'Under Armour' : 'Olympikus'; }
+
+function atualizarCabecalhoMarca() {
+  const oly = $('marca-oly'), ua = $('marca-ua');
+  if (oly && !oly.getAttribute('src')) oly.src = LOGO_OLY;
+  if (ua && !ua.getAttribute('src')) ua.src = LOGO_UA;
+  const marcas = marcasDisponiveis();
+  if (ua) ua.classList.toggle('escondida', !marcas.has('UA'));
+  if (oly) oly.classList.toggle('escondida', marcas.size > 0 && !marcas.has('OLY'));
+  if (oly) oly.classList.toggle('ativo', APP.marca === 'OLY');
+  if (ua) ua.classList.toggle('ativo', APP.marca === 'UA');
+  const sub = $('topbar-user');
+  if (sub && APP.sessao) sub.textContent = nomeMarca(APP.marca) + ' \u00b7 ' + APP.sessao.nome + ' \u00b7 ' + APP.sessao.papel;
+  renderTipoChips();
+}
+
+function renderTipoChips() {
+  const cont = $('tipo-chips');
+  if (!cont) return;
+  const tipos = tiposDisponiveis();
+  if (!(tipos.has('calcado') && tipos.has('chinelo'))) {
+    cont.classList.add('escondida');
+    cont.innerHTML = '';
+    if (APP.tipo && !tipos.has(APP.tipo)) APP.tipo = null;
+    return;
+  }
+  cont.classList.remove('escondida');
+  const chip = (val, label) => '<span class="tipo-chip ' + ((val === null ? !APP.tipo : APP.tipo === val) ? 'ativo' : '') + '" data-tipo="' + (val === null ? '' : val) + '">' + label + '</span>';
+  cont.innerHTML = chip(null, 'Todos') + chip('calcado', 'Cal\u00e7ado') + chip('chinelo', 'Chinelo');
+  cont.querySelectorAll('.tipo-chip').forEach(c => c.addEventListener('click', () => trocarTipo(c.dataset.tipo || null)));
+}
+
+function trocarMarca(m) {
+  if (APP.marca === m) return;
+  APP.marca = m;
+  APP.tipo = null;
+  atualizarCabecalhoMarca();
+  renderClientes($('busca-cliente') ? $('busca-cliente').value : '');
+}
+
+function trocarTipo(t) {
+  APP.tipo = t || null;
+  renderTipoChips();
+  renderClientes($('busca-cliente') ? $('busca-cliente').value : '');
+}
+
 
 function htmlProdutosCasados(produtos) {
   if (!produtos || produtos.length === 0) return '';
@@ -2348,6 +2824,8 @@ function renderClientes(filtro) {
       for (const termo of termos) {
         const casaCliente =
           normalizar(c.razao).includes(termo) ||
+          normalizar(nomeFantasiaDe(c.codigo)).includes(termo) ||
+          normalizar(portaDe(c.codigo)).includes(termo) ||
           normalizar(c.codigo).includes(termo) ||
           normalizar(c.cidade).includes(termo);
         const prodMatches = c.pedidos.filter(p =>
@@ -2414,6 +2892,19 @@ function renderClientes(filtro) {
     }
   }
 
+  // Clientes cadastrados (sem compra) que casam a busca e não estão na carteira
+  let nSemCompra = 0;
+  if (termos.length && !APP.soRedes) {
+    const naCarteira = new Set(clientes.map(c => c.codigo));
+    for (const c of Object.values(APP.clientesCadastrados || {})) {
+      if (naCarteira.has(c.codigo)) continue;
+      const hay = normalizar([c.razao, c.nomeFantasia, c.porta, c.codigo].join(' '));
+      if (!termos.every(t => hay.includes(t))) continue;
+      cards.push(cardSemCompraHTML(c));
+      nSemCompra++;
+    }
+  }
+
   if (cards.length === 0) {
     container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-store"></i><p>${APP.soRedes ? 'Nenhuma rede encontrada' : 'Nenhum cliente encontrado'}</p></div>`;
     return;
@@ -2421,7 +2912,7 @@ function renderClientes(filtro) {
 
   const rodape = APP.soRedes
     ? `${cards.length} rede${cards.length !== 1 ? 's' : ''}`
-    : `${filtrados.length} cliente${filtrados.length !== 1 ? 's' : ''}`;
+    : `${filtrados.length + nSemCompra} cliente${(filtrados.length + nSemCompra) !== 1 ? 's' : ''}`;
   const html = `
     <div class="client-list">${cards.join('')}</div>
     <div class="list-footer">${rodape}</div>
@@ -2548,7 +3039,6 @@ function verProdutosRede() {
 
 function renderRedeProdutos(filtro) {
   const cods = APP.redeSelecao;
-  const filtroNorm = normalizar(filtro);
   const peds = obterClientesDoVendedor().filter(p => cods.has(p.cliente_cod));
 
   const mapa = new Map();
@@ -2562,11 +3052,12 @@ function renderRedeProdutos(filtro) {
     if (!g.descricao && p.descricao) g.descricao = p.descricao;
   }
   let lista = [...mapa.values()];
-  if (filtroNorm) {
-    lista = lista.filter(g =>
-      normalizar(g.descricao).includes(filtroNorm) ||
-      normalizar(g.artigo).includes(filtroNorm) ||
-      normalizar(g.cor).includes(filtroNorm));
+  const termos = (filtro || '').split(',').map(normalizar).filter(Boolean).slice(0, 3);
+  if (termos.length) {
+    lista = lista.filter(g => {
+      const hay = normalizar([g.descricao, g.artigo, g.cor].join(' '));
+      return termos.every(t => hay.includes(t));
+    });
   }
   lista.sort((a, b) => b.pares - a.pares);
 
@@ -2696,7 +3187,8 @@ function repassesRecebidosPorCliente(cod, artigo, cor) {
     if (!p.repasse || !(p.repasse.destinos || []).length) continue;
     if (artigo && (p.artigo !== artigo || p.cor !== cor)) continue;
     if (!p.repasse.destinos.some(d => d.codigo === cod)) continue;
-    out.push({ artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: p.total, origemNome: p.razao_social || p.cliente_razao || p.cliente_cod });
+    const d = p.repasse.destinos.find(x => x.codigo === cod);
+    out.push({ artigo: p.artigo, cor: p.cor, descricao: p.descricao, pares: paresDestino(d, p) ?? p.total, origemNome: p.razao_social || p.cliente_razao || p.cliente_cod });
   }
   return out;
 }
@@ -2717,7 +3209,7 @@ function repassesRecebidosPara(artigo, cor, excluir) {
     for (const d of p.repasse.destinos) {
       (mapa[d.codigo] = mapa[d.codigo] || []).push({
         origemNome: p.razao_social || p.cliente_razao || p.cliente_cod,
-        pares: p.total,
+        pares: paresDestino(d, p) ?? p.total,
         pendente: !!p.repasse.pendente,
       });
     }
@@ -2725,18 +3217,18 @@ function repassesRecebidosPara(artigo, cor, excluir) {
   return mapa;
 }
 
-function abrirRepasse(idx) {
-  const p = APP.clienteAtual.pedidos[idx];
-  const origemCod = APP.clienteAtual.codigo;
+function abrirRepasse(p, origem = 'produtos') {
+  const origemCod = p.cliente_cod;
   const nn = normalizar(nomeFantasiaDe(origemCod));
   const redeNN = (nn && APP.redes[nn]) ? nn : null;
-  APP.repasseCtx = { idx, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN };
+  APP.repasseCtx = { pedido: p, artigo: p.artigo, cor: p.cor, descricao: p.descricao, origemCod, redeNN, origem, boxSize: tamanhoCaixa(p), totalCaixas: numCaixas(p) };
   APP.repasseEscopo = redeNN ? 'rede' : 'todos';
-  APP.repasseSel = new Set((p.repasse?.destinos || []).map(d => d.codigo));
+  APP.repasseDist = {};
+  for (const d of (p.repasse?.destinos || [])) APP.repasseDist[d.codigo] = d.caixas || 1;
   APP.repassePendente = !!p.repasse?.pendente;
   APP.repasseBusca = '';
   $('repasse-titulo').textContent = `Repassar · ${p.descricao || p.artigo}`;
-  $('repasse-sub').textContent = `${p.cor} · art. ${p.artigo} · de ${APP.clienteAtual.razao}`;
+  $('repasse-sub').textContent = `${p.cor} · art. ${p.artigo} · de ${p.razao_social || p.cliente_razao}`;
   $('busca-repasse').value = '';
   $('repasse-busca-wrap').classList.remove('has-value');
   renderRepasseEscopo();
@@ -2763,7 +3255,7 @@ function renderRepasse() {
   const { artigo, cor, origemCod, redeNN } = APP.repasseCtx;
   const busca = normalizar(APP.repasseBusca || '');
   const peds = obterClientesDoVendedor();
-  const pedidoAtual = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
+  const pedidoAtual = APP.repasseCtx.pedido;
   const recebeMap = repassesRecebidosPara(artigo, cor, pedidoAtual);
 
   const comArtigo = {}, nomeDe = {}, cidadeDe = {};
@@ -2785,7 +3277,7 @@ function renderRepasse() {
     const nome = nomeDe[cod] || APP.clientesInfo[cod]?.nomeFantasia || cod;
     const porta = portaDe(cod);
     if (busca) {
-      const txt = normalizar(nome + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
+      const txt = normalizar(nome + ' ' + nomeFantasiaDe(cod) + ' ' + porta + ' ' + cod + ' ' + (cidadeDe[cod] || ''));
       if (!txt.includes(busca)) continue;
     }
     const obj = { cod, nome, porta, cores: cores ? [...cores] : null, rede: naRede(cod), recebe: recebeMap[cod] || null };
@@ -2804,6 +3296,11 @@ function renderRepasse() {
     }
   }
 
+  const totalCaixas = APP.repasseCtx.totalCaixas;
+  const boxSize = APP.repasseCtx.boxSize;
+  const distMulti = totalCaixas > 1;
+  const distribuido = () => Object.values(APP.repasseDist).reduce((s, n) => s + n, 0);
+
   const item = (c, mostrarCor, aviso) => {
     const recebe = c.recebe ? (() => {
       const tot = c.recebe.reduce((s, r) => s + (r.pares || 0), 0);
@@ -2811,18 +3308,30 @@ function renderRepasse() {
       const extra = c.recebe.length > 1 ? ` +${c.recebe.length - 1}` : '';
       return `<span class="badge-recebe"><i class="fa-solid fa-right-long"></i> já vai receber ${formatarNumero(tot)} de ${de}${extra}</span>`;
     })() : '';
+    const sel = APP.repasseDist[c.cod] != null;
+    const cx = APP.repasseDist[c.cod] || 0;
+    const stepper = (sel && distMulti)
+      ? `<div class="dist-stepper" data-cod="${c.cod}">
+           <button data-step="-1">−</button><span>${cx} cx</span><button data-step="1">+</button>
+         </div>`
+      : '';
     return `
     <label class="rede-sel-item ${aviso ? 'item-aviso' : ''} ${c.recebe ? 'item-recebe' : ''}">
-      <input type="checkbox" data-cod="${c.cod}" ${APP.repasseSel.has(c.cod) ? 'checked' : ''}>
+      <input type="checkbox" data-cod="${c.cod}" ${sel ? 'checked' : ''}>
       <div class="rede-sel-info">
         <p class="nome">${c.nome}${c.rede ? ' <span class="rede-badge">REDE</span>' : ''}${aviso ? ' <span class="badge-jatem">já tem · dobraria</span>' : ''}</p>
         <p class="meta">${[c.porta || '', c.cod].filter(Boolean).join(' · ')}${(mostrarCor || aviso) && c.cores ? ` · <span class="repasse-cor-tag">tem em ${c.cores.join(', ')}</span>` : ''}</p>
         ${recebe}
       </div>
+      ${stepper}
     </label>`;
   };
 
   let html = '';
+  if (distMulti) {
+    const d = distribuido();
+    html += `<div class="dist-banner"><span><i class="fa-solid fa-box"></i> ${formatarNumero(pedidoAtual.total)} pares · ${totalCaixas} caixas de ${boxSize}</span><span class="dist-cont">distribuído ${d}/${totalCaixas}</span></div>`;
+  }
   if (tier1.length) html += `<p class="repasse-grupo-titulo bom">① Tem o artigo · falta esta cor</p><div class="repasse-grupo">${tier1.map(c => item(c, true)).join('')}</div>`;
   if (tier2.length) html += `<p class="repasse-grupo-titulo neutro">② Não tem este artigo</p><div class="repasse-grupo">${tier2.map(c => item(c, false)).join('')}</div>`;
   if (semCarteira.length) html += `<p class="repasse-grupo-titulo neutro">③ Sem carteira</p><div class="repasse-grupo">${semCarteira.map(c => item(c, false)).join('')}</div>`;
@@ -2830,48 +3339,352 @@ function renderRepasse() {
   if (!tier1.length && !tier2.length && !semCarteira.length && !jaTem.length) html += `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><p>Nenhum destino${busca ? ' encontrado' : ''}</p></div>`;
   $('repasse-body').innerHTML = html;
 
-  $('repasse-body').querySelectorAll('input[data-cod]').forEach(chk => chk.addEventListener('change', () => {
-    if (chk.checked) APP.repasseSel.add(chk.dataset.cod); else APP.repasseSel.delete(chk.dataset.cod);
-    atualizarConfirmarRepasse();
+  $('repasse-body').querySelectorAll('input[data-cod]').forEach(chk => chk.addEventListener('change', (e) => {
+    const cod = chk.dataset.cod;
+    if (chk.checked) {
+      if (distribuido() >= totalCaixas) { e.preventDefault(); chk.checked = false; toast(totalCaixas === 1 ? 'Esta encomenda é 1 caixa só (1 loja)' : 'Todas as caixas já foram distribuídas'); return; }
+      APP.repasseDist[cod] = 1;
+    } else {
+      delete APP.repasseDist[cod];
+    }
+    renderRepasse();
   }));
+
+  $('repasse-body').querySelectorAll('.dist-stepper button').forEach(b => b.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const cod = b.parentElement.dataset.cod;
+    const step = Number(b.dataset.step);
+    const atual = APP.repasseDist[cod] || 0;
+    if (step > 0) {
+      if (distribuido() >= totalCaixas) { toast('Todas as caixas já foram distribuídas'); return; }
+      APP.repasseDist[cod] = atual + 1;
+    } else {
+      if (atual <= 1) delete APP.repasseDist[cod];
+      else APP.repasseDist[cod] = atual - 1;
+    }
+    renderRepasse();
+  }));
+
   atualizarConfirmarRepasse();
 }
 
 function atualizarConfirmarRepasse() {
-  const n = APP.repasseSel.size;
+  const dist = Object.values(APP.repasseDist || {}).reduce((s, n) => s + n, 0);
+  const nLojas = Object.keys(APP.repasseDist || {}).length;
   const btn = $('btn-confirmar-repasse');
-  btn.disabled = n === 0;
-  $('btn-confirmar-repasse-label').textContent = n ? `Finalizar · ${n} destino${n !== 1 ? 's' : ''}` : 'Selecione um destino';
+  btn.disabled = nLojas === 0;
+  const totalCaixas = APP.repasseCtx?.totalCaixas || 1;
+  $('btn-confirmar-repasse-label').textContent = nLojas === 0
+    ? 'Selecione um destino'
+    : (totalCaixas > 1 ? `Finalizar · ${dist}/${totalCaixas} cx · ${nLojas} loja${nLojas !== 1 ? 's' : ''}` : `Finalizar · ${nLojas} destino${nLojas !== 1 ? 's' : ''}`);
 }
 
 function confirmarRepasse() {
-  const n = APP.repasseSel.size;
-  if (n === 0) return;
-  const p = APP.clienteAtual.pedidos[APP.repasseCtx.idx];
-  const destinos = [...APP.repasseSel].map(cod => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod) }));
+  const nLojas = Object.keys(APP.repasseDist || {}).length;
+  if (nLojas === 0) return;
+  const p = APP.repasseCtx.pedido;
+  const origem = APP.repasseCtx.origem;
+  const destinos = Object.entries(APP.repasseDist).map(([cod, caixas]) => ({ codigo: cod, nome: nomeClienteRepasse(cod), porta: portaDe(cod), caixas }));
   p.acao = 'REPASSAR';
-  p.repasse = { pendente: false, destinos };
+  p.repasse = { pendente: false, boxSize: APP.repasseCtx.boxSize, totalCaixas: APP.repasseCtx.totalCaixas, destinos };
   localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
   registrarAcao(p);
-  toast(`Repasse finalizado · ${destinos.length} destino${destinos.length !== 1 ? 's' : ''}`);
+  toast(`Repasse finalizado · ${destinos.length} loja${destinos.length !== 1 ? 's' : ''}`);
   APP.repasseCtx = null;
-  renderProdutos();
-  show('screen-produtos');
+  if (origem === 'repasses') {
+    preencherFiltrosRepasses();
+    renderRepassesLista();
+    show('screen-repasses');
+  } else {
+    renderProdutos();
+    show('screen-produtos');
+  }
+}
+
+/* ============================================================
+   TELA: REPASSES (lista geral — base da exportação)
+   ============================================================ */
+function montarItensRepasse() {
+  return obterClientesDoVendedor().filter(p => p.acao === 'REPASSAR').map(p => {
+    const fin = repFinalizadoP(p);
+    return {
+      p,
+      key: keyPedido(p),
+      descricao: p.descricao || p.artigo,
+      cor: p.cor,
+      artigo: p.artigo,
+      gci: p.gci,
+      pares: p.total,
+      origemNome: p.razao_social || p.cliente_razao,
+      origemCod: p.cliente_cod,
+      origemFantasia: nomeFantasiaDe(p.cliente_cod),
+      origemPorta: portaDe(p.cliente_cod),
+      cidade: p.cidade,
+      destinos: fin ? (p.repasse.destinos || []).map(d => d.nome) : [],
+      destinosBusca: fin ? (p.repasse.destinos || []).map(d => `${d.nome || ''} ${d.porta || ''} ${d.codigo || ''}`).join(' ') : '',
+      finalizado: fin,
+      genero: generoPedido(p),
+    };
+  });
+}
+
+function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function abrirRepasses() {
+  APP.repBusca = '';
+  $('busca-repasses').value = '';
+  $('repasses-busca-wrap').classList.remove('has-value');
+  preencherFiltrosRepasses();
+  renderRepassesLista();
+  show('screen-repasses');
+  window.scrollTo(0, 0);
+}
+
+function preencherFiltrosRepasses() {
+  const itens = montarItensRepasse();
+  const opt = (v, l, sel) => `<option value="${escAttr(v)}" ${sel ? 'selected' : ''}>${escHtml(l)}</option>`;
+  $('rep-f-status').innerHTML = opt('', 'Status: todos', !APP.repFiltros.status)
+    + opt('PENDENTE', 'Pendente', APP.repFiltros.status === 'PENDENTE')
+    + opt('REPASSADO', 'Repassado', APP.repFiltros.status === 'REPASSADO');
+  const gens = [...new Set(itens.map(i => i.genero).filter(Boolean))].sort();
+  $('rep-f-genero').innerHTML = opt('', 'Gênero: todos', !APP.repFiltros.genero)
+    + gens.map(g => opt(g, g, APP.repFiltros.genero === g)).join('');
+  const nomes = new Set();
+  for (const i of itens) { if (i.origemNome) nomes.add(i.origemNome); i.destinos.forEach(d => d && nomes.add(d)); }
+  const lista = [...nomes].sort();
+  $('rep-f-cliente').innerHTML = opt('', 'Cliente: todos', !APP.repFiltros.cliente)
+    + lista.map(n => opt(n, n, APP.repFiltros.cliente === n)).join('');
+}
+
+function renderRepassesLista() {
+  let itens = montarItensRepasse();
+  if (APP.repFiltros.status === 'PENDENTE') itens = itens.filter(i => !i.finalizado);
+  else if (APP.repFiltros.status === 'REPASSADO') itens = itens.filter(i => i.finalizado);
+  if (APP.repFiltros.genero) itens = itens.filter(i => i.genero === APP.repFiltros.genero);
+  if (APP.repFiltros.cliente) itens = itens.filter(i => i.origemNome === APP.repFiltros.cliente || i.destinos.includes(APP.repFiltros.cliente));
+
+  const termos = (APP.repBusca || '').split(',').map(normalizar).filter(Boolean).slice(0, 3);
+  if (termos.length) {
+    itens = itens.filter(i => {
+      const hay = normalizar([i.descricao, i.artigo, i.cor, i.origemNome, i.origemFantasia, i.origemPorta, i.origemCod, i.cidade, i.gci, i.destinosBusca].join(' '));
+      return termos.every(t => hay.includes(t));
+    });
+  }
+
+  APP.repVisiveis = itens;
+  const body = $('repasses-body');
+  const temFiltro = termos.length || APP.repFiltros.status || APP.repFiltros.genero || APP.repFiltros.cliente;
+
+  if (!itens.length) {
+    body.innerHTML = `<div class="empty-state"><i class="fa-solid fa-truck-fast"></i><p>Nenhum repasse${temFiltro ? ' com esse filtro' : ' marcado ainda'}</p></div>`;
+    $('repasses-meta').textContent = '0 repasses';
+    atualizarContadorRepasses();
+    return;
+  }
+
+  body.innerHTML = itens.map(i => {
+    const sel = APP.repExportSel.has(i.key);
+    const rota = i.finalizado
+      ? `<p class="ri-rota fin"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(i.origemNome)} → ${escHtml(i.destinos.length > 2 ? i.destinos.length + ' lojas' : i.destinos.join(', '))}</p>`
+      : `<p class="ri-rota pend"><i class="fa-solid fa-clock"></i> ${escHtml(i.origemNome)} → destino a definir</p>`;
+    return `
+      <div class="rep-item ${sel ? 'sel' : ''}" data-k="${escAttr(i.key)}">
+        <div class="ri-top">
+          <input type="checkbox" data-key="${escAttr(i.key)}" ${sel ? 'checked' : ''}>
+          <div class="ri-info">
+            <p class="ri-desc">${escHtml(i.descricao)} · ${escHtml(i.cor)}</p>
+            <p class="ri-sub">art. ${escHtml(i.artigo)} · GCI ${escHtml(i.gci)}</p>
+            ${rota}
+          </div>
+          <div class="ri-dir">
+            <p class="ri-pares">${formatarNumero(i.pares)} pares</p>
+            <span class="rep-pill ${i.finalizado ? 'fin' : 'pend'}">${i.finalizado ? 'repassado' : 'pendente'}</span>
+          </div>
+          <button class="ri-edit" data-key="${escAttr(i.key)}" title="Editar ação"><i class="fa-solid fa-pen"></i></button>
+        </div>
+        <div class="rep-acoes">${acoesRepasseItemHTML(i.p)}</div>
+      </div>`;
+  }).join('');
+  $('repasses-meta').textContent = `${itens.length} repasse${itens.length !== 1 ? 's' : ''}`;
+
+  body.querySelectorAll('input[data-key]').forEach(chk => chk.addEventListener('change', (e) => {
+    e.stopPropagation();
+    const k = chk.dataset.key;
+    if (chk.checked) APP.repExportSel.add(k); else APP.repExportSel.delete(k);
+    chk.closest('.rep-item').classList.toggle('sel', chk.checked);
+    atualizarContadorRepasses();
+  }));
+
+  body.querySelectorAll('.ri-edit').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    btn.closest('.rep-item').classList.toggle('aberto');
+  }));
+
+  body.querySelectorAll('.rep-acoes .action-pill[data-acao]').forEach(el => el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (el.classList.contains('bloqueado')) { toast('Só dá pra cancelar com 45+ dias até o faturamento'); return; }
+    const p = pedidoPorKey(el.dataset.key);
+    if (!p) return;
+    p.acao = el.dataset.acao;
+    delete p.repasse;
+    localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+    registrarAcao(p);
+    toast(`${el.dataset.acao.replace('_', ' ')} aplicado`);
+    preencherFiltrosRepasses();
+    renderRepassesLista();
+  }));
+
+  body.querySelectorAll('.rep-acoes .action-pill[data-rep]').forEach(el => el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const p = pedidoPorKey(el.dataset.key);
+    if (!p) return;
+    const tipo = el.dataset.rep;
+    if (tipo === 'finalizar' || tipo === 'mudar') { abrirRepasse(p, 'repasses'); return; }
+    if (tipo === 'cancelar') {
+      p.acao = 'MANTER';
+      delete p.repasse;
+      localStorage.setItem(STORAGE.pedidos, JSON.stringify(APP.pedidos));
+      registrarAcao(p);
+      toast('Repasse cancelado');
+      preencherFiltrosRepasses();
+      renderRepassesLista();
+    }
+  }));
+
+  atualizarContadorRepasses();
+}
+
+function pedidoPorKey(key) {
+  return APP.pedidos.find(p => keyPedido(p) === key);
+}
+
+// Condição (Cond. Pag) + campanha mais comuns nos pedidos do cliente de destino
+function condicaoCliente(cod) {
+  const cont = {};
+  for (const p of APP.pedidos) {
+    if (p.cliente_cod !== cod) continue;
+    const cp = String(p.cond_pag || '').trim();
+    const camp = String(p.campanha || '').trim();
+    if (!cp && !camp) continue;
+    const k = cp + '|' + camp;
+    (cont[k] = cont[k] || { cond_pag: cp, campanha: camp, n: 0 }).n++;
+  }
+  const arr = Object.values(cont).sort((a, b) => b.n - a.n);
+  return arr.length ? { cond_pag: arr[0].cond_pag, campanha: arr[0].campanha } : { cond_pag: '', campanha: '' };
+}
+
+function exportarRepassesXLSX() {
+  const selecionados = obterClientesDoVendedor().filter(p => p.acao === 'REPASSAR' && APP.repExportSel.has(keyPedido(p)));
+  if (!selecionados.length) { toast('Selecione ao menos um repasse'); return; }
+
+  const finalizados = selecionados.filter(repFinalizadoP);
+  const pendentes = selecionados.length - finalizados.length;
+  if (!finalizados.length) { toast('Os selecionados ainda não têm destino (pendentes)'); return; }
+
+  const cabecalho = ['Empresa', 'Prev.fat.', 'Enc.EBM', 'Enc.GCI', 'Cliente', 'Razão', 'Total de pares', 'Família', 'descrição', 'Artigo', 'Cor', 'Destino', 'Nome fantasia', 'Prazo', 'Campanha'];
+  const linhas = [cabecalho];
+  for (const p of finalizados) {
+    const bs = boxSizeRepasse(p);
+    for (const d of (p.repasse.destinos || [])) {
+      const paresLinha = d.caixas ? d.caixas * bs : p.total;
+      const cond = condicaoCliente(d.codigo);
+      linhas.push([
+        p.empresa || '',
+        formatarDataBR(p.prev_fat),
+        p.ebm || '',
+        p.gci || '',
+        p.cliente_cod || '',
+        p.cliente_razao || p.razao_social || '',
+        paresLinha,
+        '043',
+        p.descricao || '',
+        p.artigo || '',
+        p.cor || '',
+        d.codigo || '',
+        nomeFantasiaDe(d.codigo) || '',
+        cond.cond_pag,
+        cond.campanha,
+      ]);
+    }
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(linhas);
+  ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 28 }, { wch: 12 }, { wch: 8 }, { wch: 26 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Repasses');
+  const h = new Date();
+  const nome = `repasses_fabrica_${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}.xlsx`;
+  XLSX.writeFile(wb, nome);
+
+  toast(pendentes ? `Exportado · ${pendentes} pendente(s) sem destino ignorado(s)` : `Exportado · ${linhas.length - 1} linha(s)`);
+}
+
+function acoesRepasseItemHTML(p) {
+  const key = escAttr(keyPedido(p));
+  const podeCancelar = diasAteFat(p) >= MIN_DIAS_CANCELAR;
+  const btns = [
+    `<button class="action-pill" data-key="${key}" data-acao="MANTER">MANTER</button>`,
+    `<button class="action-pill ${podeCancelar ? '' : 'bloqueado'}" data-key="${key}" data-acao="CANCELAR"${podeCancelar ? '' : ' title="Faturamento em menos de 45 dias"'}>CANCELAR</button>`,
+  ];
+  if (repFinalizadoP(p)) {
+    btns.push(`<button class="action-pill rep-mudar" data-key="${key}" data-rep="mudar"><i class="fa-solid fa-pen"></i> Mudar destino</button>`);
+    btns.push(`<button class="action-pill rep-cancelar" data-key="${key}" data-rep="cancelar"><i class="fa-solid fa-xmark"></i> Cancelar repasse</button>`);
+  } else {
+    btns.push(`<button class="action-pill active repassar" data-key="${key}" data-rep="finalizar"><i class="fa-solid fa-right-left"></i> Finalizar repasse</button>`);
+  }
+  return btns.join('');
+}
+
+function atualizarContadorRepasses() {
+  let nSel = 0, paresSel = 0;
+  for (const i of montarItensRepasse()) if (APP.repExportSel.has(i.key)) { nSel++; paresSel += i.pares; }
+  $('rep-sel-contador').textContent = nSel ? `${nSel} selecionado${nSel !== 1 ? 's' : ''} · ${formatarNumero(paresSel)} pares` : 'Nenhum selecionado';
+  const btnExp = $('btn-exportar-repasses');
+  if (btnExp) {
+    btnExp.disabled = nSel === 0;
+    btnExp.classList.toggle('pulsando', nSel > 0);
+    $('btn-exportar-label').textContent = nSel ? String(nSel) : '';
+  }
+  const vis = APP.repVisiveis || [];
+  const chk = $('rep-selecionar-todos');
+  if (chk) {
+    const todosSel = vis.length > 0 && vis.every(i => APP.repExportSel.has(i.key));
+    chk.checked = todosSel;
+    chk.indeterminate = !todosSel && vis.some(i => APP.repExportSel.has(i.key));
+  }
+}
+
+function toggleTodosRepasses(marcar) {
+  for (const i of (APP.repVisiveis || [])) {
+    if (marcar) APP.repExportSel.add(i.key); else APP.repExportSel.delete(i.key);
+  }
+  renderRepassesLista();
 }
 
 function abrirCliente(codigo) {
   const meusPedidos = obterClientesDoVendedor();
   const pedidosCliente = meusPedidos.filter(p => p.cliente_cod === codigo);
-  if (pedidosCliente.length === 0) return;
+
+  let razao, cidade;
+  if (pedidosCliente.length) {
+    razao = pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao;
+    cidade = pedidosCliente[0].cidade;
+  } else {
+    const cad = APP.clientesCadastrados?.[codigo];
+    const info = APP.clientesInfo?.[codigo];
+    razao = (cad && (cad.razao || cad.nomeFantasia)) || (info && info.nomeFantasia) || codigo;
+    cidade = (cad && cad.porta) || (info && info.porta) || '—';
+  }
 
   APP.clienteAtual = {
     codigo,
-    razao: pedidosCliente[0].razao_social || pedidosCliente[0].cliente_razao,
-    cidade: pedidosCliente[0].cidade,
+    razao,
+    cidade,
     pedidos: pedidosCliente,
   };
   APP.filtroProduto = '';
-  APP.filtros = { ped_cliente: null, mes: null, status: null };
+  APP.filtros = { ped_cliente: null, mes: null, status: null, genero: null };
   APP.ordem = 'mes_proximo';
 
   $('busca-produto').value = '';
@@ -2900,23 +3713,18 @@ function abrirProdutoNaLoja(codigo, artigo, cor) {
 function obterPedidosFiltrados() {
   if (!APP.clienteAtual) return [];
   const todos = APP.clienteAtual.pedidos;
-  const filtroNorm = normalizar(APP.filtroProduto);
+  const termos = (APP.filtroProduto || '').split(',').map(normalizar).filter(Boolean).slice(0, 3);
 
   let resultado = todos.filter(p => {
     if (APP.focoProduto && (p.artigo !== APP.focoProduto.artigo || p.cor !== APP.focoProduto.cor)) return false;
-    if (filtroNorm) {
-      const casa =
-        normalizar(p.descricao).includes(filtroNorm) ||
-        normalizar(p.artigo).includes(filtroNorm) ||
-        normalizar(p.cor).includes(filtroNorm) ||
-        normalizar(p.gci).includes(filtroNorm) ||
-        normalizar(p.ebm).includes(filtroNorm) ||
-        normalizar(p.ped_cliente).includes(filtroNorm);
-      if (!casa) return false;
+    if (termos.length) {
+      const hay = normalizar([p.descricao, p.artigo, p.cor, p.gci, p.ebm, p.ped_cliente].join(' '));
+      if (!termos.every(t => hay.includes(t))) return false;
     }
     if (APP.filtros.ped_cliente && p.ped_cliente !== APP.filtros.ped_cliente) return false;
     if (APP.filtros.mes && mesAno(p.prev_fat) !== APP.filtros.mes) return false;
     if (APP.filtros.status && statusPedido(p) !== APP.filtros.status) return false;
+    if (APP.filtros.genero && generoPedido(p) !== APP.filtros.genero) return false;
     return true;
   });
 
@@ -3067,7 +3875,7 @@ function renderProdutos() {
       const idx = Number(el.dataset.idx);
       const tipo = el.dataset.rep;
       if (tipo === 'finalizar' || tipo === 'mudar') {
-        abrirRepasse(idx);
+        abrirRepasse(APP.clienteAtual.pedidos[idx], 'produtos');
         return;
       }
       if (tipo === 'cancelar') {
@@ -3166,7 +3974,7 @@ function renderCardProduto(p, idx) {
               : (p.acao && p.acao !== 'MANTER'
                 ? `<span class="tag tag-acao ${p.acao.toLowerCase().replace('_cms', '').replace('_', '')}"><i class="fa-solid ${p.acao === 'CANCELAR' ? 'fa-ban' : p.acao === 'REPASSAR' ? 'fa-right-left' : 'fa-gear'}"></i> ${p.acao === 'GESTAO_CMS' ? 'GESTÃO' : p.acao.charAt(0) + p.acao.slice(1).toLowerCase()}</span>`
                 : '')}
-            ${repFinalizado ? `<span class="tag tag-destino"><i class="fa-solid fa-arrow-right-long"></i> ${(p.repasse.destinos || []).length === 1 ? p.repasse.destinos[0].nome : (p.repasse.destinos || []).length + ' destinos'}</span>` : ''}
+            ${repFinalizado ? `<span class="tag tag-destino"><i class="fa-solid fa-arrow-right-long"></i> ${rotuloDestinoTag(p)}</span>` : ''}
             ${p.gci ? `<span class="tag tag-gci"><i class="fa-solid fa-receipt"></i> GCI ${p.gci}</span>` : ''}
             ${mes ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mes}</span>` : ''}
             ${p.ped_cliente ? `<span class="tag tag-ped"><i class="fa-solid fa-tag"></i> ${p.ped_cliente}</span>` : ''}
@@ -3212,7 +4020,7 @@ function renderCardProduto(p, idx) {
           <div>
             <div style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Ação</div>
             <div class="action-pills">${pillsHtml}</div>
-            ${repFinalizado ? `<div class="repasse-destinos"><i class="fa-solid fa-right-long"></i> ${(p.repasse.destinos || []).map(d => d.nome).join(', ')}</div>` : ''}
+            ${repFinalizado ? `<div class="repasse-destinos">${breakdownDestinos(p)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -3275,6 +4083,10 @@ function abrirPopoverFiltro(filtroId, btnEl) {
   } else if (filtroId === 'status') {
     opcoes = OPCOES_STATUS;
     valorAtual = APP.filtros.status;
+  } else if (filtroId === 'genero') {
+    const gens = [...new Set((APP.clienteAtual?.pedidos || []).map(generoPedido).filter(Boolean))].sort();
+    opcoes = gens.map(g => ({ id: g, label: g }));
+    valorAtual = APP.filtros.genero;
   } else {
     const valores = getValoresUnicos(filtroId);
     opcoes = valores.map(v => ({ id: v, label: v }));
@@ -3360,6 +4172,7 @@ function atualizarBotoesFiltros() {
           if (f === 'ped_cliente') span.textContent = 'Ped.Cliente';
           else if (f === 'mes') span.textContent = 'Mês';
           else if (f === 'status') span.textContent = 'Status';
+          else if (f === 'genero') span.textContent = 'Gênero';
         }
       }
     }
@@ -3369,7 +4182,7 @@ function atualizarBotoesFiltros() {
 }
 
 function limparFiltros() {
-  APP.filtros = { ped_cliente: null, mes: null, status: null };
+  APP.filtros = { ped_cliente: null, mes: null, status: null, genero: null };
   APP.ordem = 'mes_proximo';
   $('ordem-label').textContent = 'Mês mais próximo';
   atualizarBotoesFiltros();
@@ -3391,6 +4204,7 @@ function configurarBuscaComX(inputId, wrapId, onChange) {
   }
 
   input.addEventListener('input', atualizar);
+  input.addEventListener('paste', () => setTimeout(atualizar, 0));
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       input.value = '';
@@ -3423,10 +4237,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (prod) APP.produtos = JSON.parse(prod);
   } catch {}
   try {
+    const cc = localStorage.getItem(STORAGE.clientesCadastrados);
+    if (cc) APP.clientesCadastrados = JSON.parse(cc);
+  } catch {}
+  try {
     const ci = localStorage.getItem(STORAGE.clientesInfo);
     if (ci) {
       APP.clientesInfo = JSON.parse(ci);
-      APP.redes = montarRedes(APP.clientesInfo);
+      aplicarCadastrados();
     }
   } catch {}
 
@@ -3499,6 +4317,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.currentTarget.title = APP.soRedes ? 'Mostrar todos' : 'Mostrar só redes';
     renderClientes($('busca-cliente')?.value || '');
   });
+  $('marca-oly').addEventListener('click', () => trocarMarca('OLY'));
+  $('marca-ua').addEventListener('click', () => trocarMarca('UA'));
+  $('btn-so-corre').addEventListener('click', (e) => {
+    APP.soCorre = !APP.soCorre;
+    e.currentTarget.classList.toggle('ativo', APP.soCorre);
+    e.currentTarget.title = APP.soCorre ? 'Mostrar todas as linhas' : 'Mostrar só linha CORRE';
+    renderClientes($('busca-cliente')?.value || '');
+  });
+
+  // Tela Repasses
+  $('btn-repasses').addEventListener('click', abrirRepasses);
+  // Cadastro de cliente
+  $('btn-cad-cliente').addEventListener('click', abrirCadastro);
+  $('btn-voltar-cad').addEventListener('click', () => show('screen-clientes'));
+  $('btn-tema-8').addEventListener('click', toggleTema);
+  $('btn-salvar-cad').addEventListener('click', salvarCadastro);
+  $('cad-porta').addEventListener('keydown', (e) => { if (e.key === 'Enter') salvarCadastro(); });
+  $('btn-voltar-repasses').addEventListener('click', () => show('screen-clientes'));
+  $('btn-tema-7').addEventListener('click', toggleTema);
+  $('btn-atualizar-repasses').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
+  $('rep-selecionar-todos').addEventListener('change', (e) => toggleTodosRepasses(e.target.checked));
+  $('btn-exportar-repasses').addEventListener('click', exportarRepassesXLSX);
+  $('rep-f-status').addEventListener('change', (e) => { APP.repFiltros.status = e.target.value || null; renderRepassesLista(); });
+  $('rep-f-genero').addEventListener('change', (e) => { APP.repFiltros.genero = e.target.value || null; renderRepassesLista(); });
+  $('rep-f-cliente').addEventListener('change', (e) => { APP.repFiltros.cliente = e.target.value || null; renderRepassesLista(); });
+  let repassesTimer;
+  configurarBuscaComX('busca-repasses', 'repasses-busca-wrap', (val) => {
+    clearTimeout(repassesTimer);
+    repassesTimer = setTimeout(() => { APP.repBusca = val; renderRepassesLista(); }, 200);
+  });
   $('btn-atualizar-produtos').addEventListener('click', (e) => atualizarDoServidor(e.currentTarget));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && APP.saveTimer) flushSaveAcoes();
@@ -3506,7 +4354,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Tela de repasse
   $('btn-tema-6').addEventListener('click', toggleTema);
-  $('btn-cancelar-repasse').addEventListener('click', () => { APP.repasseCtx = null; show('screen-produtos'); });
+  $('btn-cancelar-repasse').addEventListener('click', () => {
+    const origem = APP.repasseCtx?.origem;
+    APP.repasseCtx = null;
+    show(origem === 'repasses' ? 'screen-repasses' : 'screen-produtos');
+  });
   $('btn-confirmar-repasse').addEventListener('click', confirmarRepasse);
   let repasseTimer;
   configurarBuscaComX('busca-repasse', 'repasse-busca-wrap', (val) => {
@@ -3550,8 +4402,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Carrega do servidor
   carregarProdutosDoServidor();
   carregarClientesDoServidor();
+  carregarClientesCadastrados();
   if (APP.sessao) {
     await carregarCarteiraDoServidor();
+    atualizarCabecalhoMarca();
     if (APP.clienteAtual === null) renderClientes(APP.filtroCliente);
   }
 });
