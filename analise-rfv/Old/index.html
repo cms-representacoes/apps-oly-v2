@@ -193,6 +193,9 @@
       <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
       <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
     </div>
+    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none" title="Voltar ao Portal">
+      <span>← Portal</span>
+    </a>
     <button class="theme-btn" id="themeBtn" type="button" aria-label="Tema claro/escuro"></button>
     <button class="btn primary" id="importBtn">Importar arquivos</button>
     <button class="btn pub" id="pubBtn" type="button" hidden>Publicar</button>
@@ -443,6 +446,36 @@ function parseRows(rows,hi,cat){
 }
 
 // ---- nome amigável do vendedor ----
+// ---- Sessão compartilhada do Portal (login único) ----
+function getPortalSession(){
+  try{
+    const raw = localStorage.getItem('cms_portal_session_v1');
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !s.expiraEm || new Date(s.expiraEm).getTime() < Date.now()) return null;
+    return s;
+  }catch(_){ return null; }
+}
+
+// Trava o filtro de vendedor com quem está logado no Portal (exceto CMS, que vê todos).
+function aplicarTravaVendedor(){
+  const sel = document.getElementById('fVend');
+  if(!sel) return;
+  const session = getPortalSession();
+  if(!session || session.nome === 'CMS'){
+    sel.disabled = false;
+    return;
+  }
+  const alvoNorm = norm(session.nome);
+  const opts = Array.from(sel.options).map(o => o.value).filter(Boolean);
+  const match = opts.find(v => norm(vendName(v)[0]) === alvoNorm) ||
+                opts.find(v => norm(vendName(v)[1]).includes(alvoNorm));
+  if(match){
+    sel.value = match;
+    sel.disabled = true;
+  }
+}
+
 function vendName(v){
   const n=norm(v);
   if(n.includes('willame')) return ['Willame','Willame Rocha Teixeira'];
@@ -479,6 +512,7 @@ function buildControls(){
     .sort((a,b)=>vendName(a)[1].localeCompare(vendName(b)[1],'pt-BR'));
   sv.innerHTML='<option value="">Todos</option>'+vends.map(v=>'<option value="'+v.replace(/"/g,'&quot;')+'">'+vendName(v)[1]+'</option>').join('');
   if(vends.includes(curv)) sv.value=curv;
+  aplicarTravaVendedor();
   // cidades (da categoria atual, ou todas)
   const sel=document.getElementById('fCidade'); const cur=sel.value;
   const base=(CURCAT==='Todos')?DATA:DATA.filter(d=>d.cat===CURCAT);
@@ -672,16 +706,20 @@ function renderChips(){
   const F=getF(); const box=document.getElementById('chips'); const items=[];
   if(F.search) items.push(['Busca: "'+document.getElementById('fSearch').value+'"',()=>{document.getElementById('fSearch').value='';}]);
   if(F.f360) items.push(['★ Campanha 360',()=>{document.getElementById('f360').classList.remove('on');}]);
-  if(F.vend) items.push(['Vendedor: '+vendName(F.vend)[1],()=>{document.getElementById('fVend').value='';}]);
+  const vendTravado = document.getElementById('fVend').disabled;
+  if(F.vend) items.push(['Vendedor: '+vendName(F.vend)[1], vendTravado ? null : ()=>{document.getElementById('fVend').value='';}]);
   if(F.cidade) items.push(['Cidade: '+F.cidade,()=>{document.getElementById('fCidade').value='';}]);
   if(VIEW!=='resumo' && F.rec) items.push([document.getElementById('fRec').selectedOptions[0].text,()=>{document.getElementById('fRec').value='';}]);
   box.innerHTML='';
   items.forEach(([label,clear])=>{
     const c=document.createElement('span'); c.className='chip';
     c.appendChild(document.createTextNode(label+' '));
-    const x=document.createElement('span'); x.className='x'; x.textContent='×';
-    x.onclick=()=>{ clear(); render(); };
-    c.appendChild(x); box.appendChild(c);
+    if(clear){
+      const x=document.createElement('span'); x.className='x'; x.textContent='×';
+      x.onclick=()=>{ clear(); render(); };
+      c.appendChild(x);
+    }
+    box.appendChild(c);
   });
   if(items.length){
     const cl=document.createElement('button'); cl.className='chip clear'; cl.textContent='Limpar tudo';
@@ -694,6 +732,7 @@ function clearAll(){
   document.getElementById('fVend').value='';
   document.getElementById('fCidade').value='';
   document.getElementById('fRec').value='';
+  aplicarTravaVendedor();
   render();
 }
 function kpi(l,v,s,color){
@@ -751,6 +790,12 @@ function openMap(){
   fillSel(document.getElementById('mCat'), [['Todos','Todas as categorias']].concat(CATS.map(c=>[c,c])), (CURCAT&&CURCAT!=='Todos')?CURCAT:'Todos');
   const vends=[...new Set(DATA.map(d=>d.vend))].filter(Boolean).sort((a,b)=>vendName(a)[1].localeCompare(vendName(b)[1],'pt-BR'));
   fillSel(document.getElementById('mVend'), [['','Todos os vendedores']].concat(vends.map(v=>[v,vendName(v)[1]])), document.getElementById('fVend').value||'');
+  {
+    const selFVend = document.getElementById('fVend');
+    const mVendEl = document.getElementById('mVend');
+    if(selFVend.disabled){ mVendEl.value = selFVend.value; mVendEl.disabled = true; }
+    else{ mVendEl.disabled = false; }
+  }
   if(!MAP){
     MAP=L.map('mapCanvas',{scrollWheelZoom:true,zoomControl:true}).setView([-5.2,-42.8],6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(MAP);
