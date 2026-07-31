@@ -165,6 +165,24 @@
   .ratio-track{flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden}
   .ratio-fill{height:100%;background:linear-gradient(90deg,var(--ftw),var(--ftw-lite));border-radius:99px}
   .ratio-val{font-family:"Space Grotesk",sans-serif;font-weight:600;min-width:54px;text-align:right}
+  /* carta campanha */
+  .cc-ok{--cc:#12a150;--cc-bg:rgba(18,161,80,.12)}
+  .cc-near{--cc:#c98a00;--cc-bg:rgba(201,138,0,.14)}
+  .cc-low{--cc:#d64545;--cc-bg:rgba(214,69,69,.12)}
+  .cc-pct{font-family:"Space Grotesk",sans-serif;font-weight:700;color:var(--cc);font-variant-numeric:tabular-nums}
+  .cc-badge{display:inline-block;font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:700;
+    letter-spacing:.04em;padding:3px 9px;border-radius:99px;background:var(--cc-bg);color:var(--cc);white-space:nowrap}
+  .ctable th.cc-h{width:15%}
+  .cc-cell{text-align:right}
+  .cc-cell .cc-pct{display:block;font-size:14px}
+  .cc-cell .cc-badge{margin-top:3px}
+  .cc-cards{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+  .cc-card{flex:1;min-width:150px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--card)}
+  .cc-card .lbl{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--mute)}
+  .cc-card .val{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;margin-top:2px}
+  .cc-note{font-size:11.5px;color:var(--mute);margin:-8px 0 16px}
+  .upd{font-size:11.5px;color:var(--mute);margin-left:2px;white-space:nowrap}
 
   /* vendor cards */
   .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 30px;
@@ -294,6 +312,7 @@
   <header class="hero">
     <h1>Análise de Performance de Vendas</h1>
     <div class="period" id="period" hidden></div>
+    <div class="upd" id="updAt" hidden></div>
     <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Comparar com ano anterior</button>
     <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Consolidar tudo</button>
     <div class="vend-tabs" id="vendTabs" hidden></div>
@@ -591,6 +610,42 @@ function deltaSelo(cur, prev, yl, yWord, fmt){
 }
 function valSelo(cur, prev, yl, yWord){ return deltaSelo(cur, prev, yl, yWord, x=>fmtBRL(x)); }
 function qtySelo(cur, prev, yl, yWord){ return deltaSelo(cur, prev, yl, yWord, x=>fmtQtd(x)+' pares'); }
+// ===== Carta Campanha =====
+// Meta trimestral: participação das Demais faixas no faturamento total
+// do vendedor. Ex.: demais 1.381.771 / total 7.894.038 = 17,5%.
+const CC_META = 0.15;      // meta oficial
+const CC_PERTO = 0.12;     // a partir daqui conta como "perto"
+const CC_ATIVO_EM = ['T1','T2','T3','T4'];   // só vale em trimestre
+
+function ccPart(v){ return v.total_v ? v.demais_v/v.total_v : 0; }
+function ccStatus(v){
+  const p=ccPart(v);
+  if(p>=CC_META)  return {cls:'cc-ok',   txt:'Atingida',    p};
+  if(p>=CC_PERTO) return {cls:'cc-near', txt:'Faltam '+((CC_META-p)*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.', p};
+  return {cls:'cc-low', txt:'Abaixo', p};
+}
+// A campanha é trimestral: fora de T1-T4 a coluna não aparece.
+function ccVisivel(){
+  return !!(CURRENT_SEL && CURRENT_SEL.startsWith('R:') &&
+            CC_ATIVO_EM.includes(CURRENT_SEL.slice(2)));
+}
+function ccCell(v){
+  const st=ccStatus(v);
+  return `<td class="cc-cell ${st.cls}"><span class="cc-pct">${fmtPct(st.p)}</span><span class="cc-badge">${st.txt}</span></td>`;
+}
+function ccCards(vendors){
+  const sts=vendors.map(ccStatus);
+  const ok=sts.filter(x=>x.cls==='cc-ok').length;
+  const near=sts.filter(x=>x.cls==='cc-near').length;
+  const n=vendors.length;
+  return `<div class="cc-cards">
+    <div class="cc-card cc-ok"><div class="lbl">Meta atingida</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
+    <div class="cc-card cc-near"><div class="lbl">Perto da meta</div><div class="val" style="color:var(--cc)">${near} de ${n}</div></div>
+    <div class="cc-card"><div class="lbl">Meta trimestral</div><div class="val">${fmtPct(CC_META)}</div></div>
+  </div>
+  <div class="cc-note">Participação das demais faixas no faturamento total. Perto = a partir de ${fmtPct(CC_PERTO)}.</div>`;
+}
+
 function ratioCmp(v, prevYear){
   if(!CMP_ON) return '';
   if(!v.ly.ftw) return `<div class="vkpi-cmp">sem base em ${prevYear}</div>`;
@@ -669,7 +724,7 @@ function render(vendors){
     return `<section class="vend" id="${v.key}">
       <header class="vhead">
         ${idx}
-        <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2></div>
+        <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2>${ccVisivel()?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).txt}</span>`:''}</div>
         <div class="vkpi vkpi-total"><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
         <div class="vkpi vkpi-pares"><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
         <div class="vkpi"><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
@@ -708,6 +763,7 @@ function render(vendors){
         `<div class="block"><h3>Detalhamento por vendedor</h3>${vendorSection(v, String(pos).padStart(2,'0'))}</div>`;
     }
   } else {
+    const ccOn=ccVisivel();
     let crows='';
     ranked.forEach((c,i)=>{
       const bw=c.ratio/maxRatio*100;
@@ -717,15 +773,17 @@ function render(vendors){
         <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
         <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
         <td class="ratio-cell"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c, prevYearShort)}</div></td>
+        ${ccOn?ccCell(c):''}
       </tr>`;
     });
     let secs='';
     ranked.forEach((v,idx)=>{ secs+=vendorSection(v, String(idx+1).padStart(2,'0')); });
     document.getElementById('report').innerHTML=`
       <div class="block"><h3>Visão consolidada · ranking por diversificação</h3>
+        ${ccOn?ccCards(ranked):''}
         <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
           <th class="r h-ftw">FTW Olympikus</th><th class="r h-demais">Demais faixas</th>
-          <th class="r ratio-h">Demais&nbsp;/&nbsp;FTW</th></tr></thead>
+          <th class="r ratio-h">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h">Carta campanha</th>':''}</tr></thead>
           <tbody>${crows}</tbody></table></div>
       <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
   }
@@ -757,6 +815,21 @@ const semText = s => s==='S1' ? '1º semestre' : s==='S2' ? '2º semestre' : 'An
 const semOrder = s => s==='S2' ? 2 : s==='S1' ? 1 : 0;
 const periodLabel = (ano,sem) => ano + ' · ' + semText(sem);
 // Rótulo do que está na tela agora (usado no nome do arquivo exportado).
+// Data/hora que o período foi publicado (o Worker grava updatedAt).
+function fmtWhen(iso){
+  try{
+    const d=new Date(iso); if(isNaN(d)) return '';
+    return d.toLocaleDateString('pt-BR')+' às '+
+      d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }catch(_){ return ''; }
+}
+function renderUpdatedAt(){
+  const el=document.getElementById('updAt'); if(!el) return;
+  const p = CURRENT_KEY ? PERIODS[CURRENT_KEY] : null;
+  const w = p && p.updatedAt ? fmtWhen(p.updatedAt) : '';
+  if(w){ el.textContent='Atualizado em '+w; el.hidden=false; }
+  else { el.textContent=''; el.hidden=true; }
+}
 function selLabel(){
   const p = CURRENT_KEY ? PERIODS[CURRENT_KEY] : null;
   if(!p) return '';
@@ -813,9 +886,11 @@ function opcoesDoAno(ano){
   if(novo){
     recortesDe(novo.meses).forEach(r=>ops.push({val:'R:'+r.id, label:r.label, meses:r.meses}));
   }
-  chaves.forEach(k=>{
-    if(hydrate(PERIODS[k]).kind==='xlsx') ops.push({val:'K:'+k, label:semText(PERIODS[k].sem)+' (importação antiga)'});
-  });
+  if(!novo){
+    // Só lista o formato antigo quando não existe importação nova do ano,
+    // senão o dashboard ficaria sem nenhuma opção selecionável.
+    chaves.forEach(k=>ops.push({val:'K:'+k, label:semText(PERIODS[k].sem)}));
+  }
   return ops;
 }
 
@@ -869,6 +944,7 @@ function aplicarSelecao(ano, sel){
     if(err){ err.textContent=ex.message||'Falha ao montar o período.'; err.style.display='block'; }
   }
   buildControls();
+  renderUpdatedAt();
 }
 
 function showPeriod(key){
