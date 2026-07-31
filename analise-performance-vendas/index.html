@@ -523,7 +523,9 @@ function buildFromDados(dados, meses){
   finishBuild(vendors);
 }
 
+let LAST_VENDORS=[];      // vendedores do recorte atualmente na tela
 function finishBuild(vendors){
+  LAST_VENDORS = vendors;
   const eb=document.getElementById('exportBtn'); if(eb) eb.hidden=!IS_ADMIN_LIKE;
 
   if(!IS_ADMIN_LIKE){
@@ -754,6 +756,14 @@ let DATASET = null;        // {ano, dados:[], meses:[]} do formato novo
 const semText = s => s==='S1' ? '1º semestre' : s==='S2' ? '2º semestre' : 'Ano todo';
 const semOrder = s => s==='S2' ? 2 : s==='S1' ? 1 : 0;
 const periodLabel = (ano,sem) => ano + ' · ' + semText(sem);
+// Rótulo do que está na tela agora (usado no nome do arquivo exportado).
+function selLabel(){
+  const p = CURRENT_KEY ? PERIODS[CURRENT_KEY] : null;
+  if(!p) return '';
+  if(!CURRENT_SEL || CURRENT_SEL.startsWith('K:')) return periodLabel(p.ano, p.sem);
+  const r = recortesDe(p.meses||[]).find(x=>x.id===CURRENT_SEL.slice(2));
+  return p.ano + ' · ' + (r ? r.label : 'Ano completo');
+}
 
 function sortedKeys(){
   return Object.keys(PERIODS).sort((a,b)=>{
@@ -1084,20 +1094,19 @@ function applyTheme(mode){
   async function exportExcel(){
     if(!CURRENT_KEY || !PERIODS[CURRENT_KEY] || typeof ExcelJS==='undefined' || typeof XLSX==='undefined') return;
     const P=PERIODS[CURRENT_KEY];
-    const src=XLSX.read(fromB64(P.b64),{type:'array'});
-    const vendors=[];
-    src.SheetNames.forEach(sn=>{ const aoa=XLSX.utils.sheet_to_json(src.Sheets[sn],{header:1,raw:true,defval:null});
-      const v=parseSheet(aoa); if(v&&v.ftw>0){ v.key=sn; v.nome=NOMES[norm(sn)]||sn; vendors.push(v); } });
+    // Exporta exatamente o que está na tela (ano/semestre/trimestre/mês).
+    // Antes relia o .xlsx do período; no formato novo o conteúdo é JSON.
+    const vendors=LAST_VENDORS||[];
     if(!vendors.length) return;
     const cmp=CMP_ON, ly=/^\d{4}$/.test(P.ano)?String(+P.ano-1):'ano ant.';
     const wb=new ExcelJS.Workbook(); let fname;
     if(CONS_ON){
       vendorSheet(wb, aggregate(vendors), 'Consolidado', cmp, ly);
-      fname='Performance · Consolidado · '+periodLabel(P.ano,P.sem)+'.xlsx';
+      fname='Performance · Consolidado · '+selLabel()+'.xlsx';
     } else {
       rankingSheet(wb, vendors, cmp, ly);
       [...vendors].sort((a,b)=>b.ratio-a.ratio).forEach(v=> vendorSheet(wb, v, String(v.key).slice(0,31), cmp, ly));
-      fname='Performance · '+periodLabel(P.ano,P.sem)+'.xlsx';
+      fname='Performance · '+selLabel()+'.xlsx';
     }
     const buf=await wb.xlsx.writeBuffer();
     const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
