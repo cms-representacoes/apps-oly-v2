@@ -66,34 +66,36 @@
   #exportBtn:hover{background:#6D28D9;border-color:#6D28D9}
 
   /* hero */
-  .hero{padding:56px 0 36px;border-bottom:1px solid var(--line)}
+  .hero{padding:26px 0 18px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap}
   .eyebrow{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:.18em;
     text-transform:uppercase;font-size:12px;color:var(--ftw);margin:0 0 16px}
-  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(30px,5vw,46px);
-    line-height:1.05;letter-spacing:-.02em;margin:0 0 18px}
+  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(19px,2.2vw,26px);
+    line-height:1.1;letter-spacing:-.02em;margin:0;flex:none}
   .lede{color:var(--slate);max-width:64ch;margin:0;font-size:16px}
   .lede code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 7px;
     font-family:"Space Grotesk",sans-serif;font-size:13px;color:var(--navy)}
   /* ano base (pill abaixo do título) */
   /* seletor de período (ano + semestre) */
-  .period{display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap}
+  .period{display:flex;align-items:center;gap:12px;margin:0;flex-wrap:wrap}
   .period[hidden]{display:none}
   .pgroup{display:flex;align-items:center;gap:8px}
   .pgroup label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
-  .period select{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;color:var(--navy);
-    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
+  .period select{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;color:var(--navy);
+    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 9px;cursor:pointer}
   .period select:hover{border-color:#CBD2DC}
   .plabel{display:inline-flex;align-items:center;gap:7px;font-family:"Space Grotesk",sans-serif;font-size:12.5px;
     font-weight:600;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 14px}
   /* comparar com ano anterior */
-  .vend-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-  .vend-tab{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:99px;
+  .vend-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;border:0;
+    flex-basis:100%;order:9}
+  .vend-tab{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;
     border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
   .vend-tab:hover{border-color:#CBD2DC}
   .vend-tab.on{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
-  .cmp-toggle{margin-top:16px;margin-left:12px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
-    font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;color:var(--slate);
-    background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 14px;transition:color .15s,border-color .15s}
+  .cmp-toggle{margin:0;display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;color:var(--slate);
+    background:var(--card);border:1px solid var(--line);border-radius:99px;padding:5px 12px;transition:color .15s,border-color .15s}
   .cmp-toggle .cmp-dot{width:9px;height:9px;border-radius:50%;background:#CBD2DC;transition:background .15s}
   .cmp-toggle.on{color:var(--navy);border-color:var(--ftw)}
   .cmp-toggle.on .cmp-dot{background:var(--ftw)}
@@ -105,7 +107,7 @@
   .vkpi-cmp{font-family:"Space Grotesk",sans-serif;font-size:11px;color:var(--slate);margin-top:4px}
   .vkpi-cmp.up{color:#0CA678}
   .vkpi-cmp.down{color:#C92A2A}
-  .vkpi-total .vkpi-val,.vkpi-pares .vkpi-val{color:var(--ftw);font-size:25px}
+  .vkpi-total .vkpi-val,.vkpi-pares .vkpi-val{color:var(--ftw);font-size:19px}
   .ratio-rt{display:flex;flex-direction:column;align-items:flex-end;min-width:54px}
   .ratio-cmp{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;color:var(--slate);margin-top:1px}
   .vindex-sum{font-size:18px;font-weight:700}
@@ -183,47 +185,50 @@
   .cc-note{font-size:11.5px;color:var(--mute);margin:-8px 0 16px}
   /* painel do vendedor logado - compacto, sem rolagem */
   .ccp{border:1px solid var(--line);border-left:5px solid var(--cc);border-radius:14px;background:var(--card);
-       padding:14px 20px;margin:0 0 20px}
+       padding:11px 16px;margin:14px 0 0}
   .ccp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
   .ccp-lbl{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.1em;
            text-transform:uppercase;color:var(--mute)}
-  .ccp-st{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:700;color:var(--cc);margin-top:2px}
+  .ccp-st{font-family:"Space Grotesk",sans-serif;font-size:16px;font-weight:700;color:var(--cc);margin-top:1px}
   .ccp-rt{text-align:right;line-height:1.05}
-  .ccp-pct{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;color:var(--cc);
+  .ccp-pct{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:700;color:var(--cc);
            font-variant-numeric:tabular-nums}
   .ccp-meta{font-size:12px;color:var(--mute);margin-top:2px}
-  .ccp-track{position:relative;height:9px;background:var(--line-2);border-radius:99px;margin-top:12px}
+  .ccp-track{position:relative;height:8px;background:var(--line-2);border-radius:99px;margin-top:9px}
   .ccp-fill{height:100%;background:var(--cc);border-radius:99px}
   .ccp-mark{position:absolute;left:75%;top:-3px;width:2px;height:15px;background:var(--ink);opacity:.5}
-  .ccp-foot{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12px;
-            color:var(--mute);margin-top:9px}
+  .ccp-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11.5px;
+            color:var(--mute);margin-top:7px}
+  .ccp-obs{font-size:11px;color:var(--mute);opacity:.85;margin-top:4px}
   @media (max-width:720px){
     .ccp{padding:12px 14px}
     .ccp-pct{font-size:26px}
     .ccp-st{font-size:16px}
   }
-  .upd{font-size:11.5px;color:var(--mute);margin-left:2px;white-space:nowrap}
+  .upd{font-size:11px;color:var(--mute);margin:0;white-space:nowrap;flex:none}
+  .hero .spacer-h{flex:1;min-width:0}
 
   /* vendor cards */
-  .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 30px;
-    margin-top:22px;box-shadow:0 1px 2px rgba(16,23,38,.03)}
-  .vhead{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+  .block>h3{margin:18px 0 8px}
+  .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 20px;
+    margin-top:14px;box-shadow:0 1px 2px rgba(16,23,38,.03)}
+  .vhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
   .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:var(--ftw);
     border:1px solid color-mix(in srgb, var(--ftw) 42%, transparent);
     background:color-mix(in srgb, var(--ftw) 12%, transparent);
-    border-radius:8px;width:34px;height:34px;display:grid;place-items:center;flex:none}
+    border-radius:8px;width:28px;height:28px;display:grid;place-items:center;flex:none}
   .vtitle{flex:1;min-width:0}
   .vtag{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;
     text-transform:uppercase;color:var(--ftw)}
-  .vtitle h2{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:600;margin:2px 0 0;letter-spacing:-.01em}
+  .vtitle h2{font-family:"Space Grotesk",sans-serif;font-size:17px;font-weight:600;margin:1px 0 0;letter-spacing:-.01em}
   .vkpi{text-align:right;flex:none}
-  .vkpi-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-  .vkpi-val{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:700;line-height:1;color:var(--ftw);margin:3px 0}
-  .vkpi-note{font-size:12px;color:var(--slate)}
+  .vkpi-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  .vkpi-val{font-family:"Space Grotesk",sans-serif;font-size:21px;font-weight:700;line-height:1;color:var(--ftw);margin:2px 0}
+  .vkpi-note{font-size:11px;color:var(--slate)}
 
   .catgrid{display:flex;flex-direction:column}
-  .catrow{display:grid;grid-template-columns:188px 1fr 96px 128px 78px 70px;align-items:center;gap:16px;
-    padding:11px 0;border-bottom:1px solid var(--line-2)}
+  .catrow{display:grid;grid-template-columns:170px 1fr 88px 120px 72px 64px;align-items:center;gap:14px;
+    padding:6px 0;border-bottom:1px solid var(--line-2)}
   .catrow.head{padding-bottom:9px;border-bottom:1px solid var(--line);font-family:"Space Grotesk",sans-serif;
     font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
   .catrow.head .cqtd,.catrow.head .cval,.catrow.head .crel,.catrow.head .cmix{text-align:right}
@@ -235,9 +240,9 @@
   .dot-conf{background:var(--conf)}.dot-chinelos{background:var(--chinelos)}.dot-ua{background:var(--ua)}
   .dot-sum{background:var(--sum)}
   .head .catlabel{padding-left:0}
-  .cname{font-weight:600;color:var(--navy);font-size:14px}
+  .cname{font-weight:600;color:var(--navy);font-size:13px}
   .csub{font-size:11px;color:var(--mute)}
-  .cbar-track{height:14px;background:var(--line-2);border-radius:5px;overflow:hidden}
+  .cbar-track{height:11px;background:var(--line-2);border-radius:5px;overflow:hidden}
   .cbar-fill{height:100%;border-radius:5px;min-width:2px}
   .fill-ftw{background:repeating-linear-gradient(90deg,var(--ftw),var(--ftw) 10px,var(--ftw-lite) 10px,var(--ftw-lite) 20px)}
   .fill-meias{background:var(--meias)}.fill-acess{background:var(--acess)}.fill-conf{background:var(--conf)}
@@ -277,7 +282,7 @@
     .brand{flex:1 1 100%}
     .palette{margin-left:auto}
     .btn{padding:8px 12px}
-    .hero{padding:40px 0 28px}
+    .hero{padding:18px 0 14px;gap:10px 14px}
 
     /* ranking consolidado: nome + barra/%, sem as colunas de valor */
     .ctable td{padding:12px 8px}
@@ -333,6 +338,7 @@
     <h1>Análise de Performance de Vendas</h1>
     <div class="period" id="period" hidden></div>
     <div class="upd" id="updAt" hidden></div>
+    <span class="spacer-h"></span>
     <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Comparar com ano anterior</button>
     <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Consolidar tudo</button>
     <div class="vend-tabs" id="vendTabs" hidden></div>
@@ -641,8 +647,8 @@ function ppTxt(x){ return Math.abs(x).toLocaleString('pt-BR',{minimumFractionDig
 function ccStatus(v){
   const p=ccPart(v), d=(p-CC_META)*100;
   return p>=CC_META
-    ? {cls:'cc-ok', txt:'Meta atingida', curto:'Atingida', delta:'+'+ppTxt(d)+' acima da meta', p}
-    : {cls:'cc-low', txt:'Faltam '+ppTxt(d)+' para a meta', curto:'Faltam '+ppTxt(d), delta:ppTxt(d)+' para a meta', p};
+    ? {cls:'cc-ok', txt:'Elegível p/ Carta Campanha', curto:'Elegível', p}
+    : {cls:'cc-low', txt:'Não elegível &middot; faltam '+ppTxt(d), curto:'Não elegível', p};
 }
 
 // Referência: trimestre anterior do mesmo ano; se não houver, o mesmo
@@ -694,6 +700,7 @@ function ccPainel(v){
       <span>${fmtBRL(v.demais_v)} em demais faixas sobre ${fmtBRL(v.ftw)} de FTW</span>
       ${ref?`<span>${ref.txt} &middot; ${seta} ${ppTxt(ref.dpp)}</span>`:''}
     </div>
+    <div class="ccp-obs">Elegibilidade pelo critério de mix. A carta campanha considera outros requisitos.</div>
   </div>`;
 }
 
@@ -702,11 +709,11 @@ function ccCards(vendors){
   const ok=sts.filter(x=>x.cls==='cc-ok').length;
   const n=vendors.length;
   return `<div class="cc-cards">
-    <div class="cc-card cc-ok"><div class="lbl">Meta atingida</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
-    <div class="cc-card cc-low"><div class="lbl">Abaixo da meta</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
+    <div class="cc-card cc-ok"><div class="lbl">Elegíveis</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
+    <div class="cc-card cc-low"><div class="lbl">Não elegíveis</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
     <div class="cc-card"><div class="lbl">Meta trimestral</div><div class="val">${fmtPct(CC_META)}</div></div>
   </div>
-  <div class="cc-note">Demais faixas sobre FTW Olympikus, no trimestre.</div>`;
+  <div class="cc-note">Demais faixas sobre FTW Olympikus, no trimestre. Elegibilidade pelo critério de mix; a carta campanha considera outros requisitos.</div>`;
 }
 
 function ratioCmp(v, prevYear){
