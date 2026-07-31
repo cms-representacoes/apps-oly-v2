@@ -45,6 +45,13 @@
   .theme-btn{width:38px;height:38px;display:grid;place-items:center;padding:0}
   .btn{padding:8px 14px}
   .btn.primary{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
+  /* tela cheia */
+  #fsBtn{background:color-mix(in srgb, var(--ftw) 14%, transparent);
+    border-color:color-mix(in srgb, var(--ftw) 45%, transparent);color:var(--ftw);
+    display:inline-flex;align-items:center;gap:7px;font-weight:700}
+  #fsBtn:hover{background:color-mix(in srgb, var(--ftw) 24%, transparent);border-color:var(--ftw)}
+  #fsBtn svg{width:14px;height:14px;flex:none}
+  body.is-fs .hide-fs{display:none!important}
   .btn.pub{background:#7C3AED;color:#fff;border-color:#7C3AED}
   .btn.pub:hover{background:#6D28D9;border-color:#6D28D9;filter:none}
   .btn.pub.done{background:var(--card);color:var(--navy);border-color:var(--line)}
@@ -69,9 +76,29 @@
   .val-bad{background:rgba(201,42,42,.1)}
 
   /* controls */
-  .ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin:28px 0 6px}
-  .cat-tabs{display:flex;gap:8px;flex-wrap:wrap}
-  .cat-tab{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
+  .ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:22px 0 6px}
+  .ctrls>.viewseg,.ctrls>.cat-tabs{flex:none}
+  .ctrls.frow{margin:10px 0 6px}
+  .ctrls.frow[hidden]{display:none}
+  /* botoes de ocultar */
+  .tgl{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:var(--slate);border-radius:8px;
+    padding:6px 10px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .tgl:hover{border-color:#CBD2DC}
+  .tgl.off{color:var(--mute);background:transparent}
+  .tgl svg{width:13px;height:13px;flex:none}
+  /* selos de categoria (opcao A) */
+  .cbadges{display:flex;gap:2px;justify-content:flex-end;flex-wrap:wrap;margin-top:3px}
+  .cbg{width:14px;height:14px;border-radius:4px;display:grid;place-items:center;
+    font-family:"Space Grotesk",sans-serif;font-size:8.5px;font-weight:700;color:#fff;line-height:1}
+  .cbg-tenis{background:#E0A100}.cbg-acess{background:#15AABF}.cbg-chinelo{background:#0CA678}
+  .cbg-meia{background:#4C6EF5}.cbg-vest{background:#7950F2}.cbg-ua{background:#2B2E33}
+  [data-theme="dark"] .cbg-ua{background:#6B7280}
+  .catleg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end;
+    font-size:11px;color:var(--mute);margin:0 0 6px;padding-top:2px}
+  .catleg span{display:inline-flex;align-items:center;gap:4px}
+  .cat-tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .cat-tab{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer;white-space:nowrap}
   .cat-tab.on{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
   .fgroup{display:flex;align-items:center;gap:8px}
   .fgroup label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
@@ -86,7 +113,7 @@
   .chip .x{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--card);color:var(--slate);cursor:pointer;font-size:13px;line-height:1}
   .chip .x:hover{color:var(--red)}
   .chip.clear{background:none;border:none;color:var(--slate);cursor:pointer;text-decoration:underline;padding:5px 4px}
-  .mapbtn{display:inline-flex;align-items:center;gap:6px;background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw);box-shadow:0 2px 8px color-mix(in srgb,var(--ftw) 40%,transparent)}
+  .mapbtn{display:inline-flex;align-items:center;gap:6px;background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw);box-shadow:0 2px 8px color-mix(in srgb,var(--ftw) 40%,transparent);white-space:nowrap;padding:7px 12px}
   .mapbtn:hover{filter:brightness(1.05)}
   .map-modal{position:fixed;inset:0;z-index:300;background:var(--paper);display:flex;flex-direction:column}
   .map-modal[hidden]{display:none}
@@ -126,14 +153,15 @@
   .recleg b{font-size:13px;line-height:0}
 
   /* view toggle */
-  .viewseg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden}
-  .vbtn{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border:none;background:var(--card);color:var(--slate);cursor:pointer}
+  .viewseg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;white-space:nowrap}
+  .vbtn{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:6px 12px;border:none;background:var(--card);color:var(--slate);cursor:pointer;white-space:nowrap}
   .vbtn.on{background:var(--ftw);color:var(--ftw-ink)}
   /* client table (por vendedor) */
   .rtable{width:100%}
   .vfreeze{position:sticky;top:var(--toph);z-index:6;background:var(--card);padding-top:6px}
   .rcaption{font-size:11px;color:var(--mute);margin:0 0 4px}
-  .rhead,.rrow{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2fr) minmax(0,1.15fr) minmax(0,.7fr) minmax(0,.7fr) minmax(0,.7fr) minmax(0,.8fr) minmax(0,.9fr) minmax(0,1.05fr);gap:12px;align-items:center}
+  .rhead,.rrow{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,2.6fr) minmax(0,.95fr) minmax(0,.95fr) minmax(0,.95fr) minmax(0,1fr) minmax(0,1.05fr);gap:12px;align-items:start}
+  .rhead{align-items:center}
   .rhead>div,.rrow>div{min-width:0}
   .c-cod,.c-cli,.c-can{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rhead{padding:10px 0;border-bottom:2px solid var(--line);font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--navy);white-space:nowrap}
@@ -144,6 +172,7 @@
   .c-can{color:var(--slate);font-size:12.5px}
   .c-abc{font-family:"Space Grotesk",sans-serif;font-weight:600;color:var(--navy);text-align:right}
   .y24,.y25,.y26,.yat{text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--slate)}
+  .rrow .c-cod,.rrow .c-cli,.rrow .tagcell{padding-top:1px}
   .yat{color:var(--ink);font-weight:600}
   .r-end{text-align:right}
   .tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap}
@@ -189,16 +218,20 @@
       <div class="brand-txt"><span class="brand-name">CMS Representações</span><span class="brand-sub">Olympikus · Under Armour</span></div>
     </div>
     <span class="spacer"></span>
-    <div class="palette" id="palette" title="Cor do tema">
+    <div class="palette hide-fs" id="palette" title="Cor do tema">
       <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
       <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
     </div>
-    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none" title="Voltar ao Portal">
+    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none" title="Voltar ao Portal">
       <span>← Portal</span>
     </a>
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Tema claro/escuro"></button>
-    <button class="btn primary" id="importBtn">Importar arquivos</button>
-    <button class="btn pub" id="pubBtn" type="button" hidden>Publicar</button>
+    <button id="fsBtn" class="btn" type="button" title="Abre o relatório em tela cheia, sem as barras do navegador (Esc para sair)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      <span id="fsTxt">Tela cheia</span>
+    </button>
+    <button class="theme-btn hide-fs" id="themeBtn" type="button" aria-label="Tema claro/escuro"></button>
+    <button class="btn primary hide-fs" id="importBtn">Importar arquivos</button>
+    <button class="btn pub hide-fs" id="pubBtn" type="button" hidden>Publicar</button>
     <span class="pubstatus" id="pubStatus" hidden></span>
     <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
   </div>
@@ -219,14 +252,25 @@
     <div class="ctrls">
       <div class="viewseg" id="viewseg">
         <button class="vbtn on" data-view="vendedor" type="button">Por vendedor</button>
-        <button class="vbtn" data-view="resumo" type="button">Resumo por cliente</button>
+        <button class="vbtn" data-view="resumo" type="button" title="Matriz de categorias por cliente">Por cliente</button>
       </div>
       <div class="cat-tabs" id="catTabs"></div>
       <span class="spacer"></span>
+      <button class="tgl" id="tglFiltros" type="button" title="Mostrar/ocultar os filtros">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>
+        <span>Filtros</span>
+      </button>
+      <button class="tgl" id="tglKpis" type="button" title="Mostrar/ocultar os indicadores">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <span>KPIs</span>
+      </button>
       <button class="btn mapbtn" id="mapBtn" type="button" title="Mapa de cobertura">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Ver no Mapa
       </button>
+    </div>
+
+    <div class="ctrls frow" id="filtersRow">
       <input id="fSearch" class="search" type="search" placeholder="Buscar cliente, código ou cidade…">
       <button class="chip360" id="f360" type="button" title="Clientes que compram todas as categorias">★ Campanha 360</button>
       <div class="fgroup"><label>Vendedor</label><select id="fVend"><option value="">Todos</option></select></div>
@@ -387,6 +431,7 @@ async function handleItems(items, opts){
     document.getElementById('drop').style.display='none';
     document.querySelector('.hero').style.paddingBottom='18px';
     document.getElementById('controls').style.display='block';
+    ligarToggles();
     document.getElementById('report').style.display='block';
     document.getElementById('footer').style.display='block';
     if(opts.source==='server'){ PUB_DIRTY=false; PUBLISHED_AT=opts.publishedAt||null; }
@@ -446,6 +491,39 @@ function parseRows(rows,hi,cat){
 }
 
 // ---- nome amigável do vendedor ----
+// ---- Tela cheia ----
+// Usa a Fullscreen API. Em tela cheia esconde o que é navegação (.hide-fs).
+(function(){
+  const btn=document.getElementById('fsBtn');
+  if(!btn) return;
+  const txt=document.getElementById('fsTxt');
+  const suportado = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if(!suportado){ btn.hidden=true; return; }
+
+  function entrar(){
+    const el=document.documentElement;
+    (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
+  }
+  function sair(){
+    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
+  }
+  const ativo=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+
+  btn.onclick=()=>{ ativo()?sair():entrar(); };
+
+  function sincronizar(){
+    const on=ativo();
+    document.body.classList.toggle('is-fs',on);
+    if(txt) txt.textContent = on ? 'Sair da tela cheia' : 'Tela cheia';
+    btn.title = on
+      ? 'Voltar ao modo normal (Esc)'
+      : 'Abre o relatório em tela cheia, sem as barras do navegador (Esc para sair)';
+  }
+  document.addEventListener('fullscreenchange',sincronizar);
+  document.addEventListener('webkitfullscreenchange',sincronizar);
+  sincronizar();
+})();
+
 // ---- Sessão compartilhada do Portal (login único) ----
 function getPortalSession(){
   try{
@@ -500,9 +578,11 @@ function computeCli360(){
 // ---- controles ----
 function buildControls(){
   const tabs=document.getElementById('catTabs'); tabs.innerHTML='';
+  // rótulo curto só para exibição; o valor da categoria continua o original
+  const catLabel = c => c==='Under Armour' ? 'UA' : c;
   ['Todos',...CATS].forEach(c=>{
     const b=document.createElement('button');
-    b.className='cat-tab'+(c===CURCAT?' on':''); b.textContent=c;
+    b.className='cat-tab'+(c===CURCAT?' on':''); b.textContent=catLabel(c); b.title=c;
     b.onclick=()=>{ CURCAT=c; buildControls(); render(); };
     tabs.appendChild(b);
   });
@@ -538,6 +618,56 @@ function matchSearch(d,q){
 }
 function is360(d){ return CLI360.has(cliKey(d)); }
 
+// ---- selos de categoria (opção A: inicial + cor) ----
+const CAT_BADGE = {
+  'Tênis':        {cls:'cbg-tenis',   ini:'T'},
+  'Acessórios':   {cls:'cbg-acess',   ini:'A'},
+  'Chinelo':      {cls:'cbg-chinelo', ini:'C'},
+  'Meia':         {cls:'cbg-meia',    ini:'M'},
+  'Vestuário':    {cls:'cbg-vest',    ini:'V'},
+  'Under Armour': {cls:'cbg-ua',      ini:'U'}
+};
+// Só aparece na visão "Todos": com uma categoria filtrada o selo é redundante.
+function catBadges(set){
+  if(CURCAT!=='Todos' || !set || !set.size) return '';
+  const itens = CAT_ORDER.filter(c=>set.has(c)).map(c=>{
+    const b=CAT_BADGE[c]; if(!b) return '';
+    return `<span class="cbg ${b.cls}" title="${c}">${b.ini}</span>`;
+  }).join('');
+  return itens ? `<div class="cbadges">${itens}</div>` : '';
+}
+function catLegenda(){
+  return '<div class="catleg">' + CAT_ORDER.map(c=>{
+    const b=CAT_BADGE[c]; if(!b) return '';
+    return `<span><i class="cbg ${b.cls}">${b.ini}</i>${c}</span>`;
+  }).join('') + '<span style="color:var(--mute)">· categorias compradas no período</span></div>';
+}
+
+// ---- ocultar filtros / KPIs ----
+const LS_UI='rfv_ui_v1';
+function lerUI(){
+  try{ return JSON.parse(localStorage.getItem(LS_UI))||{}; }catch(_){ return {}; }
+}
+function salvarUI(o){ try{ localStorage.setItem(LS_UI, JSON.stringify(o)); }catch(_){} }
+function aplicarUI(){
+  const ui=lerUI();
+  const fr=document.getElementById('filtersRow');
+  const kp=document.getElementById('catsum');
+  const bf=document.getElementById('tglFiltros');
+  const bk=document.getElementById('tglKpis');
+  if(fr){ fr.hidden = !!ui.filtrosOff; }
+  if(kp){ kp.style.display = ui.kpisOff ? 'none' : ''; }
+  if(bf){ bf.classList.toggle('off', !!ui.filtrosOff); }
+  if(bk){ bk.classList.toggle('off', !!ui.kpisOff); }
+}
+function ligarToggles(){
+  const bf=document.getElementById('tglFiltros');
+  const bk=document.getElementById('tglKpis');
+  if(bf) bf.onclick=()=>{ const ui=lerUI(); ui.filtrosOff=!ui.filtrosOff; salvarUI(ui); aplicarUI(); };
+  if(bk) bk.onclick=()=>{ const ui=lerUI(); ui.kpisOff=!ui.kpisOff; salvarUI(ui); aplicarUI(); };
+  aplicarUI();
+}
+
 // ---- render ----
 function render(){
   document.getElementById('catTabs').style.display = VIEW==='resumo' ? 'none' : '';
@@ -565,6 +695,7 @@ function renderVendedor(){
     kpi('Clientes'+(CURCAT==='Todos'?'':' na categoria'),fmtN(tot),'na carteira (todos)','var(--ftw)')+
     kpi('Compraram no '+semLab,fmtN(compraram),tot?Math.round(compraram*100/tot)+'% da carteira':'','var(--green)')+
     kpi('Sem comprar no '+semLab,fmtN(semcomprar),pct+'% · oportunidade','var(--red)');
+  aplicarUI();
 
   const groups={};
   base.forEach(d=>{ (groups[d.vend]=groups[d.vend]||[]).push(d); });
@@ -596,12 +727,10 @@ function renderVendedor(){
       rowsHtml+=`<div class="rrow${ina}">
         <div class="c-cod">${d.cod||'—'}</div>
         <div class="c-cli">${d.cli}</div>
-        <div class="c-can">${d.canal||'—'}</div>
-        <div class="c-abc">${d.abc||'—'}</div>
-        <div class="y24">${fmtH(d.h24)}</div>
-        <div class="y25">${fmtH(d.h25)}</div>
-        <div class="y26">${fmtH(d.s1)}</div>
-        <div class="yat">${fmtH(d.s2)}</div>
+        <div class="y24">${fmtH(d.h24)}${catBadges(d.c24)}</div>
+        <div class="y25">${fmtH(d.h25)}${catBadges(d.c25)}</div>
+        <div class="y26">${fmtH(d.s1)}${catBadges(d.c1)}</div>
+        <div class="yat">${fmtH(d.s2)}${catBadges(d.c2)}</div>
         <div class="r-end tagcell"><span class="tag ${R.cls}">${R.lab}</span></div>
       </div>`;
     });
@@ -627,8 +756,8 @@ function renderVendedor(){
           <span><b style="color:var(--orange)">●</b> 6–12 meses: ${c6}</span>
           <span><b style="color:var(--red)">●</b> +12 meses: ${c12}</span>
         </div>
-        <p class="rcaption">Histórico em pares · 1S26 = 1º semestre · 2S26 = 2º semestre · a Corrente entra no semestre da importação (${CUR_LABEL})</p>
-        <div class="rhead"><div>Código</div><div>Cliente</div><div>Canal</div><div class="r-end">Classif.</div><div class="r-end">2024</div><div class="r-end">2025</div><div class="r-end">1S26</div><div class="r-end">2S26</div><div class="r-end">Recência</div></div>
+        ${CURCAT==='Todos'?catLegenda():''}
+        <div class="rhead"><div>Código</div><div>Cliente</div><div class="r-end">2024</div><div class="r-end">2025</div><div class="r-end">1S26</div><div class="r-end">2S26</div><div class="r-end">Recência</div></div>
       </div>
       <div class="rtable">${rowsHtml}</div>
     </section>`;
@@ -642,9 +771,16 @@ function aggregateTodos(){
   const map={};
   DATA.forEach(d=>{
     const k=cliKey(d);
-    if(!map[k]) map[k]={cod:d.cod,cli:d.cli,vend:d.vend,canal:d.canal,abc:d.abc,cidade:d.cidade,uf:d.uf,h24:0,h25:0,s1:0,s2:0,sev:-2,req:''};
+    if(!map[k]) map[k]={cod:d.cod,cli:d.cli,vend:d.vend,canal:d.canal,abc:d.abc,cidade:d.cidade,uf:d.uf,
+      h24:0,h25:0,s1:0,s2:0,sev:-2,req:'',
+      c24:new Set(),c25:new Set(),c1:new Set(),c2:new Set()};
     const o=map[k];
     o.h24+=d.h24; o.h25+=d.h25; o.s1+=d.s1; o.s2+=d.s2;
+    // guarda em quais categorias o cliente comprou em cada período
+    if(d.h24>0) o.c24.add(d.cat);
+    if(d.h25>0) o.c25.add(d.cat);
+    if(d.s1>0)  o.c1.add(d.cat);
+    if(d.s2>0)  o.c2.add(d.cat);
     const s=rec(d.req).sev; if(s>o.sev){ o.sev=s; o.req=d.req; }
   });
   return Object.values(map).map(o=>{ o.size=o.h24+o.h25+o.s1+o.s2; return o; });
@@ -688,6 +824,7 @@ function renderResumo(){
     kpi('Clientes na carteira',fmtN(tc),'somando as categorias','var(--ftw)')+
     kpi('Campanha 360',fmtN(s360),'compram as '+OLY_CATS.length+' no '+semLab,'#7C3AED')+
     kpi('Compram 1 só ('+semLab+')',fmtN(so1),'oportunidade de cross-sell','var(--amber)');
+  aplicarUI();
 
   let html='<p class="rcaption">Pares do '+semLab+' por categoria · cor = recência · "—" = não está naquela categoria</p><div class="rsmwrap"><div class="rsm-head"><div>Código</div><div>Cliente</div><div>Vendedor</div>'+
     CAT_ORDER.map(c=>'<div class="ctr">'+c+'</div>').join('')+'<div class="ctr">Compr.</div></div>';
