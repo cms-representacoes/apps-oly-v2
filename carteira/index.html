@@ -526,6 +526,18 @@
       box-shadow: var(--shadow-card); padding: 12px 14px; margin-bottom: 10px;
       display: flex; align-items: center; gap: 12px; cursor: pointer;
     }
+    .rede-prod-wrap { margin-bottom: 10px; }
+    .rede-prod-wrap .rede-prod-card { margin-bottom: 0; }
+    .rp-chev { color: var(--text-3); font-size: 13px; flex-shrink: 0; transition: transform .15s; }
+    .rede-prod-wrap.aberto .rp-chev { transform: rotate(180deg); }
+    .rede-prod-wrap.aberto .rede-prod-card { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .rp-dist { display: none; background: var(--card-bg); border-radius: 0 0 var(--r-lg) var(--r-lg); box-shadow: var(--shadow-card); margin-top: -2px; padding: 4px 14px 10px; }
+    .rede-prod-wrap.aberto .rp-dist { display: block; }
+    .rp-dist-resumo { font-size: 12px; color: var(--text-2); padding: 8px 0 4px; border-top: 1px solid var(--border); }
+    .rp-dist-resumo .ok { color: var(--primary-2); font-weight: 600; }
+    html.dark .rp-dist-resumo .ok { color: var(--primary); }
+    .rp-dist-resumo .alerta { color: #b45309; font-weight: 600; }
+    html.dark .rp-dist-resumo .alerta { color: #fbbf24; }
     .rede-prod-card .info { flex: 1; min-width: 0; }
     .rede-prod-card .desc { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
     .rede-prod-card .sub { font-size: 12px; color: var(--text-2); margin: 2px 0 0; }
@@ -1563,6 +1575,7 @@
         </div>
       </div>
       <div class="topbar-actions">
+        <button class="btn-icon" id="btn-rede-portas" title="Filtrar portas"><i class="fa-solid fa-store"></i></button>
         <button class="btn-icon" id="btn-tema-4" title="Alternar tema">
           <i class="fa-solid fa-moon"></i>
         </button>
@@ -3002,7 +3015,18 @@ function abrirRede(nn) {
   if (!rede) return;
   APP.redeAtual = nn;
   APP.redeSelecao = new Set(rede.codigos);
-  $('rede-nome').textContent = rede.nome;
+  APP.redeBuscaProduto = '';
+  const bp = $('busca-rede-produto');
+  if (bp) { bp.value = ''; $('search-rede-produto-wrap').classList.remove('has-value'); }
+  $('rede-prod-nome').textContent = rede.nome;
+  renderRedeProdutos('');
+  show('screen-rede-produtos');
+  window.scrollTo(0, 0);
+}
+
+// Filtro de portas (opcional) — abre o seletor de portas
+function abrirFiltroPortas() {
+  $('rede-nome').textContent = APP.redes[APP.redeAtual].nome;
   renderRedePortas();
   show('screen-rede');
   window.scrollTo(0, 0);
@@ -3120,24 +3144,85 @@ function renderRedeProdutos(filtro) {
     const imgUrl = `${IMG_PATH}${g.artigo}_${corArq}.jpg`;
     const desc = (g.descricao || g.artigo).replace(/"/g, '&quot;');
     return `
-      <div class="rede-prod-card" data-artigo="${g.artigo}" data-cor="${g.cor}" data-desc="${desc}">
-        <img class="rp-thumb" src="${imgUrl}" alt="" loading="lazy" onerror="this.classList.add('failed')">
-        <div class="rp-fallback"><i class="fa-solid fa-image"></i></div>
-        <div class="info">
-          <p class="desc">${g.descricao || g.artigo}</p>
-          <p class="sub">${g.cor} · art. ${g.artigo}${preco ? ' · ' + formatarPreco(preco) : ''}</p>
-          ${g.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
+      <div class="rede-prod-wrap">
+        <div class="rede-prod-card" data-artigo="${g.artigo}" data-cor="${g.cor}" data-desc="${desc}">
+          <img class="rp-thumb" src="${imgUrl}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+          <div class="rp-fallback"><i class="fa-solid fa-image"></i></div>
+          <div class="info">
+            <p class="desc">${g.descricao || g.artigo}</p>
+            <p class="sub">${g.cor} · art. ${g.artigo}${preco ? ' · ' + formatarPreco(preco) : ''}</p>
+            ${g.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
+          </div>
+          <div class="pares">${formatarNumero(g.pares)}<small>pares · ${g.portas.size} ${g.portas.size === 1 ? 'porta' : 'portas'}</small></div>
+          <i class="fa-solid fa-chevron-down rp-chev"></i>
         </div>
-        <div class="pares">${formatarNumero(g.pares)}<small>pares · ${g.portas.size} ${g.portas.size === 1 ? 'porta' : 'portas'}</small></div>
+        <div class="rp-dist"></div>
       </div>`;
   }).join('');
   $('rede-produtos-footer').textContent = `${lista.length} produto${lista.length !== 1 ? 's' : ''}`;
 
   cont.querySelectorAll('.rede-prod-card').forEach(card => {
     card.addEventListener('click', () => {
-      abrirDistribuicaoRede(card.dataset.artigo, card.dataset.cor, card.dataset.desc);
+      const wrap = card.closest('.rede-prod-wrap');
+      const dist = wrap.querySelector('.rp-dist');
+      const abrindo = !wrap.classList.contains('aberto');
+      if (abrindo && !dist.dataset.filled) {
+        dist.innerHTML = distribuicaoRedeHTML(card.dataset.artigo, card.dataset.cor);
+        dist.dataset.filled = '1';
+        dist.querySelectorAll('.dist-item[data-cliente]').forEach(el => {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            APP.redeDistKey = { artigo: card.dataset.artigo, cor: card.dataset.cor, descricao: card.dataset.desc };
+            abrirProdutoNaLoja(el.dataset.cliente, card.dataset.artigo, card.dataset.cor);
+          });
+        });
+      }
+      wrap.classList.toggle('aberto', abrindo);
     });
   });
+}
+
+function linhasDistribuicaoRede(artigo, cor) {
+  const cods = APP.redeSelecao;
+  const portasInfo = dadosPortasDaRede(APP.redeAtual).filter(p => cods.has(p.codigo));
+  const peds = obterClientesDoVendedor().filter(p => cods.has(p.cliente_cod) && p.artigo === artigo && p.cor === cor);
+  const porCod = {};
+  for (const p of peds) (porCod[p.cliente_cod] = porCod[p.cliente_cod] || []).push(p);
+  return portasInfo.map(info => {
+    const ps = porCod[info.codigo] || [];
+    const pares = ps.reduce((s, p) => s + p.total, 0);
+    const repassado = ps.filter(repFinalizadoP).reduce((s, p) => s + p.total, 0);
+    const cancelado = ps.filter(p => p.acao === 'CANCELAR').reduce((s, p) => s + p.total, 0);
+    const saindo = repassado + cancelado;
+    return { ...info, pares, repassado, cancelado, saindo, saldo: pares - saindo, pendente: ps.some(repPendenteP), nLinhas: ps.length, dobrada: ps.length >= 2, tem: ps.length > 0 };
+  }).sort((a, b) => b.pares - a.pares);
+}
+
+function distItemHTML(l) {
+  const porta = l.porta || l.cidade || '—';
+  const dir = l.tem
+    ? `<span class="dist-pares">${l.dobrada ? `<span class="dist-badge">dobrada · ${l.nLinhas}×</span>` : ''}${formatarNumero(l.pares)} pares</span>`
+    : `<span class="dist-pares zero">não recebe</span>`;
+  return `
+    <div class="dist-item ${l.tem ? '' : 'vazio'}" ${l.tem ? `data-cliente="${l.codigo}"` : ''}>
+      <div class="dist-info">
+        <p class="nome">${l.razao || porta}</p>
+        <p class="meta">${porta} · ${l.codigo}</p>
+        ${l.pendente ? '<span class="tag-pendente-rede"><i class="fa-solid fa-clock"></i> repasse pendente</span>' : ''}
+        ${l.saindo > 0 ? `<p class="dist-saldo"><i class="fa-solid fa-right-long"></i> ${[l.repassado ? `repassou ${formatarNumero(l.repassado)}` : '', l.cancelado ? `cancelou ${formatarNumero(l.cancelado)}` : ''].filter(Boolean).join(' · ')} · saldo ${formatarNumero(l.saldo)} pares</p>` : ''}
+      </div>
+      ${dir}
+    </div>`;
+}
+
+function distribuicaoRedeHTML(artigo, cor) {
+  const linhas = linhasDistribuicaoRede(artigo, cor);
+  const com = linhas.filter(l => l.tem).length;
+  const sem = linhas.length - com;
+  const dobr = linhas.filter(l => l.dobrada).length;
+  return `
+    <div class="rp-dist-resumo"><span class="ok">${com} com</span> · <span>${sem} sem</span>${dobr ? ` · <span class="alerta">${dobr} dobrada</span>` : ''}</div>
+    <div class="dist-list">${linhas.map(distItemHTML).join('')}</div>`;
 }
 
 function abrirDistribuicaoRede(artigo, cor, descricao) {
@@ -3764,7 +3849,7 @@ function abrirCliente(codigo) {
 // Abre a tela de produtos focada num artigo+cor (a partir da distribuição da rede)
 function abrirProdutoNaLoja(codigo, artigo, cor) {
   abrirCliente(codigo);
-  APP.produtosOrigem = 'rede-dist';
+  APP.produtosOrigem = 'rede-prod';
   APP.focoProduto = { artigo, cor };
   renderProdutos();
 }
@@ -4350,7 +4435,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   $('btn-voltar-clientes').addEventListener('click', () => {
-    if (APP.produtosOrigem === 'rede-dist') {
+    if (APP.produtosOrigem === 'rede-prod') {
+      APP.focoProduto = null;
+      renderRedeProdutos(APP.redeBuscaProduto || '');
+      show('screen-rede-produtos');
+    } else if (APP.produtosOrigem === 'rede-dist') {
       APP.focoProduto = null;
       renderDistribuicaoRede();
       show('screen-rede-dist');
@@ -4363,8 +4452,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Tela de rede
   $('btn-tema-3').addEventListener('click', toggleTema);
   $('btn-tema-4').addEventListener('click', toggleTema);
-  $('btn-voltar-clientes-2').addEventListener('click', () => show('screen-clientes'));
-  $('btn-voltar-rede').addEventListener('click', () => show('screen-rede'));
+  $('btn-rede-portas').addEventListener('click', abrirFiltroPortas);
+  $('btn-voltar-clientes-2').addEventListener('click', () => { renderRedeProdutos(APP.redeBuscaProduto || ''); show('screen-rede-produtos'); });
+  $('btn-voltar-rede').addEventListener('click', () => show('screen-clientes'));
   $('btn-tema-5').addEventListener('click', toggleTema);
   $('btn-voltar-rede-prod').addEventListener('click', () => show('screen-rede-produtos'));
   $('btn-inicio-produtos').addEventListener('click', () => {
