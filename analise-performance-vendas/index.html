@@ -215,29 +215,7 @@
     .ccp-st{font-size:16px}
   }
   .upd{font-size:11px;color:var(--mute);margin:0;white-space:nowrap;flex:none;cursor:help}
-  /* ===== tooltips (CSS puro, sem biblioteca) ===== */
-  [data-tip]{position:relative}
-  [data-tip]::after{
-    content:attr(data-tip);position:absolute;left:50%;bottom:100%;transform:translate(-50%,-7px);
-    background:var(--ink);color:#fff;font-family:"Space Grotesk",sans-serif;font-size:11.5px;
-    font-weight:500;line-height:1.35;letter-spacing:0;text-transform:none;text-align:left;
-    padding:7px 10px;border-radius:7px;white-space:normal;width:max-content;max-width:250px;
-    opacity:0;visibility:hidden;transition:opacity .13s ease,transform .13s ease;
-    pointer-events:none;z-index:60;box-shadow:0 6px 18px rgba(16,23,38,.18)}
-  [data-tip]::before{
-    content:"";position:absolute;left:50%;bottom:100%;transform:translate(-50%,-1px);
-    border:5px solid transparent;border-top-color:var(--ink);
-    opacity:0;visibility:hidden;transition:opacity .13s ease;pointer-events:none;z-index:61}
-  [data-tip]:hover::after,[data-tip]:focus-visible::after{opacity:1;visibility:visible;transform:translate(-50%,-9px)}
-  [data-tip]:hover::before,[data-tip]:focus-visible::before{opacity:1;visibility:visible}
-  [data-theme="dark"] [data-tip]::after{background:#F4F6FA;color:#0F1626}
-  [data-theme="dark"] [data-tip]::before{border-top-color:#F4F6FA}
-  /* tooltip encostado na borda: joga para o lado */
-  [data-tip].tip-l::after{left:auto;right:0;transform:translate(0,-7px)}
-  [data-tip].tip-l:hover::after{transform:translate(0,-9px)}
-  [data-tip].tip-l::before,[data-tip].tip-l:hover::before{left:auto;right:14px;transform:translate(0,-1px)}
-  th[data-tip],.catrow.head span[data-tip]{cursor:help}
-  @media (hover:none){ [data-tip]::after,[data-tip]::before{display:none} }
+  /* tooltips: usa o motor JS que ja existe no rodape (atributo data-tip) */
   .hero .spacer-h{flex:1;min-width:0}
 
   /* vendor cards */
@@ -763,7 +741,7 @@ function ccPainel(v){
         <div class="ccp-lbl" data-tip="Critério de mix da carta campanha, apurado por trimestre.">Carta campanha &middot; ${nome}</div>
         <div class="ccp-st">${st.txt}</div>
       </div>
-      <div class="ccp-rt tip-l" data-tip="Demais faixas ÷ FTW Olympikus no trimestre. A marca na barra é a meta de ${fmtPct(CC_META)}."><div class="ccp-pct">${fmtPct(ccPart(v))}</div><div class="ccp-meta">meta ${fmtPct(CC_META)}</div></div>
+      <div class="ccp-rt" data-tip="Demais faixas ÷ FTW Olympikus no trimestre. A marca na barra é a meta de ${fmtPct(CC_META)}."><div class="ccp-pct">${fmtPct(ccPart(v))}</div><div class="ccp-meta">meta ${fmtPct(CC_META)}</div></div>
     </div>
     <div class="ccp-track"><div class="ccp-fill" style="width:${w.toFixed(1)}%"></div><div class="ccp-mark"></div></div>
     <div class="ccp-foot">
@@ -867,7 +845,7 @@ function render(vendors){
         <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2>${(ccVisivel()&&IS_ADMIN_LIKE)?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).curto}</span>`:''}</div>
         <div class="vkpi vkpi-total" data-tip="Soma de FTW Olympikus + meias, acessórios, confecção, chinelos e Under Armour no período."><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
         <div class="vkpi vkpi-pares" data-tip="Quantidade total de itens no período, somando todas as faixas."><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
-        <div class="vkpi tip-l" data-tip="Índice de diversificação: tudo que não é tênis Olympikus dividido pelo FTW. É o critério de mix da carta campanha (meta 15%)."><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
+        <div class="vkpi" data-tip="Índice de diversificação: tudo que não é tênis Olympikus dividido pelo FTW. É o critério de mix da carta campanha (meta 15%)."><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
       </header>
       <div class="catgrid">
         <div class="catrow head">
@@ -876,7 +854,7 @@ function render(vendors){
           <div class="cqtd" data-tip="Quantidade de itens faturados + em carteira no período.">Qtd (pares)</div>
           <div class="cval">Faturamento</div>
           <div class="crel" data-tip="Valor da faixa dividido pelo FTW Olympikus.">% vs FTW</div>
-          <div class="cmix tip-l" data-tip="Participação da faixa no faturamento total do vendedor. A soma das faixas dá 100%.">% do total</div>
+          <div class="cmix" data-tip="Participação da faixa no faturamento total do vendedor. A soma das faixas dá 100%.">% do total</div>
         </div>
         ${rows}
         <div class="catrow sumrow">
@@ -925,7 +903,7 @@ function render(vendors){
         ${ccOn?ccCards(ranked):''}
         <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
           <th class="r h-ftw" data-tip="Faturamento de tênis Olympikus no período.">FTW Olympikus</th><th class="r h-demais" data-tip="Meias + acessórios + confecção + chinelos + Under Armour.">Demais faixas</th>
-          <th class="r ratio-h" data-tip="Demais faixas dividido pelo FTW. O ranking é ordenado por este índice.">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h tip-l" data-tip="Elegibilidade pelo critério de mix: índice igual ou acima de '+fmtPct(CC_META)+' no trimestre. A carta campanha considera outros requisitos.">Carta campanha</th>':''}</tr></thead>
+          <th class="r ratio-h" data-tip="Demais faixas dividido pelo FTW. O ranking é ordenado por este índice.">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h" data-tip="Elegibilidade pelo critério de mix: índice igual ou acima de '+fmtPct(CC_META)+' no trimestre. A carta campanha considera outros requisitos.">Carta campanha</th>':''}</tr></thead>
           <tbody>${crows}</tbody></table></div>
       <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
   }
