@@ -10,7 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS hospedado no próprio repo (a rede bloqueia CDNs externas). Fallback pra CDN só por segurança. -->
+  <script src="xlsx.full.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
 
   <style>
     /* =========================================================
@@ -2518,6 +2519,10 @@ function irParaClientes() {
    IMPORTAÇÃO XLSX
    ============================================================ */
 async function importarXLSX(file) {
+  if (typeof XLSX === 'undefined') {
+    toast('Biblioteca de planilha não carregou (xlsx.full.min.js). Suba o arquivo no repositório e recarregue.');
+    return;
+  }
   try {
     $('btn-importar').classList.add('loading');
     toast('Lendo arquivo…');
