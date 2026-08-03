@@ -75,6 +75,9 @@
   .cat-tab .n{opacity:.75;margin-left:4px;font-weight:400}
   .addcta{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:99px;border:1px solid var(--purple);background:var(--purple);color:var(--purple-ink);cursor:pointer;white-space:nowrap}
   .addcta:hover{filter:brightness(1.05)}
+  .resetcta{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:99px;border:1px solid color-mix(in srgb,var(--red) 55%,var(--line));background:transparent;color:var(--red);cursor:pointer;white-space:nowrap}
+  .resetcta:hover{background:color-mix(in srgb,var(--red) 8%,transparent)}
+  .resetcta:disabled{opacity:.45;cursor:default}
 
   .searchwrap{position:relative;flex:1;max-width:280px;min-width:180px}
   .search{width:100%;font-family:"Inter",sans-serif;font-size:13.5px;color:var(--navy);background:var(--card);border:1.5px solid var(--purple);border-radius:8px;padding:9px 32px 9px 12px}
@@ -248,13 +251,14 @@
     </div>
     <span class="spacer"></span>
     <div class="viewseg">
-      <button class="vseg-btn on" id="viewGrade" type="button" title="Ver como grade de cartões">Grade</button>
-      <button class="vseg-btn" id="viewLista" type="button" title="Ver como lista, com imagens maiores">Lista</button>
+      <button class="vseg-btn" id="viewGrade" type="button" title="Ver como grade de cartões">Grade</button>
+      <button class="vseg-btn on" id="viewLista" type="button" title="Ver como lista, com imagens maiores">Lista</button>
     </div>
   </div>
 
   <div class="ctrls">
     <div class="cat-tabs" id="tabs"></div>
+    <button class="resetcta" id="zerarBtn" title="Zerar estoque e venda de todos os produtos para começar o preenchimento do zero">↺ Zerar e iniciar atualização</button>
     <button class="addcta" id="addPendenteBtn" title="Registrar um produto que não está na sua lista">+ Produto não cadastrado</button>
   </div>
 
@@ -266,8 +270,8 @@
     </div>
   </div>
 
-  <div class="grid" id="grid"></div>
-  <div class="list" id="list" style="display:none"></div>
+  <div class="grid" id="grid" style="display:none"></div>
+  <div class="list" id="list"></div>
 
   <button class="totop" id="totopBtn" type="button" title="Voltar ao topo da página" aria-label="Voltar ao topo">↑ Voltar ao topo</button>
 
@@ -360,7 +364,7 @@ const MARCA_LABELS = { 'OLY FTW': 'Olympikus Tênis', 'OLY CHI': 'Olympikus Chin
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || '';
 
-let STATE = { loja: null, marcaAtiva: null, dirty: new Set(), view: 'grade', flagged: new Set(), synced: new Set(), catalogoGlobal: {}, preFlagValues: new Map(), statusFilter: 'todos' };
+let STATE = { loja: null, marcaAtiva: null, dirty: new Set(), view: 'lista', flagged: new Set(), synced: new Set(), catalogoGlobal: {}, preFlagValues: new Map(), statusFilter: 'todos' };
 
 function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); localStorage.setItem('matriz-theme', t); }
 (function initTheme(){
@@ -826,6 +830,34 @@ $('searchClear').onclick = () => { $('search').value = ''; $('searchClear').clas
 
 $('viewGrade').onclick = () => { STATE.view = 'grade'; $('viewGrade').classList.add('on'); $('viewLista').classList.remove('on'); renderItems(); };
 $('viewLista').onclick = () => { STATE.view = 'lista'; $('viewLista').classList.add('on'); $('viewGrade').classList.remove('on'); renderItems(); };
+
+// ---------- zerar estoque e venda (reinício do preenchimento) ----------
+function todosItens(){
+  const lista = [];
+  Object.values((STATE.loja && STATE.loja.marcas) || {}).forEach(itens => itens.forEach(it => lista.push(it)));
+  return lista;
+}
+
+$('zerarBtn').onclick = async () => {
+  const comValor = todosItens().filter(it => (Number(it.estoqueAtual)||0) !== 0 || (Number(it.venda)||0) !== 0);
+  if(comValor.length === 0){ toast('Estoque e venda já estão zerados.'); return; }
+  const ok = await askConfirm(
+    'Zerar e iniciar atualização',
+    `Isso vai zerar o estoque e a venda de ${comValor.length} produto(s) desta loja, em todas as marcas, para você começar o preenchimento do zero. Nada é enviado agora — só quando você clicar em "Salvar alterações".`,
+    'Zerar tudo'
+  );
+  if(!ok) return;
+  comValor.forEach(it => {
+    it.estoqueAtual = 0;
+    it.venda = 0;
+    STATE.dirty.add(it.id);
+    STATE.synced.delete(it.id);
+  });
+  renderItems();
+  updateSaveBar();
+  scheduleAutosave();
+  toast(comValor.length + ' produto(s) zerado(s). Pode começar o preenchimento.');
+};
 
 function getItensNaoPreenchidos(){
   if(!STATE.loja) return [];
