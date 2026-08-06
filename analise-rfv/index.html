@@ -275,6 +275,7 @@
     <div class="ctrls frow" id="filtersRow">
       <button class="chip360" id="f360" type="button" title="Clientes que compram todas as categorias">★ Campanha 360</button>
       <div class="fgroup"><label>Vendedor</label><select id="fVend"><option value="">Todos</option></select></div>
+      <div class="fgroup" id="grpProd" style="display:none"><label>Produto</label><select id="fProd"><option value="">Todos</option></select></div>
       <div class="fgroup"><label>Cidade</label><select id="fCidade"><option value="">Todas</option></select></div>
       <div class="fgroup" id="grpRec"><label>Recência</label><select id="fRec">
         <option value="">Todas</option><option value="ativos">Só ativos (C/F)</option><option value="inativos">Só inativos (6–12M / +12M)</option>
@@ -300,10 +301,11 @@
     <div class="map-title">Mapa de cobertura · lojas por cidade</div>
     <div class="map-ctrls">
       <select id="mCat" title="Categoria"></select>
+      <select id="mProd" title="Produto" style="display:none"></select>
       <select id="mVend" title="Vendedor"></select>
       <select id="mSem" title="Semestre"><option value="2">2S26</option><option value="1">1S26</option></select>
       <select id="mStatus"><option value="">Todas as lojas</option><option value="sim">Só compraram</option><option value="nao">Só não compraram</option></select>
-      <select id="mMode"><option value="cidade">Agrupar por cidade</option><option value="loja">Ponto por loja</option></select>
+      <select id="mMode"><option value="cidade">Agrupar por cidade</option><option value="loja">Ponto por loja</option><option value="oport">Oportunidade</option></select>
       <span class="map-legend"><span class="dot g"></span>100% compraram<span class="dot o"></span>parcial<span class="dot r"></span>0% compraram</span>
       <span id="mStats" class="map-stats"></span>
     </div>
@@ -337,6 +339,11 @@ function fmtWhen(iso){ try{ const d=new Date(iso); return d.toLocaleDateString('
 
 const OLY_CATS=['Tênis','Acessórios','Chinelo','Meia','Vestuário']; // categorias Olympikus (Campanha 360 e "Compr.")
 const CAT_ORDER=[...OLY_CATS,'Under Armour'];                        // exibição: as 5 + Under Armour
+// Produtos são um eixo à parte: não entram em CATS, no "Todos", na Campanha 360
+// nem nos KPIs de categoria. { 'P:43342471': {ref,nome,recs:[]} }
+let PRODS={};
+let CURPROD='';                    // '' = nenhum produto selecionado
+const prodList=()=>Object.values(PRODS).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 let VIEW='vendedor';
 const fmtH=n=>(!n)?'—':Number(n).toLocaleString('pt-BR');
 function catFromName(name){
@@ -348,6 +355,16 @@ function catFromName(name){
   if(n.includes('vestuario')) return 'Vestuário';
   if(n.includes('under')||n.includes('armour')) return 'Under Armour';
   return null;
+}
+// Produto: arquivo no padrão "<referencia>_<DESCRICAO>.xlsx" (ex.: 43342471_NUVEM.xlsx).
+// Quebra no PRIMEIRO underline, então "12345_CORRE_2" vira "CORRE 2".
+function prodFromName(name){
+  const base=String(name||'').replace(/\.[^.]+$/,'').trim();
+  const m=base.match(/^(\d{3,})[_\-\s]+(.+)$/);
+  if(!m) return null;
+  const nome=m[2].replace(/[_]+/g,' ').replace(/\s+/g,' ').trim().toUpperCase();
+  if(!nome) return null;
+  return {ref:m[1], nome, key:'P:'+m[1]};
 }
 // recência -> rótulo/classe/severidade
 function rec(req){
@@ -367,20 +384,46 @@ function findHeader(rows){
   }
   return -1;
 }
+// Mapeia as colunas PELO NOME, não por posição fixa: o relatório por produto
+// traz uma coluna "STATUS" a mais, que desloca tudo a partir da 4.
+function mapCols(head){
+  const h=head.map(norm);
+  const at=nome=>h.indexOf(nome);
+  const razoes=[]; h.forEach((c,i)=>{ if(c==='razao social') razoes.push(i); });
+  const c={
+    canal:at('canal'), abc:at('classificacao abc'), cidade:at('cidade'), uf:at('uf'),
+    y24:at('2024'), y25:at('2025'), m1:h.findIndex(x=>x.startsWith('2026')),
+    corr:at('corrente'), req:at('req'), freq:at('freq'), valor:at('valor'),
+    preposto:razoes.length>1?razoes[1]:-1,      // 2ª "Razão Social" = nome do preposto
+    cli:razoes.length>2?razoes[2]:-1,           // 3ª "Razão Social" = nome do cliente
+    cod:at('lider')                             // código do cliente
+  };
+  // meses: tudo entre "Corrente" e "Req"
+  c.mesIni = c.corr+1; c.mesFim = c.req-1;
+  return c;
+}
 function validate(rows){
   const hi=findHeader(rows);
   if(hi<0) return {ok:false, msg:'cabeçalho RFV não encontrado (faltam "Canal"/"Req")'};
-  const h=rows[hi].map(norm);
-  const need={6:'canal',8:'classificacao abc',13:'2024',16:'corrente',25:'req',26:'freq',27:'valor'};
-  for(const idx in need){
-    if(h[idx]!==need[idx]) return {ok:false, msg:'coluna "'+need[idx]+'" fora do lugar (posição '+idx+')'};
+  const c=mapCols(rows[hi]);
+  const obrig={canal:'Canal',y24:'2024',corr:'Corrente',req:'Req',freq:'Freq',valor:'Valor',cli:'Razão Social (cliente)'};
+  for(const k in obrig){
+    if(c[k]==null || c[k]<0) return {ok:false, msg:'coluna "'+obrig[k]+'" não encontrada'};
   }
-  return {ok:true, hi};
+  return {ok:true, hi, cols:c};
 }
 function readBuf(buf){
   const wb=XLSX.read(buf,{type:'array'});
   const ws=wb.Sheets[wb.SheetNames[0]];
   return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+}
+// Ao recarregar do servidor, a chave "P:<ref>" identifica um produto.
+function itemFromRaw(key, raw, buf){
+  if(String(key).startsWith('P:')){
+    const p=prodFromName(raw.name)||{ref:String(key).slice(2),nome:String(key).slice(2),key};
+    return {name:raw.name, buf, prod:{...p, key}};
+  }
+  return {name:raw.name||key, buf, cat:key};
 }
 async function handleFiles(files){
   const items=[];
@@ -396,25 +439,34 @@ async function handleItems(items, opts){
   const valbox=document.getElementById('valbox');
   valbox.style.display='flex'; valbox.innerHTML='';
   const incoming=[]; let anyGood=false; const rawNew={};
+  const prodNew=[];
   for(const f of items){
+    // categoria conhecida tem prioridade; senão tenta o padrão de produto
     const cat=f.cat||catFromName(f.name);
+    const prod=cat?null:(f.prod||prodFromName(f.name));
     let rows; try{ rows=readBuf(f.buf); }catch(e){ rows=null; }
-    let line, okClass;
-    if(!cat){ okClass='val-bad'; line='categoria não reconhecida pelo nome do arquivo'; }
-    else if(!rows){ okClass='val-bad'; line='não foi possível ler o arquivo'; }
+    let line, okClass, rotulo;
+    if(!cat && !prod){ okClass='val-bad'; rotulo=f.name; line='nome do arquivo não identifica categoria nem produto'; }
+    else if(!rows){ okClass='val-bad'; rotulo=cat||(prod&&prod.nome)||f.name; line='não foi possível ler o arquivo'; }
     else {
       const v=validate(rows);
-      if(!v.ok){ okClass='val-bad'; line=v.msg; }
-      else {
-        const recs=parseRows(rows,v.hi,cat);
-        incoming.push({cat,recs}); anyGood=true; okClass='val-ok';
+      if(!v.ok){ okClass='val-bad'; rotulo=cat||(prod&&prod.nome)||f.name; line=v.msg; }
+      else if(cat){
+        const recs=parseRows(rows,v.hi,cat,v.cols);
+        incoming.push({cat,recs}); anyGood=true; okClass='val-ok'; rotulo=cat;
         line=recs.length+' clientes';
         try{ rawNew[cat]={name:f.name||cat, b64: toB64(new Uint8Array(f.buf))}; }catch(_){}
+      } else {
+        const recs=parseRows(rows,v.hi,prod.nome,v.cols);
+        prodNew.push({...prod, recs}); anyGood=true; okClass='val-ok';
+        rotulo=prod.nome+' <span style="color:var(--mute);font-weight:400">(produto)</span>';
+        line=recs.length+' clientes · ref '+prod.ref;
+        try{ rawNew[prod.key]={name:f.name, b64: toB64(new Uint8Array(f.buf))}; }catch(_){}
       }
     }
     const div=document.createElement('div');
     div.className='valrow '+okClass;
-    div.innerHTML='<span class="ic">'+(okClass==='val-ok'?'✓':'✗')+'</span><b>'+(cat||f.name)+'</b><span style="color:var(--slate)">· '+line+'</span>';
+    div.innerHTML='<span class="ic">'+(okClass==='val-ok'?'✓':'✗')+'</span><b>'+rotulo+'</b><span style="color:var(--slate)">· '+line+'</span>';
     valbox.appendChild(div);
   }
   if(anyGood){
@@ -422,6 +474,8 @@ async function handleItems(items, opts){
     const cats=new Set(incoming.map(i=>i.cat));
     DATA=DATA.filter(d=>!cats.has(d.cat));
     incoming.forEach(i=>{ DATA=DATA.concat(i.recs); });
+    prodNew.forEach(p=>{ PRODS[p.key]={ref:p.ref,nome:p.nome,key:p.key,recs:p.recs}; });
+    if(CURPROD && !PRODS[CURPROD]) CURPROD='';
     Object.assign(RAW_FILES, rawNew);
     CATS=CAT_ORDER.filter(c=>DATA.some(d=>d.cat===c));
     if(!CURCAT || !CATS.includes(CURCAT)) CURCAT='Todos';
@@ -464,27 +518,30 @@ async function publish(){
   }catch(e){ alert('Falha de conexão ao publicar. Tente novamente.'); }
   PUBLISHING=false; updatePubUI();
 }
-function parseRows(rows,hi,cat){
+function parseRows(rows,hi,cat,cols){
+  const c=cols||mapCols(rows[hi]);
+  const num=(r,i)=> (i>=0 ? (Number(r[i])||0) : 0);
+  const txt=(r,i)=> (i>=0 && r[i]!=null ? String(r[i]).trim() : '');
   const out=[];
   for(let i=hi+1;i<rows.length;i++){
     const r=rows[i]; if(!r) continue;
-    const cli=r[5], vend=r[3];
+    const cli=c.cli>=0?r[c.cli]:null, vend=c.preposto>=0?r[c.preposto]:null;
     if(cli==null || String(cli).trim()==='') continue;
-    const h24=Number(r[13])||0, h25=Number(r[14])||0;
-    const s1base=Number(r[15])||0;                   // 2026 (M-1) = 1º semestre
-    const corr=Number(r[16])||0;                     // mês corrente
-    let mes=0; for(let k=17;k<=24;k++) mes+=Number(r[k])||0;
+    const h24=num(r,c.y24), h25=num(r,c.y25);
+    const s1base=num(r,c.m1);                        // 2026 (M-1) = 1º semestre
+    const corr=num(r,c.corr);                        // mês corrente
+    let mes=0; for(let k=c.mesIni;k<=c.mesFim;k++) mes+=num(r,k);
     let s1,s2;
     if(CORR_SEM===1){ s1=s1base+corr; s2=mes; }      // importou no 1º sem → corrente entra no 1S
     else            { s1=s1base;      s2=corr+mes; } // importou no 2º sem → corrente entra no 2S
     const cur = CORR_SEM===1 ? s1 : s2;              // semestre corrente
     out.push({
       cat, vend:String(vend||'—').trim(),
-      cod:r[4]==null?'':String(r[4]).trim(), cli:String(cli).trim(),
-      canal:r[6]==null?'':String(r[6]).trim(),
-      abc:r[8]==null?'':String(r[8]).trim(),
-      cidade:r[10]==null?'':String(r[10]).trim(), uf:r[12]==null?'':String(r[12]).trim(),
-      h24,h25,s1,s2,cur, req:r[25], freq:r[26], valor:r[27],
+      cod:txt(r,c.cod), cli:String(cli).trim(),
+      canal:txt(r,c.canal), abc:txt(r,c.abc),
+      cidade:txt(r,c.cidade), uf:txt(r,c.uf),
+      h24,h25,s1,s2,cur,
+      req:c.req>=0?r[c.req]:null, freq:c.freq>=0?r[c.freq]:null, valor:c.valor>=0?r[c.valor]:null,
       size:h24+h25+s1+s2
     });
   }
@@ -587,6 +644,15 @@ function buildControls(){
     b.onclick=()=>{ CURCAT=c; buildControls(); render(); };
     tabs.appendChild(b);
   });
+  // produtos (eixo separado das categorias)
+  const gp=document.getElementById('grpProd'), sp=document.getElementById('fProd');
+  const lista=prodList();
+  if(gp&&sp){
+    gp.style.display = lista.length ? '' : 'none';
+    sp.innerHTML='<option value="">Todos</option>'+
+      lista.map(p=>'<option value="'+p.key+'">'+p.nome+'</option>').join('');
+    if(CURPROD && PRODS[CURPROD]) sp.value=CURPROD; else { CURPROD=''; sp.value=''; }
+  }
   // vendedores (por nome)
   const sv=document.getElementById('fVend'); const curv=sv.value;
   const vends=[...new Set(DATA.map(d=>d.vend))].filter(Boolean)
@@ -630,7 +696,7 @@ const CAT_BADGE = {
 };
 // Só aparece na visão "Todos": com uma categoria filtrada o selo é redundante.
 function catBadges(set){
-  if(CURCAT!=='Todos' || !set || !set.size) return '';
+  if(CURPROD || CURCAT!=='Todos' || !set || !set.size) return '';
   const itens = CAT_ORDER.filter(c=>set.has(c)).map(c=>{
     const b=CAT_BADGE[c]; if(!b) return '';
     return `<span class="cbg ${b.cls}" title="${c}">${b.ini}</span>`;
@@ -684,7 +750,18 @@ function renderVendedor(){
   const sem=document.getElementById('fSem').value;
   const semLab=sem==='1'?'1S26':'2S26';
   const bought=d=>(sem==='1'?d.s1:d.s2)>0;
-  let base = (CURCAT==='Todos') ? aggregateTodos() : DATA.filter(d=>d.cat===CURCAT);
+  let base;
+  if(CURPROD && PRODS[CURPROD]){
+    // Produto é um recorte próprio. Quando há categoria selecionada, cruza:
+    // mostra só os clientes do produto que também estão naquela categoria.
+    base=PRODS[CURPROD].recs.slice();
+    if(CURCAT!=='Todos'){
+      const naCat=new Set(DATA.filter(d=>d.cat===CURCAT).map(cliKey));
+      base=base.filter(d=>naCat.has(cliKey(d)));
+    }
+  } else {
+    base = (CURCAT==='Todos') ? aggregateTodos() : DATA.filter(d=>d.cat===CURCAT);
+  }
   base=base.filter(d=>(!F.cidade||d.cidade===F.cidade) && (!F.f360||is360(d)) && matchSearch(d,F.search));
   if(F.vend) base=base.filter(d=>d.vend===F.vend);
 
@@ -692,8 +769,10 @@ function renderVendedor(){
   const compraram=base.filter(bought).length;
   const semcomprar=tot-compraram;
   const pct=tot?Math.round(semcomprar*100/tot):0;
+  const rotProd = (CURPROD&&PRODS[CURPROD]) ? PRODS[CURPROD].nome : '';
   document.getElementById('catsum').innerHTML=
-    kpi('Clientes'+(CURCAT==='Todos'?'':' na categoria'),fmtN(tot),'na carteira (todos)','var(--ftw)')+
+    kpi(rotProd?('Clientes · '+rotProd):('Clientes'+(CURCAT==='Todos'?'':' na categoria')),fmtN(tot),
+        rotProd?(CURCAT==='Todos'?'na base do produto':'também em '+CURCAT):'na carteira (todos)','var(--ftw)')+
     kpi('Compraram no '+semLab,fmtN(compraram),tot?Math.round(compraram*100/tot)+'% da carteira':'','var(--green)')+
     kpi('Sem comprar no '+semLab,fmtN(semcomprar),pct+'% · oportunidade','var(--red)');
   aplicarUI();
@@ -757,7 +836,7 @@ function renderVendedor(){
           <span><b style="color:var(--orange)">●</b> 6–12 meses: ${c6}</span>
           <span><b style="color:var(--red)">●</b> +12 meses: ${c12}</span>
         </div>
-        ${CURCAT==='Todos'?catLegenda():''}
+        ${(!CURPROD&&CURCAT==='Todos')?catLegenda():''}
         <div class="rhead"><div>Código</div><div>Cliente</div><div class="r-end">2024</div><div class="r-end">2025</div><div class="r-end">1S26</div><div class="r-end">2S26</div><div class="r-end">Recência</div></div>
       </div>
       <div class="rtable">${rowsHtml}</div>
@@ -879,6 +958,7 @@ function kpi(l,v,s,color){
 
 // ---- listeners ----
 ['fVend','fCidade','fRec','fSort','fSem'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+document.getElementById('fProd').addEventListener('change',e=>{ CURPROD=e.target.value; render(); });
 document.getElementById('fSearch').addEventListener('input',render);
 document.getElementById('f360').addEventListener('click',function(){ this.classList.toggle('on'); render(); });
 document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>{
@@ -899,7 +979,7 @@ document.getElementById('pubBtn').addEventListener('click', publish);
     if(!res.ok) return;
     const j=await res.json();
     if(j && j.files && Object.keys(j.files).length){
-      const items=Object.keys(j.files).map(cat=>({ cat, name:(j.files[cat]&&j.files[cat].name)||cat, buf: fromB64(j.files[cat].b64).buffer }));
+      const items=Object.keys(j.files).map(k=>itemFromRaw(k, j.files[k]||{}, fromB64(j.files[k].b64).buffer));
       await handleItems(items, { source:'server', corrSem: j.corrSem||undefined, publishedAt: j.updatedAt||null });
     }
   }catch(_){}
@@ -926,6 +1006,11 @@ function openMap(){
   const modal=document.getElementById('mapModal'); modal.hidden=false;
   // popula selects
   fillSel(document.getElementById('mCat'), [['Todos','Todas as categorias']].concat(CATS.map(c=>[c,c])), (CURCAT&&CURCAT!=='Todos')?CURCAT:'Todos');
+  {
+    const lista=prodList(), mp=document.getElementById('mProd');
+    mp.style.display = lista.length ? '' : 'none';
+    fillSel(mp, [['','Sem produto']].concat(lista.map(p=>[p.key,p.nome])), CURPROD||'');
+  }
   const vends=[...new Set(DATA.map(d=>d.vend))].filter(Boolean).sort((a,b)=>vendName(a)[1].localeCompare(vendName(b)[1],'pt-BR'));
   fillSel(document.getElementById('mVend'), [['','Todos os vendedores']].concat(vends.map(v=>[v,vendName(v)[1]])), document.getElementById('fVend').value||'');
   {
@@ -944,8 +1029,17 @@ function closeMap(){ document.getElementById('mapModal').hidden=true; }
 function storeList(){
   const cat=document.getElementById('mCat').value;
   const sem=document.getElementById('mSem').value;        // '2' (2S26, padrão) ou '1' (1S26)
+  const prodKey=(document.getElementById('mProd')||{}).value||'';
   const val=d=> sem==='1'?d.s1:d.s2;
   let arr;
+  // Com produto selecionado, a base do mapa passa a ser a do produto.
+  if(prodKey && PRODS[prodKey]){
+    arr=PRODS[prodKey].recs.map(d=>{ const v=val(d);
+      return {cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,sel:v,ativo:v>0,q1:d.s1,q2:d.s2,size:d.size}; });
+    arr.forEach(s=>{ s.ll=CITY_COORDS[norm(s.cidade).toUpperCase()+'|'+(s.uf||'').toUpperCase()]; });
+    SEM_COORD = arr.filter(s=>!s.ll).length;
+    return arr.filter(s=>s.ll);
+  }
   if(cat==='Todos'){
     const m={};
     DATA.forEach(d=>{ const k=cliKey(d); if(!m[k]) m[k]={cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,sel:0,q1:0,q2:0,size:0}; const o=m[k]; o.sel+=val(d); o.q1+=d.s1; o.q2+=d.s2; o.size+=d.size; });
@@ -954,13 +1048,53 @@ function storeList(){
     arr=DATA.filter(d=>d.cat===cat).map(d=>{ const v=val(d); return {cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,sel:v,ativo:v>0,q1:d.s1,q2:d.s2,size:d.size}; });
   }
   arr.forEach(s=>{ s.ll=CITY_COORDS[norm(s.cidade).toUpperCase()+'|'+(s.uf||'').toUpperCase()]; });
+  SEM_COORD = arr.filter(s=>!s.ll).length;
   return arr.filter(s=>s.ll);
 }
+
+// Lojas ativas na categoria e SEM o produto no semestre.
+// "Ativo na categoria" = comprou no semestre (definição A).
+function oportList(){
+  const prodKey=(document.getElementById('mProd')||{}).value||'';
+  const cat=document.getElementById('mCat').value;
+  const sem=document.getElementById('mSem').value;
+  const val=d=> sem==='1'?d.s1:d.s2;
+  if(!prodKey || !PRODS[prodKey]) return [];
+
+  // quem já compra o produto no semestre
+  const comProduto=new Set(PRODS[prodKey].recs.filter(d=>val(d)>0).map(cliKey));
+
+  const catBase = cat==='Todos' ? DATA : DATA.filter(d=>d.cat===cat);
+  const m={};
+  catBase.forEach(d=>{
+    const k=cliKey(d);
+    if(!m[k]) m[k]={cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,catQ:0,size:0};
+    m[k].catQ+=val(d); m[k].size+=d.size;
+  });
+  const out=[];
+  Object.keys(m).forEach(k=>{
+    const o=m[k];
+    o.temProd = comProduto.has(k);
+    o.ativoCat = o.catQ>0;
+    o.oport = o.ativoCat && !o.temProd;
+    o.ativo = o.temProd;
+    o.ll=CITY_COORDS[norm(o.cidade).toUpperCase()+'|'+(o.uf||'').toUpperCase()];
+    out.push(o);
+  });
+  SEM_COORD = out.filter(o=>!o.ll).length;
+  return out.filter(o=>o.ll);
+}
+let SEM_COORD=0;
 function updateMap(fit){
   const vend=document.getElementById('mVend').value;
   const status=document.getElementById('mStatus').value;
   const mode=document.getElementById('mMode').value;
   const semLab=document.getElementById('mSem').value==='1'?'1S26':'2S26';
+  const prodKey=(document.getElementById('mProd')||{}).value||'';
+  const prodNome=(prodKey&&PRODS[prodKey])?PRODS[prodKey].nome:'';
+
+  if(mode==='oport'){ desenharOportunidade(vend,semLab,prodKey,prodNome,fit); return; }
+
   let arr=storeList();
   if(vend) arr=arr.filter(s=>s.vend===vend);
   if(status==='sim') arr=arr.filter(s=>s.ativo);
@@ -1000,12 +1134,68 @@ function updateMap(fit){
     });
   }
   const tot=arr.length, at=arr.filter(s=>s.ativo).length;
-  document.getElementById('mStats').innerHTML='<b>'+fmtN(tot)+'</b> lojas · <span style="color:#16A34A">'+fmtN(at)+' compraram no '+semLab+'</span> · <span style="color:#DC2626">'+fmtN(tot-at)+' não</span>';
+  document.getElementById('mStats').innerHTML=
+    (prodNome?'<b>'+prodNome+'</b> · ':'')+
+    '<b>'+fmtN(tot)+'</b> lojas · <span style="color:#16A34A">'+fmtN(at)+' compraram no '+semLab+'</span> · <span style="color:#DC2626">'+fmtN(tot-at)+' não</span>'+avisoCoord();
   if(fit && arr.length){ try{ MAP.fitBounds(L.latLngBounds(arr.map(s=>s.ll)).pad(0.15)); }catch(_){} }
+}
+
+// Lojas cuja cidade não está na tabela de coordenadas somem do mapa;
+// sem esse aviso o usuário acha que simplesmente não há cliente ali.
+function avisoCoord(){
+  return SEM_COORD ? ' · <span style="color:#B45309" title="Cidade não encontrada na tabela de coordenadas">⚠ '+fmtN(SEM_COORD)+' sem coordenada</span>' : '';
+}
+
+function desenharOportunidade(vend,semLab,prodKey,prodNome,fit){
+  const stats=document.getElementById('mStats');
+  if(!prodKey){
+    if(MAP_LAYER) MAP.removeLayer(MAP_LAYER);
+    MAP_LAYER=L.layerGroup().addTo(MAP);
+    stats.innerHTML='<span style="color:#B45309">Selecione um produto para ver as oportunidades.</span>';
+    return;
+  }
+  let arr=oportList();
+  if(vend) arr=arr.filter(s=>s.vend===vend);
+  if(MAP_LAYER) MAP.removeLayer(MAP_LAYER);
+  MAP_LAYER=L.layerGroup().addTo(MAP);
+
+  const ROXO='#7C3AED', VERDE='#16A34A', CINZA='#9AA4B5';
+  const corDe=o=> o.oport?ROXO : o.temProd?VERDE : CINZA;
+  const mode=document.getElementById('mMode');
+
+  const cm={};
+  arr.forEach(s=>{ const k=norm(s.cidade).toUpperCase()+'|'+s.uf;
+    if(!cm[k]) cm[k]={ll:s.ll,cidade:s.cidade,uf:s.uf,stores:[]}; cm[k].stores.push(s); });
+
+  Object.values(cm).forEach(c=>{
+    const op=c.stores.filter(s=>s.oport).length;
+    const tem=c.stores.filter(s=>s.temProd).length;
+    const col= op>0 ? ROXO : tem>0 ? VERDE : CINZA;
+    const r=Math.min(7+Math.sqrt(op||1)*4.2,28);          // tamanho = oportunidades
+    const list=c.stores.slice()
+      .sort((a,b)=>(b.oport-a.oport)||a.cli.localeCompare(b.cli,'pt-BR'))
+      .map(s=>'<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12.5px">'+
+        '<span style="width:8px;height:8px;border-radius:50%;flex:none;background:'+corDe(s)+'"></span>'+
+        '<span>'+s.cli+'</span></div>').join('');
+    const popup='<div style="min-width:230px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+
+      '<span style="color:'+ROXO+'">'+op+' oportunidade'+(op===1?'':'s')+'</span> · '+
+      '<span style="color:'+VERDE+'">'+tem+' já compra'+(tem===1?'':'m')+' '+prodNome+'</span>'+
+      '<div style="font-size:10.5px;color:#888;margin-top:5px">Ativo na categoria no '+semLab+' e sem '+prodNome+'</div>'+
+      '<div style="max-height:180px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
+    L.circleMarker(c.ll,{radius:r,color:'#fff',weight:1.4,fillColor:col,fillOpacity:.75})
+      .bindPopup(popup,{maxWidth:320}).addTo(MAP_LAYER);
+  });
+
+  const totOp=arr.filter(s=>s.oport).length, totTem=arr.filter(s=>s.temProd).length;
+  stats.innerHTML='<b>'+prodNome+'</b> · <span style="color:'+ROXO+'">'+fmtN(totOp)+' oportunidades</span> · '+
+    '<span style="color:'+VERDE+'">'+fmtN(totTem)+' já compram</span>'+
+    (totOp===0?' <span style="color:#B45309">— nenhum cliente ativo na categoria sem o produto</span>':'')+avisoCoord();
+  const alvo=arr.filter(s=>s.oport);
+  if(fit && alvo.length){ try{ MAP.fitBounds(L.latLngBounds(alvo.map(s=>s.ll)).pad(0.15)); }catch(_){} }
 }
 document.getElementById('mapBtn').addEventListener('click',openMap);
 document.getElementById('mapClose').addEventListener('click',closeMap);
-['mCat','mVend','mSem','mStatus','mMode'].forEach(id=>document.getElementById(id).addEventListener('change',updateMap));
+['mCat','mProd','mVend','mSem','mStatus','mMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>updateMap(true)));
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.getElementById('mapModal').hidden) closeMap(); });
 
 // ---- paleta ----

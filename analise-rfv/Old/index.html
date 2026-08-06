@@ -103,7 +103,8 @@
   .fgroup{display:flex;align-items:center;gap:8px}
   .fgroup label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
   .ctrls select{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
-  .search{font-family:"Inter",sans-serif;font-size:13.5px;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-width:230px}
+  .search{font-family:"Inter",sans-serif;font-size:13px;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;
+    min-width:150px;flex:1 1 190px;max-width:290px}
   .search:focus{outline:none;border-color:var(--ftw)}
   .chip360{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
   .chip360.on{background:color-mix(in srgb,var(--conf,#7C3AED) 16%,transparent);border-color:#7C3AED;color:#7C3AED}
@@ -256,6 +257,7 @@
       </div>
       <div class="cat-tabs" id="catTabs"></div>
       <span class="spacer"></span>
+      <input id="fSearch" class="search" type="search" placeholder="Buscar cliente, código ou cidade…" title="Busca por nome do cliente, código ou cidade">
       <button class="tgl" id="tglFiltros" type="button" title="Mostrar/ocultar os filtros">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>
         <span>Filtros</span>
@@ -271,7 +273,6 @@
     </div>
 
     <div class="ctrls frow" id="filtersRow">
-      <input id="fSearch" class="search" type="search" placeholder="Buscar cliente, código ou cidade…">
       <button class="chip360" id="f360" type="button" title="Clientes que compram todas as categorias">★ Campanha 360</button>
       <div class="fgroup"><label>Vendedor</label><select id="fVend"><option value="">Todos</option></select></div>
       <div class="fgroup"><label>Cidade</label><select id="fCidade"><option value="">Todas</option></select></div>
