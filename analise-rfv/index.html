@@ -322,7 +322,7 @@
       <select id="mProd" title="Produto" style="display:none"></select>
       <select id="mVend" title="Vendedor"></select>
       <select id="mSem" title="Semestre"><option value="2">2S26</option><option value="1">1S26</option><option value="A">Ambos (1S + 2S)</option></select>
-      <select id="mStatus"><option value="">Todas as lojas</option><option value="sim">Só compraram</option><option value="nao">Só não compraram</option><option value="dois">Só nos dois semestres</option><option value="caiu">Só quem caiu (1S sem 2S)</option><option value="entrou">Só quem entrou (2S sem 1S)</option></select>
+      <select id="mStatus"><option value="">Todas as lojas</option><option value="sim">Comprou</option><option value="nao">Não comprou</option></select>
       <select id="mMode"><option value="cidade">Agrupar por cidade</option><option value="loja">Ponto por loja</option><option value="oport">Status do produto</option></select>
       <select id="mPst" title="Status do produto" style="display:none"></select>
       <span class="map-legend" id="mLeg"><span class="dot g"></span>100% compraram<span class="dot o"></span>parcial<span class="dot r"></span>0% compraram</span>
@@ -1239,9 +1239,9 @@ function updateMap(fit){
   if(vend) arr=arr.filter(s=>s.vend===vend);
   // classifica cada loja pela combinação dos dois semestres
   arr.forEach(s=>{ s.comb = (s.q1>0&&s.q2>0)?'dois' : (s.q1>0)?'caiu' : (s.q2>0)?'entrou' : 'nenhum'; });
+  // em "Ambos", comprou = teve venda em qualquer um dos dois semestres
   if(status==='sim') arr=arr.filter(s=>s.ativo);
   else if(status==='nao') arr=arr.filter(s=>!s.ativo);
-  else if(status==='dois'||status==='caiu'||status==='entrou') arr=arr.filter(s=>s.comb===status);
   if(MAP_LAYER) MAP.removeLayer(MAP_LAYER);
   MAP_LAYER=L.layerGroup().addTo(MAP);
   const DG='#16A34A', DR='#DC2626';
@@ -1253,6 +1253,16 @@ function updateMap(fit){
     dot(s.q1>0,8,'1S26: '+fmtN(s.q1)+' pares')+dot(s.q2>0,8,'2S26: '+fmtN(s.q2)+' pares')+
     '<span style="margin-left:3px">'+s.cli+'</span>'+qtdTxt(s)+'</div>';
   const ORD={dois:0,caiu:1,entrou:2,nenhum:3};
+  // Vocabulário único: o mesmo usado no status do produto.
+  const COMB_LAB={dois:'mantiveram', caiu:'caíram', entrou:'entraram', nenhum:'sem compra'};
+  const COMB_COR={dois:'#16A34A', caiu:'#DC2626', entrou:'#2563EB', nenhum:'#8A93A3'};
+  // Cabeçalho da lista: substitui a legenda em texto corrido.
+  const cabLista='<div style="display:flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.06em;'+
+    'text-transform:uppercase;color:#8A93A3;padding:0 0 3px">'+
+    '<span style="width:8px;flex:none;text-align:center">1S</span>'+
+    '<span style="width:8px;flex:none;text-align:center">2S</span>'+
+    '<span style="margin-left:3px">Loja</span>'+
+    '<span style="margin-left:auto;padding-left:10px">Pares</span></div>';
   if(mode==='cidade'){
     const cm={};
     arr.forEach(s=>{ const k=norm(s.cidade).toUpperCase()+'|'+s.uf; if(!cm[k]) cm[k]={ll:s.ll,cidade:s.cidade,uf:s.uf,stores:[]}; cm[k].stores.push(s); });
@@ -1269,13 +1279,18 @@ function updateMap(fit){
         .sort((a,b)=> ambos ? (ORD[a.comb]-ORD[b.comb])||a.cli.localeCompare(b.cli,'pt-BR')
                             : (a.ativo-b.ativo)||a.cli.localeCompare(b.cli,'pt-BR'))
         .map(linhaLoja).join('');
+      // placar: só os status com ocorrência, para não poluir com zeros
+      const cnts={dois:dois,caiu:caiu,entrou:entrou,nenhum:nenhum};
       const placar = ambos
-        ? '<span style="color:#16A34A">'+dois+' nos dois</span> · <span style="color:#DC2626">'+caiu+' só 1S</span> · '+
-          '<span style="color:#2563EB">'+entrou+' só 2S</span> · <span style="color:#8A93A3">'+nenhum+' nenhum</span>'
+        ? ['dois','caiu','entrou','nenhum'].filter(k=>cnts[k]>0)
+            .map(k=>'<span style="color:'+COMB_COR[k]+'">'+cnts[k]+' '+COMB_LAB[k]+'</span>').join(' · ')
         : '<span style="color:#16A34A">'+at+' compraram</span> · <span style="color:#DC2626">'+(tot-at)+' não</span> · '+Math.round(ratio*100)+'% no '+semLab;
-      const popup='<div style="min-width:250px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+placar+
-        '<div style="font-size:10.5px;color:#888;margin-top:5px">Bolinhas: 1S26 · 2S26 &nbsp;|&nbsp; pares 1S → 2S</div>'+
-        '<div style="max-height:190px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
+      const popup='<div style="min-width:255px">'+
+        '<div style="font-weight:600">'+c.cidade+' / '+c.uf+
+          ' <span style="font-weight:400;color:#8A93A3;font-size:11.5px">· '+tot+(tot===1?' loja':' lojas')+'</span></div>'+
+        '<div style="font-size:11.5px;margin-top:3px">'+placar+'</div>'+
+        '<div style="margin-top:8px;border-top:1px solid #e6e6e6;padding-top:6px">'+cabLista+
+        '<div style="max-height:180px;overflow:auto">'+list+'</div></div></div>';
       L.circleMarker(c.ll,{radius:r,color:'#fff',weight:1.4,fillColor:col,fillOpacity:.72})
         .bindPopup(popup,{maxWidth:340}).addTo(MAP_LAYER);
     });
@@ -1301,8 +1316,8 @@ function updateMap(fit){
     (prodNome?'<b>'+prodNome+'</b> · ':'')+
     '<b>'+fmtN(tot)+'</b> lojas · '+
     (ambos
-      ? '<span style="color:#16A34A">'+fmtN(cnt('dois'))+' nos dois</span> · <span style="color:#DC2626">'+fmtN(cnt('caiu'))+' só 1S</span> · '+
-        '<span style="color:#2563EB">'+fmtN(cnt('entrou'))+' só 2S</span> · <span style="color:#8A93A3">'+fmtN(cnt('nenhum'))+' nenhum</span>'
+      ? ['dois','caiu','entrou','nenhum'].filter(k=>cnt(k)>0)
+          .map(k=>'<span style="color:'+COMB_COR[k]+'">'+fmtN(cnt(k))+' '+COMB_LAB[k]+'</span>').join(' · ')
       : '<span style="color:#16A34A">'+fmtN(at)+' compraram no '+semLab+'</span> · <span style="color:#DC2626">'+fmtN(tot-at)+' não</span>')+
     avisoCoord();
   atualizarLegenda(ambos, mode);
@@ -1315,9 +1330,9 @@ function atualizarLegenda(ambos, mode){
   const el=document.getElementById('mLeg'); if(!el) return;
   const p=(cor,txt,ml)=>'<span class="dot" style="background:'+cor+(ml?';margin-left:10px':'')+'"></span>'+txt;
   if(ambos && mode==='loja'){
-    el.innerHTML=p('#16A34A','nos dois')+p('#DC2626','só 1S',1)+p('#2563EB','só 2S',1)+p('#9AA4B5','nenhum',1);
+    el.innerHTML=p('#16A34A','manteve')+p('#DC2626','caiu',1)+p('#2563EB','entrou',1)+p('#9AA4B5','sem compra',1);
   } else if(ambos){
-    el.innerHTML=p('#16A34A','todas nos dois')+p('#F59E0B','parcial',1)+p('#DC2626','nenhuma comprou',1);
+    el.innerHTML=p('#16A34A','todas mantiveram')+p('#F59E0B','parcial',1)+p('#DC2626','nenhuma comprou',1);
   } else {
     el.innerHTML=p('#16A34A','100% compraram')+p('#F59E0B','parcial',1)+p('#DC2626','0% compraram',1);
   }
@@ -1372,9 +1387,15 @@ function desenharStatus(vend,prodKey,prodNome,fit){
         '<span style="margin-left:auto;color:#888;font-size:11px">'+fmtN(x.q1)+' → '+fmtN(x.q2)+'</span></div>').join('');
     const resumo=PSTATUS_ORDER.filter(k=>cont[k]>0)
       .map(k=>'<span style="color:'+PSTATUS[k].cor+'">'+cont[k]+' '+PSTATUS[k].lab.toLowerCase()+'</span>').join(' · ');
-    const popup='<div style="min-width:250px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+resumo+
-      '<div style="font-size:10.5px;color:#888;margin-top:5px">'+prodNome+' · pares 1S26 → 2S26</div>'+
-      '<div style="max-height:190px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
+    const cabProd='<div style="display:flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.06em;'+
+      'text-transform:uppercase;color:#8A93A3;padding:0 0 3px"><span style="width:8px;flex:none"></span>'+
+      '<span>Loja</span><span style="margin-left:auto;padding-left:10px">Pares 1S → 2S</span></div>';
+    const popup='<div style="min-width:255px">'+
+      '<div style="font-weight:600">'+c.cidade+' / '+c.uf+
+        ' <span style="font-weight:400;color:#8A93A3;font-size:11.5px">· '+prodNome+'</span></div>'+
+      '<div style="font-size:11.5px;margin-top:3px">'+resumo+'</div>'+
+      '<div style="margin-top:8px;border-top:1px solid #e6e6e6;padding-top:6px">'+cabProd+
+      '<div style="max-height:180px;overflow:auto">'+list+'</div></div></div>';
     L.circleMarker(c.ll,{radius:r,color:'#fff',weight:1.4,fillColor:col,fillOpacity:.75})
       .bindPopup(popup,{maxWidth:330}).addTo(MAP_LAYER);
   });
