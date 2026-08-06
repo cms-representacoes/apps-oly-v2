@@ -94,6 +94,10 @@
   .cbg-tenis{background:#E0A100}.cbg-acess{background:#15AABF}.cbg-chinelo{background:#0CA678}
   .cbg-meia{background:#4C6EF5}.cbg-vest{background:#7950F2}.cbg-ua{background:#2B2E33}
   [data-theme="dark"] .cbg-ua{background:#6B7280}
+  .pst{display:inline-block;margin-left:7px;font-family:"Space Grotesk",sans-serif;font-size:9.5px;
+    font-weight:700;letter-spacing:.03em;padding:1px 7px;border-radius:99px;white-space:nowrap;
+    color:var(--pc);background:color-mix(in srgb,var(--pc) 13%,transparent);
+    border:1px solid color-mix(in srgb,var(--pc) 32%,transparent);vertical-align:1px}
   .catleg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end;
     font-size:11px;color:var(--mute);margin:0 0 6px;padding-top:2px}
   .catleg span{display:inline-flex;align-items:center;gap:4px}
@@ -276,6 +280,7 @@
       <button class="chip360" id="f360" type="button" title="Clientes que compram todas as categorias">★ Campanha 360</button>
       <div class="fgroup"><label>Vendedor</label><select id="fVend"><option value="">Todos</option></select></div>
       <div class="fgroup" id="grpProd" style="display:none"><label>Produto</label><select id="fProd"><option value="">Todos</option></select></div>
+      <div class="fgroup" id="grpPst" style="display:none"><label>Status</label><select id="fPst"></select></div>
       <div class="fgroup"><label>Cidade</label><select id="fCidade"><option value="">Todas</option></select></div>
       <div class="fgroup" id="grpRec"><label>Recência</label><select id="fRec">
         <option value="">Todas</option><option value="ativos">Só ativos (C/F)</option><option value="inativos">Só inativos (6–12M / +12M)</option>
@@ -303,10 +308,11 @@
       <select id="mCat" title="Categoria"></select>
       <select id="mProd" title="Produto" style="display:none"></select>
       <select id="mVend" title="Vendedor"></select>
-      <select id="mSem" title="Semestre"><option value="2">2S26</option><option value="1">1S26</option></select>
-      <select id="mStatus"><option value="">Todas as lojas</option><option value="sim">Só compraram</option><option value="nao">Só não compraram</option></select>
-      <select id="mMode"><option value="cidade">Agrupar por cidade</option><option value="loja">Ponto por loja</option><option value="oport">Oportunidade</option></select>
-      <span class="map-legend"><span class="dot g"></span>100% compraram<span class="dot o"></span>parcial<span class="dot r"></span>0% compraram</span>
+      <select id="mSem" title="Semestre"><option value="2">2S26</option><option value="1">1S26</option><option value="A">Ambos (1S + 2S)</option></select>
+      <select id="mStatus"><option value="">Todas as lojas</option><option value="sim">Só compraram</option><option value="nao">Só não compraram</option><option value="dois">Só nos dois semestres</option><option value="caiu">Só quem caiu (1S sem 2S)</option><option value="entrou">Só quem entrou (2S sem 1S)</option></select>
+      <select id="mMode"><option value="cidade">Agrupar por cidade</option><option value="loja">Ponto por loja</option><option value="oport">Status do produto</option></select>
+      <select id="mPst" title="Status do produto" style="display:none"></select>
+      <span class="map-legend" id="mLeg"><span class="dot g"></span>100% compraram<span class="dot o"></span>parcial<span class="dot r"></span>0% compraram</span>
       <span id="mStats" class="map-stats"></span>
     </div>
     <button class="map-close" id="mapClose" title="Fechar">✕</button>
@@ -653,6 +659,16 @@ function buildControls(){
       lista.map(p=>'<option value="'+p.key+'">'+p.nome+'</option>').join('');
     if(CURPROD && PRODS[CURPROD]) sp.value=CURPROD; else { CURPROD=''; sp.value=''; }
   }
+  // status só faz sentido com um produto selecionado
+  const gs=document.getElementById('grpPst'), ss=document.getElementById('fPst');
+  if(gs&&ss){
+    const on = !!(CURPROD && PRODS[CURPROD]);
+    gs.style.display = on ? '' : 'none';
+    const cur = ss.value;
+    ss.innerHTML='<option value="">Todos</option>'+
+      PSTATUS_ORDER.map(k=>'<option value="'+k+'">'+PSTATUS[k].lab+'</option>').join('');
+    if(on && cur) ss.value=cur; else ss.value='';
+  }
   // vendedores (por nome)
   const sv=document.getElementById('fVend'); const curv=sv.value;
   const vends=[...new Set(DATA.map(d=>d.vend))].filter(Boolean)
@@ -752,13 +768,15 @@ function renderVendedor(){
   const bought=d=>(sem==='1'?d.s1:d.s2)>0;
   let base;
   if(CURPROD && PRODS[CURPROD]){
-    // Produto é um recorte próprio. Quando há categoria selecionada, cruza:
-    // mostra só os clientes do produto que também estão naquela categoria.
-    base=PRODS[CURPROD].recs.slice();
+    // Universo = carteira geral (todas as cidades), marcada pelo produto.
+    base=baseProduto(CURPROD);
     if(CURCAT!=='Todos'){
       const naCat=new Set(DATA.filter(d=>d.cat===CURCAT).map(cliKey));
       base=base.filter(d=>naCat.has(cliKey(d)));
     }
+    const fst=document.getElementById('fPst');
+    const alvo=fst?fst.value:'';
+    if(alvo) base=base.filter(d=>d.pst===alvo);
   } else {
     base = (CURCAT==='Todos') ? aggregateTodos() : DATA.filter(d=>d.cat===CURCAT);
   }
@@ -770,11 +788,21 @@ function renderVendedor(){
   const semcomprar=tot-compraram;
   const pct=tot?Math.round(semcomprar*100/tot):0;
   const rotProd = (CURPROD&&PRODS[CURPROD]) ? PRODS[CURPROD].nome : '';
-  document.getElementById('catsum').innerHTML=
-    kpi(rotProd?('Clientes · '+rotProd):('Clientes'+(CURCAT==='Todos'?'':' na categoria')),fmtN(tot),
-        rotProd?(CURCAT==='Todos'?'na base do produto':'também em '+CURCAT):'na carteira (todos)','var(--ftw)')+
-    kpi('Compraram no '+semLab,fmtN(compraram),tot?Math.round(compraram*100/tot)+'% da carteira':'','var(--green)')+
-    kpi('Sem comprar no '+semLab,fmtN(semcomprar),pct+'% · oportunidade','var(--red)');
+  if(rotProd){
+    // placar do produto: o que interessa é a migração entre semestres
+    const n=k=>base.filter(d=>d.pst===k).length;
+    const perdeu=n('perdeu'), manteve=n('manteve'), novo=n('novo'), nunca=n('nunca');
+    document.getElementById('catsum').innerHTML=
+      kpi(rotProd+' · perderam',fmtN(perdeu),'compravam no 1S e pararam','var(--red)')+
+      kpi('Mantiveram',fmtN(manteve),'compraram nos dois semestres','var(--green)')+
+      kpi('Novos no 2S',fmtN(novo),'entraram agora','#2563EB')+
+      kpi('Nunca compraram',fmtN(nunca),'na carteira, sem o produto','#7C3AED');
+  } else {
+    document.getElementById('catsum').innerHTML=
+      kpi('Clientes'+(CURCAT==='Todos'?'':' na categoria'),fmtN(tot),'na carteira (todos)','var(--ftw)')+
+      kpi('Compraram no '+semLab,fmtN(compraram),tot?Math.round(compraram*100/tot)+'% da carteira':'','var(--green)')+
+      kpi('Sem comprar no '+semLab,fmtN(semcomprar),pct+'% · oportunidade','var(--red)');
+  }
   aplicarUI();
 
   const groups={};
@@ -806,7 +834,7 @@ function renderVendedor(){
       const R=rec(d.req); const ina=R.ativo?'':' inativo';
       rowsHtml+=`<div class="rrow${ina}">
         <div class="c-cod">${d.cod||'—'}</div>
-        <div class="c-cli">${d.cli}</div>
+        <div class="c-cli">${d.cli}${(CURPROD&&d.pst)?pstBadge(d.pst):''}</div>
         <div class="y24">${fmtH(d.h24)}${catBadges(d.c24)}</div>
         <div class="y25">${fmtH(d.h25)}${catBadges(d.c25)}</div>
         <div class="y26">${fmtH(d.s1)}${catBadges(d.c1)}</div>
@@ -847,6 +875,71 @@ function renderVendedor(){
 }
 
 // agrega por cliente entre todas as categorias (visão "Todos")
+// ===== Status do cliente em relação ao produto =====
+// O arquivo de produto traz SÓ quem já comprou. O universo (todas as cidades)
+// vem da base geral (DATA); o produto entra como marcador.
+const PSTATUS = {
+  manteve: {lab:'Manteve',        curto:'Manteve', cor:'#16A34A', desc:'comprou nos dois semestres'},
+  perdeu:  {lab:'Perdeu',         curto:'Perdeu',  cor:'#DC2626', desc:'comprou no 1S e parou no 2S'},
+  novo:    {lab:'Novo',           curto:'Novo',    cor:'#2563EB', desc:'entrou agora, só no 2S'},
+  nunca:   {lab:'Nunca comprou',  curto:'Nunca',   cor:'#7C3AED', desc:'está na carteira e nunca comprou o produto'},
+  parado:  {lab:'Sem movimento',  curto:'—',       cor:'#9AA4B5', desc:'sem compra do produto nos dois semestres'}
+};
+const PSTATUS_ORDER = ['perdeu','nunca','novo','manteve','parado'];
+
+// Mapa cliente -> status, cruzando o produto com a base geral.
+function prodStatusMap(prodKey){
+  const out = {};
+  const p = PRODS[prodKey];
+  if(!p) return out;
+
+  // 1) quem aparece no arquivo do produto
+  p.recs.forEach(d=>{
+    const k = cliKey(d);
+    const a = d.s1>0, b = d.s2>0;
+    out[k] = {
+      st: (a&&b) ? 'manteve' : (a&&!b) ? 'perdeu' : (!a&&b) ? 'novo' : 'parado',
+      s1: d.s1, s2: d.s2, noArquivo: true
+    };
+  });
+
+  // 2) quem está na carteira geral e não aparece no produto
+  DATA.forEach(d=>{
+    const k = cliKey(d);
+    if(!out[k]) out[k] = {st:'nunca', s1:0, s2:0, noArquivo:false};
+  });
+  return out;
+}
+
+// Base do produto para a tela: universo = carteira geral, marcada pelo produto.
+function baseProduto(prodKey){
+  const stMap = prodStatusMap(prodKey);
+  const p = PRODS[prodKey];
+  const porCli = {};
+  // parte da carteira geral (garante todas as cidades)
+  aggregateTodos().forEach(o=>{ porCli[cliKey(o)] = {...o}; });
+  // sobrepõe com os números do produto
+  (p ? p.recs : []).forEach(d=>{
+    const k = cliKey(d);
+    if(!porCli[k]) porCli[k] = {cod:d.cod,cli:d.cli,vend:d.vend,canal:d.canal,abc:d.abc,
+      cidade:d.cidade,uf:d.uf,h24:0,h25:0,req:d.req,sev:rec(d.req).sev};
+    const o = porCli[k];
+    o.h24=d.h24; o.h25=d.h25; o.s1=d.s1; o.s2=d.s2; o.size=d.size;
+    if(!o.req) o.req=d.req;
+  });
+  return Object.values(porCli).map(o=>{
+    const k = cliKey(o);
+    const m = stMap[k] || {st:'nunca', s1:0, s2:0};
+    o.pst = m.st;
+    if(m.st==='nunca'){ o.s1=0; o.s2=0; o.size=0; }
+    return o;
+  });
+}
+function pstBadge(st){
+  const c = PSTATUS[st]; if(!c) return '';
+  return '<span class="pst" style="--pc:'+c.cor+'" title="'+c.desc+'">'+c.curto+'</span>';
+}
+
 function aggregateTodos(){
   const map={};
   DATA.forEach(d=>{
@@ -958,7 +1051,8 @@ function kpi(l,v,s,color){
 
 // ---- listeners ----
 ['fVend','fCidade','fRec','fSort','fSem'].forEach(id=>document.getElementById(id).addEventListener('change',render));
-document.getElementById('fProd').addEventListener('change',e=>{ CURPROD=e.target.value; render(); });
+document.getElementById('fProd').addEventListener('change',e=>{ CURPROD=e.target.value; buildControls(); render(); });
+document.getElementById('fPst').addEventListener('change',render);
 document.getElementById('fSearch').addEventListener('input',render);
 document.getElementById('f360').addEventListener('click',function(){ this.classList.toggle('on'); render(); });
 document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>{
@@ -1030,12 +1124,15 @@ function storeList(){
   const cat=document.getElementById('mCat').value;
   const sem=document.getElementById('mSem').value;        // '2' (2S26, padrão) ou '1' (1S26)
   const prodKey=(document.getElementById('mProd')||{}).value||'';
-  const val=d=> sem==='1'?d.s1:d.s2;
+  // 'A' = ambos os semestres: comprado se houve venda em qualquer um dos dois
+  const val=d=> sem==='1'?d.s1 : sem==='A'?(d.s1+d.s2) : d.s2;
   let arr;
-  // Com produto selecionado, a base do mapa passa a ser a do produto.
+  // Com produto selecionado: universo = carteira geral, marcada pelo produto.
+  // (o arquivo do produto traz só compradores, então sozinho não cobre as cidades)
   if(prodKey && PRODS[prodKey]){
-    arr=PRODS[prodKey].recs.map(d=>{ const v=val(d);
-      return {cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,sel:v,ativo:v>0,q1:d.s1,q2:d.s2,size:d.size}; });
+    arr=baseProduto(prodKey).map(d=>{ const v=val(d);
+      return {cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,sel:v,ativo:v>0,
+              q1:d.s1,q2:d.s2,size:d.size,pst:d.pst}; });
     arr.forEach(s=>{ s.ll=CITY_COORDS[norm(s.cidade).toUpperCase()+'|'+(s.uf||'').toUpperCase()]; });
     SEM_COORD = arr.filter(s=>!s.ll).length;
     return arr.filter(s=>s.ll);
@@ -1052,76 +1149,80 @@ function storeList(){
   return arr.filter(s=>s.ll);
 }
 
-// Lojas ativas na categoria e SEM o produto no semestre.
-// "Ativo na categoria" = comprou no semestre (definição A).
-function oportList(){
-  const prodKey=(document.getElementById('mProd')||{}).value||'';
-  const cat=document.getElementById('mCat').value;
-  const sem=document.getElementById('mSem').value;
-  const val=d=> sem==='1'?d.s1:d.s2;
-  if(!prodKey || !PRODS[prodKey]) return [];
-
-  // quem já compra o produto no semestre
-  const comProduto=new Set(PRODS[prodKey].recs.filter(d=>val(d)>0).map(cliKey));
-
-  const catBase = cat==='Todos' ? DATA : DATA.filter(d=>d.cat===cat);
-  const m={};
-  catBase.forEach(d=>{
-    const k=cliKey(d);
-    if(!m[k]) m[k]={cod:d.cod,cli:d.cli,vend:d.vend,cidade:d.cidade,uf:d.uf,catQ:0,size:0};
-    m[k].catQ+=val(d); m[k].size+=d.size;
-  });
-  const out=[];
-  Object.keys(m).forEach(k=>{
-    const o=m[k];
-    o.temProd = comProduto.has(k);
-    o.ativoCat = o.catQ>0;
-    o.oport = o.ativoCat && !o.temProd;
-    o.ativo = o.temProd;
-    o.ll=CITY_COORDS[norm(o.cidade).toUpperCase()+'|'+(o.uf||'').toUpperCase()];
-    out.push(o);
-  });
-  SEM_COORD = out.filter(o=>!o.ll).length;
-  return out.filter(o=>o.ll);
-}
 let SEM_COORD=0;
 function updateMap(fit){
   const vend=document.getElementById('mVend').value;
   const status=document.getElementById('mStatus').value;
   const mode=document.getElementById('mMode').value;
-  const semLab=document.getElementById('mSem').value==='1'?'1S26':'2S26';
+  const semVal=document.getElementById('mSem').value;
+  const ambos=semVal==='A';
+  const semLab=ambos?'1S+2S':(semVal==='1'?'1S26':'2S26');
   const prodKey=(document.getElementById('mProd')||{}).value||'';
   const prodNome=(prodKey&&PRODS[prodKey])?PRODS[prodKey].nome:'';
 
-  if(mode==='oport'){ desenharOportunidade(vend,semLab,prodKey,prodNome,fit); return; }
+  {
+    const mp=document.getElementById('mPst');
+    if(mp){
+      const on = mode==='oport' && !!prodKey;
+      mp.style.display = on ? '' : 'none';
+      if(on && !mp.options.length){
+        mp.innerHTML='<option value="">Todos os status</option>'+
+          PSTATUS_ORDER.map(k=>'<option value="'+k+'">'+PSTATUS[k].lab+'</option>').join('');
+        mp.value='perdeu';
+      }
+    }
+  }
+  if(mode==='oport'){ desenharStatus(vend,prodKey,prodNome,fit); return; }
 
   let arr=storeList();
   if(vend) arr=arr.filter(s=>s.vend===vend);
+  // classifica cada loja pela combinação dos dois semestres
+  arr.forEach(s=>{ s.comb = (s.q1>0&&s.q2>0)?'dois' : (s.q1>0)?'caiu' : (s.q2>0)?'entrou' : 'nenhum'; });
   if(status==='sim') arr=arr.filter(s=>s.ativo);
   else if(status==='nao') arr=arr.filter(s=>!s.ativo);
+  else if(status==='dois'||status==='caiu'||status==='entrou') arr=arr.filter(s=>s.comb===status);
   if(MAP_LAYER) MAP.removeLayer(MAP_LAYER);
   MAP_LAYER=L.layerGroup().addTo(MAP);
   const DG='#16A34A', DR='#DC2626';
-  const dot=(ok,sz)=>'<span style="width:'+(sz||9)+'px;height:'+(sz||9)+'px;border-radius:50%;flex:none;display:inline-block;background:'+(ok?DG:DR)+'"></span>';
+  const dot=(ok,sz,tip)=>'<span'+(tip?' title="'+tip+'"':'')+' style="width:'+(sz||9)+'px;height:'+(sz||9)+'px;border-radius:50%;flex:none;display:inline-block;background:'+(ok?DG:DR)+'"></span>';
+  // quantidade sempre visível: funciona no celular, sem depender de hover
+  const qtdTxt=s=>'<span style="margin-left:auto;padding-left:10px;color:#8A93A3;font-size:11px;'+
+    'font-variant-numeric:tabular-nums;white-space:nowrap">'+fmtN(s.q1)+' → '+fmtN(s.q2)+'</span>';
+  const linhaLoja=s=>'<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12.5px">'+
+    dot(s.q1>0,8,'1S26: '+fmtN(s.q1)+' pares')+dot(s.q2>0,8,'2S26: '+fmtN(s.q2)+' pares')+
+    '<span style="margin-left:3px">'+s.cli+'</span>'+qtdTxt(s)+'</div>';
+  const ORD={dois:0,caiu:1,entrou:2,nenhum:3};
   if(mode==='cidade'){
     const cm={};
     arr.forEach(s=>{ const k=norm(s.cidade).toUpperCase()+'|'+s.uf; if(!cm[k]) cm[k]={ll:s.ll,cidade:s.cidade,uf:s.uf,stores:[]}; cm[k].stores.push(s); });
     Object.values(cm).forEach(c=>{
       const tot=c.stores.length, at=c.stores.filter(s=>s.ativo).length, ratio=tot?at/tot:0;
-      const col= at===tot ? '#16A34A' : at===0 ? '#DC2626' : '#F59E0B';
+      const n=k=>c.stores.filter(s=>s.comb===k).length;
+      const dois=n('dois'), caiu=n('caiu'), entrou=n('entrou'), nenhum=n('nenhum');
+      // no modo Ambos a cor mede cobertura nos dois semestres
+      const col = ambos
+        ? (dois===tot ? '#16A34A' : (dois+caiu+entrou)===0 ? '#DC2626' : '#F59E0B')
+        : (at===tot ? '#16A34A' : at===0 ? '#DC2626' : '#F59E0B');
       const r=Math.min(7+Math.sqrt(tot)*3.2,28);
-      const list=c.stores.slice().sort((a,b)=>(a.ativo-b.ativo)||a.cli.localeCompare(b.cli,'pt-BR'))
-        .map(s=>'<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12.5px">'+dot(s.q1>0,8)+dot(s.q2>0,8)+'<span style="margin-left:3px">'+s.cli+'</span></div>').join('');
-      const popup='<div style="min-width:220px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+
-        '<span style="color:#16A34A">'+at+' compraram</span> · <span style="color:#DC2626">'+(tot-at)+' não</span> · '+Math.round(ratio*100)+'% no '+semLab+
-        '<div style="font-size:10.5px;color:#888;margin-top:5px">Compra por semestre · 1S26 · 2S26</div>'+
-        '<div style="max-height:180px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
+      const list=c.stores.slice()
+        .sort((a,b)=> ambos ? (ORD[a.comb]-ORD[b.comb])||a.cli.localeCompare(b.cli,'pt-BR')
+                            : (a.ativo-b.ativo)||a.cli.localeCompare(b.cli,'pt-BR'))
+        .map(linhaLoja).join('');
+      const placar = ambos
+        ? '<span style="color:#16A34A">'+dois+' nos dois</span> · <span style="color:#DC2626">'+caiu+' só 1S</span> · '+
+          '<span style="color:#2563EB">'+entrou+' só 2S</span> · <span style="color:#8A93A3">'+nenhum+' nenhum</span>'
+        : '<span style="color:#16A34A">'+at+' compraram</span> · <span style="color:#DC2626">'+(tot-at)+' não</span> · '+Math.round(ratio*100)+'% no '+semLab;
+      const popup='<div style="min-width:250px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+placar+
+        '<div style="font-size:10.5px;color:#888;margin-top:5px">Bolinhas: 1S26 · 2S26 &nbsp;|&nbsp; pares 1S → 2S</div>'+
+        '<div style="max-height:190px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
       L.circleMarker(c.ll,{radius:r,color:'#fff',weight:1.4,fillColor:col,fillOpacity:.72})
-        .bindPopup(popup,{maxWidth:300}).addTo(MAP_LAYER);
+        .bindPopup(popup,{maxWidth:340}).addTo(MAP_LAYER);
     });
   } else {
     arr.forEach(s=>{
-      const j=jitter(s.cod||s.cli), col=s.ativo?'#16A34A':'#DC2626';
+      const j=jitter(s.cod||s.cli);
+      const col= ambos ? (s.comb==='dois'?'#16A34A':s.comb==='caiu'?'#DC2626':s.comb==='entrou'?'#2563EB':'#9AA4B5')
+                       : (s.ativo?'#16A34A':'#DC2626');
       const r=Math.min(4+Math.sqrt(s.size||0)/14,11);
       const popup='<div style="min-width:180px"><b>'+s.cli+'</b><br><span style="color:#666">'+s.cidade+' / '+s.uf+' · '+vendName(s.vend)[0]+'</span>'+
         '<div style="display:flex;gap:18px;margin-top:8px">'+
@@ -1134,10 +1235,31 @@ function updateMap(fit){
     });
   }
   const tot=arr.length, at=arr.filter(s=>s.ativo).length;
+  const cnt=k=>arr.filter(s=>s.comb===k).length;
   document.getElementById('mStats').innerHTML=
     (prodNome?'<b>'+prodNome+'</b> · ':'')+
-    '<b>'+fmtN(tot)+'</b> lojas · <span style="color:#16A34A">'+fmtN(at)+' compraram no '+semLab+'</span> · <span style="color:#DC2626">'+fmtN(tot-at)+' não</span>'+avisoCoord();
+    '<b>'+fmtN(tot)+'</b> lojas · '+
+    (ambos
+      ? '<span style="color:#16A34A">'+fmtN(cnt('dois'))+' nos dois</span> · <span style="color:#DC2626">'+fmtN(cnt('caiu'))+' só 1S</span> · '+
+        '<span style="color:#2563EB">'+fmtN(cnt('entrou'))+' só 2S</span> · <span style="color:#8A93A3">'+fmtN(cnt('nenhum'))+' nenhum</span>'
+      : '<span style="color:#16A34A">'+fmtN(at)+' compraram no '+semLab+'</span> · <span style="color:#DC2626">'+fmtN(tot-at)+' não</span>')+
+    avisoCoord();
+  atualizarLegenda(ambos, mode);
   if(fit && arr.length){ try{ MAP.fitBounds(L.latLngBounds(arr.map(s=>s.ll)).pad(0.15)); }catch(_){} }
+}
+
+// A legenda muda conforme o recorte: com "Ambos" as cores significam
+// a combinação dos dois semestres, não compra/não-compra.
+function atualizarLegenda(ambos, mode){
+  const el=document.getElementById('mLeg'); if(!el) return;
+  const p=(cor,txt,ml)=>'<span class="dot" style="background:'+cor+(ml?';margin-left:10px':'')+'"></span>'+txt;
+  if(ambos && mode==='loja'){
+    el.innerHTML=p('#16A34A','nos dois')+p('#DC2626','só 1S',1)+p('#2563EB','só 2S',1)+p('#9AA4B5','nenhum',1);
+  } else if(ambos){
+    el.innerHTML=p('#16A34A','todas nos dois')+p('#F59E0B','parcial',1)+p('#DC2626','nenhuma comprou',1);
+  } else {
+    el.innerHTML=p('#16A34A','100% compraram')+p('#F59E0B','parcial',1)+p('#DC2626','0% compraram',1);
+  }
 }
 
 // Lojas cuja cidade não está na tabela de coordenadas somem do mapa;
@@ -1146,56 +1268,66 @@ function avisoCoord(){
   return SEM_COORD ? ' · <span style="color:#B45309" title="Cidade não encontrada na tabela de coordenadas">⚠ '+fmtN(SEM_COORD)+' sem coordenada</span>' : '';
 }
 
-function desenharOportunidade(vend,semLab,prodKey,prodNome,fit){
+function desenharStatus(vend,prodKey,prodNome,fit){
   const stats=document.getElementById('mStats');
-  if(!prodKey){
-    if(MAP_LAYER) MAP.removeLayer(MAP_LAYER);
-    MAP_LAYER=L.layerGroup().addTo(MAP);
-    stats.innerHTML='<span style="color:#B45309">Selecione um produto para ver as oportunidades.</span>';
-    return;
-  }
-  let arr=oportList();
-  if(vend) arr=arr.filter(s=>s.vend===vend);
   if(MAP_LAYER) MAP.removeLayer(MAP_LAYER);
   MAP_LAYER=L.layerGroup().addTo(MAP);
+  if(!prodKey){
+    stats.innerHTML='<span style="color:#B45309">Selecione um produto para ver o status.</span>';
+    return;
+  }
+  const alvo=(document.getElementById('mPst')||{}).value||'';
+  let arr=storeList();
+  if(vend) arr=arr.filter(s=>s.vend===vend);
+  const cat=document.getElementById('mCat').value;
+  if(cat!=='Todos'){
+    const naCat=new Set(DATA.filter(d=>d.cat===cat).map(cliKey));
+    arr=arr.filter(s=>naCat.has(s.cod||s.cli));
+  }
+  const visiveis = alvo ? arr.filter(s=>s.pst===alvo) : arr;
 
-  const ROXO='#7C3AED', VERDE='#16A34A', CINZA='#9AA4B5';
-  const corDe=o=> o.oport?ROXO : o.temProd?VERDE : CINZA;
-  const mode=document.getElementById('mMode');
-
+  // agrupa por cidade; a cor e o tamanho seguem o status em foco
+  const foco = alvo || 'perdeu';
   const cm={};
-  arr.forEach(s=>{ const k=norm(s.cidade).toUpperCase()+'|'+s.uf;
+  visiveis.forEach(s=>{ const k=norm(s.cidade).toUpperCase()+'|'+s.uf;
     if(!cm[k]) cm[k]={ll:s.ll,cidade:s.cidade,uf:s.uf,stores:[]}; cm[k].stores.push(s); });
 
   Object.values(cm).forEach(c=>{
-    const op=c.stores.filter(s=>s.oport).length;
-    const tem=c.stores.filter(s=>s.temProd).length;
-    const col= op>0 ? ROXO : tem>0 ? VERDE : CINZA;
-    const r=Math.min(7+Math.sqrt(op||1)*4.2,28);          // tamanho = oportunidades
+    const cont={}; PSTATUS_ORDER.forEach(k=>cont[k]=c.stores.filter(x=>x.pst===k).length);
+    const nFoco=cont[foco]||0;
+    // cor = status predominante quando não há filtro; senão a cor do filtro
+    let corSt=foco;
+    if(!alvo){
+      corSt = PSTATUS_ORDER.find(k=>cont[k]>0) || 'parado';
+    }
+    const col=PSTATUS[corSt].cor;
+    const base = alvo ? nFoco : c.stores.length;
+    const r=Math.min(7+Math.sqrt(base||1)*3.6,28);
     const list=c.stores.slice()
-      .sort((a,b)=>(b.oport-a.oport)||a.cli.localeCompare(b.cli,'pt-BR'))
-      .map(s=>'<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12.5px">'+
-        '<span style="width:8px;height:8px;border-radius:50%;flex:none;background:'+corDe(s)+'"></span>'+
-        '<span>'+s.cli+'</span></div>').join('');
-    const popup='<div style="min-width:230px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+
-      '<span style="color:'+ROXO+'">'+op+' oportunidade'+(op===1?'':'s')+'</span> · '+
-      '<span style="color:'+VERDE+'">'+tem+' já compra'+(tem===1?'':'m')+' '+prodNome+'</span>'+
-      '<div style="font-size:10.5px;color:#888;margin-top:5px">Ativo na categoria no '+semLab+' e sem '+prodNome+'</div>'+
-      '<div style="max-height:180px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
+      .sort((a,b)=>PSTATUS_ORDER.indexOf(a.pst)-PSTATUS_ORDER.indexOf(b.pst)||a.cli.localeCompare(b.cli,'pt-BR'))
+      .map(x=>'<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12.5px">'+
+        '<span style="width:8px;height:8px;border-radius:50%;flex:none;background:'+PSTATUS[x.pst].cor+'"></span>'+
+        '<span>'+x.cli+'</span>'+
+        '<span style="margin-left:auto;color:#888;font-size:11px">'+fmtN(x.q1)+' → '+fmtN(x.q2)+'</span></div>').join('');
+    const resumo=PSTATUS_ORDER.filter(k=>cont[k]>0)
+      .map(k=>'<span style="color:'+PSTATUS[k].cor+'">'+cont[k]+' '+PSTATUS[k].lab.toLowerCase()+'</span>').join(' · ');
+    const popup='<div style="min-width:250px"><b>'+c.cidade+' / '+c.uf+'</b><br>'+resumo+
+      '<div style="font-size:10.5px;color:#888;margin-top:5px">'+prodNome+' · pares 1S26 → 2S26</div>'+
+      '<div style="max-height:190px;overflow:auto;margin-top:5px;border-top:1px solid #e6e6e6;padding-top:6px">'+list+'</div></div>';
     L.circleMarker(c.ll,{radius:r,color:'#fff',weight:1.4,fillColor:col,fillOpacity:.75})
-      .bindPopup(popup,{maxWidth:320}).addTo(MAP_LAYER);
+      .bindPopup(popup,{maxWidth:330}).addTo(MAP_LAYER);
   });
 
-  const totOp=arr.filter(s=>s.oport).length, totTem=arr.filter(s=>s.temProd).length;
-  stats.innerHTML='<b>'+prodNome+'</b> · <span style="color:'+ROXO+'">'+fmtN(totOp)+' oportunidades</span> · '+
-    '<span style="color:'+VERDE+'">'+fmtN(totTem)+' já compram</span>'+
-    (totOp===0?' <span style="color:#B45309">— nenhum cliente ativo na categoria sem o produto</span>':'')+avisoCoord();
-  const alvo=arr.filter(s=>s.oport);
-  if(fit && alvo.length){ try{ MAP.fitBounds(L.latLngBounds(alvo.map(s=>s.ll)).pad(0.15)); }catch(_){} }
+  const n=k=>arr.filter(x=>x.pst===k).length;
+  stats.innerHTML='<b>'+prodNome+'</b> · '+
+    PSTATUS_ORDER.filter(k=>n(k)>0)
+      .map(k=>'<span style="color:'+PSTATUS[k].cor+'">'+fmtN(n(k))+' '+PSTATUS[k].lab.toLowerCase()+'</span>')
+      .join(' · ')+avisoCoord();
+  if(fit && visiveis.length){ try{ MAP.fitBounds(L.latLngBounds(visiveis.map(s=>s.ll)).pad(0.15)); }catch(_){} }
 }
 document.getElementById('mapBtn').addEventListener('click',openMap);
 document.getElementById('mapClose').addEventListener('click',closeMap);
-['mCat','mProd','mVend','mSem','mStatus','mMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>updateMap(true)));
+['mCat','mProd','mPst','mVend','mSem','mStatus','mMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>updateMap(true)));
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.getElementById('mapModal').hidden) closeMap(); });
 
 // ---- paleta ----
