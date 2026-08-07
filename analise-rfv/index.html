@@ -477,9 +477,13 @@ async function handleItems(items, opts){
   if(opts.corrSem){ CORR_SEM=opts.corrSem; }
   else { const m=new Date().getMonth()+1; CORR_SEM = m<=6 ? 1 : 2; }
   CUR_LABEL = CORR_SEM===1 ? '1S26' : '2S26';
+  // A caixa de validação só faz sentido numa importação manual. Quando os
+  // dados vêm do servidor não há nada a validar, então ela nem aparece.
   const valbox=document.getElementById('valbox');
-  valbox.style.display='flex'; valbox.innerHTML='';
-  {
+  const mostrarVal = opts.source!=='server';
+  valbox.innerHTML='';
+  valbox.style.display = mostrarVal ? 'flex' : 'none';
+  if(mostrarVal){
     const x=document.createElement('button');
     x.className='vclose'; x.type='button'; x.textContent='×'; x.title='Fechar';
     x.onclick=()=>{ valbox.style.display='none'; };
@@ -556,7 +560,12 @@ async function handleItems(items, opts){
       if(okProds) p.push(prodNew.map(x=>x.nome+' ('+x.recs.length+' clientes)').join(', '));
       toast('Importado: '+p.join(' · ')+' — clique em Publicar para enviar a todos');
       const vb=document.getElementById('valbox');
-      if(vb) setTimeout(()=>{ try{ vb.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){} },80);
+      if(vb){
+        setTimeout(()=>{ try{ vb.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){} },80);
+        // Sem erro na lista, a confirmação se apaga sozinha; com erro, fica
+        // na tela até o usuário fechar no ×.
+        if(!vb.querySelector('.val-bad')) setTimeout(()=>{ vb.style.display='none'; },6000);
+      }
     }
   }
 }
