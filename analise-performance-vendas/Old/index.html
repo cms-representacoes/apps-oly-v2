@@ -62,6 +62,15 @@
     border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:8px 14px}
   .btn:hover{border-color:#CBD2DC}
   .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* tela cheia */
+  #fsBtn{background:color-mix(in srgb, var(--ftw) 14%, transparent);
+    border-color:color-mix(in srgb, var(--ftw) 45%, transparent);color:var(--ftw);
+    display:inline-flex;align-items:center;gap:7px;font-weight:700}
+  #fsBtn:hover{background:color-mix(in srgb, var(--ftw) 24%, transparent);
+    border-color:var(--ftw)}
+  #fsBtn svg{width:14px;height:14px;flex:none}
+  body.is-fs .hide-fs{display:none!important}
+  body.is-fs{overflow-y:auto}
   #exportBtn{background:#7C3AED;color:#fff;border-color:#7C3AED}
   #exportBtn:hover{background:#6D28D9;border-color:#6D28D9}
 
@@ -205,7 +214,8 @@
     .ccp-pct{font-size:26px}
     .ccp-st{font-size:16px}
   }
-  .upd{font-size:11px;color:var(--mute);margin:0;white-space:nowrap;flex:none}
+  .upd{font-size:11px;color:var(--mute);margin:0;white-space:nowrap;flex:none;cursor:help}
+  /* tooltips: usa o motor JS que ja existe no rodape (atributo data-tip) */
   .hero .spacer-h{flex:1;min-width:0}
 
   /* vendor cards */
@@ -322,25 +332,29 @@
       </div>
     </div>
     <span class="spacer"></span>
-    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">&larr; Portal</a>
+    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px" data-tip="Voltar para o portal de aplicativos da CMS">&larr; Portal</a>
+    <button id="fsBtn" class="btn" type="button" data-tip="Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      <span id="fsTxt">Tela cheia</span>
+    </button>
     <span id="sessaoVendedorNome" style="font-weight:700;opacity:.85;margin:0 4px"></span>
     <div class="palette" id="palette" title="Cor do tema">
       <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
       <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
     </div>
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Alternar tema claro/escuro" title="Tema claro/escuro"></button>
-    <button class="btn" id="exportBtn" type="button" hidden>Exportar Excel</button>
-    <button class="btn primary" id="loadBtn">Carregar planilha</button>
+    <button class="theme-btn hide-fs" id="themeBtn" type="button" aria-label="Alternar tema claro/escuro" data-tip="Alternar entre tema claro e escuro"></button>
+    <button class="btn hide-fs" id="exportBtn" type="button" hidden data-tip="Gera um .xlsx com exatamente o que está na tela: o período e o vendedor selecionados.">Exportar Excel</button>
+    <button class="btn primary hide-fs" id="loadBtn" data-tip="Importa o PERFORMANCE_&lt;ano&gt;.xlsx gerado pelo script e publica para todos os dispositivos.">Carregar planilha</button>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm" style="display:none">
   </div>
 
   <header class="hero">
     <h1>Análise de Performance de Vendas</h1>
     <div class="period" id="period" hidden></div>
-    <div class="upd" id="updAt" hidden></div>
+    <div class="upd" id="updAt" hidden data-tip="Data e hora em que este período foi publicado para todos os dispositivos"></div>
     <span class="spacer-h"></span>
-    <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Comparar com ano anterior</button>
-    <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden><span class="cmp-dot"></span>Consolidar tudo</button>
+    <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden data-tip="Mostra a variação contra o mesmo recorte do ano anterior (ex.: 3º trimestre de 2026 contra o de 2025)."><span class="cmp-dot"></span>Comparar com ano anterior</button>
+    <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden data-tip="Soma todos os vendedores num único relatório, em vez de mostrar um card para cada um."><span class="cmp-dot"></span>Consolidar tudo</button>
     <div class="vend-tabs" id="vendTabs" hidden></div>
   </header>
 
@@ -385,6 +399,40 @@
 </div>
 
 <script>
+// ── Tela cheia ───────────────────────────────────────────────────────────────
+// Usa a Fullscreen API. Em tela cheia esconde o que é navegação (.hide-fs),
+// porque o vendedor costuma deixar aberto numa TV ou monitor auxiliar.
+(function(){
+  const btn=document.getElementById('fsBtn');
+  if(!btn) return;
+  const txt=document.getElementById('fsTxt');
+  const suportado = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if(!suportado){ btn.hidden=true; return; }
+
+  function entrar(){
+    const el=document.documentElement;
+    (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
+  }
+  function sair(){
+    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
+  }
+  const ativo=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+
+  btn.onclick=()=>{ ativo()?sair():entrar(); };
+
+  function sincronizar(){
+    const on=ativo();
+    document.body.classList.toggle('is-fs',on);
+    if(txt) txt.textContent = on ? 'Sair da tela cheia' : 'Tela cheia';
+    btn.setAttribute('data-tip', on
+      ? 'Voltar ao modo normal. Atalho: Esc'
+      : 'Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc');
+  }
+  document.addEventListener('fullscreenchange',sincronizar);
+  document.addEventListener('webkitfullscreenchange',sincronizar);
+  sincronizar();
+})();
+
 // ── SSO do Portal ────────────────────────────────────────────────────────────
 function getPortalSession(){
   try{
@@ -690,10 +738,10 @@ function ccPainel(v){
   return `<div class="ccp ${st.cls}">
     <div class="ccp-top">
       <div class="ccp-left">
-        <div class="ccp-lbl">Carta campanha &middot; ${nome}</div>
+        <div class="ccp-lbl" data-tip="Critério de mix da carta campanha, apurado por trimestre.">Carta campanha &middot; ${nome}</div>
         <div class="ccp-st">${st.txt}</div>
       </div>
-      <div class="ccp-rt"><div class="ccp-pct">${fmtPct(ccPart(v))}</div><div class="ccp-meta">meta ${fmtPct(CC_META)}</div></div>
+      <div class="ccp-rt" data-tip="Demais faixas ÷ FTW Olympikus no trimestre. A marca na barra é a meta de ${fmtPct(CC_META)}."><div class="ccp-pct">${fmtPct(ccPart(v))}</div><div class="ccp-meta">meta ${fmtPct(CC_META)}</div></div>
     </div>
     <div class="ccp-track"><div class="ccp-fill" style="width:${w.toFixed(1)}%"></div><div class="ccp-mark"></div></div>
     <div class="ccp-foot">
@@ -709,8 +757,8 @@ function ccCards(vendors){
   const ok=sts.filter(x=>x.cls==='cc-ok').length;
   const n=vendors.length;
   return `<div class="cc-cards">
-    <div class="cc-card cc-ok"><div class="lbl">Elegíveis</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
-    <div class="cc-card cc-low"><div class="lbl">Não elegíveis</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
+    <div class="cc-card cc-ok" data-tip="Vendedores com índice Demais / FTW igual ou acima da meta no trimestre."><div class="lbl">Elegíveis</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
+    <div class="cc-card cc-low" data-tip="Vendedores abaixo da meta de mix no trimestre."><div class="lbl">Não elegíveis</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
     <div class="cc-card"><div class="lbl">Meta trimestral</div><div class="val">${fmtPct(CC_META)}</div></div>
   </div>
   <div class="cc-note">Demais faixas sobre FTW Olympikus, no trimestre. Elegibilidade pelo critério de mix; a carta campanha considera outros requisitos.</div>`;
@@ -795,22 +843,22 @@ function render(vendors){
       <header class="vhead">
         ${idx}
         <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2>${(ccVisivel()&&IS_ADMIN_LIKE)?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).curto}</span>`:''}</div>
-        <div class="vkpi vkpi-total"><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
-        <div class="vkpi vkpi-pares"><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
-        <div class="vkpi"><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
+        <div class="vkpi vkpi-total" data-tip="Soma de FTW Olympikus + meias, acessórios, confecção, chinelos e Under Armour no período."><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
+        <div class="vkpi vkpi-pares" data-tip="Quantidade total de itens no período, somando todas as faixas."><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
+        <div class="vkpi" data-tip="Índice de diversificação: tudo que não é tênis Olympikus dividido pelo FTW. É o critério de mix da carta campanha (meta 15%)."><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
       </header>
       <div class="catgrid">
         <div class="catrow head">
           <div class="catlabel">Faixa</div>
-          <div class="cbar">Proporção visual <span class="basenote">(FTW = trilha cheia)</span></div>
-          <div class="cqtd">Qtd (pares)</div>
+          <div class="cbar" data-tip="Cada barra é comparada ao FTW Olympikus, que ocupa a trilha inteira.">Proporção visual <span class="basenote">(FTW = trilha cheia)</span></div>
+          <div class="cqtd" data-tip="Quantidade de itens faturados + em carteira no período.">Qtd (pares)</div>
           <div class="cval">Faturamento</div>
-          <div class="crel">% vs FTW</div>
-          <div class="cmix">% do total</div>
+          <div class="crel" data-tip="Valor da faixa dividido pelo FTW Olympikus.">% vs FTW</div>
+          <div class="cmix" data-tip="Participação da faixa no faturamento total do vendedor. A soma das faixas dá 100%.">% do total</div>
         </div>
         ${rows}
         <div class="catrow sumrow">
-          <div class="catlabel"><span class="dot dot-sum"></span><span class="cname">Todas as faixas somadas</span><span class="csub">exceto FTW</span></div>
+          <div class="catlabel" data-tip="Soma de meias, acessórios, confecção, chinelos e Under Armour. É o numerador do índice Demais / FTW."><span class="dot dot-sum"></span><span class="cname">Todas as faixas somadas</span><span class="csub">exceto FTW</span></div>
           <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-sum" style="width:${sumW.toFixed(1)}%"></div></div></div>
           <div class="cqtd">${fmtQtd(v.demais_q)}${qtySelo(v.demais_q, v.demais_q_ly, prevYear, prevYearShort)}</div>
           <div class="cval">${fmtBRL(v.demais_v)}${valSelo(v.demais_v, v.demais_v_ly, prevYear, prevYearShort)}</div>
@@ -854,8 +902,8 @@ function render(vendors){
       <div class="block"><h3>Visão consolidada · ranking por diversificação</h3>
         ${ccOn?ccCards(ranked):''}
         <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
-          <th class="r h-ftw">FTW Olympikus</th><th class="r h-demais">Demais faixas</th>
-          <th class="r ratio-h">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h">Carta campanha</th>':''}</tr></thead>
+          <th class="r h-ftw" data-tip="Faturamento de tênis Olympikus no período.">FTW Olympikus</th><th class="r h-demais" data-tip="Meias + acessórios + confecção + chinelos + Under Armour.">Demais faixas</th>
+          <th class="r ratio-h" data-tip="Demais faixas dividido pelo FTW. O ranking é ordenado por este índice.">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h" data-tip="Elegibilidade pelo critério de mix: índice igual ou acima de '+fmtPct(CC_META)+' no trimestre. A carta campanha considera outros requisitos.">Carta campanha</th>':''}</tr></thead>
           <tbody>${crows}</tbody></table></div>
       <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
   }
@@ -973,10 +1021,10 @@ function buildControls(){
   const ano = (CURRENT_KEY && PERIODS[CURRENT_KEY]) ? PERIODS[CURRENT_KEY].ano : anos[0];
   const ops = opcoesDoAno(ano);
   el.innerHTML =
-    '<div class="pgroup"><label>Ano</label><select id="selAno">'+
+    '<div class="pgroup"><label data-tip="Ano-base do relatório. O comparativo usa sempre o ano imediatamente anterior.">Ano</label><select id="selAno" data-tip="Trocar o ano recarrega o período selecionado.">'+
       anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+
     '</select></div>'+
-    '<div class="pgroup"><label>Período</label><select id="selRec">'+
+    '<div class="pgroup"><label data-tip="Recorte dentro do ano: completo, semestre, trimestre ou um mês específico. Só aparecem os recortes com dados importados.">Período</label><select id="selRec" data-tip="A troca é instantânea: os meses do recorte são somados na hora.">'+
       ops.map(o=>'<option value="'+o.val+'"'+(o.val===CURRENT_SEL?' selected':'')+'>'+o.label+'</option>').join('')+
     '</select></div>';
   el.hidden=false;

@@ -13,7 +13,7 @@
   :root{
     --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
     --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
-    --ftw:#E0A100; --ftw-lite:#F4C430; --meias:#4C6EF5; --acess:#15AABF; --conf:#7950F2;
+    --ftw:#7C3AED; --ftw-lite:#A78BFA; --ftw-ink:#FFFFFF; --meias:#4C6EF5; --acess:#15AABF; --conf:#7950F2;
     --chinelos:#0CA678; --ua:#2B2E33; --sum:#0E1726;
   }
   [data-theme="dark"]{
@@ -21,13 +21,12 @@
     --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
     --ua:#6B7280; --sum:#8A93A3;
   }
-  [data-theme="dark"] .btn.primary{background:var(--ftw);color:#23170A;border-color:var(--ftw)}
-  [data-theme="dark"] .who .tag{background:var(--ftw);color:#23170A}
+  [data-theme="dark"] .btn.primary{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
+  [data-theme="dark"] .who .tag{background:var(--ftw);color:var(--ftw-ink)}
   [data-theme="dark"] .toast{background:var(--card);color:var(--ink);border:1px solid var(--line)}
   [data-theme="dark"] .tipbox{background:#222A37;color:#E8EBF1;border:1px solid #39435A}
-  [data-theme="dark"] .drop.drag{background:rgba(224,161,0,.10)}
+  [data-theme="dark"] .drop.drag{background:rgba(124,58,237,.12)}
   [data-theme="dark"] .fill-sum{background:linear-gradient(90deg,#8A93A3,#5B6678)}
-  [data-theme="dark"] .swatch{border-color:var(--card)}
   [data-theme="dark"] .selo-up,[data-theme="dark"] .vkpi-cmp.up{color:#34D399}
   [data-theme="dark"] .selo-down,[data-theme="dark"] .vkpi-cmp.down{color:#F2868B}
   [data-theme="dark"] .cms-logo{box-shadow:0 4px 14px rgba(124,58,237,.4)}
@@ -35,6 +34,8 @@
     border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;
     width:38px;height:38px;display:grid;place-items:center;padding:0}
   .theme-btn:hover{border-color:#CBD2DC}
+  .iconbtn{width:38px;height:38px;padding:0;display:grid;place-items:center;flex:none}
+  .iconbtn svg{width:17px;height:17px}
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);
     font-family:"Inter",system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -51,12 +52,6 @@
   .brand-txt{display:flex;flex-direction:column;line-height:1.18;min-width:0}
   .brand-name{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:16px;color:var(--ink);letter-spacing:-.01em}
   .brand-sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
-  .palette{display:flex;align-items:center;gap:7px}
-  .swatch{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);
-    cursor:pointer;padding:0;transition:box-shadow .15s}
-  .swatch[data-accent="gold"]{background:#E0A100}
-  .swatch[data-accent="purple"]{background:#7C3AED}
-  .swatch.active{box-shadow:0 0 0 2px var(--ink)}
   .topbar .spacer{flex:1}
   .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
     border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:8px 14px}
@@ -79,8 +74,8 @@
     display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap}
   .eyebrow{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:.18em;
     text-transform:uppercase;font-size:12px;color:var(--ftw);margin:0 0 16px}
-  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(19px,2.2vw,26px);
-    line-height:1.1;letter-spacing:-.02em;margin:0;flex:none}
+  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:clamp(14px,1.5vw,17px);
+    line-height:1.1;letter-spacing:-.01em;margin:0;flex:none;color:var(--slate)}
   .lede{color:var(--slate);max-width:64ch;margin:0;font-size:16px}
   .lede code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 7px;
     font-family:"Space Grotesk",sans-serif;font-size:13px;color:var(--navy)}
@@ -109,6 +104,13 @@
   .cmp-toggle.on{color:var(--navy);border-color:var(--ftw)}
   .cmp-toggle.on .cmp-dot{background:var(--ftw)}
   .cmp-toggle[hidden]{display:none}
+  /* Botão Filtros: por padrão a tela mostra só Ano + Período.
+     Comparar, Consolidar, abas de vendedor e os KPIs dos cards
+     só aparecem com os filtros abertos (estado no localStorage). */
+  body:not(.filtros-on) #cmpToggle,
+  body:not(.filtros-on) #consToggle,
+  body:not(.filtros-on) #vendTabs,
+  body:not(.filtros-on) .vkpi{display:none !important}
   .selo{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;margin-top:2px}
   .selo-up{color:#0CA678}
   .selo-down{color:#C92A2A}
@@ -290,7 +292,6 @@
     .topbar{gap:10px;flex-wrap:wrap}
     .topbar .spacer{display:none}
     .brand{flex:1 1 100%}
-    .palette{margin-left:auto}
     .btn{padding:8px 12px}
     .hero{padding:18px 0 14px;gap:10px 14px}
 
@@ -333,24 +334,23 @@
     </div>
     <span class="spacer"></span>
     <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px" data-tip="Voltar para o portal de aplicativos da CMS">&larr; Portal</a>
-    <button id="fsBtn" class="btn" type="button" data-tip="Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc">
+    <button id="fsBtn" class="btn iconbtn" type="button" aria-label="Tela cheia" data-tip="Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-      <span id="fsTxt">Tela cheia</span>
     </button>
-    <span id="sessaoVendedorNome" style="font-weight:700;opacity:.85;margin:0 4px"></span>
-    <div class="palette" id="palette" title="Cor do tema">
-      <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
-      <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
-    </div>
     <button class="theme-btn hide-fs" id="themeBtn" type="button" aria-label="Alternar tema claro/escuro" data-tip="Alternar entre tema claro e escuro"></button>
-    <button class="btn hide-fs" id="exportBtn" type="button" hidden data-tip="Gera um .xlsx com exatamente o que está na tela: o período e o vendedor selecionados.">Exportar Excel</button>
-    <button class="btn primary hide-fs" id="loadBtn" data-tip="Importa o PERFORMANCE_&lt;ano&gt;.xlsx gerado pelo script e publica para todos os dispositivos.">Carregar planilha</button>
+    <button class="btn iconbtn hide-fs" id="exportBtn" type="button" hidden aria-label="Exportar Excel" data-tip="Exportar Excel: gera um .xlsx com exatamente o que está na tela — o período e o vendedor selecionados.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    </button>
+    <button class="btn primary iconbtn hide-fs" id="loadBtn" aria-label="Carregar planilha" data-tip="Carregar planilha: importa o PERFORMANCE_&lt;ano&gt;.xlsx gerado pelo script e publica para todos os dispositivos.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    </button>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm" style="display:none">
   </div>
 
   <header class="hero">
     <h1>Análise de Performance de Vendas</h1>
     <div class="period" id="period" hidden></div>
+    <button class="cmp-toggle" id="filtrosBtn" type="button" aria-pressed="false" hidden data-tip="Mostra ou esconde os filtros extras (comparar, consolidar, abas de vendedor) e os KPIs dos cards."><span class="cmp-dot"></span>Filtros</button>
     <div class="upd" id="updAt" hidden data-tip="Data e hora em que este período foi publicado para todos os dispositivos"></div>
     <span class="spacer-h"></span>
     <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden data-tip="Mostra a variação contra o mesmo recorte do ano anterior (ex.: 3º trimestre de 2026 contra o de 2025)."><span class="cmp-dot"></span>Comparar com ano anterior</button>
@@ -760,8 +760,7 @@ function ccCards(vendors){
     <div class="cc-card cc-ok" data-tip="Vendedores com índice Demais / FTW igual ou acima da meta no trimestre."><div class="lbl">Elegíveis</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
     <div class="cc-card cc-low" data-tip="Vendedores abaixo da meta de mix no trimestre."><div class="lbl">Não elegíveis</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
     <div class="cc-card"><div class="lbl">Meta trimestral</div><div class="val">${fmtPct(CC_META)}</div></div>
-  </div>
-  <div class="cc-note">Demais faixas sobre FTW Olympikus, no trimestre. Elegibilidade pelo critério de mix; a carta campanha considera outros requisitos.</div>`;
+  </div>`;
 }
 
 function ratioCmp(v, prevYear){
@@ -889,7 +888,7 @@ function render(vendors){
       const bw=c.ratio/maxRatio*100;
       crows+=`<tr>
         <td class="rk">${String(i+1).padStart(2,'0')}</td>
-        <td class="who"><span class="tag">${c.key}</span><span class="full">${c.nome}</span></td>
+        <td class="who"><span class="tag">${firstName(c)}</span></td>
         <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
         <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
         <td class="ratio-cell"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c, prevYearShort)}</div></td>
@@ -912,6 +911,7 @@ function render(vendors){
   document.getElementById('footer').style.display='flex';
   document.getElementById('cmpToggle').hidden=false;
   document.getElementById('consToggle').hidden=!IS_ADMIN_LIKE;
+  const _fb=document.getElementById('filtrosBtn'); if(_fb) _fb.hidden=false;
 }
 
 let _toastT;
@@ -1176,22 +1176,30 @@ const drop=document.getElementById('empty');
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
 drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) readFile(f); });
 
-// paleta de cores do tema (dourado / roxo)
-const ACCENTS={ gold:{a:'#E0A100',l:'#F4C430'}, purple:{a:'#7C3AED',l:'#A78BFA'} };
-function applyAccent(key){
-  const c=ACCENTS[key]||ACCENTS.gold;
-  document.documentElement.style.setProperty('--ftw', c.a);
-  document.documentElement.style.setProperty('--ftw-lite', c.l);
-  document.documentElement.style.setProperty('--ftw-ink', key==='purple'?'#FFFFFF':'#23170A');
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active', s.dataset.accent===key));
-  try{ localStorage.setItem(LS_ACCENT, key); }catch(_){}
-}
-document.querySelectorAll('.swatch').forEach(s=> s.onclick=()=>applyAccent(s.dataset.accent));
-(function(){ let k='gold'; try{ k=localStorage.getItem(LS_ACCENT)||'gold'; }catch(_){} applyAccent(k); })();
+// ── Botão Filtros ────────────────────────────────────────────────────────────
+// Liga/desliga os controles extras e os KPIs. O padrão é escondido, porque a
+// tela roda sozinha (atualização autônoma) e quase sempre é só consulta.
+const LS_FILTROS='apv_filtros_on';
 (function(){
-  const el=document.getElementById('sessaoVendedorNome');
-  if(el && PORTAL_SESSION) el.textContent = PORTAL_SESSION.nome || '';
+  const b=document.getElementById('filtrosBtn'); if(!b) return;
+  function aplicar(on){
+    document.body.classList.toggle('filtros-on', on);
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on?'true':'false');
+  }
+  let on=false; try{ on=localStorage.getItem(LS_FILTROS)==='1'; }catch(_){}
+  aplicar(on);
+  b.onclick=()=>{ on=!on; aplicar(on); try{ localStorage.setItem(LS_FILTROS, on?'1':'0'); }catch(_){} };
 })();
+
+// tema fixo em roxo (a paleta dourada foi aposentada)
+(function(){
+  document.documentElement.style.setProperty('--ftw', '#7C3AED');
+  document.documentElement.style.setProperty('--ftw-lite', '#A78BFA');
+  document.documentElement.style.setProperty('--ftw-ink', '#FFFFFF');
+  try{ localStorage.setItem(LS_ACCENT, 'purple'); }catch(_){}
+})();
+
 
 // tema claro/escuro (padrão: escuro)
 const LS_THEME='apv_theme';
