@@ -536,9 +536,11 @@ async function handleItems(items, opts){
     updatePubUI();
     atualizarBaseInfo();
 
-    // Os seletores de Produto/Status ficam na linha de filtros. Se ela estiver
-    // recolhida, o usuário importa e não vê nada aparecer — então reabrimos.
-    if(prodNew.length){
+    // Os seletores de Produto/Status ficam na linha de filtros. Numa IMPORTAÇÃO
+    // MANUAL com produto novo, reabrimos para o usuário ver o resultado na hora.
+    // No carregamento normal (dados do servidor), os filtros ficam recolhidos —
+    // vale para o CMS e para os vendedores.
+    if(prodNew.length && opts.source!=='server'){
       const ui=lerUI();
       if(ui.filtrosOff){ ui.filtrosOff=false; salvarUI(ui); aplicarUI(); }
     }
