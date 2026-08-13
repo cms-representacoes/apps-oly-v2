@@ -899,7 +899,7 @@ function render(vendors){
     let secs='';
     ranked.forEach((v,idx)=>{ secs+=vendorSection(v, String(idx+1).padStart(2,'0')); });
     document.getElementById('report').innerHTML=`
-      <div class="block"><h3>Visão consolidada · ranking por diversificação</h3>
+      <div class="block"><h3>Visão consolidada</h3>
         ${ccOn?ccCards(ranked):''}
         <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
           <th class="r h-ftw" data-tip="Faturamento de tênis Olympikus no período.">FTW Olympikus</th><th class="r h-demais" data-tip="Meias + acessórios + confecção + chinelos + Under Armour.">Demais faixas</th>
