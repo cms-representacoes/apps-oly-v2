@@ -159,7 +159,7 @@
   .vtitle{flex:1;min-width:140px}
   .vtag{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ftw)}
   .vtitle h2{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:600;margin:2px 0 0}
-  .vkpi{text-align:right}
+  .vkpi{text-align:right;align-self:flex-start}
   .vkpi .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
   .vkpi .v{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;line-height:1.1}
   .vkpi .s{font-size:11px;color:var(--slate)}
@@ -818,6 +818,9 @@ function aplicarUI(){
   if(bk){ bk.classList.toggle('off', !!ui.kpisOff); }
 }
 function ligarToggles(){
+  // O relatório sempre abre com os filtros recolhidos — quem quiser mexer,
+  // abre pelo botão. O toggle continua valendo durante a sessão.
+  const _ui=lerUI(); _ui.filtrosOff=true; salvarUI(_ui);
   const bf=document.getElementById('tglFiltros');
   const bk=document.getElementById('tglKpis');
   if(bf) bf.onclick=()=>{ const ui=lerUI(); ui.filtrosOff=!ui.filtrosOff; salvarUI(ui); aplicarUI(); };
@@ -922,7 +925,7 @@ function renderVendedor(){
         <div class="vhead">
           <div class="vindex">${String(idx+1).padStart(2,'0')}</div>
           <div class="vtitle"><span class="vtag">${tag} · ${CURCAT}</span><h2>${full}</h2></div>
-          <div class="vkpi"><div class="l">Clientes</div><div class="v" style="color:var(--ftw)">${fmtN(total)}</div></div>
+          <div class="vkpi"><div class="l">Clientes</div><div class="v" style="color:var(--ftw)">${fmtN(total)}</div><div class="s">100%</div></div>
           <div class="vkpi"><div class="l">Compraram ${semLab}</div><div class="v" style="color:var(--green)">${fmtN(at)}</div><div class="s">${total?Math.round(at*100/total):0}%</div></div>
           <div class="vkpi"><div class="l">Sem comprar ${semLab}</div><div class="v" style="color:var(--red)">${fmtN(inat)}</div><div class="s">${total?Math.round(inat*100/total):0}%</div></div>
         </div>
