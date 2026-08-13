@@ -57,7 +57,7 @@
 
   /* hero */
   .hero{padding:44px 0 28px;border-bottom:1px solid var(--line)}
-  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(26px,4vw,38px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
+  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:clamp(15px,1.6vw,18px);line-height:1.15;letter-spacing:-.01em;margin:0 0 6px;color:var(--slate)}
   .lede{color:var(--slate);max-width:70ch;margin:0;font-size:15px}
 
   /* import */
@@ -579,13 +579,23 @@ async function publish(){
   if(PUBLISHING) return;
   if(!Object.keys(RAW_FILES).length) return;
   PUBLISHING=true; updatePubUI();
+  // corpo montado antes do fetch para medirmos o tamanho — se o envio for
+  // grande demais para o Worker/KV, é aqui que a publicação começa a falhar
+  const body=JSON.stringify({ action:'saveRfv', data:{ files:RAW_FILES, corrSem:CORR_SEM } });
+  const kb=Math.round(body.length/1024);
+  console.log('[RFV] publicando '+Object.keys(RAW_FILES).length+' arquivo(s), payload de '+kb+' KB');
   try{
-    const res=await fetch(WORKER_URL,{ method:'PATCH', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'saveRfv', data:{ files:RAW_FILES, corrSem:CORR_SEM } }) });
+    const res=await fetch(WORKER_URL,{ method:'PATCH', headers:{'Content-Type':'application/json'}, body });
     const j=await res.json().catch(()=>({}));
     if(res.ok && j && j.success!==false){ PUB_DIRTY=false; PUBLISHED_AT=(j&&j.updatedAt)||new Date().toISOString(); }
-    else { alert('Não foi possível publicar. Tente novamente.'); }
-  }catch(e){ alert('Falha de conexão ao publicar. Tente novamente.'); }
+    else {
+      console.error('[RFV] publicação recusada', res.status, j);
+      alert('Não foi possível publicar (HTTP '+res.status+((j&&j.error)?' · '+j.error:'')+').\nEnvio de '+kb+' KB. Veja o console (F12) para detalhes.');
+    }
+  }catch(e){
+    console.error('[RFV] falha de conexão ao publicar', e);
+    alert('Falha de conexão ao publicar.\nEnvio de '+kb+' KB · '+(e&&e.message?e.message:e)+'\nSe o tamanho passou de ~25.000 KB, o limite do KV do Worker foi estourado. Veja o console (F12).');
+  }
   PUBLISHING=false; updatePubUI();
 }
 function parseRows(rows,hi,cat,cols){
