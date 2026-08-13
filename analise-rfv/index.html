@@ -36,21 +36,17 @@
   .brand-name{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
   .brand-sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
   .spacer{flex:1}
-  .palette{display:flex;align-items:center;gap:7px}
-  .swatch{width:18px;height:18px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
-  .swatch[data-accent="gold"]{background:#E0A100}
-  .swatch[data-accent="purple"]{background:#7C3AED}
-  .swatch.active{box-shadow:0 0 0 2px var(--ink)}
   .theme-btn,.btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px}
   .theme-btn{width:38px;height:38px;display:grid;place-items:center;padding:0}
   .btn{padding:8px 14px}
+  .iconbtn{width:38px;height:38px;padding:0;display:grid;place-items:center;flex:none}
+  .iconbtn svg{width:17px;height:17px}
   .btn.primary{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
   /* tela cheia */
   #fsBtn{background:color-mix(in srgb, var(--ftw) 14%, transparent);
-    border-color:color-mix(in srgb, var(--ftw) 45%, transparent);color:var(--ftw);
-    display:inline-flex;align-items:center;gap:7px;font-weight:700}
+    border-color:color-mix(in srgb, var(--ftw) 45%, transparent);color:var(--ftw);font-weight:700}
   #fsBtn:hover{background:color-mix(in srgb, var(--ftw) 24%, transparent);border-color:var(--ftw)}
-  #fsBtn svg{width:14px;height:14px;flex:none}
+  #fsBtn svg{width:17px;height:17px;flex:none}
   body.is-fs .hide-fs{display:none!important}
   .btn.pub{background:#7C3AED;color:#fff;border-color:#7C3AED}
   .btn.pub:hover{background:#6D28D9;border-color:#6D28D9;filter:none}
@@ -147,7 +143,10 @@
   .leaflet-popup-content{font-family:"Inter",sans-serif;font-size:13px}
 
   /* category summary */
-  .catsum{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 4px}
+  /* KPIs desativados por decisão de layout (13/08/26). O código de cálculo e
+     renderização continua intacto — para reativar, troque o display para flex
+     e devolva o botão #tglKpis na linha de controles. */
+  .catsum{display:none !important}
   .ksum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;min-width:150px}
   .ksum .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
   .ksum .v{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:700;margin-top:2px}
@@ -235,20 +234,17 @@
       <div class="brand-txt"><span class="brand-name">CMS Representações</span><span class="brand-sub">Olympikus · Under Armour</span></div>
     </div>
     <span class="spacer"></span>
-    <div class="palette hide-fs" id="palette" title="Cor do tema">
-      <button class="swatch" data-accent="gold" aria-label="Tema dourado"></button>
-      <button class="swatch" data-accent="purple" aria-label="Tema roxo"></button>
-    </div>
     <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none" title="Voltar ao Portal">
       <span>← Portal</span>
     </a>
-    <button id="fsBtn" class="btn" type="button" title="Abre o relatório em tela cheia, sem as barras do navegador (Esc para sair)">
+    <button id="fsBtn" class="btn iconbtn" type="button" aria-label="Tela cheia" title="Abre o relatório em tela cheia, sem as barras do navegador (Esc para sair)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-      <span id="fsTxt">Tela cheia</span>
     </button>
     <button class="theme-btn hide-fs" id="themeBtn" type="button" aria-label="Tema claro/escuro"></button>
-    <button class="btn primary hide-fs" id="importBtn">Importar arquivos</button>
-    <button class="btn pub hide-fs" id="pubBtn" type="button" hidden>Publicar</button>
+    <button class="btn primary iconbtn hide-fs" id="importBtn" aria-label="Importar arquivos" title="Importar arquivos: os relatórios RFV (.xlsx) de todas as categorias de uma vez">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    </button>
+    <button class="btn pub iconbtn hide-fs" id="pubBtn" type="button" hidden aria-label="Publicar"></button>
     <span class="pubstatus" id="pubStatus" hidden></span>
     <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
   </div>
@@ -267,10 +263,10 @@
 
   <section id="controls" style="display:none">
     <div class="ctrls">
-      <div class="viewseg" id="viewseg">
-        <button class="vbtn on" data-view="vendedor" type="button">Por vendedor</button>
-        <button class="vbtn" data-view="resumo" type="button" title="Matriz de categorias por cliente">Por cliente</button>
-      </div>
+      <div class="fgroup"><label>Visão</label><select id="viewSel" title="Por vendedor: lista com histórico. Por cliente: matriz de categorias.">
+        <option value="vendedor" selected>Por vendedor</option>
+        <option value="resumo">Por cliente</option>
+      </select></div>
       <div class="cat-tabs" id="catTabs"></div>
       <span class="spacer"></span>
       <input id="fSearch" class="search" type="search" placeholder="Buscar cliente, código ou cidade…" title="Busca por nome do cliente, código ou cidade">
@@ -278,11 +274,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>
         <span>Filtros</span>
       </button>
-      <button class="tgl" id="tglKpis" type="button" title="Mostrar/ocultar os indicadores">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
-        <span>KPIs</span>
-      </button>
-      <span class="baseinfo" id="baseInfo" hidden></span>
       <button class="btn mapbtn" id="mapBtn" type="button" title="Mapa de cobertura">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Ver no Mapa
@@ -576,10 +567,13 @@ function updatePubUI(){
   const has=Object.keys(RAW_FILES).length>0;
   if(!has){ btn.hidden=true; st.hidden=true; return; }
   btn.hidden=false; st.hidden=false;
-  if(PUBLISHING){ btn.textContent='Publicando…'; btn.disabled=true; btn.classList.remove('done'); st.textContent='enviando ao servidor'; return; }
+  // só ícone: nuvem com seta = publicar; check = publicado. O title explica o estado.
+  const IC_UP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 0 0 .6-8.96A7 7 0 0 0 4.4 12.1 3.5 3.5 0 0 0 6.5 19"/><path d="M12 12v7m0-7l-3 3m3-3l3 3"/></svg>';
+  const IC_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+  if(PUBLISHING){ btn.innerHTML=IC_UP; btn.title='Publicando…'; btn.disabled=true; btn.classList.remove('done'); st.textContent='enviando ao servidor'; return; }
   btn.disabled=false;
-  if(PUB_DIRTY){ btn.textContent='Publicar'; btn.classList.remove('done'); st.textContent='alterações locais não publicadas'; }
-  else { btn.textContent='✓ Publicado'; btn.classList.add('done'); st.textContent=PUBLISHED_AT?('atualizado em '+fmtWhen(PUBLISHED_AT)):'publicado'; }
+  if(PUB_DIRTY){ btn.innerHTML=IC_UP; btn.title='Publicar: envia as alterações locais para todos os dispositivos'; btn.classList.remove('done'); st.textContent='alterações locais não publicadas'; }
+  else { btn.innerHTML=IC_OK; btn.title='Publicado'; btn.classList.add('done'); st.textContent=PUBLISHED_AT?('atualizado em '+fmtWhen(PUBLISHED_AT)):'publicado'; }
 }
 async function publish(){
   if(PUBLISHING) return;
@@ -1125,11 +1119,10 @@ document.getElementById('fProd').addEventListener('change',e=>{ CURPROD=e.target
 document.getElementById('fPst').addEventListener('change',render);
 document.getElementById('fSearch').addEventListener('input',render);
 document.getElementById('f360').addEventListener('click',function(){ this.classList.toggle('on'); render(); });
-document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>{
-  VIEW=b.dataset.view;
-  document.querySelectorAll('.vbtn').forEach(x=>x.classList.toggle('on',x===b));
-  render();
-}));
+(function(){
+  const sel=document.getElementById('viewSel');
+  if(sel) sel.addEventListener('change',e=>{ VIEW=e.target.value; render(); });
+})();
 function pick(){ document.getElementById('fileInput').click(); }
 document.getElementById('importBtn').onclick=pick;
 document.getElementById('importBtn2').onclick=pick;
@@ -1421,19 +1414,14 @@ document.getElementById('mapClose').addEventListener('click',closeMap);
 ['mCat','mProd','mPst','mVend','mSem','mStatus','mMode'].forEach(id=>document.getElementById(id).addEventListener('change',()=>updateMap(true)));
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.getElementById('mapModal').hidden) closeMap(); });
 
-// ---- paleta ----
+// ---- tema fixo em roxo (a paleta dourada foi aposentada) ----
 const LS_ACCENT='rfv_accent';
-function applyAccent(key){
-  const map={gold:['#E0A100','#F4C430','#23170A'],purple:['#7C3AED','#9B6BF0','#FFFFFF']};
-  const [a,b,ink]=map[key]||map.gold;
-  document.documentElement.style.setProperty('--ftw',a);
-  document.documentElement.style.setProperty('--ftw-lite',b);
-  document.documentElement.style.setProperty('--ftw-ink',ink);
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.dataset.accent===key));
-  try{localStorage.setItem(LS_ACCENT,key);}catch(_){}
-}
-document.querySelectorAll('.swatch').forEach(s=>s.addEventListener('click',()=>applyAccent(s.dataset.accent)));
-(function(){let k='gold';try{k=localStorage.getItem(LS_ACCENT)||'gold';}catch(_){}applyAccent(k);})();
+(function(){
+  document.documentElement.style.setProperty('--ftw','#7C3AED');
+  document.documentElement.style.setProperty('--ftw-lite','#9B6BF0');
+  document.documentElement.style.setProperty('--ftw-ink','#FFFFFF');
+  try{localStorage.setItem(LS_ACCENT,'purple');}catch(_){}
+})();
 
 // ---- tema ----
 const LS_THEME='rfv_theme';
