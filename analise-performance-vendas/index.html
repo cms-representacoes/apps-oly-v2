@@ -110,6 +110,7 @@
   body:not(.filtros-on) #cmpToggle,
   body:not(.filtros-on) #consToggle,
   body:not(.filtros-on) #vendTabs,
+  body:not(.filtros-on) .cc-cards,
   body:not(.filtros-on) .vkpi{display:none !important}
   .selo{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;margin-top:2px}
   .selo-up{color:#0CA678}
@@ -225,9 +226,9 @@
   .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 20px;
     margin-top:10px;box-shadow:0 1px 2px rgba(16,23,38,.03)}
   .vhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
-  .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:var(--ftw);
-    border:1px solid color-mix(in srgb, var(--ftw) 42%, transparent);
-    background:color-mix(in srgb, var(--ftw) 12%, transparent);
+  .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:#fff;
+    border:0;background:linear-gradient(135deg,#9B6BF0,#7C3AED);
+    box-shadow:0 2px 6px rgba(124,58,237,.25);
     border-radius:8px;width:28px;height:28px;display:grid;place-items:center;flex:none}
   .vtitle{flex:1;min-width:0}
   .vtag{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;
@@ -841,7 +842,7 @@ function render(vendors){
     return `<section class="vend" id="${v.key}">
       <header class="vhead">
         ${idx}
-        <div class="vtitle"><span class="vtag">${v.key}</span><h2>${v.nome}</h2>${(ccVisivel()&&IS_ADMIN_LIKE)?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).curto}</span>`:''}</div>
+        <div class="vtitle"><h2>${firstName(v)}</h2>${(ccVisivel()&&IS_ADMIN_LIKE)?`<span class="cc-badge ${ccStatus(v).cls}" style="margin-left:8px">Carta campanha: ${ccStatus(v).curto}</span>`:''}</div>
         <div class="vkpi vkpi-total" data-tip="Soma de FTW Olympikus + meias, acessórios, confecção, chinelos e Under Armour no período."><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
         <div class="vkpi vkpi-pares" data-tip="Quantidade total de itens no período, somando todas as faixas."><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
         <div class="vkpi" data-tip="Índice de diversificação: tudo que não é tênis Olympikus dividido pelo FTW. É o critério de mix da carta campanha (meta 15%)."><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
@@ -849,7 +850,7 @@ function render(vendors){
       <div class="catgrid">
         <div class="catrow head">
           <div class="catlabel">Faixa</div>
-          <div class="cbar" data-tip="Cada barra é comparada ao FTW Olympikus, que ocupa a trilha inteira.">Proporção visual <span class="basenote">(FTW = trilha cheia)</span></div>
+          <div class="cbar" data-tip="Cada barra é comparada ao FTW Olympikus, que ocupa a trilha inteira."></div>
           <div class="cqtd" data-tip="Quantidade de itens faturados + em carteira no período.">Qtd (pares)</div>
           <div class="cval">Faturamento</div>
           <div class="crel" data-tip="Valor da faixa dividido pelo FTW Olympikus.">% vs FTW</div>
