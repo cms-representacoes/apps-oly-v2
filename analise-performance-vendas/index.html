@@ -222,6 +222,7 @@
   .ccp-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11.5px;
             color:var(--mute);margin-top:7px}
   .ccp-obs{font-size:11px;color:var(--mute);opacity:.85;margin-top:4px}
+  .vmob{display:none}
   /* Em smartphone o relatório é só consulta: escondemos todos os botões
      de ação e todos os filtros (Ano, Período, Filtros). O período abre
      automaticamente no trimestre corrente, que é o que interessa na meta.
@@ -229,6 +230,47 @@
   @media (max-width:720px){
     .topbar a.btn,.topbar .btn,.topbar .theme-btn{display:none !important}
     #period,#filtrosBtn,#cmpToggle,#consToggle,#vendTabs{display:none !important}
+    .vkpi{display:none !important}
+    /* cards por vendedor: tabela sai, entra a versão em linhas */
+    .vend .catgrid{display:none}
+    .vend{padding:0;overflow:hidden}
+    .vhead{padding:12px 14px;margin-bottom:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .vhead::after{content:'▾';font-size:14px;color:var(--mute);margin-left:auto;
+      transition:transform .25s ease;flex:none}
+    .vend.open .vhead::after{transform:rotate(180deg)}
+    .vtitle{flex:1 1 auto}
+    .vtitle h2{font-size:15px}
+    .vmob{display:none;padding:0 14px 12px}
+    .vend.open .vmob{display:block}
+    /* vendedor logado (card único): já abre expandido, sem seta */
+    section.vend:only-of-type .vmob{display:block}
+    section.vend:only-of-type .vhead{cursor:default}
+    section.vend:only-of-type .vhead::after{display:none}
+    .mrow{display:flex;align-items:center;gap:6px;padding:8px 0;
+      border-bottom:1px solid var(--line-2);font-variant-numeric:tabular-nums}
+    .mrow:last-of-type{border-bottom:0}
+    .m-fx{flex:1;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--navy)}
+    .m-fx .dot{width:8px;height:8px;border-radius:2px;flex:none}
+    .m-val{width:104px;text-align:right;font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;color:var(--navy)}
+    .m-q{width:56px;text-align:right;font-size:11px;color:var(--slate)}
+    .m-p{width:48px;text-align:right;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;color:var(--ftw)}
+    .m-p.m-base{color:var(--mute);font-weight:400}
+    .m-head{padding:0 0 6px;border-bottom:1px solid var(--line-2)}
+    .m-head .m-fx,.m-head .m-val,.m-head .m-q,.m-head .m-p{font-family:"Inter",sans-serif;
+      font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+    .m-var{font-size:9.5px;font-weight:700;margin-left:4px;letter-spacing:0}
+    .m-var.up{color:#12a150}
+    .m-var.down{color:#c43d3d}
+    .m-neg{background:rgba(196,61,61,.08);margin:0 -10px;padding:8px 10px;border-radius:8px;border-bottom:1px solid var(--line-2)}
+    .m-neg .m-fx,.m-negtxt{color:#c43d3d}
+    .m-neg .m-val,.m-neg .m-q{color:#c43d3d}
+    .m-sum{background:color-mix(in srgb, var(--ftw) 8%, transparent);margin:8px -10px 0;
+      padding:9px 10px;border-radius:10px;border-bottom:0}
+    .m-sum .m-fx,.m-sum .m-val{color:var(--ftw)}
+    .m-sum .m-q{color:var(--ftw);opacity:.75}
+    .m-p.m-ok{color:#12a150}
+    .m-p.m-low{color:#c98a00}
+    .m-nota{font-size:10px;color:var(--mute);text-align:center;margin-top:8px}
 
     .ccp{padding:12px 14px}
     .ccp-pct{font-size:26px}
@@ -391,7 +433,7 @@
   const el=document.getElementById('appSplash');
   el.hidden=false;
   const inicio=Date.now();
-  const MIN=900;      // tempo mínimo p/ a animação ser percebida
+  const MIN=2600;     // um ciclo completo de pulso + brilho, sem pressa
   const MAX=6000;     // nunca fica presa, mesmo se o carregamento falhar
   window.__hideSplash=function(){
     const espera=Math.max(0, MIN-(Date.now()-inicio));
@@ -891,6 +933,22 @@ function aggregate(vendors){
   a.key='TODOS'; a.nome='Consolidado · todos os vendedores';
   return a;
 }
+// ---- layout mobile dos cards (celular: linhas compactas) ----
+const FAIXA_CURTA={ftw:'FTW',meias:'Meias',acess:'Acessórios',conf:'Confecção',chinelos:'Chinelos',ua:'UA'};
+function fmtCompact(n){
+  const neg=n<0, a=Math.abs(n||0); let s;
+  if(a>=1e6) s=(a/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' mi';
+  else if(a>=1e3) s=(a/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mil';
+  else s=Math.round(a).toLocaleString('pt-BR');
+  return (neg?'-':'')+s;
+}
+function seloVarM(cur, ly){
+  if(!ly || !isFinite(ly)) return '';
+  const d=(cur-ly)/Math.abs(ly)*100;
+  if(!isFinite(d)) return '';
+  const up=d>=0;
+  return `<span class="m-var ${up?'up':'down'}">${up?'▲':'▼'}${Math.abs(d).toFixed(0)}%</span>`;
+}
 function render(vendors){
   if(window.__hideSplash){ window.__hideSplash(); window.__hideSplash=null; }
   buildVendTabs(vendors);
@@ -901,7 +959,7 @@ function render(vendors){
   const ranked=[...vendors].sort((a,b)=>b.ratio-a.ratio);
 
   function vendorSection(v, idxLabel){
-    let rows='';
+    let rows='', mrows='';
     FAIXAS.forEach(f=>{
       const val=v[f.key], qtd=v.q[f.key], isFtw=f.key==='ftw';
       const rel=v.ftw?val/v.ftw:0, mix=v.total_v?val/v.total_v:0;
@@ -915,6 +973,16 @@ function render(vendors){
         <div class="crel ${isFtw?'is-base':''}">${isFtw?'— base —':fmtPct(rel)}</div>
         <div class="cmix">${fmtPct(mix)}</div>
       </div>`;
+      // versão mobile: uma linha por faixa; zeradas não aparecem
+      if(val || qtd){
+        const neg=val<0;
+        mrows+=`<div class="mrow${neg?' m-neg':''}">
+          <span class="m-fx"><span class="dot dot-${f.cls}"></span>${FAIXA_CURTA[f.key]||f.label}</span>
+          <span class="m-val">${fmtCompact(val)}${seloVarM(val, v.ly[f.key])}</span>
+          <span class="m-q">${fmtCompact(qtd)}</span>
+          <span class="m-p${isFtw?' m-base':''}${neg?' m-negtxt':''}">${isFtw?'—':fmtPct(rel)}</span>
+        </div>`;
+      }
     });
     const sumW=Math.min(v.ratio*100,100);
     const idx = idxLabel!=null ? `<div class="vindex">${idxLabel}</div>` : `<div class="vindex vindex-sum">Σ</div>`;
@@ -944,6 +1012,20 @@ function render(vendors){
           <div class="crel is-base">${fmtPct(v.ratio)}</div>
           <div class="cmix">${fmtPct(v.total_v?v.demais_v/v.total_v:0)}</div>
         </div>
+      </div>
+      <div class="vmob">
+        <div class="mrow m-head">
+          <span class="m-fx">Faixa</span><span class="m-val">Faturam.</span>
+          <span class="m-q">Pares</span><span class="m-p">% FTW</span>
+        </div>
+        ${mrows}
+        <div class="mrow m-sum">
+          <span class="m-fx">Outras faixas</span>
+          <span class="m-val">${fmtCompact(v.demais_v)}${seloVarM(v.demais_v, v.demais_v_ly)}</span>
+          <span class="m-q">${fmtCompact(v.demais_q)}</span>
+          <span class="m-p ${v.ratio>=CC_META?'m-ok':'m-low'}">${fmtPct(v.ratio)}</span>
+        </div>
+        <div class="m-nota">valores em R$ · variação vs ano anterior</div>
       </div>
     </section>`;
   }
@@ -1271,6 +1353,16 @@ const LS_FILTROS='apv_filtros_on';
   aplicar(on);
   b.onclick=()=>{ on=!on; aplicar(on); try{ localStorage.setItem(LS_FILTROS, on?'1':'0'); }catch(_){} };
 })();
+
+// cards recolhíveis no celular: toque no cabeçalho abre/fecha
+document.addEventListener('click', e=>{
+  if(!window.matchMedia('(max-width:720px)').matches) return;
+  const h=e.target.closest('.vhead'); if(!h) return;
+  const sec=h.closest('.vend'); if(!sec) return;
+  const unico=document.querySelectorAll('section.vend').length===1;
+  if(unico) return;      // card único (vendedor logado) fica sempre aberto
+  sec.classList.toggle('open');
+});
 
 // tema fixo em roxo (a paleta dourada foi aposentada)
 (function(){
