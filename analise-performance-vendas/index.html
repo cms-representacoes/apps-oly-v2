@@ -186,6 +186,9 @@
   .ratio-track{flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden}
   .ratio-fill{height:100%;background:linear-gradient(90deg,var(--ftw),var(--ftw-lite));border-radius:99px}
   .ratio-val{font-family:"Space Grotesk",sans-serif;font-weight:600;min-width:54px;text-align:right}
+  /* o percentual do ranking herda a cor do status da carta campanha:
+     verde (elegível) / âmbar (não elegível) — um número só, sem repetição */
+  .ratio-cell.cc-ok .ratio-val,.ratio-cell.cc-low .ratio-val{color:var(--cc);font-weight:700}
   /* carta campanha */
   .cc-ok{--cc:#12a150;--cc-bg:rgba(18,161,80,.12)}
   .cc-low{--cc:#c98a00;--cc-bg:rgba(201,138,0,.14)}
@@ -219,7 +222,14 @@
   .ccp-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11.5px;
             color:var(--mute);margin-top:7px}
   .ccp-obs{font-size:11px;color:var(--mute);opacity:.85;margin-top:4px}
+  /* Em smartphone o relatório é só consulta: escondemos todos os botões
+     de ação e todos os filtros (Ano, Período, Filtros). O período abre
+     automaticamente no trimestre corrente, que é o que interessa na meta.
+     Para mexer nos filtros ou importar, usa-se o computador. */
   @media (max-width:720px){
+    .topbar a.btn,.topbar .btn,.topbar .theme-btn{display:none !important}
+    #period,#filtrosBtn,#cmpToggle,#consToggle,#vendTabs{display:none !important}
+
     .ccp{padding:12px 14px}
     .ccp-pct{font-size:26px}
     .ccp-st{font-size:16px}
@@ -735,7 +745,7 @@ function ccVisivel(){
 }
 function ccCell(v){
   const st=ccStatus(v);
-  return `<td class="cc-cell ${st.cls}"><span class="cc-pct">${fmtPct(st.p)}</span><span class="cc-badge">${st.curto}</span></td>`;
+  return `<td class="cc-cell ${st.cls}"><span class="cc-badge">${st.curto}</span></td>`;
 }
 // Painel do vendedor logado. Compacto: cabe na tela sem rolagem.
 function ccPainel(v){
@@ -899,7 +909,7 @@ function render(vendors){
         <td class="who"><span class="tag">${firstName(c)}</span></td>
         <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
         <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
-        <td class="ratio-cell"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c, prevYearShort)}</div></td>
+        <td class="ratio-cell ${ccOn?ccStatus(c).cls:''}"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c, prevYearShort)}</div></td>
         ${ccOn?ccCell(c):''}
       </tr>`;
     });
