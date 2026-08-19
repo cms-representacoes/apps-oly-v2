@@ -794,6 +794,35 @@
       padding: 12px 12px;
     }
 
+    /* ── Linha do preço com os chips ao lado ────────────────────────────── */
+    .card-preco-linha{
+      display:flex; align-items:center; gap:6px;
+      flex-wrap:wrap; min-width:0; margin-top:2px;
+    }
+    .card-preco-valor{
+      font-size:15px; font-weight:800; color:var(--oly-blue,#2836D4);
+      white-space:nowrap; flex:0 0 auto;
+    }
+    .cardchip{
+      display:inline-flex; align-items:center;
+      border-radius:999px; padding:1px 7px;
+      background:var(--oly-bg,#f4f6fa); border:1px solid var(--oly-border,#e5e7eb);
+      font-size:10px; font-weight:700; white-space:nowrap; flex:0 0 auto;
+    }
+    .cardchip-tam{
+      font-size:10.5px; font-weight:800; white-space:nowrap; flex:0 0 auto;
+      color:var(--oly-text,#111827);
+    }
+    .cardchip-cor{ min-width:0; overflow:hidden; }
+
+    /* ── Celular: cabe pouco, então fica só preço e cor ──────────────────── */
+    @media(max-width:640px){
+      .cardchip-art, .cardchip-cat, .cardchip-tam{ display:none !important; }
+      .card-preco-valor{ font-size:14px; }
+      /* imagem mais alta: era 4/3, passa a quadrada e ganha altura real */
+      #cards > article .card-img-duo{ aspect-ratio:1/1 !important; }
+    }
+
     .card-color-chip{
       display:inline-flex; align-items:center; gap:6px; max-width:100%;
       border-radius:999px; border:1px solid var(--border); background:var(--bg);
@@ -3316,7 +3345,9 @@ const state = {
   productsView: [],
   groupColors: false,
   viewMode: "all", // all | favs
-  cardLayout: "trio", // duo | trio (list e grid removidos por preferência do usuário)
+  // No celular 3 colunas espremem demais o card — abre em 2. Em telas maiores
+  // segue em 3. O botão de layout continua alternando livremente depois disso.
+  cardLayout: (typeof window !== "undefined" && window.matchMedia("(max-width:640px)").matches) ? "duo" : "trio",
   filters: { category:"", segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"" },
   pagination: { pageSize: 24, shown: 0 },
   ui: { lastScrollY: 0, view: 'main' },
@@ -4226,7 +4257,9 @@ function clearAllFilters(){
 }
 $("btnClear").addEventListener("click", ()=>{
   clearAllFilters();
-  state.cardLayout = "trio"; updateLayoutBtn();
+  // "Limpar" volta ao padrão da tela: 2 colunas no celular, 3 no resto
+  state.cardLayout = window.matchMedia("(max-width:640px)").matches ? "duo" : "trio";
+  updateLayoutBtn();
   if(typeof syncColecaoCards === "function") syncColecaoCards();
   if(typeof syncTierBar === "function") syncTierBar();
   refreshView(true);
@@ -5016,11 +5049,43 @@ function genderIcon(gen){
 }
 
 /** HTML compacto: Artigo, Segmento e Tamanho em UMA linha (opção C aprovada) */
-function _cardInfoLine(item){
+// Monta a linha do PREÇO já com os chips ao lado, em vez de empilhá-los abaixo.
+// Cada layout escolhe o que mostra, porque a largura disponível é bem diferente
+// entre 3 colunas no desktop e 2 colunas no celular.
+//   desktop (padrão/trio) → preço · tamanho · cor
+//   duo                   → preço · artigo · tamanho · cor   (sem categoria)
+//   mobile                → preço · cor                      (o resto some via CSS)
+function _cardPrecoLinha(v, base, isGrp, { artigo=false, categoria=false, tamanho=false, cor=true } = {}){
+  const preco  = isGrp ? (v?.minPriceFmt || "—") : (v?.priceFmt || "—");
+  const codigo = String(base?.codigo || "").trim();
+  const seg    = String(base?.categoria || base?.segmento || "").trim();
+  const tamRange = _tamToRange(String(base?.tam || "").trim());
+  const chips = [];
+  if(artigo && codigo){
+    chips.push(`<span class="cardchip cardchip-art"><span class="opacity-60 mr-1">Art.</span><strong>${escapeHtml(codigo)}</strong></span>`);
+  }
+  if(categoria && seg){
+    chips.push(`<span class="cardchip cardchip-cat">${escapeHtml(seg)}</span>`);
+  }
+  if(tamanho && tamRange){
+    chips.push(`<span class="cardchip-tam">${escapeHtml(tamRange)}</span>`);
+  }
+  if(cor){
+    chips.push(`<span class="cardchip-cor">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</span>`);
+  }
+  return `<div class="card-preco-linha">
+    <span class="card-preco-valor">${escapeHtml(preco)}</span>
+    ${chips.join("")}
+  </div>`;
+}
+
+// Linha secundária: artigo e categoria. O tamanho saiu daqui no desktop porque
+// agora acompanha o preço — o parâmetro permite desligá-lo sem duplicar.
+function _cardInfoLine(item, { tamanho=true } = {}){
   if(!item) return "";
   const codigo = String(item.codigo || "").trim();
   const seg = String(item.categoria || item.segmento || "").trim();
-  const tam = String(item.tam || "").trim();
+  const tam = tamanho ? String(item.tam || "").trim() : "";
   // Converte lista de tamanhos em intervalo "34-39" (mais compacto)
   const tamRange = _tamToRange(tam);
   const parts = [];
@@ -5475,7 +5540,7 @@ function renderCards(){
       card.tabIndex = 0;
       card.setAttribute("data-card-key", cardKey);
       card.innerHTML = `
-        <div class="relative bg-oly-bg overflow-hidden flex items-center justify-center" style="aspect-ratio:4/3">
+        <div class="card-img-duo relative bg-oly-bg overflow-hidden flex items-center justify-center" style="aspect-ratio:4/3">
           ${imgSrc
             ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none'">`
             : `<i class="fa-solid fa-image text-oly-blue text-3xl"></i>`}
@@ -5490,9 +5555,7 @@ function renderCards(){
         </div>
         <div class="px-2.5 py-2 flex flex-col gap-1.5">
           <div class="font-extrabold text-sm sm:text-[15px] leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-sm sm:text-[15px] font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
-          ${_cardInfoLine(base)}
-          <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
+          ${_cardPrecoLinha(v, base, isGrp, { artigo:true, categoria:false, tamanho:true, cor:true })}
           <button class="btnAdd focus-ring mt-1 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
           </button>
@@ -5537,9 +5600,7 @@ function renderCards(){
         </div>
         <div class="px-2 py-1.5 flex flex-col gap-1">
           <div class="font-extrabold text-[11px] sm:text-xs leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-[11px] sm:text-xs font-extrabold text-oly-blue">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
-          ${base?.tam ? `<div class="text-[9.5px] font-extrabold text-oly-text leading-tight">${escapeHtml(_tamToRange(base.tam))}</div>` : ""}
-          <div>${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"xs" })}</div>
+          ${_cardPrecoLinha(v, base, isGrp, { artigo:false, categoria:false, tamanho:true, cor:true })}
           <button class="btnAdd focus-ring mt-0.5 h-8 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
           </button>
@@ -5590,9 +5651,8 @@ function renderCards(){
         <div class="grid-thumbs flex gap-1 px-2 pt-1.5 pb-0.5 overflow-x-auto" style="min-height:44px;scrollbar-width:none"></div>
         <div class="px-3 py-2 cursor-pointer" data-gridopen="1">
           <div class="font-extrabold text-[15px] sm:text-base leading-snug">${escapeHtml(v.produto||base?.produto||"—")}</div>
-          <div class="text-sm sm:text-base font-extrabold text-oly-blue mt-0.5">${isGrp ? escapeHtml(v.minPriceFmt||"—") : escapeHtml(v.priceFmt||"—")}</div>
-          ${_cardInfoLine(base)}
-          <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
+          ${_cardPrecoLinha(v, base, isGrp, { artigo:false, categoria:false, tamanho:true, cor:true })}
+          ${_cardInfoLine(base, { tamanho:false })}
           <button class="btnAdd focus-ring mt-2 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
             <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
           </button>
