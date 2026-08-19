@@ -1,1 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMS · Painel TV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CMS · PAINEL TV - modo vitrine (10-foot UI)
+   Escala: 1rem = 1vw. Numa TV 1920px, 1rem = 19,2px.
+   Dados: ../data/tv_data.json (publicado pelo tv-admin)
+   ============================================================ */
+:root{
+  --bg:#0C0918; --card:rgba(23,18,48,.55); --line:rgba(155,107,240,.16);
+  --tx:#EDEBF7; --tx2:#B9B3D1; --mute:#8F87AD; --dim:#6E6787; --off:#3A3355;
+  --roxo:#7C3AED; --roxo2:#9B6BF0; --roxo3:#C9B8F7;
+  --ambar:#F0A030; --ambar2:#FFDCA6; --ambar3:#D9A868;
+  --verde:#2BC48A; --verde2:#8FE5C4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:1vw}
+body{background:var(--bg);color:var(--tx);font-family:"Inter",sans-serif;
+  height:100vh;overflow:hidden;cursor:default}
+body.idle{cursor:none}
+.sg{font-family:"Space Grotesk",sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
 
+#glow,#glow2{position:fixed;transform:translate(-50%,-50%);pointer-events:none;filter:blur(1rem)}
+#glow{left:52%;top:40%;width:70vw;height:90vh;
+  background:radial-gradient(closest-side,rgba(124,58,237,.20),transparent 70%)}
+#glow2{left:80%;top:62%;width:50vw;height:70vh;
+  background:radial-gradient(closest-side,rgba(240,160,48,.07),transparent 70%)}
+#grain{position:fixed;inset:0;width:100%;height:100%;opacity:.028;pointer-events:none;mix-blend-mode:overlay}
+
+#topo{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;
+  gap:1rem;padding:1.4rem 2.2rem;z-index:6}
+#logo{position:relative;overflow:hidden;width:2.6rem;height:2.6rem;border-radius:.8rem;
+  background:linear-gradient(135deg,#9B6BF0,#7C3AED);color:#fff;display:flex;
+  align-items:center;justify-content:center;font-size:.95rem;font-weight:600;
+  box-shadow:0 .2rem 1.2rem rgba(124,58,237,.4)}
+#logoshine{position:absolute;top:-30%;left:-90%;width:55%;height:160%;
+  transform:rotate(18deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)}
+.brand{font-size:1.2rem;font-weight:600;letter-spacing:-.01em}
+.brand-sub{color:var(--dim);font-size:.8rem;letter-spacing:.16em;font-weight:500}
+#clock{color:var(--tx2);font-size:1.25rem;font-weight:600}
+#live{display:inline-flex;align-items:center;gap:.45rem;border-radius:99rem;
+  padding:.3rem .85rem;font-size:.78rem;font-weight:600;letter-spacing:.1em}
+#live.on{background:rgba(43,196,138,.12);border:.06rem solid rgba(43,196,138,.3);color:#7FE0BC}
+#live.off{background:rgba(240,160,48,.1);border:.06rem solid rgba(240,160,48,.3);color:var(--ambar3)}
+#livedot{width:.55rem;height:.55rem;border-radius:99rem;background:var(--verde);
+  animation:pulso 1.8s ease-out infinite}
+#live.off #livedot{background:var(--ambar);animation:none}
+@keyframes pulso{from{box-shadow:0 0 0 0 rgba(43,196,138,.6)}to{box-shadow:0 0 0 .55rem rgba(43,196,138,0)}}
+
+#palco{position:fixed;inset:5.4rem 2.4rem 4.6rem;z-index:5}
+.cena{position:absolute;inset:0;opacity:0}
+.stag{opacity:0}
+.eyebrow{color:var(--mute);font-size:1rem;letter-spacing:.18em;font-weight:600}
+.card{background:var(--card);border:.06rem solid var(--line);border-radius:1.1rem;
+  backdrop-filter:blur(.4rem);
+  box-shadow:inset 0 .06rem 0 rgba(237,235,247,.07),0 .6rem 2.2rem rgba(0,0,0,.25)}
+.pilula{display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.05);
+  border:.06rem solid rgba(255,255,255,.1);border-radius:99rem;padding:.35rem .9rem;
+  color:var(--tx);font-size:.95rem;font-weight:600}
+
+.c1{display:flex;height:100%;gap:2rem;align-items:center}
+.c1-esq{flex:0 0 38%}
+.c1-num{font-size:4.6rem;font-weight:700;letter-spacing:-.02em;line-height:1;
+  text-shadow:0 0 3rem rgba(124,58,237,.35)}
+.c1-sub{color:var(--roxo2);font-size:1.15rem;font-weight:600;margin-top:.7rem}
+.c1-chart{flex:1;height:84%;padding:1.4rem 1.6rem 1rem;display:flex;align-items:flex-end;gap:1.2rem}
+.c1-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:.5rem}
+.c1-val{font-size:1rem;font-weight:600}
+.c1-bar{width:100%;max-width:4.4rem;height:0;border-radius:.6rem .6rem .25rem .25rem;
+  background:linear-gradient(180deg,#9B6BF0,#7C3AED);box-shadow:0 0 1.4rem rgba(124,58,237,.35)}
+.c1-mes{color:var(--mute);font-size:.85rem;letter-spacing:.12em;font-weight:600}
+
+.c2{display:flex;height:100%;gap:1.8rem;align-items:stretch}
+.c2-esq{flex:1.02;display:flex;flex-direction:column;justify-content:center}
+.c2-num{font-size:3.6rem;font-weight:700;letter-spacing:-.02em}
+.c2-un{color:var(--roxo2);font-size:1.15rem;font-weight:600;margin-left:.7rem}
+.trilha{position:relative;height:1rem;background:rgba(36,30,58,.9);border-radius:99rem;margin-top:1.2rem}
+#ritmo{position:absolute;left:0;top:0;height:100%;width:0;border-radius:99rem;
+  background:linear-gradient(90deg,#7C3AED,#9B6BF0)}
+#ponta{position:absolute;top:50%;width:.7rem;height:.7rem;border-radius:99rem;background:var(--roxo3);
+  box-shadow:0 0 .9rem .18rem rgba(155,107,240,.8);transform:translate(-50%,-50%);left:0;opacity:0}
+#marca{position:absolute;top:-.35rem;width:.16rem;height:1.7rem;background:var(--tx);opacity:.55;border-radius:.1rem}
+.trilha-leg{display:flex;justify-content:space-between;margin-top:.55rem;color:var(--mute);font-size:.92rem}
+.c2-falta{flex:1;border-radius:1.3rem;padding:1.8rem 2.2rem;display:flex;flex-direction:column;
+  justify-content:center;position:relative;overflow:hidden;
+  background:linear-gradient(155deg,rgba(240,160,48,.13),rgba(240,160,48,.03) 65%);
+  outline:.06rem solid rgba(240,160,48,.32);backdrop-filter:blur(.4rem);
+  box-shadow:inset 0 .06rem 0 rgba(255,220,160,.18),0 .7rem 2.6rem rgba(0,0,0,.3)}
+#brilho{position:absolute;top:-30%;left:-70%;width:42%;height:160%;transform:rotate(16deg);
+  background:linear-gradient(90deg,transparent,rgba(255,214,150,.13),transparent)}
+.c2-flag{display:flex;align-items:center;gap:.6rem;color:var(--ambar);font-size:1rem;
+  font-weight:600;letter-spacing:.16em}
+.c2-fnum{color:var(--ambar2);font-size:5rem;font-weight:700;letter-spacing:-.025em;
+  line-height:1.02;margin-top:.6rem;text-shadow:0 0 3rem rgba(240,160,48,.25)}
+.c2-fsub{color:var(--ambar3);font-size:1.15rem;font-weight:600}
+
+.c34{height:100%;display:flex;flex-direction:column}
+.c34-top{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}
+.selo{color:#fff;font-size:.9rem;font-weight:600;border-radius:99rem;padding:.28rem 1rem;letter-spacing:.05em}
+.c34-tit{color:var(--mute);font-size:.95rem;letter-spacing:.12em;font-weight:500}
+.c34-tot{color:var(--verde);font-size:1.2rem;font-weight:600;margin-left:auto}
+.mtz{flex:1;display:flex;flex-direction:column;gap:.4rem}
+.mrow{flex:1;display:grid;grid-template-columns:1.2fr repeat(5,1fr) .8fr;gap:.55rem;
+  align-items:center;padding:0 1.1rem;border-radius:.9rem}
+.mrow.head{flex:0 0 auto;padding-bottom:.4rem}
+.mrow.head span{color:var(--dim);font-size:.78rem;letter-spacing:.1em;font-weight:600;text-align:center}
+.mrow.head span:first-child{text-align:left}
+.mrow.zero{background:rgba(19,16,34,.4);border:.06rem solid rgba(155,107,240,.06)}
+.m-prep{font-size:1.05rem;font-weight:600}
+.mrow.zero .m-prep{color:#57506E}
+.m-cel{text-align:center}
+.m-pill{display:inline-block;min-width:4rem;font-size:.95rem;font-weight:600;border-radius:.6rem;padding:.2rem .6rem}
+.m-off{color:var(--off);font-size:.95rem;text-align:center}
+.m-tot{text-align:center;color:var(--verde);font-size:1.1rem;font-weight:600}
+.mrow.zero .m-tot{color:var(--off)}
+
+#dots{position:fixed;bottom:3.4rem;left:0;right:0;display:flex;justify-content:center;gap:.55rem;z-index:6}
+#dots span{width:.55rem;height:.55rem;border-radius:99rem;background:var(--off);transition:all .35s}
+#dots span.on{width:1.7rem;background:linear-gradient(90deg,#9B6BF0,#7C3AED)}
+#barra{position:fixed;bottom:0;left:0;right:0;height:2.6rem;background:rgba(16,12,30,.85);
+  border-top:.06rem solid rgba(155,107,240,.15);backdrop-filter:blur(.6rem);
+  display:flex;align-items:center;padding:0 1.6rem;gap:.8rem;z-index:6;overflow:hidden}
+#tickpill{display:inline-flex;align-items:center;gap:.6rem;opacity:0}
+#tickdot{width:.55rem;height:.55rem;border-radius:99rem;background:var(--verde);flex:none}
+#ticktxt{color:#C9C3DE;font-size:1rem;font-weight:500;white-space:nowrap}
+#aviso{position:fixed;inset:0;display:none;place-items:center;z-index:8;text-align:center}
+#aviso.show{display:grid}
+#aviso .box{max-width:44rem}
+#aviso h1{font-size:1.8rem;font-weight:600;margin:1rem 0 .5rem}
+#aviso p{color:var(--mute);font-size:1.05rem;line-height:1.6}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+<div id="glow"></div><div id="glow2"></div>
+<svg id="grain"><filter id="nz"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(#nz)"/></svg>
+
+<div id="topo">
+  <span id="logo" class="sg">CMS<span id="logoshine"></span></span>
+  <span class="brand sg">CMS Representações</span>
+  <span class="brand-sub">OLYMPIKUS · UNDER ARMOUR</span>
+  <span style="flex:1"></span>
+  <span id="clock" class="sg tnum"></span>
+  <span id="live" class="on"><span id="livedot"></span><span id="livetxt">AO VIVO</span></span>
+</div>
+
+<div id="palco"></div>
+
+<div id="dots"></div>
+
+<div id="barra">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.2" stroke-linecap="round" style="flex:none"><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.7 4.7a10.4 10.4 0 0 0 0 14.6M19.3 4.7a10.4 10.4 0 0 1 0 14.6"/></svg>
+  <div id="tickpill"><span id="tickdot"></span><span id="ticktxt"></span></div>
+</div>
+
+<div id="aviso"><div class="box">
+  <span class="sg" style="display:inline-flex;width:4rem;height:4rem;border-radius:1.1rem;background:linear-gradient(135deg,#9B6BF0,#7C3AED);color:#fff;align-items:center;justify-content:center;font-size:1.4rem;font-weight:600">CMS</span>
+  <h1 class="sg">Aguardando a primeira publicação</h1>
+  <p>Abra o <b>tv-admin</b>, importe a DETALHADA do dia e publique.<br>Esta tela atualiza sozinha em seguida.</p>
+</div></div>
+
+<script>
+/* CONFIG */
+const DATA_URL = '../data/tv_data.json';   // mesmo domínio (GitHub Pages)
+const POLL_MS  = 10*60*1000;               // re-consulta a cada 10 min
+const CENA_MS  = 18*1000;                  // duração de cada cena
+const CATS = ['TÊNIS','MEIAS','ACESSÓRIOS','CONFECÇÃO','CHINELO'];
+const fmt = n => Math.round(n).toLocaleString('pt-BR');
+const mil = n => n>=1000 ? (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil' : fmt(n);
+
+let DATA = null;
+
+function contar(el, alvo, dur){
+  const t0 = performance.now();
+  (function up(t){
+    let p = Math.min((t-t0)/dur, 1);
+    const e = p < .82 ? (p/.82)*.95 : .95 + (1-Math.pow(1-(p-.82)/.18,3))*.05;
+    el.textContent = fmt(alvo*e);
+    if(p<1) requestAnimationFrame(up);
+  })(t0);
+}
+function stagger(el){
+  el.querySelectorAll('.stag').forEach((s,i)=> s.animate(
+    [{opacity:0, transform:'translateY(1rem) scale(.985)'},
+     {opacity:1, transform:'translateY(0) scale(1)'}],
+    {duration:600, delay:180+i*80, easing:'cubic-bezier(.16,1.1,.3,1)', fill:'forwards'}));
+}
+
+/* CENAS */
+function cenaCarteira(el){
+  const c = DATA.carteira;
+  el.innerHTML = `<div class="c1">
+    <div class="c1-esq">
+      <div class="stag eyebrow">CARTEIRA ABERTA</div>
+      <div class="stag"><span id="bign" class="sg tnum c1-num">0</span></div>
+      <div class="stag c1-sub">pares a faturar · ${c.horizonte}</div>
+    </div>
+    <div class="stag card c1-chart" id="bchart"></div>
+  </div>`;
+  stagger(el);
+  contar(el.querySelector('#bign'), c.total, 1600);
+  const max = Math.max(...c.meses.map(m=>m.v), 1);
+  const bc = el.querySelector('#bchart');
+  c.meses.forEach((m,i)=>{
+    const col = document.createElement('div'); col.className='c1-col';
+    col.innerHTML = `<span class="c1-val tnum sg">${mil(m.v)}</span>
+      <span class="c1-bar"></span><span class="c1-mes">${m.label}</span>`;
+    bc.appendChild(col);
+    col.querySelector('.c1-bar').animate([{height:'0%'},{height:Math.round(m.v/max*86)+'%'}],
+      {duration:800, delay:400+i*130, easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards'});
+  });
+}
+
+function cenaMes(el){
+  const m = DATA.mes;
+  el.innerHTML = `<div class="c2">
+    <div class="c2-esq">
+      <div class="stag eyebrow">${m.label} · FATURADO ATÉ DIA ${m.dia}</div>
+      <div class="stag"><span id="fbig" class="sg tnum c2-num">0</span><span class="c2-un">pares</span></div>
+      <div class="stag">
+        <div class="trilha">
+          <span id="ritmo"></span><span id="ponta"></span>
+          <span id="marca" style="left:${m.markW}%"></span>
+        </div>
+        <div class="trilha-leg">
+          <span>projeção: <b style="color:var(--verde)" class="tnum">~${mil(m.projecao)}</b></span>
+          <span>${m.anteriorLabel} fechado: <b style="color:var(--tx2)" class="tnum">${fmt(m.anterior)}</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="stag c2-falta">
+      <span id="brilho"></span>
+      <div class="c2-flag">🔥 FALTA FATURAR EM ${m.label}</div>
+      <div id="faltabig" class="sg tnum c2-fnum">0</div>
+      <div class="c2-fsub">pares na carteira do mês</div>
+      <div style="display:flex;gap:.8rem;margin-top:1.3rem">
+        <span class="pilula">📅 ${m.diasUteis} dias úteis</span>
+        <span class="pilula tnum">📈 ≈ ${fmt(m.paresDia)} pares/dia para zerar</span>
+      </div>
+    </div>
+  </div>`;
+  stagger(el);
+  contar(el.querySelector('#fbig'), m.faturado, 1300);
+  setTimeout(()=>contar(el.querySelector('#faltabig'), m.falta, 1700), 300);
+  el.querySelector('#ritmo').animate([{width:'0%'},{width:m.barW+'%'}],
+    {duration:1100, delay:450, easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards'});
+  el.querySelector('#ponta').animate([{left:'0%',opacity:0},{opacity:1,offset:.15},{left:m.barW+'%'}],
+    {duration:1100, delay:450, easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards'});
+  el.querySelector('#brilho').animate([{left:'-70%'},{left:'135%',offset:.45},{left:'135%'}],
+    {duration:3400, delay:1200, iterations:Infinity, easing:'ease-in-out'});
+}
+
+function cenaMatriz(el, cfg){
+  el.innerHTML = `<div class="c34">
+    <div class="stag c34-top">
+      <span class="selo" style="background:${cfg.selo}">${cfg.tag}</span>
+      <span class="c34-tit">${cfg.titulo}</span>
+      <span class="c34-tot tnum sg">${cfg.total}</span>
+    </div>
+    <div class="mtz"></div>
+  </div>`;
+  const m = el.querySelector('.mtz');
+  const head = document.createElement('div');
+  head.className = 'mrow head stag';
+  head.innerHTML = '<span>PREPOSTO</span>' + CATS.map(c=>`<span>${c}</span>`).join('') + '<span>TOTAL</span>';
+  m.appendChild(head);
+  (cfg.linhas||[]).forEach(([nome, vals])=>{
+    const tot = vals.reduce((a,b)=>a+b,0);
+    const r = document.createElement('div');
+    r.className = 'mrow stag ' + (tot ? 'card' : 'zero');
+    r.innerHTML = `<span class="m-prep">${nome}</span>` +
+      vals.map(v => v
+        ? `<span class="m-cel"><span class="m-pill tnum" style="background:${cfg.pilBg};border:.06rem solid ${cfg.pilBd};color:${cfg.pilTx}">+${fmt(v)}</span></span>`
+        : `<span class="m-off">—</span>`).join('') +
+      `<span class="m-tot tnum">${tot ? '+'+fmt(tot) : '—'}</span>`;
+    m.appendChild(r);
+  });
+  stagger(el);
+}
+
+const CENAS = [
+  el => cenaCarteira(el),
+  el => cenaMes(el),
+  el => cenaMatriz(el, {
+    tag:'✦ NOVIDADES · HOJE', selo:'linear-gradient(135deg,#9B6BF0,#7C3AED)',
+    titulo:'PARES QUE ENTRARAM NA CARTEIRA HOJE · POR PREPOSTO',
+    total:'+'+fmt(DATA?.novHoje?.total||0)+' pares',
+    pilBg:'rgba(124,58,237,.22)', pilBd:'rgba(155,107,240,.4)', pilTx:'#C9B8F7',
+    linhas: DATA?.novHoje?.linhas||[] }),
+  el => cenaMatriz(el, {
+    tag:'∑ NOVIDADES · '+(DATA?.mes?.label||''), selo:'linear-gradient(135deg,#2BC48A,#0F8A5F)',
+    titulo:'MONTANTE QUE ENTROU NA CARTEIRA NO MÊS · POR PREPOSTO',
+    total:'+'+fmt(DATA?.novMes?.total||0)+' pares no mês',
+    pilBg:'rgba(43,196,138,.14)', pilBd:'rgba(43,196,138,.35)', pilTx:'#8FE5C4',
+    linhas: DATA?.novMes?.linhas||[] }),
+];
+
+/* CARROSSEL */
+const palco = document.getElementById('palco');
+const dotsBox = document.getElementById('dots');
+CENAS.forEach(()=>{ const d=document.createElement('span'); dotsBox.appendChild(d); });
+const dots = [...dotsBox.children];
+let idx = -1, timer = null;
+
+function mostrar(i){
+  if(!DATA) return;
+  idx = ((i % CENAS.length) + CENAS.length) % CENAS.length;
+  dots.forEach((d,j)=> d.classList.toggle('on', j===idx));
+  const velho = palco.firstElementChild;
+  if(velho){
+    velho.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.98)'}],
+      {duration:340, easing:'ease-in', fill:'forwards'});
+    setTimeout(()=>velho.remove(), 340);
+  }
+  const novo = document.createElement('div');
+  novo.className = 'cena';
+  palco.appendChild(novo);
+  CENAS[idx](novo);
+  novo.animate([{opacity:0,transform:'scale(1.02)'},{opacity:1,transform:'scale(1)'}],
+    {duration:440, delay:140, easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards'});
+}
+function girar(){ clearInterval(timer); timer = setInterval(()=>mostrar(idx+1), CENA_MS); }
+
+/* DADOS */
+async function carregar(primeira){
+  try{
+    const res = await fetch(DATA_URL + '?v=' + Date.now(), {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const novo = await res.json();
+    const mudou = !DATA || novo.generatedAt !== DATA.generatedAt;
+    DATA = novo;
+    try{ localStorage.setItem('tv_cache', JSON.stringify(novo)); }catch(_){}
+    document.getElementById('aviso').classList.remove('show');
+    if(primeira || mudou){ montarTicker(); mostrar(0); girar(); }
+  }catch(e){
+    if(!DATA){
+      try{ DATA = JSON.parse(localStorage.getItem('tv_cache')); }catch(_){}
+      if(DATA){ montarTicker(); mostrar(0); girar(); }
+      else document.getElementById('aviso').classList.add('show');
+    }
+    /* com dado em tela, falha de rede é silenciosa: a TV nunca quebra */
+  }
+  atualizarLive();
+}
+function atualizarLive(){
+  const el = document.getElementById('live'), tx = document.getElementById('livetxt');
+  if(!DATA){ el.className='off'; tx.textContent='SEM DADOS'; return; }
+  const idade = Date.now() - new Date(DATA.generatedAt).getTime();
+  if(idade < 60*60*1000){ el.className='on'; tx.textContent='AO VIVO'; }
+  else{
+    el.className='off';
+    const d = new Date(DATA.generatedAt);
+    tx.textContent = 'ATUALIZADO ' + String(d.getDate()).padStart(2,'0') + '/' +
+      String(d.getMonth()+1).padStart(2,'0') + ' ' +
+      String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+}
+
+/* TICKER */
+let fatos = [], fi = 0, tickerTimer = null;
+function montarTicker(){
+  fatos = (DATA.ticker || []).map(f => [f.c, f.t]);
+  if(!fatos.length) return;
+  const pill = document.getElementById('tickpill');
+  const dot = document.getElementById('tickdot'), txt = document.getElementById('ticktxt');
+  fi = 0;
+  dot.style.background = fatos[0][0]; txt.textContent = fatos[0][1]; fi = 1;
+  pill.animate([{opacity:0},{opacity:1}],{duration:400, delay:600, fill:'forwards'});
+  clearInterval(tickerTimer);
+  tickerTimer = setInterval(()=>{
+    pill.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-.6rem)'}],
+      {duration:280, easing:'ease-in', fill:'forwards'}).onfinish = ()=>{
+      const [c,t] = fatos[fi % fatos.length]; fi++;
+      dot.style.background = c; txt.textContent = t;
+      pill.animate([{opacity:0,transform:'translateY(.6rem)'},{opacity:1,transform:'translateY(0)'}],
+        {duration:320, easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards'});
+    };
+  }, 5000);
+}
+
+/* VIDA AMBIENTE + UTILITÁRIOS DE TV */
+document.getElementById('glow').animate(
+  [{transform:'translate(-50%,-50%) scale(1)',opacity:1},
+   {transform:'translate(-50%,-50%) scale(1.12)',opacity:.75},
+   {transform:'translate(-50%,-50%) scale(1)',opacity:1}],
+  {duration:8000, iterations:Infinity, easing:'ease-in-out'});
+document.getElementById('glow2').animate(
+  [{transform:'translate(-50%,-50%) scale(1.1)',opacity:.7},
+   {transform:'translate(-50%,-50%) scale(1)',opacity:1},
+   {transform:'translate(-50%,-50%) scale(1.1)',opacity:.7}],
+  {duration:9500, iterations:Infinity, easing:'ease-in-out'});
+setInterval(()=>{ document.getElementById('logoshine').animate(
+  [{left:'-90%'},{left:'140%'}],{duration:900, easing:'ease-in-out'}); }, 30000);
+
+function relogio(){
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+relogio(); setInterval(relogio, 20000);
+
+/* clique alterna tela cheia (o navegador exige um gesto) */
+document.addEventListener('click', ()=>{
+  if(document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(()=>{});
+});
+/* cursor some após 4s parado */
+let idleT = null;
+document.addEventListener('mousemove', ()=>{
+  document.body.classList.remove('idle');
+  clearTimeout(idleT);
+  idleT = setTimeout(()=>document.body.classList.add('idle'), 4000);
+});
+
+carregar(true);
+setInterval(()=>carregar(false), POLL_MS);
+setInterval(atualizarLive, 60*1000);
+/* mantém a TV acordada quando suportado */
+try{navigator.wakeLock?.request('screen');}catch(_){}
+</script>
+</body>
+</html>
