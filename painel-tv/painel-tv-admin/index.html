@@ -1,1 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMS · TV Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ============================================================
+   CMS · TV ADMIN - importa a DETALHADA, processa e publica
+   Publica direto no GitHub (Contents API) com token fine-grained.
+   O token fica SÓ no localStorage deste navegador.
+   ============================================================ */
+:root{
+  --bg:#F7F7F9; --card:#fff; --line:#E5E4DF; --line2:#F1EFE8;
+  --ink:#26215C; --navy:#2C2C2A; --slate:#5F5E5A; --mute:#9B99A3;
+  --ftw:#7C3AED; --ftw2:#9B6BF0; --ok:#12a150; --warn:#c98a00; --err:#c43d3d;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--navy);font-family:"Inter",sans-serif;
+  min-height:100vh;padding:22px 16px 60px}
+.wrap{max-width:860px;margin:0 auto}
+.sg{font-family:"Space Grotesk",sans-serif}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#9B6BF0,#7C3AED);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;
+  box-shadow:0 2px 10px rgba(124,58,237,.3)}
+h1{font-size:17px;font-weight:600;color:var(--ink)}
+.sub{font-size:11px;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--slate);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .st{margin-left:auto;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0}
+.st.ok{color:var(--ok)} .st.off{color:var(--mute)}
+label{display:block;font-size:11px;font-weight:600;color:var(--slate);margin:10px 0 4px}
+input[type=text],input[type=password]{width:100%;border:1px solid var(--line);border-radius:9px;
+  padding:9px 12px;font:500 13px "Inter",sans-serif;color:var(--navy);background:#FCFCFB}
+input:focus{outline:2px solid rgba(124,58,237,.25);border-color:var(--ftw)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 16px;
+  font:600 13px "Inter",sans-serif;color:var(--navy);cursor:pointer}
+.btn:hover{border-color:#CBD2DC}
+.btn.primary{background:var(--ftw);border-color:var(--ftw);color:#fff}
+.btn.primary:hover{background:#6D28D9}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:34px 20px;text-align:center;
+  color:var(--mute);font-size:13px;cursor:pointer;transition:all .15s;background:#FCFCFB}
+.drop.drag{border-color:var(--ftw);background:rgba(124,58,237,.05);color:var(--ftw)}
+.drop b{color:var(--slate)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:4px}
+.kpi{background:#FCFCFB;border:1px solid var(--line2);border-radius:10px;padding:10px 12px}
+.kpi .l{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--mute);text-transform:uppercase}
+.kpi .v{font-family:"Space Grotesk",sans-serif;font-size:17px;font-weight:600;color:var(--ink);
+  font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .v.nv{color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums}
+th{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--mute);text-transform:uppercase;
+  text-align:center;padding:5px 6px;border-bottom:1px solid var(--line2)}
+th:first-child{text-align:left}
+td{padding:6px;text-align:center;border-bottom:1px solid var(--line2);color:var(--slate)}
+td:first-child{text-align:left;font-weight:600;color:var(--navy)}
+td .nv{display:inline-block;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);
+  color:#6D28D9;font-weight:600;border-radius:6px;padding:1px 7px;font-size:11px}
+#log{background:#14121F;color:#C9C3DE;border-radius:12px;padding:12px 14px;
+  font:12px/1.7 ui-monospace,monospace;max-height:220px;overflow:auto;white-space:pre-wrap}
+#log .ok{color:#5CD6A5} #log .err{color:#FF8B8B} #log .warn{color:#F5C063}
+.acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.hint{font-size:11px;color:var(--mute);line-height:1.5}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="logo sg">CMS</span>
+    <div><h1 class="sg">Painel TV · Admin</h1>
+    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV</div></div>
+  </div>
 
+  <!-- CONFIG -->
+  <div class="card">
+    <details id="cfgBox">
+      <summary><h2>⚙️ Conexão com o GitHub <span class="st off" id="cfgSt">configurar</span></h2></summary>
+      <div class="grid2">
+        <div><label>Token (fine-grained · Contents read/write)</label>
+          <input type="password" id="cfgToken" placeholder="github_pat_..."></div>
+        <div><label>Repositório (owner/repo)</label>
+          <input type="text" id="cfgRepo" value="cms-representacoes/apps-oly-v2"></div>
+        <div><label>Branch</label><input type="text" id="cfgBranch" value="main"></div>
+        <div><label>Pasta dos dados</label><input type="text" id="cfgPath" value="data"></div>
+      </div>
+      <div class="acts">
+        <button class="btn" id="cfgSave">Salvar conexão</button>
+        <span class="hint">o token fica salvo apenas neste navegador (localStorage) — nunca vai para o repositório</span>
+      </div>
+    </details>
+  </div>
+
+  <!-- IMPORTAÇÃO -->
+  <div class="card">
+    <h2>📥 Importar a DETALHADA do dia</h2>
+    <div class="drop" id="drop">arraste o arquivo aqui ou <b>clique para escolher</b><br>
+      <span style="font-size:11px">DETALHADA_PREPOSTOS_*.xlsx · aba DETALHADA</span></div>
+    <input type="file" id="file" accept=".xlsx" hidden>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="card" id="resumoCard" hidden>
+    <h2>🔎 Resumo do processamento</h2>
+    <div class="kpis" id="kpis"></div>
+    <div id="novBox" style="margin-top:14px"></div>
+  </div>
+
+  <!-- PUBLICAR -->
+  <div class="card" id="pubCard" hidden>
+    <h2>🚀 Publicar para a TV</h2>
+    <div class="acts">
+      <button class="btn primary" id="pubBtn">Publicar agora</button>
+      <span class="hint" id="pubHint">envia tv_data.json (para a TV) e tv_gci_registry.json (registro de encomendas conhecidas)</span>
+    </div>
+  </div>
+
+  <div class="card"><h2>📋 Log</h2><div id="log">aguardando arquivo…</div></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG + LOG
+   ============================================================ */
+const LSK='tvadmin_cfg';
+const $=id=>document.getElementById(id);
+function log(msg, cls){ const el=$('log');
+  el.innerHTML += (el.textContent==='aguardando arquivo…'?'':'\n') ;
+  if(el.textContent==='aguardando arquivo…') el.textContent='';
+  el.innerHTML += cls?`<span class="${cls}">${msg}</span>`:msg;
+  el.scrollTop=el.scrollHeight; }
+function lerCfg(){ try{ return JSON.parse(localStorage.getItem(LSK))||{}; }catch(_){ return {}; } }
+function aplicarCfg(){ const c=lerCfg();
+  if(c.token) $('cfgToken').value=c.token;
+  if(c.repo) $('cfgRepo').value=c.repo;
+  if(c.branch) $('cfgBranch').value=c.branch;
+  if(c.path) $('cfgPath').value=c.path;
+  const ok = !!(c.token && c.repo);
+  $('cfgSt').textContent = ok? 'conectado' : 'configurar';
+  $('cfgSt').className = 'st '+(ok?'ok':'off');
+  if(!ok) $('cfgBox').open = true;
+}
+$('cfgSave').onclick = ()=>{
+  localStorage.setItem(LSK, JSON.stringify({
+    token:$('cfgToken').value.trim(), repo:$('cfgRepo').value.trim(),
+    branch:$('cfgBranch').value.trim()||'main', path:$('cfgPath').value.trim()||'data' }));
+  aplicarCfg(); log('Conexão salva neste navegador.','ok');
+};
+aplicarCfg();
+
+/* ============================================================
+   REGRAS DE NEGÓCIO
+   ============================================================ */
+const MAPA_MARCA = { OLY:'TENIS', UA_TN:'TENIS', MEOLY:'MEIAS', UA_ME:'MEIAS',
+  ACOLY:'ACESSORIOS', UA_AC:'ACESSORIOS', CFOLY:'CONFECCAO', UA_CF:'CONFECCAO',
+  CHOLY:'CHINELO', UA_CH:'CHINELO' };
+const CATS = ['TENIS','MEIAS','ACESSORIOS','CONFECCAO','CHINELO'];
+const CATS_TV = ['TÊNIS','MEIAS','ACESSÓRIOS','CONFECÇÃO','CHINELO'];
+const ORDEM_PREP = ['JORGE','WILLAME','LEANDRO','RAFAEL','MARIANA','CMS'];
+const MESES_PT = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const MESES_LONGO = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+const fmt = n => Math.round(n).toLocaleString('pt-BR');
+
+function normPrep(p){
+  p = String(p||'').trim().toUpperCase().replace(/\s+/g,' ');
+  if(p==='C M S' || p==='CHRISTIAN') return 'CMS';   // Christian consolida no CMS
+  return p;
+}
+function paraData(v){
+  if(v instanceof Date && !isNaN(v)) return v;
+  if(typeof v==='number'){ const d=XLSX.SSF.parse_date_code(v);
+    return d? new Date(d.y,d.m-1,d.d) : null; }
+  if(typeof v==='string'){
+    let m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+    m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  }
+  return null;
+}
+const ym = d => d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') : null;
+function diasUteis(ini, fim){ let n=0;
+  for(let d=new Date(ini); d<=fim; d.setDate(d.getDate()+1)){
+    const w=d.getDay(); if(w>0&&w<6) n++; } return n; }
+
+/* ============================================================
+   LEITURA DO XLSX (mapeamento por NOME de coluna, nunca posição)
+   ============================================================ */
+let PROC = null;   // resultado do processamento, pronto para publicar
+
+$('drop').onclick = ()=>$('file').click();
+$('drop').ondragover = e=>{ e.preventDefault(); $('drop').classList.add('drag'); };
+$('drop').ondragleave = ()=>$('drop').classList.remove('drag');
+$('drop').ondrop = e=>{ e.preventDefault(); $('drop').classList.remove('drag');
+  if(e.dataTransfer.files[0]) lerArquivo(e.dataTransfer.files[0]); };
+$('file').onchange = e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]); };
+
+async function lerArquivo(file){
+  log('Lendo '+file.name+' ('+Math.round(file.size/1024)+' KB)…');
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {cellDates:true});
+  const ws = wb.Sheets['DETALHADA'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+  // acha a linha de cabeçalho pelo nome (a linha 1 do relatório traz totais soltos)
+  let hi = rows.findIndex(r => (r||[]).some(c => String(c||'').trim().toUpperCase()==='PREPOSTO'));
+  if(hi < 0){ log('Cabeçalho PREPOSTO não encontrado — arquivo inesperado.','err'); return; }
+  const head = rows[hi].map(c => String(c||'').trim().toUpperCase());
+  const col = nome => head.indexOf(nome);
+  const iPrep=col('PREPOSTO'), iCli=col('NOME FANTASIA'), iMarca=col('MARCA'),
+        iGci=col('GCI'), iRef=col('REFERENCIA'), iDesc=col('DESCRICAO'),
+        iPrev=col('PREV FAT'), iCart=col('CART'), iFat=col('FAT'), iDfat=col('DATA FAT');
+  for(const [n,i] of [['PREPOSTO',iPrep],['MARCA',iMarca],['GCI',iGci],['PREV FAT',iPrev],['CART',iCart],['FAT',iFat],['DATA FAT',iDfat]])
+    if(i<0){ log('Coluna obrigatória ausente: '+n,'err'); return; }
+
+  const linhas = [];
+  const marcasDesconhecidas = new Set();
+  for(let r=hi+1; r<rows.length; r++){
+    const row=rows[r]; if(!row || !row[iPrep]) continue;
+    const marca = String(row[iMarca]||'').trim().toUpperCase();
+    const cat = MAPA_MARCA[marca] ?? null;
+    if(marca && !cat) marcasDesconhecidas.add(marca);
+    linhas.push({
+      prep: normPrep(row[iPrep]),
+      cli: String(row[iCli]||'').trim(),
+      cat, gci: String(row[iGci]||'').trim(),
+      desc: String(row[iDesc]||row[iRef]||'').trim(),
+      prev: paraData(row[iPrev]), dfat: paraData(row[iDfat]),
+      cart: Number(row[iCart])||0, fat: Number(row[iFat])||0,
+    });
+  }
+  log(fmt(linhas.length)+' linhas válidas lidas.','ok');
+  if(marcasDesconhecidas.size)
+    log('Marcas sem categoria (ficam fora da matriz de novidades): '+[...marcasDesconhecidas].join(', '),'warn');
+
+  await processar(linhas);
+}
+
+/* ============================================================
+   PROCESSAMENTO + DIFF DE GCIs
+   ============================================================ */
+async function processar(linhas){
+  const cfg = lerCfg();
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const hojeStr = hoje.toISOString().slice(0,10);
+  const curYM = ym(hoje);
+  const mesNum = hoje.getMonth(), anoCur = hoje.getFullYear();
+
+  /* --- agregados gerais --- */
+  let carteiraTotal = 0;
+  const cartPorYM = {};
+  let faturadoMes = 0, faturadoAnt = 0;
+  const antD = new Date(anoCur, mesNum-1, 1), antYM = ym(antD);
+  for(const l of linhas){
+    carteiraTotal += l.cart;
+    const py = ym(l.prev);
+    if(py) cartPorYM[py] = (cartPorYM[py]||0) + l.cart;
+    const fy = ym(l.dfat);
+    if(fy===curYM) faturadoMes += l.fat;
+    if(fy===antYM) faturadoAnt += l.fat;
+  }
+  // meses da carteira: do mês corrente em diante (até 6 colunas)
+  const chaves = Object.keys(cartPorYM).filter(k=>k>=curYM).sort().slice(0,6);
+  const meses = chaves.map(k=>({ label: MESES_PT[+k.slice(5,7)-1], v: Math.round(cartPorYM[k]) }));
+  const falta = Math.round(cartPorYM[curYM]||0);
+
+  const fimMes = new Date(anoCur, mesNum+1, 0);
+  const uteisPassados = Math.max(1, diasUteis(new Date(anoCur,mesNum,1), hoje));
+  const amanha = new Date(hoje); amanha.setDate(amanha.getDate()+1);
+  const uteisRestantes = Math.max(1, diasUteis(amanha, fimMes));
+  const uteisTotais = diasUteis(new Date(anoCur,mesNum,1), fimMes);
+  const projecao = faturadoMes / uteisPassados * uteisTotais;
+  const escala = Math.max(faturadoMes + falta, faturadoAnt, 1);
+
+  /* --- registro de GCIs (baixa o publicado, compara, atualiza) --- */
+  log('Consultando o registro de encomendas conhecidas…');
+  let reg = {seen:[], log:[]};
+  let regSha = null, dataSha = null;
+  if(cfg.token && cfg.repo){
+    const r1 = await ghGet(cfg, cfg.path+'/tv_gci_registry.json');
+    if(r1){ reg = r1.json; regSha = r1.sha; log('Registro carregado: '+fmt(reg.seen.length)+' encomendas conhecidas.','ok'); }
+    else log('Registro ainda não existe — esta será a primeira publicação (batismo, sem novidades).','warn');
+    const r2 = await ghGet(cfg, cfg.path+'/tv_data.json');
+    if(r2) dataSha = r2.sha;
+  } else {
+    log('Sem conexão configurada — dá para pré-visualizar, mas não publicar.','warn');
+  }
+
+  const vistos = new Set(reg.seen);
+  const batismo = vistos.size === 0;
+
+  // agrupa o arquivo por GCI
+  const porGci = new Map();
+  for(const l of linhas){
+    if(!l.gci) continue;
+    if(!porGci.has(l.gci)) porGci.set(l.gci, {prep:l.prep, cat:l.cat, cli:l.cli, desc:l.desc, q:0, prev:l.prev});
+    const g = porGci.get(l.gci); g.q += l.cart + l.fat;
+    if(!g.prev || (l.prev && l.prev < g.prev)) g.prev = l.prev;
+  }
+
+  const novosHoje = [];
+  for(const [gci, g] of porGci){
+    if(vistos.has(gci)) continue;
+    vistos.add(gci);
+    if(!batismo && g.cat){
+      const ent = {g:gci, d:hojeStr, p:g.prep, c:g.cat, q:Math.round(g.q)};
+      reg.log.push(ent); novosHoje.push({...ent, cli:g.cli, desc:g.desc});
+    }
+  }
+  reg.seen = [...vistos];
+  // poda o log: guarda só os últimos 3 meses
+  const corte = ym(new Date(anoCur, mesNum-2, 1));
+  reg.log = reg.log.filter(e => e.d.slice(0,7) >= corte);
+
+  /* --- matrizes de novidades (hoje e mês) --- */
+  function matriz(entradas){
+    const porPrep = {};
+    for(const e of entradas){
+      if(!porPrep[e.p]) porPrep[e.p] = [0,0,0,0,0];
+      const i = CATS.indexOf(e.c); if(i>=0) porPrep[e.p][i] += e.q;
+    }
+    const nomes = [...ORDEM_PREP.filter(p=>true), ...Object.keys(porPrep).filter(p=>!ORDEM_PREP.includes(p))];
+    const linhas = nomes.map(n => [n[0]+n.slice(1).toLowerCase(), porPrep[n]||[0,0,0,0,0]]);
+    const total = entradas.reduce((a,e)=>a+e.q,0);
+    return {total: Math.round(total), linhas};
+  }
+  const logHoje = reg.log.filter(e=>e.d===hojeStr);
+  const logMes = reg.log.filter(e=>e.d.slice(0,7)===curYM);
+  const novHoje = matriz(logHoje), novMes = matriz(logMes);
+
+  /* --- ticker --- */
+  const ticker = [];
+  ticker.push({c:'#F0A030', t:'faltam '+fmt(falta)+' pares para zerar a carteira de '+MESES_LONGO[mesNum].toLowerCase()});
+  if(novHoje.total) ticker.push({c:'#2BC48A', t:'+'+fmt(novHoje.total)+' pares novos entraram na carteira hoje'});
+  if(novMes.total) ticker.push({c:'#2BC48A', t:MESES_LONGO[mesNum].toLowerCase()+' acumula '+fmt(novMes.total)+' pares novos na carteira'});
+  ticker.push({c:'#9B6BF0', t:'carteira aberta do período: '+fmt(carteiraTotal)+' pares'});
+  if(meses.length){
+    const maior = meses.reduce((a,b)=>b.v>a.v?b:a);
+    ticker.push({c:'#9B6BF0', t:maior.label+' é o maior mês da carteira: '+fmt(maior.v)+' pares'});
+  }
+  // próximo grande faturamento: maior CART com PREV FAT nos próximos 45 dias
+  let melhor = null;
+  const lim = new Date(hoje); lim.setDate(lim.getDate()+45);
+  const porCliData = {};
+  for(const l of linhas){
+    if(!l.prev || l.prev<hoje || l.prev>lim || !l.cart) continue;
+    const k = l.cli+'|'+l.prev.toISOString().slice(0,10);
+    porCliData[k] = (porCliData[k]||0)+l.cart;
+  }
+  for(const [k,v] of Object.entries(porCliData))
+    if(!melhor || v>melhor.v){ const [cli,d]=k.split('|'); melhor={cli,d,v}; }
+  if(melhor){
+    const [Y,M,D] = melhor.d.split('-');
+    ticker.push({c:'#9B6BF0', t:'próximo grande faturamento: '+D+'/'+M+' · '+melhor.cli+' ('+fmt(melhor.v)+' pares)'});
+  }
+
+  /* --- payload da TV --- */
+  const tvData = {
+    generatedAt: new Date().toISOString(),
+    carteira: { total: Math.round(carteiraTotal), meses,
+      horizonte: meses.length ? 'até '+meses[meses.length-1].label.toLowerCase()+'/'+String(anoCur).slice(2) : '' },
+    mes: { label: MESES_LONGO[mesNum], dia: hoje.getDate(),
+      faturado: Math.round(faturadoMes), anterior: Math.round(faturadoAnt),
+      anteriorLabel: MESES_LONGO[(mesNum+11)%12].toLowerCase(),
+      falta, diasUteis: uteisRestantes,
+      paresDia: Math.round(falta/uteisRestantes), projecao: Math.round(projecao),
+      barW: Math.round(faturadoMes/escala*100), markW: Math.round(faturadoAnt/escala*100) },
+    novHoje, novMes, ticker,
+  };
+
+  PROC = {tvData, reg, regSha, dataSha, batismo};
+  mostrarResumo(linhas.length, novosHoje);
+  $('pubCard').hidden = false;
+  $('pubBtn').disabled = !(cfg.token && cfg.repo);
+  if(!(cfg.token && cfg.repo)) $('pubHint').textContent = 'configure a conexão com o GitHub para habilitar a publicação';
+}
+
+/* ============================================================
+   RESUMO NA TELA
+   ============================================================ */
+function mostrarResumo(nLinhas, novos){
+  const d = PROC.tvData;
+  $('resumoCard').hidden = false;
+  $('kpis').innerHTML = [
+    ['Linhas lidas', fmt(nLinhas), ''],
+    ['Carteira aberta', fmt(d.carteira.total)+' pares', ''],
+    ['Faturado no mês', fmt(d.mes.faturado), ''],
+    ['Falta faturar', fmt(d.mes.falta), ''],
+    ['Novidades hoje', PROC.batismo ? 'batismo' : '+'+fmt(d.novHoje.total), 'nv'],
+    ['Novidades no mês', '+'+fmt(d.novMes.total), 'nv'],
+  ].map(([l,v,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v ${c}">${v}</div></div>`).join('');
+
+  if(PROC.batismo){
+    $('novBox').innerHTML = '<div class="hint">Primeira publicação: todas as encomendas do arquivo foram registradas como conhecidas. A partir da próxima importação, tudo que entrar de novo aparece aqui e na TV.</div>';
+  } else if(novos.length){
+    const top = novos.sort((a,b)=>b.q-a.q).slice(0,8);
+    $('novBox').innerHTML = '<table><tr><th>Encomenda nova (GCI)</th><th>Preposto</th><th>Categoria</th><th>Cliente</th><th>Pares</th></tr>'+
+      top.map(n=>`<tr><td>${n.desc||n.g}</td><td>${n.p}</td><td>${n.c}</td><td>${n.cli}</td><td><span class="nv">+${fmt(n.q)}</span></td></tr>`).join('')+
+      '</table>' + (novos.length>8?`<div class="hint" style="margin-top:6px">…e mais ${novos.length-8} encomendas novas.</div>`:'');
+  } else {
+    $('novBox').innerHTML = '<div class="hint">Nenhuma encomenda nova em relação à última publicação.</div>';
+  }
+}
+
+/* ============================================================
+   GITHUB CONTENTS API
+   ============================================================ */
+function ghHeaders(cfg){ return {
+  'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json',
+  'Content-Type':'application/json' }; }
+async function ghGet(cfg, path){
+  try{
+    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${path}?ref=${cfg.branch}`,
+      {headers: ghHeaders(cfg)});
+    if(r.status===404) return null;
+    if(!r.ok) throw new Error('GET '+r.status);
+    const j = await r.json();
+    const txt = decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))));
+    return {json: JSON.parse(txt), sha: j.sha};
+  }catch(e){ log('Falha ao ler '+path+': '+e.message,'err'); return null; }
+}
+async function ghPut(cfg, path, obj, sha, msg){
+  const conteudo = btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  const body = {message: msg, content: conteudo, branch: cfg.branch};
+  if(sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${path}`,
+    {method:'PUT', headers: ghHeaders(cfg), body: JSON.stringify(body)});
+  if(!r.ok){ const t = await r.text(); throw new Error('PUT '+path+' → HTTP '+r.status+' '+t.slice(0,120)); }
+  return (await r.json()).content.sha;
+}
+
+$('pubBtn').onclick = async ()=>{
+  if(!PROC) return;
+  const cfg = lerCfg();
+  $('pubBtn').disabled = true; $('pubBtn').textContent = 'Publicando…';
+  try{
+    const agora = new Date().toLocaleString('pt-BR').slice(0,16);
+    log('Publicando registro de encomendas…');
+    await ghPut(cfg, cfg.path+'/tv_gci_registry.json', PROC.reg, PROC.regSha, 'tv: registro '+agora);
+    log('Publicando dados da TV…');
+    await ghPut(cfg, cfg.path+'/tv_data.json', PROC.tvData, PROC.dataSha, 'tv: dados '+agora);
+    log('Publicado! A TV atualiza no próximo ciclo (até 10 min) — ou recarregue-a para ver na hora.','ok');
+    $('pubBtn').textContent = '✓ Publicado';
+  }catch(e){
+    log(e.message,'err');
+    log('Nada foi perdido: corrija a conexão e publique de novo.','warn');
+    $('pubBtn').disabled = false; $('pubBtn').textContent = 'Publicar agora';
+  }
+};
+</script>
+</body>
+</html>
