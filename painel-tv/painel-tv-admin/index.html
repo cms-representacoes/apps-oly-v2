@@ -179,11 +179,7 @@ $('cfgSave').onclick = ()=>{
     token:$('cfgToken').value.trim(), repo:$('cfgRepo').value.trim(),
     branch:$('cfgBranch').value.trim()||'main', path:$('cfgPath').value.trim()||'data' }));
   aplicarCfg(); log('Conexão salva neste navegador.','ok');
-  if(PROC){ const c=lerCfg();
-    $('pubBtn').disabled = !(c.token && c.repo);
-    if(c.token && c.repo) $('pubHint').textContent =
-      'envia tv_data.json (para a TV) e tv_gci_registry.json (registro de encomendas conhecidas)';
-  }
+  if(LINHAS){ log('Reprocessando com a conexão nova…'); processar(LINHAS); }
 };
 aplicarCfg();
 // mudou o rebatismo ou o tempo de cena com arquivo já lido? reprocessa na hora
@@ -489,12 +485,18 @@ async function ghGet(cfg, path){
     return {json: JSON.parse(txt), sha: j.sha};
   }catch(e){ log('Falha ao ler '+path+': '+e.message,'err'); return null; }
 }
-async function ghPut(cfg, path, obj, sha, msg){
+async function ghPut(cfg, path, obj, sha, msg, tentativa){
   const conteudo = btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   const body = {message: msg, content: conteudo, branch: cfg.branch};
   if(sha) body.sha = sha;
   const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${path}`,
     {method:'PUT', headers: ghHeaders(cfg), body: JSON.stringify(body)});
+  if(r.status===422 && !tentativa){
+    // o arquivo já existe (ou mudou de versão): busca o sha atual e tenta uma única vez de novo
+    log('Arquivo já existe no repositório — buscando a versão atual para atualizar…','warn');
+    const atual = await ghGet(cfg, path);
+    return ghPut(cfg, path, obj, atual ? atual.sha : null, msg, true);
+  }
   if(!r.ok){ const t = await r.text(); throw new Error('PUT '+path+' → HTTP '+r.status+' '+t.slice(0,120)); }
   return (await r.json()).content.sha;
 }
@@ -506,9 +508,9 @@ $('pubBtn').onclick = async ()=>{
   try{
     const agora = new Date().toLocaleString('pt-BR').slice(0,16);
     log('Publicando registro de encomendas…');
-    await ghPut(cfg, cfg.path+'/tv_gci_registry.json', PROC.reg, PROC.regSha, 'tv: registro '+agora);
+    PROC.regSha = await ghPut(cfg, cfg.path+'/tv_gci_registry.json', PROC.reg, PROC.regSha, 'tv: registro '+agora);
     log('Publicando dados da TV…');
-    await ghPut(cfg, cfg.path+'/tv_data.json', PROC.tvData, PROC.dataSha, 'tv: dados '+agora);
+    PROC.dataSha = await ghPut(cfg, cfg.path+'/tv_data.json', PROC.tvData, PROC.dataSha, 'tv: dados '+agora);
     log('Publicado! A TV atualiza no próximo ciclo (até 10 min) — ou recarregue-a para ver na hora.','ok');
     $('pubBtn').textContent = '✓ Publicado';
   }catch(e){
