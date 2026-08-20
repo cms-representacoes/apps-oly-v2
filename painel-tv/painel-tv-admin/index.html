@@ -77,7 +77,7 @@ details summary::-webkit-details-marker{display:none}
   <div class="top">
     <span class="logo sg">CMS</span>
     <div><h1 class="sg">Painel TV · Admin</h1>
-    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.2</b></div></div>
+    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.3</b></div></div>
   </div>
 
   <!-- CONFIG -->
@@ -123,6 +123,12 @@ details summary::-webkit-details-marker{display:none}
           padding:9px 12px;font:500 13px 'Inter',sans-serif;color:var(--navy);background:#FCFCFB"></div>
       <div><label>Tempo de cada cena do carrossel (segundos)</label>
         <input type="text" id="ajCena" value="18" inputmode="numeric"></div>
+      <div><label>Tema da TV</label>
+        <select id="ajTema" style="width:100%;border:1px solid var(--line);border-radius:9px;
+          padding:9px 12px;font:500 13px 'Inter',sans-serif;color:var(--navy);background:#FCFCFB">
+          <option value="escuro">Escuro (padrão)</option>
+          <option value="claro">Claro</option>
+        </select></div>
       <div><label>Rebatizar nesta publicação</label>
         <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--navy);
           border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#FCFCFB;cursor:pointer">
@@ -189,6 +195,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('ajRebat').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajCena').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajData').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
+  $('ajTema').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
+  log('Admin v1.3 carregado.');
 });
 
 /* ============================================================
@@ -240,7 +248,8 @@ $('drop').ondrop = e=>{ e.preventDefault(); $('drop').classList.remove('drag');
 $('file').onchange = e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]); };
 
 async function lerArquivo(file){
-  log('Lendo '+file.name+' ('+Math.round(file.size/1024)+' KB)…');
+  log('──────────────────────────────');
+  log('[1/4] Lendo '+file.name+' ('+Math.round(file.size/1024)+' KB)…');
   // DETALHADA_PREPOSTOS_19-08-2026.xlsx -> 2026-08-19
   const md = file.name.match(/(\d{2})-(\d{2})-(\d{4})/);
   if(md){ $('ajData').value = md[3]+'-'+md[2]+'-'+md[1];
@@ -289,6 +298,16 @@ async function lerArquivo(file){
    PROCESSAMENTO + DIFF DE GCIs
    ============================================================ */
 async function processar(linhas){
+  try{ await processarCore(linhas); }
+  catch(e){
+    log('ERRO no processamento: '+e.message,'err');
+    log('O botão Publicar ficou bloqueado. Resolva o item acima e arraste o arquivo de novo.','warn');
+    $('pubCard').hidden = false;
+    $('pubBtn').disabled = true;
+    $('pubHint').textContent = 'processamento falhou — veja o log';
+  }
+}
+async function processarCore(linhas){
   const cfg = lerCfg();
   let hoje;
   const vd = $('ajData').value;             // data do relatório escolhida no admin
@@ -297,7 +316,7 @@ async function processar(linhas){
     hoje = new Date(Y, M-1, D);
   } else { hoje = new Date(); hoje.setHours(0,0,0,0); }
   const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
-  log('Processando com data de referência '+hojeStr.split('-').reverse().join('/')+'.');
+  log('[2/4] Processando com data de referência '+hojeStr.split('-').reverse().join('/')+'…');
   const curYM = ym(hoje);
   const mesNum = hoje.getMonth(), anoCur = hoje.getFullYear();
 
@@ -328,7 +347,7 @@ async function processar(linhas){
   const escala = Math.max(faturadoMes + falta, faturadoAnt, 1);
 
   /* --- registro de GCIs (baixa o publicado, compara, atualiza) --- */
-  log('Consultando o registro de encomendas conhecidas…');
+  log('[3/4] Consultando o registro de encomendas conhecidas (até 25s)…');
   let reg = {seen:[], log:[]};
   let regSha = null, dataSha = null;
   if(cfg.token && cfg.repo){
@@ -422,7 +441,7 @@ async function processar(linhas){
   $('ajCena').value = cenaSeg;
   const tvData = {
     generatedAt: new Date().toISOString(),
-    config: { cenaSeg },
+    config: { cenaSeg, tema: $('ajTema').value },
     carteira: { total: Math.round(carteiraTotal), meses,
       horizonte: meses.length ? 'até '+meses[meses.length-1].label.toLowerCase()+'/'+String(anoCur).slice(2) : '' },
     mes: { label: MESES_LONGO[mesNum], dia: hoje.getDate(),
@@ -435,6 +454,7 @@ async function processar(linhas){
   };
 
   PROC = {tvData, reg, regSha, dataSha, batismo: batismo || rebatizar};
+  log('[4/4] PRONTO PARA PUBLICAR ✓ — confira o resumo e clique em Publicar agora.','ok');
   mostrarResumo(linhas.length, novosHoje);
   $('pubCard').hidden = false;
   $('pubBtn').disabled = !(cfg.token && cfg.repo);
@@ -474,13 +494,22 @@ function mostrarResumo(nLinhas, novos){
 /* ============================================================
    GITHUB CONTENTS API
    ============================================================ */
+async function fx(url, opts){
+  const ctl = new AbortController();
+  const tim = setTimeout(()=>ctl.abort(), 25000);
+  try{ return await fetch(url, {...opts, signal: ctl.signal}); }
+  catch(e){
+    if(e.name==='AbortError') throw new Error('sem resposta do GitHub em 25s (rede ou instabilidade) — tente de novo');
+    throw e;
+  } finally{ clearTimeout(tim); }
+}
 function ghHeaders(cfg){ return {
   'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json',
   'Content-Type':'application/json' }; }
 async function ghGet(cfg, path){
   try{
     const url = `https://api.github.com/repos/${cfg.repo}/contents/${path}?ref=${cfg.branch}`;
-    const r = await fetch(url, {headers: ghHeaders(cfg)});
+    const r = await fx(url, {headers: ghHeaders(cfg)});
     if(r.status===404) return null;
     if(!r.ok) throw new Error('GET '+r.status);
     const j = await r.json();
@@ -490,7 +519,7 @@ async function ghGet(cfg, path){
     }
     if(!json){
       // arquivo grande (>1 MB): a API manda o conteúdo vazio; busca no formato bruto
-      const rr = await fetch(url, {headers: {...ghHeaders(cfg), 'Accept':'application/vnd.github.raw'}});
+      const rr = await fx(url, {headers: {...ghHeaders(cfg), 'Accept':'application/vnd.github.raw'}});
       if(rr.ok){ try{ json = await rr.json(); }catch(_){} }
     }
     return {json, sha: j.sha};   // json pode vir null; o sha vem sempre
@@ -500,7 +529,7 @@ async function ghPut(cfg, path, obj, sha, msg, tentativa){
   const conteudo = btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   const body = {message: msg, content: conteudo, branch: cfg.branch};
   if(sha) body.sha = sha;
-  const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${path}`,
+  const r = await fx(`https://api.github.com/repos/${cfg.repo}/contents/${path}`,
     {method:'PUT', headers: ghHeaders(cfg), body: JSON.stringify(body)});
   if(r.status===422 && !tentativa){
     // o arquivo já existe (ou mudou de versão): busca o sha atual e tenta uma única vez de novo
