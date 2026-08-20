@@ -118,6 +118,9 @@ details summary::-webkit-details-marker{display:none}
   <div class="card">
     <h2>🎛️ Ajustes da TV</h2>
     <div class="grid2">
+      <div><label>Data do relatório (detectada do nome do arquivo — ajuste se precisar)</label>
+        <input type="date" id="ajData" style="width:100%;border:1px solid var(--line);border-radius:9px;
+          padding:9px 12px;font:500 13px 'Inter',sans-serif;color:var(--navy);background:#FCFCFB"></div>
       <div><label>Tempo de cada cena do carrossel (segundos)</label>
         <input type="text" id="ajCena" value="18" inputmode="numeric"></div>
       <div><label>Rebatizar nesta publicação</label>
@@ -128,6 +131,9 @@ details summary::-webkit-details-marker{display:none}
         </label></div>
     </div>
     <div class="hint" style="margin-top:8px">
+      A data do relatório comanda tudo: as novidades detectadas são carimbadas nela,
+      e o "faturado até dia X", a projeção e os dias úteis são calculados em relação a ela.
+      Para reconstruir o histórico, suba o completo de ontem (com rebatismo) e depois o de hoje.
       O tempo de cena vale a partir da próxima publicação (a TV aplica sozinha).
       Use o rebatismo quando a base mudar de tamanho — por exemplo, ao trocar um
       arquivo de 6 meses por um do ano inteiro — para as novidades voltarem ao zero real.
@@ -182,8 +188,11 @@ $('cfgSave').onclick = ()=>{
 aplicarCfg();
 // mudou o rebatismo ou o tempo de cena com arquivo já lido? reprocessa na hora
 document.addEventListener('DOMContentLoaded', ()=>{
+  const d = new Date();
+  $('ajData').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   $('ajRebat').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajCena').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
+  $('ajData').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
 });
 
 /* ============================================================
@@ -236,6 +245,10 @@ $('file').onchange = e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]); }
 
 async function lerArquivo(file){
   log('Lendo '+file.name+' ('+Math.round(file.size/1024)+' KB)…');
+  // DETALHADA_PREPOSTOS_19-08-2026.xlsx -> 2026-08-19
+  const md = file.name.match(/(\d{2})-(\d{2})-(\d{4})/);
+  if(md){ $('ajData').value = md[3]+'-'+md[2]+'-'+md[1];
+    log('Data do relatório detectada pelo nome: '+md[1]+'/'+md[2]+'/'+md[3]+' (ajuste no campo se não for essa).'); }
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, {cellDates:true});
   const ws = wb.Sheets['DETALHADA'] || wb.Sheets[wb.SheetNames[0]];
@@ -281,8 +294,14 @@ async function lerArquivo(file){
    ============================================================ */
 async function processar(linhas){
   const cfg = lerCfg();
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const hojeStr = hoje.toISOString().slice(0,10);
+  let hoje;
+  const vd = $('ajData').value;             // data do relatório escolhida no admin
+  if(vd && /^\d{4}-\d{2}-\d{2}$/.test(vd)){
+    const [Y,M,D] = vd.split('-').map(Number);
+    hoje = new Date(Y, M-1, D);
+  } else { hoje = new Date(); hoje.setHours(0,0,0,0); }
+  const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
+  log('Processando com data de referência '+hojeStr.split('-').reverse().join('/')+'.');
   const curYM = ym(hoje);
   const mesNum = hoje.getMonth(), anoCur = hoje.getFullYear();
 
