@@ -71,6 +71,9 @@
   #fsBtn:hover{background:color-mix(in srgb, var(--ftw) 24%, transparent);
     border-color:var(--ftw)}
   #fsBtn svg{width:14px;height:14px;flex:none}
+  #tvBtn svg{width:14px;height:14px;flex:none}
+  #tvBtn.tv-ok{border-color:#12a150;color:#12a150}
+  #tvBtn.tv-err{border-color:#c43d3d;color:#c43d3d}
   body.is-fs .hide-fs{display:none!important}
   body.is-fs{overflow-y:auto}
   #exportBtn{background:#7C3AED;color:#fff;border-color:#7C3AED}
@@ -462,6 +465,9 @@
     </div>
     <span class="spacer"></span>
     <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px" data-tip="Voltar para o portal de aplicativos da CMS">&larr; Portal</a>
+    <button id="tvBtn" class="btn iconbtn" type="button" hidden aria-label="Painel TV" data-tip="Painel TV: publica o resumo da carta campanha para a cena Performance da TV. Clique para configurar o token.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </button>
     <button id="fsBtn" class="btn iconbtn" type="button" aria-label="Tela cheia" data-tip="Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
     </button>
@@ -742,9 +748,82 @@ function buildFromDados(dados, meses){
 }
 
 let LAST_VENDORS=[];      // vendedores do recorte atualmente na tela
+
+// ============================================================
+// PONTE COM O PAINEL TV - publica data/widget_performance.json
+// (a cena "Performance" da TV lê esse arquivo). Requer token
+// salvo neste navegador (botão da TV na topbar, só admin).
+// ============================================================
+const TVW = {
+  KEY_TOKEN: 'apv_tv_token',
+  path: 'data/widget_performance.json',
+  repo: 'cms-representacoes/apps-oly-v2',
+  branch: 'main',
+};
+function tvwToken(){ return (localStorage.getItem(TVW.KEY_TOKEN)||'').trim(); }
+function tvwTrimestreAtual(){
+  const q = Math.floor(new Date().getMonth()/3);   // 0..3
+  return { id:'T'+(q+1),
+    rotulo:['1º Tri (Jan-Mar)','2º Tri (Abr-Jun)','3º Tri (Jul-Set)','4º Tri (Out-Dez)'][q] };
+}
+async function tvwPublicar(vendors){
+  try{
+    const tok = tvwToken();
+    if(!tok || !IS_ADMIN_LIKE) return;
+    const tri = tvwTrimestreAtual();
+    // só publica quando o recorte na tela é o trimestre corrente do ano corrente
+    if(CURRENT_SEL !== 'R:'+tri.id) return;
+    if(!DATASET || String(DATASET.ano) !== String(new Date().getFullYear())) return;
+
+    const lista = [...vendors].sort((a,b)=>b.ratio-a.ratio).map(v=>({
+      nome: firstName(v),
+      ftw: Math.round(v.ftw),
+      demais: Math.round(v.demais_v),
+      ratio: Math.round(v.ratio*1000)/10,
+      elegivel: v.ratio >= CC_META,
+    }));
+    const eleg = lista.filter(v=>v.elegivel).length;
+    const corpo = {
+      ano: String(new Date().getFullYear()),
+      trimestre: tri.rotulo,
+      meta: CC_META*100,
+      resumo: eleg+' de '+lista.length+' elegíveis · meta '+fmtPct(CC_META),
+      vendedores: lista,
+      linhas: lista.map(v=>v.nome+' '+String(v.ratio).replace('.',',')+'% '+(v.elegivel?'✓':'✗')),
+    };
+    // evita commit repetido: só publica se os números mudaram
+    const assin = JSON.stringify(corpo);
+    if(localStorage.getItem('apv_tv_hash') === assin) return;
+    corpo.atualizado = new Date().toLocaleString('pt-BR',
+      {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
+
+    const url = 'https://api.github.com/repos/'+TVW.repo+'/contents/'+TVW.path;
+    const cab = {'Authorization':'Bearer '+tok,'Accept':'application/vnd.github+json',
+                 'Content-Type':'application/json'};
+    let sha = null;
+    const g = await fetch(url+'?ref='+TVW.branch, {headers:cab});
+    if(g.ok){ sha = (await g.json()).sha; }
+    const body = {message:'tv: resumo performance (dashboard)',
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(corpo, null, 1)))),
+      branch: TVW.branch};
+    if(sha) body.sha = sha;
+    const p = await fetch(url, {method:'PUT', headers:cab, body: JSON.stringify(body)});
+    if(!p.ok) throw new Error('HTTP '+p.status);
+    localStorage.setItem('apv_tv_hash', assin);
+    console.log('[TV] resumo da carta campanha publicado.');
+    const b = document.getElementById('tvBtn'); if(b){ b.classList.add('tv-ok'); setTimeout(()=>b.classList.remove('tv-ok'), 2500); }
+  }catch(e){
+    console.warn('[TV] falha ao publicar o resumo:', e.message);
+    const b = document.getElementById('tvBtn');
+    if(b){ b.classList.add('tv-err'); b.title = 'Painel TV: falha ao publicar - '+e.message; }
+  }
+}
+
 function finishBuild(vendors){
   LAST_VENDORS = vendors;
+  tvwPublicar(vendors);
   const eb=document.getElementById('exportBtn'); if(eb) eb.hidden=!IS_ADMIN_LIKE;
+  const tb=document.getElementById('tvBtn'); if(tb) tb.hidden=!IS_ADMIN_LIKE;
 
   if(!IS_ADMIN_LIKE){
     // Vendedor comum: trava direto na própria aba, sem opção de trocar.
@@ -1354,6 +1433,22 @@ const LS_FILTROS='apv_filtros_on';
 })();
 
 // cards recolhíveis no celular: toque no cabeçalho abre/fecha
+(function(){
+  const b = document.getElementById('tvBtn'); if(!b) return;
+  b.onclick = ()=>{
+    const atual = tvwToken();
+    const msg = atual
+      ? 'Painel TV conectado.\n\nCole um token novo para trocar, deixe vazio e OK para manter, ou digite REMOVER para desconectar:'
+      : 'Conectar ao Painel TV:\n\nCole o token do GitHub (o mesmo do tv-admin). O resumo da carta campanha passa a ser publicado automaticamente sempre que voce abrir o Performance com dados do trimestre corrente.';
+    const r = prompt(msg, '');
+    if(r === null) return;
+    const v = r.trim();
+    if(v.toUpperCase() === 'REMOVER'){ localStorage.removeItem(TVW.KEY_TOKEN); localStorage.removeItem('apv_tv_hash'); alert('Desconectado do Painel TV.'); return; }
+    if(v){ localStorage.setItem(TVW.KEY_TOKEN, v); localStorage.removeItem('apv_tv_hash'); }
+    if(tvwToken() && LAST_VENDORS.length){ tvwPublicar(LAST_VENDORS); alert('Conectado. Publicando o resumo agora - o icone fica verde quando concluir.'); }
+  };
+})();
+
 document.addEventListener('click', e=>{
   if(!window.matchMedia('(max-width:720px)').matches) return;
   const h=e.target.closest('.vhead'); if(!h) return;
