@@ -1,0 +1,59 @@
+{
+ "ano": "2026",
+ "trimestre": "3º Tri (Jul-Set)",
+ "meta": 15,
+ "resumo": "3 de 6 elegíveis · meta 15,0%",
+ "vendedores": [
+  {
+   "nome": "Leandro",
+   "ftw": 6375589,
+   "demais": 1473642,
+   "ratio": 23.1,
+   "elegivel": true
+  },
+  {
+   "nome": "Jorge",
+   "ftw": 3887166,
+   "demais": 663725,
+   "ratio": 17.1,
+   "elegivel": true
+  },
+  {
+   "nome": "CMS",
+   "ftw": 9672534,
+   "demais": 1552488,
+   "ratio": 16.1,
+   "elegivel": true
+  },
+  {
+   "nome": "Willame",
+   "ftw": 6384115,
+   "demais": 730044,
+   "ratio": 11.4,
+   "elegivel": false
+  },
+  {
+   "nome": "Rafael",
+   "ftw": 3955477,
+   "demais": 325880,
+   "ratio": 8.2,
+   "elegivel": false
+  },
+  {
+   "nome": "Mariana",
+   "ftw": 2360779,
+   "demais": 156961,
+   "ratio": 6.6,
+   "elegivel": false
+  }
+ ],
+ "linhas": [
+  "Leandro 23,1% ✓",
+  "Jorge 17,1% ✓",
+  "CMS 16,1% ✓",
+  "Willame 11,4% ✗",
+  "Rafael 8,2% ✗",
+  "Mariana 6,6% ✗"
+ ],
+ "atualizado": "20/08 14:03"
+}
