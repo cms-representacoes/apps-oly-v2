@@ -114,6 +114,26 @@ details summary::-webkit-details-marker{display:none}
     <div id="novBox" style="margin-top:14px"></div>
   </div>
 
+  <!-- AJUSTES DA TV -->
+  <div class="card">
+    <h2>🎛️ Ajustes da TV</h2>
+    <div class="grid2">
+      <div><label>Tempo de cada cena do carrossel (segundos)</label>
+        <input type="text" id="ajCena" value="18" inputmode="numeric"></div>
+      <div><label>Rebatizar nesta publicação</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--navy);
+          border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#FCFCFB;cursor:pointer">
+          <input type="checkbox" id="ajRebat" style="width:16px;height:16px;accent-color:var(--ftw)">
+          zerar as novidades e registrar tudo do arquivo como conhecido
+        </label></div>
+    </div>
+    <div class="hint" style="margin-top:8px">
+      O tempo de cena vale a partir da próxima publicação (a TV aplica sozinha).
+      Use o rebatismo quando a base mudar de tamanho — por exemplo, ao trocar um
+      arquivo de 6 meses por um do ano inteiro — para as novidades voltarem ao zero real.
+    </div>
+  </div>
+
   <!-- PUBLICAR -->
   <div class="card" id="pubCard" hidden>
     <h2>🚀 Publicar para a TV</h2>
@@ -153,8 +173,18 @@ $('cfgSave').onclick = ()=>{
     token:$('cfgToken').value.trim(), repo:$('cfgRepo').value.trim(),
     branch:$('cfgBranch').value.trim()||'main', path:$('cfgPath').value.trim()||'data' }));
   aplicarCfg(); log('Conexão salva neste navegador.','ok');
+  if(PROC){ const c=lerCfg();
+    $('pubBtn').disabled = !(c.token && c.repo);
+    if(c.token && c.repo) $('pubHint').textContent =
+      'envia tv_data.json (para a TV) e tv_gci_registry.json (registro de encomendas conhecidas)';
+  }
 };
 aplicarCfg();
+// mudou o rebatismo ou o tempo de cena com arquivo já lido? reprocessa na hora
+document.addEventListener('DOMContentLoaded', ()=>{
+  $('ajRebat').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
+  $('ajCena').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
+});
 
 /* ============================================================
    REGRAS DE NEGÓCIO
@@ -194,7 +224,8 @@ function diasUteis(ini, fim){ let n=0;
 /* ============================================================
    LEITURA DO XLSX (mapeamento por NOME de coluna, nunca posição)
    ============================================================ */
-let PROC = null;   // resultado do processamento, pronto para publicar
+let PROC = null;    // resultado do processamento, pronto para publicar
+let LINHAS = null;  // último arquivo lido (permite reprocessar ao mudar ajustes)
 
 $('drop').onclick = ()=>$('file').click();
 $('drop').ondragover = e=>{ e.preventDefault(); $('drop').classList.add('drag'); };
@@ -241,6 +272,7 @@ async function lerArquivo(file){
   if(marcasDesconhecidas.size)
     log('Marcas sem categoria (ficam fora da matriz de novidades): '+[...marcasDesconhecidas].join(', '),'warn');
 
+  LINHAS = linhas;
   await processar(linhas);
 }
 
@@ -294,6 +326,11 @@ async function processar(linhas){
     log('Sem conexão configurada — dá para pré-visualizar, mas não publicar.','warn');
   }
 
+  const rebatizar = $('ajRebat').checked;
+  if(rebatizar && reg.seen.length){
+    log('REBATISMO: o registro atual será descartado — novidades voltam ao zero.','warn');
+    reg = {seen:[], log:[]};
+  }
   const vistos = new Set(reg.seen);
   const batismo = vistos.size === 0;
 
@@ -363,8 +400,11 @@ async function processar(linhas){
   }
 
   /* --- payload da TV --- */
+  const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 18));
+  $('ajCena').value = cenaSeg;
   const tvData = {
     generatedAt: new Date().toISOString(),
+    config: { cenaSeg },
     carteira: { total: Math.round(carteiraTotal), meses,
       horizonte: meses.length ? 'até '+meses[meses.length-1].label.toLowerCase()+'/'+String(anoCur).slice(2) : '' },
     mes: { label: MESES_LONGO[mesNum], dia: hoje.getDate(),
@@ -376,11 +416,14 @@ async function processar(linhas){
     novHoje, novMes, ticker,
   };
 
-  PROC = {tvData, reg, regSha, dataSha, batismo};
+  PROC = {tvData, reg, regSha, dataSha, batismo: batismo || rebatizar};
   mostrarResumo(linhas.length, novosHoje);
   $('pubCard').hidden = false;
   $('pubBtn').disabled = !(cfg.token && cfg.repo);
-  if(!(cfg.token && cfg.repo)) $('pubHint').textContent = 'configure a conexão com o GitHub para habilitar a publicação';
+  $('pubBtn').textContent = 'Publicar agora';
+  $('pubHint').textContent = (cfg.token && cfg.repo)
+    ? 'envia tv_data.json (para a TV) e tv_gci_registry.json (registro de encomendas conhecidas)'
+    : 'configure a conexão com o GitHub para habilitar a publicação';
 }
 
 /* ============================================================
@@ -399,7 +442,7 @@ function mostrarResumo(nLinhas, novos){
   ].map(([l,v,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v ${c}">${v}</div></div>`).join('');
 
   if(PROC.batismo){
-    $('novBox').innerHTML = '<div class="hint">Primeira publicação: todas as encomendas do arquivo foram registradas como conhecidas. A partir da próxima importação, tudo que entrar de novo aparece aqui e na TV.</div>';
+    $('novBox').innerHTML = '<div class="hint">Batismo: todas as encomendas deste arquivo serão registradas como conhecidas e as novidades zeram. A partir da próxima importação, tudo que entrar de novo aparece aqui e na TV.</div>';
   } else if(novos.length){
     const top = novos.sort((a,b)=>b.q-a.q).slice(0,8);
     $('novBox').innerHTML = '<table><tr><th>Encomenda nova (GCI)</th><th>Preposto</th><th>Categoria</th><th>Cliente</th><th>Pares</th></tr>'+
