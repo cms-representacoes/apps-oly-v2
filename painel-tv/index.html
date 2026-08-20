@@ -175,7 +175,7 @@ body.idle{cursor:none}
 /* CONFIG */
 const DATA_URL = '../data/tv_data.json';   // mesmo domínio (GitHub Pages)
 const POLL_MS  = 10*60*1000;               // re-consulta a cada 10 min
-const CENA_MS  = 18*1000;                  // duração de cada cena
+let CENA_MS    = 18*1000;                  // duração de cada cena (o admin pode ajustar)
 const CATS = ['TÊNIS','MEIAS','ACESSÓRIOS','CONFECÇÃO','CHINELO'];
 const fmt = n => Math.round(n).toLocaleString('pt-BR');
 const mil = n => n>=1000 ? (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil' : fmt(n);
@@ -341,13 +341,16 @@ async function carregar(primeira){
     const novo = await res.json();
     const mudou = !DATA || novo.generatedAt !== DATA.generatedAt;
     DATA = novo;
+    if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;
     try{ localStorage.setItem('tv_cache', JSON.stringify(novo)); }catch(_){}
     document.getElementById('aviso').classList.remove('show');
     if(primeira || mudou){ montarTicker(); mostrar(0); girar(); }
   }catch(e){
     if(!DATA){
       try{ DATA = JSON.parse(localStorage.getItem('tv_cache')); }catch(_){}
-      if(DATA){ montarTicker(); mostrar(0); girar(); }
+      if(DATA){
+        if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;
+        montarTicker(); mostrar(0); girar(); }
       else document.getElementById('aviso').classList.add('show');
     }
     /* com dado em tela, falha de rede é silenciosa: a TV nunca quebra */
