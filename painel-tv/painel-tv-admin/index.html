@@ -77,7 +77,7 @@ details summary::-webkit-details-marker{display:none}
   <div class="top">
     <span class="logo sg">CMS</span>
     <div><h1 class="sg">Painel TV · Admin</h1>
-    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.3</b></div></div>
+    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.4</b></div></div>
   </div>
 
   <!-- CONFIG -->
@@ -135,6 +135,10 @@ details summary::-webkit-details-marker{display:none}
           <input type="checkbox" id="ajRebat" style="width:16px;height:16px;accent-color:var(--ftw)">
           zerar as novidades e registrar tudo do arquivo como conhecido
         </label></div>
+    </div>
+    <div class="acts" style="margin-top:12px">
+      <button class="btn" id="zerarBtn" style="color:var(--err);border-color:#EAD5D5">🧨 Zerar tudo (apagar registro e dados publicados)</button>
+      <span class="hint">apaga os dois arquivos do repositório — a TV volta a "aguardando publicação" até você publicar de novo</span>
     </div>
     <div class="hint" style="margin-top:8px">
       A data do relatório comanda tudo: as novidades detectadas são carimbadas nela,
@@ -196,7 +200,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('ajCena').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajData').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajTema').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
-  log('Admin v1.3 carregado.');
+  log('Admin v1.4 carregado.');
 });
 
 /* ============================================================
@@ -351,14 +355,19 @@ async function processarCore(linhas){
   let reg = {seen:[], log:[]};
   let regSha = null, dataSha = null;
   if(cfg.token && cfg.repo){
-    const r1 = await ghGet(cfg, cfg.path+'/tv_gci_registry.json');
-    if(r1 && r1.json){ reg = r1.json; regSha = r1.sha;
-      log('Registro carregado: '+fmt(reg.seen.length)+' encomendas conhecidas.','ok'); }
-    else if(r1){ regSha = r1.sha;
-      log('O registro existe mas veio ilegível (arquivo grande?). Marque REBATIZAR para publicar por cima com segurança.','warn'); }
-    else log('Registro ainda não existe — esta será a primeira publicação (batismo, sem novidades).','warn');
-    const r2 = await ghGet(cfg, cfg.path+'/tv_data.json');
-    if(r2) dataSha = r2.sha;
+    let r1 = null;
+    try{ r1 = await ghGet(cfg, cfg.path+'/tv_gci_registry.json'); }catch(_){ r1 = null; }
+    const regOk = r1 && r1.json && Array.isArray(r1.json.seen);
+    regSha = (r1 && r1.sha) || await ghSha(cfg, cfg.path+'/tv_gci_registry.json');
+    if(regOk){
+      reg = {seen: r1.json.seen, log: Array.isArray(r1.json.log) ? r1.json.log : []};
+      log('Registro carregado: '+fmt(reg.seen.length)+' encomendas conhecidas.','ok');
+    } else if(regSha){
+      log('O registro existe mas não pôde ser lido. Com REBATIZAR marcado, publico por cima com segurança.','warn');
+    } else {
+      log('Registro ainda não existe — esta será a primeira publicação (batismo, sem novidades).','warn');
+    }
+    dataSha = await ghSha(cfg, cfg.path+'/tv_data.json');
   } else {
     log('Sem conexão configurada — dá para pré-visualizar, mas não publicar.','warn');
   }
@@ -503,6 +512,19 @@ async function fx(url, opts){
     throw e;
   } finally{ clearTimeout(tim); }
 }
+async function ghSha(cfg, path){
+  // busca o sha listando a pasta: nunca depende do conteúdo do arquivo
+  try{
+    const dir = path.split('/').slice(0,-1).join('/');
+    const r = await fx(`https://api.github.com/repos/${cfg.repo}/contents/${dir}?ref=${cfg.branch}`,
+      {headers: ghHeaders(cfg)});
+    if(!r.ok) return null;
+    const lista = await r.json();
+    if(!Array.isArray(lista)) return null;
+    const f = lista.find(x => x.path === path);
+    return f ? f.sha : null;
+  }catch(_){ return null; }
+}
 function ghHeaders(cfg){ return {
   'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json',
   'Content-Type':'application/json' }; }
@@ -534,13 +556,38 @@ async function ghPut(cfg, path, obj, sha, msg, tentativa){
   if(r.status===422 && !tentativa){
     // o arquivo já existe (ou mudou de versão): busca o sha atual e tenta uma única vez de novo
     log('Arquivo já existe no repositório — buscando a versão atual para atualizar…','warn');
-    const atual = await ghGet(cfg, path);
-    return ghPut(cfg, path, obj, atual ? atual.sha : null, msg, true);
+    const shaAtual = await ghSha(cfg, path);
+    return ghPut(cfg, path, obj, shaAtual, msg, true);
   }
   if(!r.ok){ const t = await r.text(); throw new Error('PUT '+path+' → HTTP '+r.status+' '+t.slice(0,120)); }
   return (await r.json()).content.sha;
 }
 
+async function ghDelete(cfg, path){
+  const sha = await ghSha(cfg, path);
+  if(!sha){ log(path+' não existe — nada a apagar.'); return; }
+  const r = await fx(`https://api.github.com/repos/${cfg.repo}/contents/${path}`,
+    {method:'DELETE', headers: ghHeaders(cfg),
+     body: JSON.stringify({message:'tv: zerar '+path, sha, branch: cfg.branch})});
+  if(!r.ok) throw new Error('DELETE '+path+' → HTTP '+r.status);
+  log(path+' apagado.','ok');
+}
+$('zerarBtn').onclick = async ()=>{
+  const cfg = lerCfg();
+  if(!(cfg.token && cfg.repo)){ log('Configure a conexão antes de zerar.','err'); return; }
+  if(!confirm('Apagar o registro de encomendas e os dados publicados da TV?\nA TV ficará em "aguardando publicação" até a próxima publicação.')) return;
+  $('zerarBtn').disabled = true;
+  try{
+    log('──────────────────────────────');
+    log('Zerando: apagando os arquivos publicados…','warn');
+    await ghDelete(cfg, cfg.path+'/tv_gci_registry.json');
+    await ghDelete(cfg, cfg.path+'/tv_data.json');
+    log('ZERADO ✓ — agora arraste o DET de ontem (com a data de ontem) e publique: será o novo batismo.','ok');
+    PROC = null; $('pubCard').hidden = true; $('resumoCard').hidden = true;
+    if(LINHAS){ log('Reprocessando o arquivo já importado contra a base zerada…'); await processar(LINHAS); }
+  }catch(e){ log(e.message,'err'); }
+  $('zerarBtn').disabled = false;
+};
 $('pubBtn').onclick = async ()=>{
   if(!PROC) return;
   const cfg = lerCfg();
