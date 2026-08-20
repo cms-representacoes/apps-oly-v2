@@ -20,6 +20,37 @@
   --ambar:#F0A030; --ambar2:#FFDCA6; --ambar3:#D9A868;
   --verde:#2BC48A; --verde2:#8FE5C4;
 }
+/* MODO CLARO (controlado pelo admin): tons profundos sobre fundo claro,
+   contraste alto de propósito — nada de cinza lavado em TV */
+body.claro{
+  --bg:#F3F1FA; --card:rgba(255,255,255,.92); --line:rgba(109,40,217,.22);
+  --tx:#1E1A3C; --tx2:#332D58; --mute:#4E4770; --dim:#6B6590; --off:#C6C1DC;
+  --roxo:#6D28D9; --roxo2:#7C3AED; --roxo3:#5B21B6;
+  --ambar:#B45E00; --ambar2:#8A4500; --ambar3:#9A5B10;
+  --verde:#0B7A52; --verde2:#0B7A52;
+}
+body.claro #glow{background:radial-gradient(closest-side,rgba(124,58,237,.14),transparent 70%)}
+body.claro #glow2{background:radial-gradient(closest-side,rgba(240,160,48,.12),transparent 70%)}
+body.claro #grain{opacity:.05;mix-blend-mode:multiply}
+body.claro .card{box-shadow:inset 0 .06rem 0 rgba(255,255,255,.9),0 .5rem 1.8rem rgba(30,26,60,.12)}
+body.claro .c1-num{text-shadow:none;color:#2A1465}
+body.claro .c1-bar{box-shadow:0 .2rem 1rem rgba(109,40,217,.35)}
+body.claro .c2-falta{background:linear-gradient(155deg,rgba(240,160,48,.22),rgba(240,160,48,.08) 65%);
+  outline-color:rgba(180,94,0,.5);box-shadow:inset 0 .06rem 0 rgba(255,255,255,.8),0 .6rem 2rem rgba(30,26,60,.12)}
+body.claro .c2-fnum{color:#7A3D00;text-shadow:none}
+body.claro .pilula{background:rgba(30,26,60,.06);border-color:rgba(30,26,60,.16);color:#1E1A3C}
+body.claro .trilha{background:rgba(30,26,60,.12)}
+body.claro #marca{background:#1E1A3C;opacity:.7}
+body.claro #topo #logo{box-shadow:0 .2rem 1rem rgba(109,40,217,.3)}
+body.claro #live.on{background:rgba(11,122,82,.1);border-color:rgba(11,122,82,.4);color:#0B7A52}
+body.claro #live.off{background:rgba(180,94,0,.1);border-color:rgba(180,94,0,.4);color:#8A4500}
+body.claro #barra{background:rgba(255,255,255,.9);border-top-color:rgba(109,40,217,.2)}
+body.claro #ticktxt{color:#332D58}
+body.claro .mrow.head{background:rgba(109,40,217,.12);border-color:rgba(109,40,217,.3)}
+body.claro .mrow.head span{color:#3B2E7E;text-shadow:none}
+body.claro .mrow.head span:first-child{color:#4E4770}
+body.claro .mrow.zero{background:rgba(30,26,60,.04);border-color:rgba(30,26,60,.08)}
+body.claro .mrow.zero .m-prep{color:#A29CBE}
 *{margin:0;padding:0;box-sizing:border-box}
 html{font-size:1vw}
 body{background:var(--bg);color:var(--tx);font-family:"Inter",sans-serif;
@@ -295,18 +326,24 @@ function cenaMatriz(el, cfg){
 const CENAS = [
   el => cenaCarteira(el),
   el => cenaMes(el),
-  el => cenaMatriz(el, {
+  el => { const L = document.body.classList.contains('claro');
+    cenaMatriz(el, {
     tag:'✦ NOVIDADES · HOJE', selo:'linear-gradient(135deg,#9B6BF0,#7C3AED)',
     titulo:'PARES QUE ENTRARAM NA CARTEIRA HOJE · POR PREPOSTO',
     total:'+'+fmt(DATA?.novHoje?.total||0)+' pares',
-    pilBg:'rgba(124,58,237,.22)', pilBd:'rgba(155,107,240,.4)', pilTx:'#C9B8F7',
-    linhas: DATA?.novHoje?.linhas||[] }),
-  el => cenaMatriz(el, {
+    pilBg: L?'rgba(109,40,217,.14)':'rgba(124,58,237,.22)',
+    pilBd: L?'rgba(109,40,217,.45)':'rgba(155,107,240,.4)',
+    pilTx: L?'#4C1D95':'#C9B8F7',
+    linhas: DATA?.novHoje?.linhas||[] }); },
+  el => { const L = document.body.classList.contains('claro');
+    cenaMatriz(el, {
     tag:'∑ NOVIDADES · '+(DATA?.mes?.label||''), selo:'linear-gradient(135deg,#2BC48A,#0F8A5F)',
     titulo:'MONTANTE QUE ENTROU NA CARTEIRA NO MÊS · POR PREPOSTO',
     total:'+'+fmt(DATA?.novMes?.total||0)+' pares no mês',
-    pilBg:'rgba(43,196,138,.14)', pilBd:'rgba(43,196,138,.35)', pilTx:'#8FE5C4',
-    linhas: DATA?.novMes?.linhas||[] }),
+    pilBg: L?'rgba(11,122,82,.12)':'rgba(43,196,138,.14)',
+    pilBd: L?'rgba(11,122,82,.45)':'rgba(43,196,138,.35)',
+    pilTx: L?'#065F42':'#8FE5C4',
+    linhas: DATA?.novMes?.linhas||[] }); },
 ];
 
 /* CARROSSEL */
@@ -344,6 +381,7 @@ async function carregar(primeira){
     const mudou = !DATA || novo.generatedAt !== DATA.generatedAt;
     DATA = novo;
     if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;
+    document.body.classList.toggle('claro', DATA.config && DATA.config.tema==='claro');
     try{ localStorage.setItem('tv_cache', JSON.stringify(novo)); }catch(_){}
     document.getElementById('aviso').classList.remove('show');
     if(primeira || mudou){ montarTicker(); mostrar(0); girar(); }
@@ -352,6 +390,7 @@ async function carregar(primeira){
       try{ DATA = JSON.parse(localStorage.getItem('tv_cache')); }catch(_){}
       if(DATA){
         if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;
+        document.body.classList.toggle('claro', DATA.config && DATA.config.tema==='claro');
         montarTicker(); mostrar(0); girar(); }
       else document.getElementById('aviso').classList.add('show');
     }
