@@ -77,7 +77,7 @@ details summary::-webkit-details-marker{display:none}
   <div class="top">
     <span class="logo sg">CMS</span>
     <div><h1 class="sg">Painel TV · Admin</h1>
-    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.4</b></div></div>
+    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.5</b></div></div>
   </div>
 
   <!-- CONFIG -->
@@ -137,6 +137,10 @@ details summary::-webkit-details-marker{display:none}
         </label></div>
     </div>
     <div class="acts" style="margin-top:12px">
+      <button class="btn primary" id="ajustesBtn">Publicar só os ajustes</button>
+      <span class="hint">muda o tempo de cena e o tema na TV sem importar arquivo — os números publicados ficam como estão</span>
+    </div>
+    <div class="acts" style="margin-top:6px">
       <button class="btn" id="zerarBtn" style="color:var(--err);border-color:#EAD5D5">🧨 Zerar tudo (apagar registro e dados publicados)</button>
       <span class="hint">apaga os dois arquivos do repositório — a TV volta a "aguardando publicação" até você publicar de novo</span>
     </div>
@@ -200,7 +204,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('ajCena').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajData').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
   $('ajTema').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
-  log('Admin v1.4 carregado.');
+  log('Admin v1.5 carregado.');
 });
 
 /* ============================================================
@@ -572,6 +576,29 @@ async function ghDelete(cfg, path){
   if(!r.ok) throw new Error('DELETE '+path+' → HTTP '+r.status);
   log(path+' apagado.','ok');
 }
+$('ajustesBtn').onclick = async ()=>{
+  const cfg = lerCfg();
+  if(!(cfg.token && cfg.repo)){ log('Configure a conexão antes.','err'); return; }
+  $('ajustesBtn').disabled = true;
+  try{
+    log('──────────────────────────────');
+    log('Publicando só os ajustes (tempo de cena e tema)…');
+    const atual = await ghGet(cfg, cfg.path+'/tv_data.json');
+    if(!atual || !atual.json || !atual.json.generatedAt){
+      log('Ainda não existe uma publicação para ajustar — importe uma DETALHADA e publique primeiro.','err');
+      $('ajustesBtn').disabled = false; return;
+    }
+    const dados = atual.json;
+    const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 18));
+    $('ajCena').value = cenaSeg;
+    dados.config = {...(dados.config||{}), cenaSeg, tema: $('ajTema').value};
+    dados.generatedAt = new Date().toISOString();   // a TV percebe a mudança e aplica
+    const agora = new Date().toLocaleString('pt-BR').slice(0,16);
+    await ghPut(cfg, cfg.path+'/tv_data.json', dados, atual.sha, 'tv: ajustes '+agora);
+    log('Ajustes publicados ✓ — cena de '+cenaSeg+'s, tema '+$('ajTema').value+'. A TV aplica no próximo ciclo (até 10 min) ou no F5.','ok');
+  }catch(e){ log(e.message,'err'); }
+  $('ajustesBtn').disabled = false;
+};
 $('zerarBtn').onclick = async ()=>{
   const cfg = lerCfg();
   if(!(cfg.token && cfg.repo)){ log('Configure a conexão antes de zerar.','err'); return; }
