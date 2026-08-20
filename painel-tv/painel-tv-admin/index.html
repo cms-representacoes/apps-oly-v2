@@ -77,7 +77,7 @@ details summary::-webkit-details-marker{display:none}
   <div class="top">
     <span class="logo sg">CMS</span>
     <div><h1 class="sg">Painel TV · Admin</h1>
-    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV</div></div>
+    <div class="sub">importa a DETALHADA, detecta novidades e publica para a TV · <b>v1.2</b></div></div>
   </div>
 
   <!-- CONFIG -->
@@ -333,7 +333,10 @@ async function processar(linhas){
   let regSha = null, dataSha = null;
   if(cfg.token && cfg.repo){
     const r1 = await ghGet(cfg, cfg.path+'/tv_gci_registry.json');
-    if(r1){ reg = r1.json; regSha = r1.sha; log('Registro carregado: '+fmt(reg.seen.length)+' encomendas conhecidas.','ok'); }
+    if(r1 && r1.json){ reg = r1.json; regSha = r1.sha;
+      log('Registro carregado: '+fmt(reg.seen.length)+' encomendas conhecidas.','ok'); }
+    else if(r1){ regSha = r1.sha;
+      log('O registro existe mas veio ilegível (arquivo grande?). Marque REBATIZAR para publicar por cima com segurança.','warn'); }
     else log('Registro ainda não existe — esta será a primeira publicação (batismo, sem novidades).','warn');
     const r2 = await ghGet(cfg, cfg.path+'/tv_data.json');
     if(r2) dataSha = r2.sha;
@@ -476,13 +479,21 @@ function ghHeaders(cfg){ return {
   'Content-Type':'application/json' }; }
 async function ghGet(cfg, path){
   try{
-    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${path}?ref=${cfg.branch}`,
-      {headers: ghHeaders(cfg)});
+    const url = `https://api.github.com/repos/${cfg.repo}/contents/${path}?ref=${cfg.branch}`;
+    const r = await fetch(url, {headers: ghHeaders(cfg)});
     if(r.status===404) return null;
     if(!r.ok) throw new Error('GET '+r.status);
     const j = await r.json();
-    const txt = decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))));
-    return {json: JSON.parse(txt), sha: j.sha};
+    let json = null;
+    if(j.content){
+      try{ json = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))); }catch(_){}
+    }
+    if(!json){
+      // arquivo grande (>1 MB): a API manda o conteúdo vazio; busca no formato bruto
+      const rr = await fetch(url, {headers: {...ghHeaders(cfg), 'Accept':'application/vnd.github.raw'}});
+      if(rr.ok){ try{ json = await rr.json(); }catch(_){} }
+    }
+    return {json, sha: j.sha};   // json pode vir null; o sha vem sempre
   }catch(e){ log('Falha ao ler '+path+': '+e.message,'err'); return null; }
 }
 async function ghPut(cfg, path, obj, sha, msg, tentativa){
