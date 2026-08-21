@@ -194,6 +194,9 @@ body.claro .p-trilha{background:rgba(30,26,60,.12)}
 .rk-row{display:grid;grid-template-columns:2.2rem 11rem 1fr 6.5rem;gap:1rem;align-items:center;
   padding:.55rem 1.2rem;border-radius:.9rem}
 .rk-rank{color:var(--dim);font-size:1rem;font-weight:600}
+.rk-ini{width:2.2rem;height:2.2rem;border-radius:.7rem;background:linear-gradient(135deg,#9B6BF0,#7C3AED);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;
+  font-family:"Space Grotesk",sans-serif;box-shadow:0 .15rem .7rem rgba(124,58,237,.35)}
 .rk-name{font-size:1.15rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rk-sub{color:var(--mute);font-size:.85rem;margin-top:.1rem}
 .rk-trilha{position:relative;height:.85rem;background:rgba(128,120,160,.2);border-radius:99rem}
@@ -410,6 +413,7 @@ function cenaPerformance(el){
 }
 
 const RK_CORES = ['#9B6BF0','#7C3AED','#B794F6','#8B6FE0','#6D28D9','#A78BFA','#7C6FE8'];
+const iniciais = nome => String(nome||'—').trim().split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
 function cenaRanking(el, cfg){
   el.innerHTML = `<div class="c6">
     <div class="stag c6-top">
@@ -424,7 +428,10 @@ function cenaRanking(el, cfg){
     const r = document.createElement('div');
     r.className = 'rk-row stag card';
     const w = Math.max(3, Math.round(l.val/max*100));
-    r.innerHTML = `<span class="rk-rank tnum sg">0${i+1}</span>
+    const marcador = cfg.avatar
+      ? `<span class="rk-ini">${iniciais(l.nome)}</span>`
+      : `<span class="rk-rank tnum sg">0${i+1}</span>`;
+    r.innerHTML = `${marcador}
       <span><span class="rk-name">${l.nome}</span><div class="rk-sub">${l.sub}</div></span>
       <span class="rk-trilha"><span class="rk-fill" style="background:${RK_CORES[i%RK_CORES.length]}"></span></span>
       <span class="rk-val tnum sg">${fmt(l.val)}</span>`;
@@ -464,7 +471,7 @@ function montarCenas(){
     CENAS.push(el => cenaPerformance(el));
   if(VEND && VEND.length)
     CENAS.push(el => cenaRanking(el, {
-      eyebrow:'VENDEDORES · ÚLTIMOS 30 DIAS', subtitulo:'PARES REPASSADOS POR PREPOSTO',
+      eyebrow:'VENDEDORES · ÚLTIMOS 30 DIAS', subtitulo:'PARES REPASSADOS POR PREPOSTO', avatar:true,
       linhas: VEND.map(v=>({nome:v.nome, sub:v.pedidos+' pedido'+(v.pedidos!==1?'s':''), val:v.pares})) }));
   if(ESTQ && ESTQ.length)
     CENAS.push(el => cenaRanking(el, {
