@@ -1674,15 +1674,20 @@
 
       <div class="admin-card" id="admin-card-publicar" style="display:none;">
         <h3>2 · Publicar para a equipe</h3>
-        <p class="sub">O arquivo abaixo é a base compactada que o app lê. Já está valendo <strong>neste aparelho</strong>; publique para os outros verem.</p>
+        <p class="sub">Já está valendo <strong>neste aparelho</strong>. Publicar manda para todos os vendedores — eles veem ao abrir ou atualizar o app.</p>
 
-        <button class="btn-baixar" id="btn-baixar"><i class="fa-solid fa-download"></i> Baixar detalhada.json</button>
+        <button class="btn-baixar" id="btn-publicar"><i class="fa-solid fa-cloud-arrow-up"></i> Publicar para a equipe</button>
+        <p class="sub" id="publicar-estado" style="margin-top:10px;"></p>
 
-        <ol class="admin-passos" style="margin-top:20px;">
-          <li>Baixe o <code>detalhada.json</code> no botão acima.</li>
-          <li>Substitua o arquivo <code>detalhada/dados/detalhada.json</code> no repositório.</li>
-          <li>Faça o commit. Em poucos minutos todo mundo vê a base nova ao abrir o app.</li>
-        </ol>
+        <details style="margin-top:18px;">
+          <summary style="cursor:pointer;font-size:12px;color:var(--text-2);">Publicar pelo repositório (reserva)</summary>
+          <p class="sub" style="margin-top:10px;">Só se o worker estiver fora do ar.</p>
+          <button class="btn-baixar" id="btn-baixar" style="margin-top:8px;"><i class="fa-solid fa-download"></i> Baixar detalhada.json</button>
+          <ol class="admin-passos" style="margin-top:14px;">
+            <li>Substitua <code>detalhada/dados/detalhada.json</code> no repositório.</li>
+            <li>Faça o commit. O site leva alguns minutos para reconstruir.</li>
+          </ol>
+        </details>
       </div>
 
     </div>
@@ -2026,14 +2031,46 @@ function atualizarFonteInfo() {
   if (elAdmin) elAdmin.textContent = txt;
 }
 
+/* ---------- de onde vem a base ----------
+   O worker é a fonte principal: publicar por lá é imediato e não espera o
+   GitHub Pages reconstruir o site inteiro (que hoje leva mais de dez
+   minutos, por causa do 1,2 GB de imagens do repositório).
+
+   O arquivo `dados/detalhada.json` continua no repositório como reserva:
+   se o worker estiver fora, o app abre com ele em vez de não abrir. É uma
+   foto que envelhece, e é melhor que tela vazia.
+
+   Antes de baixar 3 MB, pergunta ao worker se mudou — o resumo tem alguns
+   bytes e responde isso. */
+
+async function baseDoWorker(geradoAtual) {
+  const info = await chamarWorker('getDetalhadaInfo', {}, 8000);
+  if (!info || !info.gerado) return null;              // nada publicado ainda
+  if (info.gerado === geradoAtual) return 'igual';
+
+  const base = await chamarWorker('getDetalhada', {}, 45000);
+  return (base && base.v === VERSAO_BASE && Array.isArray(base.l)) ? base : null;
+}
+
 async function carregarBase({ silencioso = false } = {}) {
   if (!silencioso) syncShow('Carregando base…');
+  const atual = APP.base?.gerado || '';
+
+  try {
+    const r = await baseDoWorker(atual);
+    if (r === 'igual') { syncHide(); return 'igual'; }
+    if (r) {
+      instalarBase(r); cacheSalvar(r); syncHide(); return 'nova';
+    }
+  } catch (e) {
+    console.warn('worker sem a base, tentando o arquivo do repositório', e);
+  }
+
   try {
     const r = await fetch(ARQUIVO_BASE, { cache: 'no-store' });
     if (r.ok) {
       const base = await r.json();
       if (base && base.v === VERSAO_BASE && Array.isArray(base.l)) {
-        const atual = APP.base?.gerado || '';
         if (base.gerado !== atual) {
           instalarBase(base);
           cacheSalvar(base);
@@ -3800,6 +3837,36 @@ function fecharTarjaPdf(atraso = 0) {
   setTimeout(() => $('tarja-pdf').classList.remove('show'), atraso);
 }
 
+/** Manda a base para o worker. Daí em diante todo mundo vê. */
+async function publicarBase() {
+  if (!APP.baseNova) return;
+  const btn = $('btn-publicar');
+  const estado = $('publicar-estado');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Publicando…';
+  estado.textContent = `${formatarNumero(APP.baseNova.l.length)} linhas a caminho…`;
+
+  try {
+    const r = await chamarWorker('saveDetalhada', {
+      data: APP.baseNova,
+      por: APP.sessao ? APP.sessao.nome : '',
+    }, 60000);
+    if (!r || !r.success) throw new Error((r && r.error) || 'o worker recusou');
+
+    estado.innerHTML = `<strong style="color:var(--acao-manter)">Publicada.</strong> ` +
+      `${formatarNumero(r.linhas)} linhas · a equipe vê ao abrir ou atualizar o app.`;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Publicada';
+    toast('Base publicada para a equipe');
+  } catch (e) {
+    // Não some com o botão: publicar de novo é o certo, e o download
+    // continua ali embaixo como saída pelo repositório.
+    estado.innerHTML = `<strong style="color:var(--acao-cancelar)">Não publicou:</strong> ` +
+      escHtml(e.message || String(e)) + '. Tente de novo ou use a opção do repositório.';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar para a equipe';
+  }
+}
+
 function ligarRespostaPdf() {
   window.addEventListener('cms-ebm-resposta', (ev) => {
     const d = ev.detail || {};
@@ -4508,6 +4575,9 @@ async function importarXLSX(file) {
   $('admin-barra').classList.add('show');
   $('admin-resultado').innerHTML = '';
   $('admin-card-publicar').style.display = 'none';
+  $('publicar-estado').textContent = '';
+  $('btn-publicar').disabled = false;
+  $('btn-publicar').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar para a equipe';
 
   try {
     const buf = await file.arrayBuffer();
@@ -4667,6 +4737,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (f) importarXLSX(f);
   });
   $('btn-baixar').addEventListener('click', baixarBase);
+  $('btn-publicar').addEventListener('click', publicarBase);
 
   $('btn-atualizar').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
