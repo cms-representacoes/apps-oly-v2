@@ -913,6 +913,53 @@
     .pdf-btn:active { transform: scale(.92); }
 
     /* Tarja de andamento da geração */
+    /* ---- seleção de encomendas para PDF ---- */
+    .sel-chk {
+      width: 17px; height: 17px; flex-shrink: 0;
+      accent-color: var(--primary); cursor: pointer;
+    }
+    .gci-item .sel-chk { align-self: center; margin-right: 2px; }
+    .gci-item.sel-marcada { background: var(--primary-soft); }
+    .product-card.sel-parcial .sel-chk { opacity: .9; }
+
+    .barra-selecao {
+      position: fixed; left: 50%; bottom: 16px; z-index: 65;
+      transform: translateX(-50%) translateY(160%);
+      transition: transform .22s ease;
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px 9px 16px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 999px; box-shadow: var(--shadow-lift);
+      max-width: calc(100vw - 20px);
+    }
+    .barra-selecao.show { transform: translateX(-50%) translateY(0); }
+    .bs-txt { font-size: 12.5px; color: var(--text); white-space: nowrap; }
+    .bs-txt strong { font-weight: 800; }
+    .bs-txt small {
+      display: block; font-size: 10.5px; font-weight: 600;
+      color: var(--text-2); text-transform: uppercase; letter-spacing: .3px;
+    }
+    .barra-selecao button {
+      border-radius: 999px; font-size: 12.5px; font-weight: 700;
+      padding: 9px 14px; white-space: nowrap;
+    }
+    .bs-secundario {
+      background: var(--card-bg-2); color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .bs-secundario:hover { border-color: var(--border-2); color: var(--text); }
+    .bs-gerar {
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .bs-gerar:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-icon.ativo { background: var(--primary); color: #fff; }
+    @media (max-width: 560px) {
+      .barra-selecao { gap: 7px; padding-left: 12px; }
+      .barra-selecao button { padding: 9px 11px; }
+      .bs-txt { white-space: normal; }
+    }
+
     .tarja-pdf {
       position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(140%);
       z-index: 90;
@@ -1405,6 +1452,9 @@
       </div>
 
       <div class="topbar-actions">
+        <button class="btn-icon" id="btn-selecao" title="Selecionar encomendas para gerar PDF" style="display:none;">
+          <i class="fa-solid fa-list-check"></i>
+        </button>
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
           <i class="fa-solid fa-file-arrow-up"></i>
         </button>
@@ -1598,6 +1648,16 @@
     </div>
   </div>
 
+  <!-- Seleção de várias encomendas -->
+  <div class="barra-selecao" id="barra-selecao">
+    <div class="bs-txt" id="bs-resumo">—</div>
+    <button class="bs-secundario" id="bs-tudo">Marcar tudo</button>
+    <button class="bs-secundario" id="bs-limpar">Limpar</button>
+    <button class="bs-gerar" id="bs-gerar" disabled>
+      <i class="fa-solid fa-file-pdf"></i> <span id="bs-gerar-label">Gerar</span>
+    </button>
+  </div>
+
   <!-- Andamento da geração do PDF pela extensão -->
   <div class="tarja-pdf" id="tarja-pdf">
     <div class="tp-giro"><i class="fa-solid fa-file-pdf"></i></div>
@@ -1671,6 +1731,8 @@ const OPCOES_ORDEM = [
 ];
 
 const POR_PAGINA = 120;
+// Acima disso a fila vira coisa de hora, e o vendedor precisa confirmar.
+const LIMITE_AVISO_PDF = 5;
 const LINHAS_POR_CARD = 40;
 
 /* ============================================================
@@ -1695,6 +1757,9 @@ const APP = {
   verTudo: new Set(),  // grupos com todas as linhas expandidas
   baseNova: null,      // resultado do admin, aguardando download
   acoes: {},           // chave da linha -> REPASSAR | CANCELAR (MANTER não entra)
+  modoSelecao: false,  // checkboxes à mostra
+  selecao: new Set(),  // índices de linha marcados para virar PDF
+  fila: null,          // PDFs em lote: { grupos, atual, ok, falhas }
 };
 
 /* ============================================================
@@ -1903,6 +1968,8 @@ function irParaProdutos() {
   $('topbar-user').textContent = papel === 'admin' ? `${APP.sessao.nome} · vendo tudo` : APP.sessao.nome;
   $('topbar-user-2').textContent = APP.sessao.nome;
   $('btn-admin').style.display = papel === 'admin' ? '' : 'none';
+  // sem extensão não há PDF, e sem PDF a seleção não serve para nada
+  $('btn-selecao').style.display = temExtensao() ? '' : 'none';
   $('wrap-filtro-preposto').style.display = papel === 'admin' ? '' : 'none';
 
   // Vendedor só enxerga as próprias linhas.
@@ -2227,6 +2294,7 @@ function render() {
 
   const ate = Math.min(grupos.length, APP.pagina * POR_PAGINA);
   lista.innerHTML = grupos.slice(0, ate).map((g, i) => cardProduto(g, i)).join('');
+  pintarParciais();
 
   $('rodape').innerHTML = ate < grupos.length
     ? `<button class="gci-mais" id="btn-mais">Carregar mais · ${formatarNumero(grupos.length - ate)} produtos restantes</button>`
@@ -2253,6 +2321,7 @@ function cardProduto(g, idx) {
   return `
     <div class="product-card ${aberto ? 'expanded' : ''}" data-chave="${chave}" data-idx="${idx}">
       <div class="product-main">
+        ${caixaDoGrupo(g, chave)}
         <div class="product-thumb-wrap" data-zoom="${chave}" title="Ampliar">
           <img class="product-thumb" src="${IMG_PATH}${escAttr(imgKey)}.jpg" alt="${escAttr(descricao)}" loading="lazy" onerror="${imgErro}">
           <div class="product-thumb-fallback"><i class="fa-solid fa-image"></i></div>
@@ -2327,10 +2396,12 @@ function linhasDoGrupo(g, chave) {
       'gci-item',
       acao && acao !== ACAO_PADRAO ? 'marcada acao-' + acao.toLowerCase() : '',
       emCarteira && repassePendente(r) ? 'pendente' : '',
+      APP.modoSelecao && APP.selecao.has(i) ? 'sel-marcada' : '',
     ].filter(Boolean).join(' ');
 
     return `
       <div class="${classes}">
+        ${caixaDaLinha(i, r)}
         <div class="gci-info">
           <p class="gci-cli">${escHtml(fantasia)} <span style="color:var(--text-3);font-weight:400;">${escHtml(codigo)}</span></p>
           <p class="gci-meta">${meta}</p>
@@ -3106,6 +3177,200 @@ function botaoPdfHTML(r) {
   return `<button class="pdf-btn" data-pdf="${escAttr(r[C.GCI])}" data-pdf-cli="${escAttr(APP.dic.cli[r[C.CLI]][1])}" data-pdf-st="${r[C.CART] > 0 ? 'A' : 'F'}" title="Gerar o PDF do pedido"><i class="fa-solid fa-file-pdf"></i></button>`;
 }
 
+/* ============================================================
+   SELEÇÃO DE VÁRIAS ENCOMENDAS
+   ============================================================
+   O EBM impõe dois limites que decidem o desenho daqui:
+
+   1. Vários GCIs numa consulta viram UM PDF só, e o arquivo é salvo com
+      o nome do cliente — misturar clientes daria um nome enganoso.
+   2. A consulta leva o status (Aberta/Fechada), e o EBM reaproveita
+      número de encomenda: buscar sem separar traz a antiga junto.
+
+   Por isso a seleção é livre na tela, mas na hora de gerar ela é
+   quebrada em um PDF por cliente e status, emitidos em fila. O número
+   de arquivos aparece na barra ANTES de gerar, para não ter surpresa.
+   ============================================================ */
+
+function caixaDoGrupo(g, chave) {
+  if (!APP.modoSelecao) return '';
+  const sel = g.linhas.filter(i => APP.L[i][C.GCI]);
+  if (!sel.length) return '';
+  const marcados = sel.filter(i => APP.selecao.has(i)).length;
+  return `<input type="checkbox" class="sel-chk" data-selgrupo="${chave}"` +
+    `${marcados === sel.length ? ' checked' : ''}` +
+    `${marcados && marcados < sel.length ? ' data-parcial="1"' : ''}` +
+    ` title="Marcar as ${sel.length} encomendas deste produto">`;
+}
+
+function caixaDaLinha(i, r) {
+  if (!APP.modoSelecao || !r[C.GCI]) return '';
+  return `<input type="checkbox" class="sel-chk" data-sellinha="${i}"` +
+    `${APP.selecao.has(i) ? ' checked' : ''} title="Marcar a encomenda ${escAttr(r[C.GCI])}">`;
+}
+
+/** O meio-marcado não existe em HTML: só dá para ligar por JS depois. */
+function pintarParciais() {
+  document.querySelectorAll('#lista .sel-chk[data-parcial]').forEach(c => {
+    c.indeterminate = true;
+  });
+}
+
+function alternarModoSelecao() {
+  APP.modoSelecao = !APP.modoSelecao;
+  if (!APP.modoSelecao) APP.selecao.clear();
+  $('btn-selecao').classList.toggle('ativo', APP.modoSelecao);
+  render();
+  renderBarraSelecao();
+}
+
+function marcarLinha(i, marcar) {
+  if (marcar) APP.selecao.add(i); else APP.selecao.delete(i);
+}
+
+function marcarGrupo(chave, marcar) {
+  const g = APP.grupos.find(x => chaveGrupo(x) === chave);
+  if (!g) return;
+  g.linhas.filter(i => APP.L[i][C.GCI]).forEach(i => marcarLinha(i, marcar));
+}
+
+/** Marca tudo que passa pelo filtro atual — o caso de filtrar um cliente
+ *  e um período e querer todos os pedidos de uma vez. */
+function marcarTudoFiltrado() {
+  const antes = APP.selecao.size;
+  APP.grupos.forEach(g => g.linhas.filter(i => APP.L[i][C.GCI]).forEach(i => APP.selecao.add(i)));
+  if (APP.selecao.size === antes && antes > 0) APP.selecao.clear();
+  render();
+  renderBarraSelecao();
+}
+
+/** Quebra a seleção como o EBM exige: um grupo por cliente e status.
+ *
+ *  E parte grupos grandes em pedaços. Os GCIs vão todos num campo de
+ *  texto só, separados por vírgula — um cliente com o semestre inteiro
+ *  marcado gerava uma linha de milhares de caracteres, e campo de tela
+ *  antiga costuma ter limite. Quebrar sai mais barato que descobrir o
+ *  limite na hora errada; os arquivos repetidos ganham (1), (2) no nome.
+ */
+const GCIS_POR_CONSULTA = 50;
+
+function gruposDaSelecao() {
+  const mapa = new Map();
+  for (const i of APP.selecao) {
+    const r = APP.L[i];
+    if (!r[C.GCI]) continue;
+    const [codigo, fantasia] = APP.dic.cli[r[C.CLI]];
+    const status = r[C.CART] > 0 ? 'A' : 'F';
+    const chave = codigo + '|' + status;
+    if (!mapa.has(chave)) mapa.set(chave, { codigo, nome: fantasia, status, gcis: new Set() });
+    mapa.get(chave).gcis.add(String(r[C.GCI]));
+  }
+
+  const saida = [];
+  for (const g of mapa.values()) {
+    const todos = [...g.gcis];
+    for (let i = 0; i < todos.length; i += GCIS_POR_CONSULTA) {
+      saida.push({ ...g, gcis: todos.slice(i, i + GCIS_POR_CONSULTA) });
+    }
+  }
+  return saida;
+}
+
+function renderBarraSelecao() {
+  const barra = $('barra-selecao');
+  if (!APP.modoSelecao) { barra.classList.remove('show'); return; }
+  barra.classList.add('show');
+
+  const n = APP.selecao.size;
+  const grupos = gruposDaSelecao();
+  const clientes = new Set(grupos.map(g => g.codigo)).size;
+
+  $('bs-resumo').innerHTML = n
+    ? `<strong>${formatarNumero(n)}</strong> encomenda${n > 1 ? 's' : ''} · ` +
+      `${clientes} cliente${clientes > 1 ? 's' : ''}` +
+      `<small>${grupos.length} arquivo${grupos.length > 1 ? 's' : ''} de PDF</small>`
+    : 'Marque as encomendas<small>no produto ou uma a uma</small>';
+
+  $('bs-gerar').disabled = !n || !!_pdfEmCurso;
+  $('bs-gerar-label').textContent = n
+    ? `Gerar ${grupos.length} PDF${grupos.length > 1 ? 's' : ''}`
+    : 'Gerar';
+}
+
+/* ---------- a fila ----------
+   A extensão faz um PDF por vez: dois pedidos ao mesmo tempo brigariam
+   pela sessão do EBM, que é única. */
+
+function gerarSelecionados() {
+  if (!temExtensao()) { toast('Extensão do EBM não instalada neste navegador'); return; }
+  if (_pdfEmCurso) { toast('Já tem um PDF sendo gerado — aguarde'); return; }
+  const grupos = gruposDaSelecao();
+  if (!grupos.length) return;
+
+  // Marcar um produto inteiro pega dezenas de clientes sem parecer que
+  // pega: 82 encomendas de um modelo viraram 36 arquivos no teste. Cada
+  // um leva um a dois minutos, então o total merece ser dito em voz alta
+  // antes de a fila começar.
+  if (grupos.length > LIMITE_AVISO_PDF) {
+    const min = grupos.length * 1.5;
+    const tempo = min >= 60
+      ? `${Math.round(min / 60 * 10) / 10} hora${min >= 90 ? 's' : ''}`
+      : `${Math.round(min)} minutos`;
+    const clientes = new Set(grupos.map(g => g.codigo)).size;
+    const ok = confirm([
+      `São ${grupos.length} arquivos, de ${clientes} cliente${clientes > 1 ? 's' : ''}.`,
+      `O EBM gera um por vez — isso deve levar perto de ${tempo}.`,
+      'Se você queria os pedidos de um cliente só, cancele e filtre por ele antes de marcar.',
+    ].join('\n\n'));
+    if (!ok) return;
+  }
+
+  APP.fila = { grupos, atual: 0, ok: 0, falhas: [] };
+  proximoDaFila();
+}
+
+function proximoDaFila() {
+  const f = APP.fila;
+  if (!f) return;
+
+  if (f.atual >= f.grupos.length) {
+    const total = f.grupos.length;
+    APP.fila = null;
+    if (f.falhas.length) {
+      toast(`${f.ok} de ${total} PDFs gerados · falhou: ${f.falhas.join(', ')}`);
+    } else {
+      toast(`${total} PDF${total > 1 ? 's' : ''} gerado${total > 1 ? 's' : ''}`);
+      APP.selecao.clear();
+      render();
+      renderBarraSelecao();
+    }
+    return;
+  }
+
+  const g = f.grupos[f.atual];
+  pedirPdf(g.gcis, g.nome, g.status);
+}
+
+/** Continua a fila depois de um arquivo pronto ou falhado. */
+function avancarFila(deuCerto, motivo) {
+  const f = APP.fila;
+  if (!f) return false;
+  if (deuCerto) f.ok++; else f.falhas.push(f.grupos[f.atual].nome);
+
+  // Sem sessão no EBM nenhum dos seguintes vai passar: parar aqui evita
+  // repetir o mesmo aviso uma vez por cliente.
+  if (!deuCerto && /entre no ebm/i.test(motivo || '')) {
+    const restam = f.grupos.length - f.atual - 1;
+    APP.fila = null;
+    if (restam > 0) toast(`Faltaram ${restam} PDF${restam > 1 ? 's' : ''} — entre no EBM e tente de novo`);
+    return true;
+  }
+
+  f.atual++;
+  setTimeout(proximoDaFila, 1500);
+  return true;
+}
+
 // Estado da geração em curso, só para a tarja de andamento.
 let _pdfEmCurso = null;
 
@@ -3117,7 +3382,11 @@ function pedirPdf(gcis, nomeCliente, status) {
   if (_pdfEmCurso) { toast('Já tem um PDF sendo gerado — aguarde'); return; }
 
   _pdfEmCurso = { gcis, nomeCliente };
-  mostrarTarjaPdf(`Gerando o PDF de ${nomeCliente}…`, 'Abrindo o EBM');
+  const f = APP.fila;
+  mostrarTarjaPdf(
+    f ? `PDF ${f.atual + 1} de ${f.grupos.length} · ${nomeCliente}` : `Gerando o PDF de ${nomeCliente}…`,
+    'Abrindo o EBM');
+  renderBarraSelecao();
 
   window.dispatchEvent(new CustomEvent('cms-ebm-pdf', {
     detail: { gcis, status, nomeArquivo: nomeCliente },
@@ -3139,6 +3408,8 @@ function fecharTarjaPdf(atraso = 0) {
 function ligarRespostaPdf() {
   window.addEventListener('cms-ebm-resposta', (ev) => {
     const d = ev.detail || {};
+    // Passo a passo ao vivo: quando algo trava, é isto que diz onde.
+    if (d.tipo === 'log') { console.log('%c[PDF]', 'color:#0d9488', d.texto); return; }
     if (d.tipo === 'progresso') {
       $('tarja-pdf-detalhe').textContent = d.texto || '';
       return;
@@ -3148,6 +3419,11 @@ function ligarRespostaPdf() {
       _pdfEmCurso = null;
       $('tarja-pdf-titulo').textContent = 'PDF pronto';
       $('tarja-pdf-detalhe').textContent = d.texto || nome;
+      renderBarraSelecao();
+      if (avancarFila(true)) {
+        $('tarja-pdf-detalhe').textContent = 'Indo para o próximo…';
+        return;
+      }
       fecharTarjaPdf(2500);
       toast(d.texto || 'PDF gerado');
       return;
@@ -3156,8 +3432,17 @@ function ligarRespostaPdf() {
       _pdfEmCurso = null;
       const t = $('tarja-pdf');
       t.classList.add('erro');
-      $('tarja-pdf-titulo').textContent = 'Não consegui gerar';
+      // Não estar logado no EBM não é defeito: é o passo que falta.
+      // Merece um aviso que diga o que fazer, não um "deu erro".
+      const semLogin = /entre no ebm/i.test(d.texto || '');
+      $('tarja-pdf-titulo').textContent = semLogin ? 'Entre no EBM primeiro' : 'Não consegui gerar';
       $('tarja-pdf-detalhe').textContent = d.texto || 'erro desconhecido';
+      if (semLogin) toast('Abra o EBM e faça login para gerar o PDF');
+      renderBarraSelecao();
+      if (avancarFila(false, d.texto)) {
+        if (d.log) console.warn('[PDF] passo a passo:\n' + d.log.join('\n'));
+        return;
+      }
       if (d.log) console.warn('[PDF] passo a passo:\n' + d.log.join('\n'));
       fecharTarjaPdf(7000);
     }
@@ -3264,6 +3549,9 @@ function ligarLista() {
       }
       return;
     }
+
+    // Marcar não pode abrir nem fechar o card
+    if (e.target.classList.contains('sel-chk')) { e.stopPropagation(); return; }
 
     const btnPdf = e.target.closest('[data-pdf]');
     if (btnPdf) {
@@ -3737,6 +4025,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligarModalDestino();
   configurarCopiaAoSelecionar();
   ligarRespostaPdf();
+
+  $('btn-selecao').addEventListener('click', alternarModoSelecao);
+  $('bs-tudo').addEventListener('click', marcarTudoFiltrado);
+  $('bs-limpar').addEventListener('click', () => {
+    APP.selecao.clear(); render(); renderBarraSelecao();
+  });
+  $('bs-gerar').addEventListener('click', gerarSelecionados);
+
+  $('lista').addEventListener('change', (e) => {
+    const chk = e.target.closest('.sel-chk');
+    if (!chk) return;
+    if (chk.dataset.sellinha != null) marcarLinha(Number(chk.dataset.sellinha), chk.checked);
+    else if (chk.dataset.selgrupo != null) marcarGrupo(Number(chk.dataset.selgrupo), chk.checked);
+    render();
+    renderBarraSelecao();
+  });
   carregarAcoes();
 
   $('btn-login').addEventListener('click', entrar);

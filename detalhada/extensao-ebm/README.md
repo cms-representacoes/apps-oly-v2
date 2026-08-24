@@ -46,6 +46,14 @@ ABRIR → CONSULTA → RESULTADO ┐
                    DETALHE  ─┴→ VISUALIZADOR → FORMATO → baixa
 ```
 
+**A tela muda de duas formas, e só uma delas carrega uma página.** Com 1 GCI o
+EBM navega para o detalhe — documento novo, script novo. Com vários, a lista
+aparece **no mesmo documento**. Por isso o `ebm.js` vigia continuamente e dispara
+pela tela MUDAR, não pela página carregar; rodando uma vez por carregamento, o
+segundo caso passava batido e o roteiro morria em silêncio. Pelo mesmo motivo o
+identificador enviado ao orquestrador leva a tela junto (`doc:TELA`) — senão ele
+responderia "já atendi este documento".
+
 ## A barreira que quase matou o projeto
 
 **O EBM tem CSP: criar uma tag `<script>` na página não funciona.** E falha em
@@ -100,6 +108,23 @@ Com **um GCI** o EBM pula a lista e cai direto no detalhe, onde o botão é
 `form1:btnImprimir`. Com **dois ou mais** vem a lista, e o botão é
 `form1:btnPedido`. Por isso as telas são reconhecidas por elemento, não por
 endereço. O operador também muda: `=` para um, `IN` (INFORMADOS) para vários.
+
+## A lista de encomendas (2 ou mais GCIs)
+
+As caixas de seleção **nascem desmarcadas**. O `CMS_ENCOMENDAS.py` tem um
+comentário dizendo o contrário, e essa frase custou horas: as telas mostravam
+tudo marcado porque era o próprio roteiro que acabara de marcar, e isso se lia
+como "já vinha assim". Se um dia a dúvida voltar, o teste é abrir a lista na mão
+e olhar antes de qualquer automação tocar nela.
+
+São caixas comuns, sem `onclick` — marcar não dispara postback. Por isso marcar e
+clicar em "visualizar pedido" acontece na mesma passada. Uma versão anterior
+marcava e devolvia o passo, esperando um recarregamento que nunca vinha: a lista
+ficava pronta na tela aguardando um clique que não vinha junto.
+
+Cuidado com a caixa do **cabeçalho** da grade, o "marcar todos": ela também tem
+`grdGrid` no id. Contá-la junto faz parecer que sobrou uma desmarcada. Só valem
+as que têm `:row<N>:` no id.
 
 ## O visualizador e a janela de formato
 

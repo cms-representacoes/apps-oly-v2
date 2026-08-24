@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../CARTEIRA DETALHADA"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "apps-oly-v2"
+	}
+}

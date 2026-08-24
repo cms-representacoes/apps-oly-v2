@@ -49,10 +49,19 @@ function novoJob(dados, tabOrigem) {
 }
 
 function anotar(msg) {
-  if (!job) return;
   const linha = `${new Date().toLocaleTimeString('pt-BR')}  ${msg}`;
-  job.log.push(linha);
   console.log('[CMS]', linha);
+  if (!job) return;
+  job.log.push(linha);
+
+  // Espelha na Detalhada, ao vivo. Enquanto o passo a passo só existia
+  // aqui dentro, um trabalho que morria calado não deixava rastro nenhum
+  // para quem estava olhando o app — e era preciso ir caçar o console do
+  // service worker para descobrir o óbvio.
+  if (job.tabOrigem) {
+    chrome.tabs.sendMessage(job.tabOrigem, { de: 'cms-ebm', tipo: 'log', texto: linha })
+      .catch(() => {});
+  }
 }
 
 /** Avisa a Detalhada do andamento. */
@@ -147,7 +156,12 @@ async function iniciar(dados, tabOrigem) {
 /* ---------- o content script pergunta o que fazer ---------- */
 
 function comandoPara(msg, sender) {
-  if (!job) return { acao: 'nada' };
+  if (!job) {
+    // Sem isto, um trabalho que morreu antes da hora deixa o EBM parado
+    // numa tela pronta e o log vazio — parece que a página é que falhou.
+    console.log('[CMS] chegou', msg.tela, 'mas não há trabalho em curso');
+    return { acao: 'nada' };
+  }
 
   if (Date.now() > job.prazo) {
     encerrar(false, 'O EBM demorou demais para responder.');
@@ -174,17 +188,27 @@ function comandoPara(msg, sender) {
   }
 
   // Caiu na tela de login: a sessão do EBM não está aberta.
-  // Só vale para a aba principal — o EBM abre popups Login.jsp de
-  // controle de sessão, e derrubar o trabalho por causa deles fazia
-  // falhar quem estava logado.
+  //
+  // Vale em QUALQUER aba do trabalho. O EBM mostra o login num popup
+  // (Login.jsp), não na aba principal — restringir à principal deixava
+  // o vendedor deslogado esperando em silêncio até o prazo estourar,
+  // que é pior do que um aviso a mais.
   if (msg.tela === 'LOGIN') {
-    if (tabId === job.tabEbm) {
-      encerrar(false, 'Você não está logado no EBM. Abra o EBM, faça login e tente de novo.');
-    } else {
-      anotar('popup de login ignorado: ' + url.split('/').pop());
+    // Se já passamos por uma tela de dentro do EBM, a sessão existe — e
+    // este login é o popup de controle de sessão que o EBM abre sozinho.
+    // Derrubar o trabalho por causa dele deixava a lista pronta na tela
+    // esperando um clique que nunca vinha.
+    if (job.viuEbm) {
+      anotar(`popup de login ignorado (já estamos dentro): ${url.split('/').pop()}`);
+      return { acao: 'nada' };
     }
+    anotar(`tela de login em ${url.split('/').pop()}`);
+    encerrar(false, 'Entre no EBM antes de gerar o PDF: abra o EBM, faça login e tente de novo.');
     return { acao: 'nada' };
   }
+
+  // Qualquer tela de dentro prova que a sessão está aberta
+  job.viuEbm = true;
 
   const marcar = (cmd) => { job.docAtendido = msg.doc; return cmd; };
 
@@ -202,10 +226,29 @@ function comandoPara(msg, sender) {
       return { acao: 'nada' };
 
     case 'RESULTADO':
+      // O passo NÃO avança aqui. Se faltar marcar alguma encomenda, a
+      // página recarrega e volta a esta tela — e antes, com o passo já em
+      // VISUALIZADOR, ela ouvia "não faça nada" e o trabalho travava com
+      // a lista pronta na tela, esperando um clique que nunca vinha.
       if (job.passo === 'CONSULTA' || job.passo === 'RESULTADO') {
-        job.passo = 'VISUALIZADOR';
+        // Depois do clique a página se reapresenta como lista, e sem esta
+        // pausa o roteiro mandava "visualizar pedido" de novo — caminho
+        // curto para dois visualizadores e dois downloads do mesmo pedido.
+        const desde = Date.now() - (job.pediuPedidoEm || 0);
+        if (desde < 20000) {
+          anotar(`lista de novo ${Math.round(desde / 1000)}s após o clique — ignorando`);
+          return { acao: 'nada' };
+        }
+
+        job.passo = 'RESULTADO';
+        job.voltasResultado = (job.voltasResultado || 0) + 1;
+        if (job.voltasResultado > 3) {
+          encerrar(false, 'A lista de encomendas ficou em laço ao marcar as linhas.');
+          return { acao: 'nada' };
+        }
+        job.pediuPedidoEm = Date.now();
         avisar('progresso', 'Abrindo o pedido…');
-        anotar('passo RESULTADO: marcar todas + visualizar pedido');
+        anotar(`passo RESULTADO (volta ${job.voltasResultado})`);
         return marcar({ acao: 'resultado' });
       }
       return { acao: 'nada' };
@@ -214,7 +257,7 @@ function comandoPara(msg, sender) {
       // Com um GCI só o EBM pula a lista e cai direto no detalhe.
       // Mesmo ponto do roteiro, botão diferente.
       if (job.passo === 'CONSULTA' || job.passo === 'RESULTADO') {
-        job.passo = 'VISUALIZADOR';
+        job.passo = 'RESULTADO';
         avisar('progresso', 'Abrindo o pedido…');
         anotar('passo DETALHE: visualizar pedido');
         return marcar({ acao: 'detalhe' });
@@ -222,7 +265,7 @@ function comandoPara(msg, sender) {
       return { acao: 'nada' };
 
     case 'VISUALIZADOR':
-      if (job.passo === 'VISUALIZADOR') {
+      if (job.passo === 'RESULTADO' || job.passo === 'VISUALIZADOR') {
         job.passo = 'FORMATO';
         avisar('progresso', 'Gerando o PDF…');
         anotar('passo VISUALIZADOR: clicando no disquete');
@@ -255,6 +298,9 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.de !== 'cms-ebm-pagina') return;
   if (msg.erro) { anotar('página relatou: ' + msg.erro); encerrar(false, msg.erro); }
   if (msg.aviso) anotar('página: ' + msg.aviso);
+  if (!job && (msg.erro || msg.aviso)) {
+    console.log('[CMS] (sem trabalho em curso)', msg.erro || msg.aviso);
+  }
 });
 
 /* ---------- renomear o PDF que cair ---------- */

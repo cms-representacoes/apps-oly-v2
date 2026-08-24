@@ -325,8 +325,19 @@
     return document.querySelector('select[id*="CMB_PRINTER"], select[name*="CMB_PRINTER"]');
   };
 
+  /** Estamos na porta de entrada?
+   *
+   *  `j_username`/`j_password` são os nomes do login de formulário do
+   *  Tomcat, mas nem toda tela do EBM os usa — e quando não usa, ninguém
+   *  reconhecia o login e o vendedor deslogado ficava esperando em
+   *  silêncio. Um campo de senha à vista já basta como sinal. */
+  function telaDeLogin() {
+    return $('j_username') || $('j_password') ||
+      [...document.querySelectorAll('input[type=password]')].some(i => i.offsetParent);
+  }
+
   function identificar() {
-    if ($('j_username') || $('j_password')) return 'LOGIN';
+    if (telaDeLogin()) return 'LOGIN';
     if (comboFormato()) return 'FORMATO';
     if ($(ID.pedidoLista)) return 'RESULTADO';
     if ($(ID.pedidoUm)) return 'DETALHE';
@@ -407,13 +418,38 @@
       btn.click();
     },
 
-    /** Lista com várias encomendas: marca todas e abre o pedido. */
+    /** Lista com várias encomendas: marca todas e abre o pedido.
+     *
+     *  As caixas nascem DESMARCADAS. O script em Python diz o contrário
+     *  num comentário, e foi essa frase que me fez caçar o defeito no
+     *  lugar errado por horas: as telas mostravam tudo marcado porque era
+     *  o próprio roteiro que marcava, e eu lia aquilo como "já vinha
+     *  assim".
+     *
+     *  São caixas comuns, sem `onclick` — marcar não dispara postback
+     *  nenhum. Por isso marcar e clicar acontece na MESMA passada: numa
+     *  versão anterior eu marcava e devolvia o passo, esperando um
+     *  recarregamento que nunca vinha, e a lista ficava pronta na tela
+     *  aguardando um clique que não vinha junto. */
     async resultado() {
-      const marcados = await marcarTodas();
-      if (!marcados) throw new Error('a consulta não trouxe encomendas para esses GCIs');
-      relatar({ aviso: `${marcados} encomenda(s) marcada(s)` });
+      const caixas = () => [...document.querySelectorAll('input[type=checkbox][id*=":grdGrid:"]')]
+        .filter(c => !c.disabled && /:row\d+:/.test(c.id));
 
-      const btn = await ate(() => $(ID.pedidoLista));
+      const cbs = await ate(() => { const c = caixas(); return c.length ? c : null; }, 10000) || [];
+      if (!cbs.length) throw new Error('a consulta não trouxe encomendas para esses GCIs');
+
+      const faltam = cbs.filter(c => !c.checked);
+      if (faltam.length) {
+        faltam.forEach(c => { if (!c.checked) c.click(); });
+        await espera(400);
+      }
+
+      const marcadas = caixas().filter(c => c.checked).length;
+      if (!marcadas) throw new Error('não consegui marcar as encomendas da lista');
+
+      const btn = await ate(() => $(ID.pedidoLista), 8000);
+      if (!btn) throw new Error('não achei o botão "visualizar pedido"');
+      relatar({ aviso: `${marcadas} de ${cbs.length} marcadas · clicando em visualizar pedido` });
       btn.click();
     },
 
@@ -470,33 +506,8 @@
     },
   };
 
-  /** Marca todas as linhas da lista. Vêm marcadas por padrão, mas
-   *  conferir é barato: uma linha de fora sairia faltando no PDF. */
-  async function marcarTodas() {
-    const selectAll = botaoBarra('selectAll');
-    if (selectAll) { selectAll.click(); await espera(600); }
-
-    return await ate(() => {
-      const cbs = [...document.querySelectorAll('input[type=checkbox][id*="grdGrid"]')]
-        .filter(c => !c.disabled);
-      for (const c of cbs) {
-        if (!c.checked) {
-          c.checked = true;
-          c.dispatchEvent(new Event('click', { bubbles: true }));
-          c.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }
-      const n = cbs.filter(c => c.checked).length;
-      return n || null;
-    }, 8000) || 0;
-  }
-
-  /* ---------- laço principal ---------- */
-
-  async function rodar() {
-    const tela = identificar();
-    if (!tela) return;
-
+  /** Pergunta o que fazer nesta tela e executa. */
+  async function rodar(tela) {
     if (!temMain()) {
       relatar({ erro: 'o braço dentro da página não carregou — recarregue a extensão' });
       return;
@@ -504,7 +515,12 @@
 
     let cmd;
     try {
-      cmd = await chrome.runtime.sendMessage({ de: 'cms-ebm-pagina', tela, doc: DOC, url: location.href });
+      // O `doc` leva a tela junto. O orquestrador entrega um comando por
+      // documento, e quando a lista aparece sem recarregar a página o
+      // documento continua o mesmo — ele responderia "já atendi" e o
+      // roteiro morreria no mesmo ponto de sempre.
+      cmd = await chrome.runtime.sendMessage({
+        de: 'cms-ebm-pagina', tela, doc: `${DOC}:${tela}`, url: location.href });
     } catch (e) { return; }
 
     if (!cmd || cmd.acao === 'nada') return;
@@ -515,19 +531,35 @@
     catch (e) { relatar({ erro: `${tela}/${cmd.acao}: ${e.message || e}` }); }
   }
 
-  // Uma execução por carregamento de página. Duas fariam a máquina de
-  // estados avançar sem o EBM ter recarregado.
-  let jaRodou = false;
+  /* ---------- laço principal ----------
+     A tela muda de duas formas no EBM, e por muito tempo eu só enxergava
+     uma delas:
+
+       · carregando outra página — com 1 GCI, o detalhe abre assim;
+       · trocando o conteúdo do MESMO documento — com vários GCIs, a
+         lista de encomendas aparece assim, sem recarregar nada.
+
+     Rodando uma vez por carregamento, o segundo caso passava batido: o
+     script já tinha se apresentado como "tela de consulta" e nunca mais
+     olhava. A lista ficava pronta na tela, esperando um clique que não
+     vinha. Por isso aqui a vigilância é contínua, e o que dispara uma
+     ação é a tela MUDAR, não a página carregar. */
+
+  let telaAtendida = null;
+  let ocupado = false;
+
   function tentar() {
-    if (jaRodou) return true;
-    if (!identificar()) return false;
-    jaRodou = true;
-    rodar();
-    return true;
+    if (ocupado) return;                       // uma ação por vez
+    const tela = identificar();
+    if (!tela || tela === telaAtendida) return;
+
+    telaAtendida = tela;
+    ocupado = true;
+    rodar(tela).finally(() => { ocupado = false; });
   }
 
-  if (!tentar()) {
-    let n = 0;
-    const t = setInterval(() => { if (tentar() || ++n > 20) clearInterval(t); }, 500);
-  }
+  tentar();
+  const vigia = setInterval(tentar, 700);
+  // o trabalho inteiro tem prazo de 8 minutos; depois disso é só desperdício
+  setTimeout(() => clearInterval(vigia), 10 * 60 * 1000);
 })();
