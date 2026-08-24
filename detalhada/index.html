@@ -922,37 +922,41 @@
     .gci-item.sel-marcada { background: var(--primary-soft); }
     .product-card.sel-parcial .sel-chk { opacity: .9; }
 
+    /* Cor cheia: a barra é uma ação em curso, não um aviso discreto —
+       precisa saltar aos olhos sem o usuário procurar por ela. */
     .barra-selecao {
       position: fixed; left: 50%; bottom: 16px; z-index: 65;
       transform: translateX(-50%) translateY(160%);
       transition: transform .22s ease;
       display: flex; align-items: center; gap: 10px;
-      padding: 9px 10px 9px 16px;
-      background: var(--card-bg); border: 1px solid var(--border);
+      padding: 9px 10px 9px 18px;
+      background: var(--primary-2); border: 1px solid var(--primary-2);
       border-radius: 999px; box-shadow: var(--shadow-lift);
       max-width: calc(100vw - 20px);
     }
+    html.dark .barra-selecao { background: var(--primary); border-color: var(--primary); }
     .barra-selecao.show { transform: translateX(-50%) translateY(0); }
-    .bs-txt { font-size: 12.5px; color: var(--text); white-space: nowrap; }
-    .bs-txt strong { font-weight: 800; }
+    .bs-txt { font-size: 12.5px; color: rgba(255,255,255,.9); white-space: nowrap; }
+    .bs-txt strong { font-weight: 800; color: #fff; }
     .bs-txt small {
-      display: block; font-size: 10.5px; font-weight: 600;
-      color: var(--text-2); text-transform: uppercase; letter-spacing: .3px;
+      display: block; font-size: 10.5px; font-weight: 700;
+      color: rgba(255,255,255,.75); text-transform: uppercase; letter-spacing: .3px;
     }
     .barra-selecao button {
       border-radius: 999px; font-size: 12.5px; font-weight: 700;
       padding: 9px 14px; white-space: nowrap;
     }
     .bs-secundario {
-      background: var(--card-bg-2); color: var(--text-2);
-      border: 1px solid var(--border);
+      background: rgba(255,255,255,.16); color: #fff;
+      border: 1px solid rgba(255,255,255,.28);
     }
-    .bs-secundario:hover { border-color: var(--border-2); color: var(--text); }
+    .bs-secundario:hover { background: rgba(255,255,255,.26); }
     .bs-gerar {
-      background: var(--primary); color: #fff;
+      background: #fff; color: var(--primary-2);
       display: flex; align-items: center; gap: 7px;
     }
-    .bs-gerar:disabled { opacity: .4; cursor: not-allowed; }
+    .bs-gerar:hover:not(:disabled) { background: #f1f5f9; }
+    .bs-gerar:disabled { opacity: .5; cursor: not-allowed; }
     .btn-icon.ativo { background: var(--primary); color: #fff; }
     @media (max-width: 560px) {
       .barra-selecao { gap: 7px; padding-left: 12px; }
@@ -1136,7 +1140,7 @@
     }
     .dest-item:last-child { border-bottom: none; }
     .dest-item:hover { background: var(--card-bg-2); }
-    .dest-item.sel { background: var(--primary-bg); }
+    .dest-item.sel { background: var(--primary-bg); border-bottom: none; }
     html.dark .dest-item.sel { background: rgba(45, 212, 191, .08); }
     .dest-item.aviso { background: rgba(239, 68, 68, .06); }
     .dest-item input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--primary); flex-shrink: 0; }
@@ -1181,6 +1185,34 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-confirmar-dest:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Condição comercial de cada destino, dentro do modal de repasse. */
+    .dest-cond {
+      display: flex; gap: 12px;
+      padding: 4px 14px 15px 40px;
+      background: var(--primary-bg);
+      border-bottom: 1px solid var(--border);
+    }
+    html.dark .dest-cond { background: rgba(45, 212, 191, .08); }
+    .dest-cond label { flex: 1; min-width: 0; }
+    .dest-cond span {
+      display: block; font-size: 10.5px; font-weight: 800;
+      color: var(--primary-2); text-transform: uppercase; letter-spacing: .4px;
+      margin-bottom: 5px;
+    }
+    html.dark .dest-cond span { color: var(--primary); }
+    .dest-cond span b { color: var(--acao-cancelar); }
+    .dest-cond select {
+      width: 100%; padding: 10px 10px;
+      font-size: 12.5px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
+      outline: none;
+    }
+    .dest-cond select:focus { border-color: var(--primary); }
+    .dest-cond select.vazio { border-color: var(--acao-cancelar); }
+    @media (max-width: 560px) {
+      .dest-cond { flex-direction: column; gap: 10px; padding-left: 34px; }
+    }
 
     .grupo-titulo.externo { color: var(--tag-gci-fg); }
     .dest-prep { color: var(--text-3); font-weight: 600; }
@@ -1234,7 +1266,7 @@
     .marca-card {
       background: var(--card-bg); border-radius: var(--r-md);
       box-shadow: var(--shadow-card);
-      padding: 12px 14px; margin-bottom: 8px;
+      padding: 10px 14px; margin-bottom: 7px;
       border-left: 3px solid var(--border-2);
     }
     .marca-card.estado-aguardando { border-left-color: var(--acao-repassar); }
@@ -1249,6 +1281,10 @@
     .marca-sub { font-size: 11.5px; color: var(--text-2); margin: 3px 0 0; }
     .marca-sub .cinza { color: var(--text-3); }
     .marca-itens { font-size: 11px; color: var(--text-3); margin: 3px 0 0; }
+
+    .estado-badge.finalizado { background: var(--primary-soft); color: var(--primary-2); }
+    html.dark .estado-badge.finalizado { color: var(--primary); }
+    .gci-destinos .gd.enviado { color: var(--acao-manter); }
 
     .estado-badge {
       flex-shrink: 0; font-size: 10.5px; font-weight: 700;
@@ -1266,8 +1302,15 @@
       font-size: 11.5px; font-weight: 700; color: var(--acao-cancelar);
       margin: 8px 0 0; display: flex; align-items: center; gap: 6px;
     }
-    .marca-acoes { margin-top: 10px; }
-    .marca-card .gci-destinos { margin-top: 8px; padding-left: 0; }
+    /* Destinos e botões dividem a mesma faixa: eram duas linhas empilhadas
+       e o cartão ficava alto demais para uma tela de conferência, em que o
+       que importa é ver muitos de uma vez. */
+    .marca-rodape {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 8px 14px; margin-top: 7px;
+    }
+    .marca-acoes { margin: 0; }
+    .marca-card .gci-destinos { margin: 0; padding-left: 0; flex: 1 1 auto; min-width: 0; }
     @media (max-width: 700px) {
       .marca-topo { flex-wrap: wrap; }
       .estado-badge { order: -1; }
@@ -1473,6 +1516,42 @@
     <!-- HEADER CONGELADO — só a linha de filtros -->
     <div class="frozen-header" id="frozen-header">
 
+      <!-- Filtros da revisão de repasses. Os de produto não valem aqui:
+           ficavam à mostra e não faziam nada. -->
+      <div class="filter-row" id="filter-row-rep" style="display:none;">
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repOrigem">
+            <i class="fa-solid fa-store"></i>
+            <span>Cliente</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repDestino">
+            <i class="fa-solid fa-arrow-right-long"></i>
+            <span>Destino</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repQuando">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span id="repQuando-label">Quando</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repEstado">
+            <i class="fa-solid fa-signal"></i>
+            <span>Situação</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-clear-btn" id="btn-limpar-rep" title="Limpar filtros">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
       <div class="filter-row" id="filter-row">
         <div style="position:relative;">
           <button class="filter-chip" data-filter="cliente">
@@ -1492,6 +1571,13 @@
           <button class="filter-chip" data-filter="mes">
             <i class="fa-solid fa-calendar"></i>
             <span>Mês</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="familia">
+            <i class="fa-solid fa-shoe-prints"></i>
+            <span>Produto</span>
             <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
@@ -1748,7 +1834,10 @@ const APP = {
   busca: '',
   status: 'TUDO',      // TUDO | CART | FAT
   // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
-  filtros: { cliente: new Set(), preposto: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set() },
+  filtros: { cliente: new Set(), preposto: new Set(), familia: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
+             // usados só na revisão de repasses
+             repOrigem: new Set(), repDestino: new Set(), repEstado: new Set() },
+  repQuando: 'tudo',   // tudo | hoje | 7 | 30
   popoverAberto: null,
   ordem: 'mes_proximo',
   grupos: [],
@@ -1804,6 +1893,15 @@ function diaParaMes(d) {
   return m;
 }
 function mesOrdenavel(mes) { return mes ? mes.slice(3) + mes.slice(0, 2) : '999999'; }
+
+// "05/2026" continua sendo a chave em todo canto — é o que a base gera e o
+// que o filtro guarda. Só a leitura muda: número de mês ninguém decora.
+const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+function mesPorExtenso(mes) {
+  const m = /^(\d{2})\/(\d{4})$/.exec(mes || '');
+  return m ? `${NOMES_MES[Number(m[1]) - 1]} ${m[2]}` : (mes || '');
+}
 // Mês de referência: quando faturou, ou quando está previsto pra faturar.
 function mesRef(r) { return diaParaMes(r[C.DFAT] >= 0 ? r[C.DFAT] : r[C.PREV]); }
 function hojeEmDias() {
@@ -1873,6 +1971,8 @@ function instalarBase(base) {
   _gcis = null;
   _ondeEsta = null;
 
+  montarFamilias(base.dic.ref);
+
   // Dicionários normalizados: a busca compara aqui, não linha a linha.
   APP.idx = {
     cli:   base.dic.cli.map(([cod, nome]) => normalizar(cod + ' ' + nome)),
@@ -1882,6 +1982,32 @@ function instalarBase(base) {
   };
   atualizarFonteInfo();
 }
+
+/* ---------- famílias de produto ----------
+   CORRE, SAFIRA, MEIA, BERMUDA… não existem como coluna na planilha: são a
+   primeira palavra da DESCRIÇÃO. Como não vêm prontas, o índice é montado
+   uma vez ao instalar a base e guardado como número — comparar inteiro em
+   56 mil linhas é barato, refazer `split(' ')` a cada passada não é. */
+
+function montarFamilias(refs) {
+  const porNome = new Map();
+  APP.familias = [];
+  APP.famDaRef = new Int32Array(refs.length).fill(-1);
+
+  refs.forEach(([, desc], i) => {
+    const nome = String(desc || '').trim().split(/\s+/)[0].toUpperCase();
+    if (!nome) return;
+    let id = porNome.get(nome);
+    if (id === undefined) {
+      id = APP.familias.length;
+      porNome.set(nome, id);
+      APP.familias.push(nome);
+    }
+    APP.famDaRef[i] = id;
+  });
+}
+
+const familiaDaLinha = (r) => APP.famDaRef ? APP.famDaRef[r[C.REF]] : -1;
 
 function atualizarFonteInfo() {
   const el = $('fonte-info'), elLogin = $('login-fonte'), elAdmin = $('admin-atual');
@@ -2031,6 +2157,7 @@ function passaFiltros(r, f) {
   if (APP.prepFixo >= 0 && r[C.PREP] !== APP.prepFixo) return false;
   if (f.preposto.size && !f.preposto.has(r[C.PREP])) return false;
   if (f.cliente.size && !f.cliente.has(r[C.CLI])) return false;
+  if (f.familia.size && !f.familia.has(familiaDaLinha(r))) return false;
   if (f.marca.size   && !f.marca.has(r[C.MARCA]))   return false;
   if (f.fabrica.size && !f.fabrica.has(r[C.FAB]))   return false;
   if (f.filial.size  && !f.filial.has(r[C.FIL]))    return false;
@@ -2098,7 +2225,9 @@ function ordenarGrupos(g) {
    ============================================================ */
 // Separa as marcações de repasse: sem destino (a destinar) e com destino.
 function marcasDeRepasse() {
-  const todas = marcasConciliadas().filter(e => e.acao === 'REPASSAR');
+  const todas = marcasConciliadas()
+    .filter(e => e.acao === 'REPASSAR')
+    .filter(e => !(e.repasse && e.repasse.arquivado));
   const temDest = e => !!(e.repasse && e.repasse.destinos && e.repasse.destinos.length);
   return { pend: todas.filter(e => !temDest(e)), feitos: todas.filter(temDest) };
 }
@@ -2150,9 +2279,38 @@ function renderStatusChips() {
 /* ============================================================
    LISTA DE REPASSES (chips "A destinar" e "Repassados")
    ============================================================ */
+/** Recorte de tempo do filtro "Quando", em dias. */
+function dentroDoPeriodo(e) {
+  if (APP.repQuando === 'tudo') return true;
+  const em = e.repasse && e.repasse.em;
+  // Repasse antigo não tem data — some do recorte em vez de fingir que é de hoje
+  if (!em) return false;
+  const dias = (Date.now() - em) / 86400000;
+  if (APP.repQuando === 'hoje') {
+    const d = new Date(em), h = new Date();
+    return d.toDateString() === h.toDateString();
+  }
+  return dias <= Number(APP.repQuando);
+}
+
 function renderMarcas(tipo) {
   const { pend, feitos } = marcasDeRepasse();
   let lista = tipo === 'PEND' ? pend : feitos;
+
+  // Filtros da revisão. Só valem nos repassados: em "A destinar" ainda não
+  // há destino nem data para filtrar.
+  if (tipo === 'REPASSADO') {
+    const f = APP.filtros;
+    lista = lista.filter(e => {
+      if (f.repEstado.size && !f.repEstado.has(e.enviados ? 'ENVIADO' : e.estado)) return false;
+      if (f.repOrigem.size && !f.repOrigem.has(e.codCliente)) return false;
+      if (f.repDestino.size) {
+        const destinos = (e.repasse && e.repasse.destinos) || [];
+        if (!destinos.some(d => f.repDestino.has(d.codigo))) return false;
+      }
+      return dentroDoPeriodo(e);
+    });
+  }
 
   const termos = (APP.busca || '').split(',').map(x => normalizar(x).trim()).filter(Boolean);
   if (termos.length) {
@@ -2171,9 +2329,13 @@ function renderMarcas(tipo) {
   lista.sort((a, b) => (b.novidade ? 1 : 0) - (a.novidade ? 1 : 0) || a.prev - b.prev);
 
   const totPares = lista.reduce((s, e) => s + e.pares, 0);
+  const lojas = new Set();
+  lista.forEach(e => ((e.repasse && e.repasse.destinos) || []).forEach(d => lojas.add(d.codigo)));
+
   $('summary').innerHTML = `
     <div class="summary-chip"><strong class="c-cart">${formatarNumero(lista.length)}</strong> ${tipo === 'PEND' ? 'a destinar' : 'repassados'}</div>
     <div class="summary-chip"><strong>${formatarNumero(totPares)}</strong> pares</div>
+    ${tipo === 'REPASSADO' && lojas.size ? `<div class="summary-chip"><strong>${lojas.size}</strong> loja${lojas.size > 1 ? 's' : ''}</div>` : ''}
   `;
   atualizarBotoesFiltros();
   atualizarVeuRolagem();
@@ -2195,16 +2357,28 @@ function renderMarcas(tipo) {
 
   const concluidos = lista.filter(e => e.estado === 'SUMIU' || e.estado === 'CONFIRMADO');
   $('rodape').innerHTML = (tipo === 'REPASSADO' && concluidos.length)
-    ? `<button class="gci-mais" id="btn-limpar-concluidos">Tirar da lista os ${concluidos.length} que já saíram da carteira</button>`
+    ? `<button class="gci-mais" id="btn-limpar-concluidos" title="Sai da sua lista, mas continua no painel do escritório">Tirar da lista os ${concluidos.length} que já saíram da carteira</button>`
     : `Fim da lista · ${formatarNumero(lista.length)} repasse${lista.length > 1 ? 's' : ''}`;
 
   const btn = $('btn-limpar-concluidos');
   if (btn) btn.addEventListener('click', () => {
-    for (const e of concluidos) for (const k of e.keys) delete APP.acoes[k];
+    // Arquiva, não apaga. Apagando, o registro era sobrescrito com
+    // MANTER e o repasse sumia do painel do escritório junto — inclusive
+    // os já finalizados. A lista do vendedor fica igualmente limpa.
+    const mexidas = [];
+    for (const e of concluidos) {
+      for (const k of e.keys) {
+        const reg = APP.acoes[k];
+        if (!reg || !reg.repasse) { delete APP.acoes[k]; mexidas.push(k); continue; }
+        reg.repasse = { ...reg.repasse, arquivado: true, atualizadoEm: Date.now() };
+        mexidas.push(k);
+      }
+    }
     salvarAcoes();
+    agendarEnvio(mexidas);
     renderStatusChips();
     render();
-    toast(`${concluidos.length} repasse(s) concluído(s) removido(s) da lista`);
+    toast(`${concluidos.length} repasse(s) arquivado(s) · continuam no painel do escritório`);
   });
 
   marcarComoVistas(lista);
@@ -2214,7 +2388,11 @@ function renderMarcas(tipo) {
 function cardMarca(e, tipo) {
   const est = ESTADOS[e.estado];
   const dias = diasAte(e.prev);
-  const urgente = e.estado === 'ABERTO' && dias <= DIAS_ALERTA;
+  const temDestino = !!((e.repasse && e.repasse.destinos) || []).length;
+  // "decida o destino" para quem já decidiu é ruído — e ocupa uma linha inteira
+  const urgente = e.estado === 'ABERTO' && dias <= DIAS_ALERTA && !temDestino;
+
+  const quando = quandoTexto(e.repasse && e.repasse.em, e.repasse && e.repasse.por);
 
   const nomeProduto = i => (APP.dic.ref[APP.L[i][C.REF]][1] || APP.dic.ref[APP.L[i][C.REF]][0]) + ' · ' + APP.dic.cor[APP.L[i][C.COR]];
   const produtos = e.linhas.length
@@ -2226,7 +2404,7 @@ function cardMarca(e, tipo) {
   const acoes = linhaIdx != null ? pillsDeAcao(APP.L[linhaIdx], linhaIdx) : '';
 
   const destinos = ((e.repasse && e.repasse.destinos) || []).map(d =>
-    `<span class="gd"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(d.nome)}<small>${d.caixas ? d.caixas + ' cx · ' : ''}${formatarNumero(d.pares)} pares</small></span>`
+    `<span class="gd ${d.finalizadoEm ? 'enviado' : ''}">${d.finalizadoEm ? '<i class="fa-solid fa-paper-plane" title="o escritório já enviou este"></i>' : '<i class="fa-solid fa-arrow-right-long"></i>'} ${escHtml(d.nome)}<small>${d.caixas ? d.caixas + ' cx · ' : ''}${formatarNumero(d.pares)} pares${condicaoTexto(d)}</small></span>`
   ).join('');
 
   return `
@@ -2234,18 +2412,23 @@ function cardMarca(e, tipo) {
       <div class="marca-topo">
         <div class="marca-info">
           <p class="marca-titulo">${escHtml(titulo)}</p>
-          <p class="marca-sub">${escHtml(e.nomeCliente)} <span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}</p>
+          <p class="marca-sub">${escHtml(e.nomeCliente)} <span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· repassado ${escHtml(quando)}</span>` : ''}</p>
           ${e.linhas.length > 1 ? `<p class="marca-itens">${produtos.map(escHtml).join(' · ')}${e.linhas.length > 3 ? ' · +' + (e.linhas.length - 3) : ''}</p>` : ''}
         </div>
-        <span class="estado-badge ${est.cls}">
+        ${e.enviados ? `<span class="estado-badge finalizado" title="${e.enviados} de ${e.totalDestinos} destino(s) já enviado(s) pelo escritório · situação na carteira: ${escHtml(est.rotulo)}">
+          <i class="fa-solid fa-paper-plane"></i>
+          ${e.enviados === e.totalDestinos ? 'Enviado' : `Enviado ${e.enviados}/${e.totalDestinos}`}
+        </span>` : `<span class="estado-badge ${est.cls}">
           <i class="fa-solid ${est.icone}"></i>
           ${e.estado === 'CONFIRMADO' ? 'Confirmado em ' + escHtml(e.confirmadoEm) : est.rotulo}
-        </span>
+        </span>`}
       </div>
       ${urgente ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${dias < 0 ? 'o faturamento já passou' : dias === 0 ? 'fatura hoje' : 'faltam ' + dias + ' dias para faturar'} — decida o destino</p>` : ''}
       ${e.estado === 'FATUROU' ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> Faturou no cliente de origem — o repasse não saiu a tempo</p>` : ''}
-      ${destinos ? `<div class="gci-destinos">${destinos}</div>` : ''}
-      ${acoes ? `<div class="marca-acoes">${acoes}</div>` : ''}
+      ${destinos || acoes ? `<div class="marca-rodape">
+        ${destinos ? `<div class="gci-destinos">${destinos}</div>` : ''}
+        ${acoes ? `<div class="marca-acoes">${acoes}</div>` : ''}
+      </div>` : ''}
     </div>`;
 }
 
@@ -2481,13 +2664,136 @@ function paresDoGci(r) { return linhasDoGci(r).reduce((s, i) => s + APP.L[i][C.C
 function definirAcaoGci(r, acao, repasse = null) {
   const idxs = linhasDoGci(r);
   const alvos = idxs.length ? idxs : [APP.L.indexOf(r)];
+  const chaves = [];
   for (const i of alvos) {
     const key = keyLinha(APP.L[i]);
+    chaves.push(key);
     if (acao === ACAO_PADRAO) delete APP.acoes[key];
     else APP.acoes[key] = { acao, repasse, visto: 'ABERTO' };
   }
   salvarAcoes();
+  agendarEnvio(chaves);
   return alvos;
+}
+
+/* ============================================================
+   SINCRONIZAÇÃO DAS AÇÕES
+   ============================================================
+   As marcas viviam só no `localStorage`: trocar de navegador perdia
+   tudo, e o escritório nunca via nada. Agora vão para o mesmo arquivo
+   que a Carteira usa (`data/carteira-cms-acoes.json`, via
+   `saveAcaoCarteira`), com duas ressalvas herdadas do worker:
+
+   · as duas aplicações dividem o arquivo. As chaves têm formatos
+     diferentes (a Carteira usa 6 partes, aqui são 4), então não se
+     sobrescrevem — mas para o admin saber o que é nosso, todo repasse
+     leva `app: 'detalhada'` dentro dele;
+
+   · `saveAcaoCarteira` está em WRITE_ACTIONS e exige `X-Admin-Token`.
+     Hoje passa porque o worker está em "modo legado", sem token
+     configurado — é o mesmo caminho que a Carteira já usa. No dia em
+     que o ADMIN_TOKEN for definido, os dois apps param de gravar.
+
+   O local continua sendo a fonte imediata: a rede é ajuda, não
+   dependência. Se o worker falhar, a marca fica gravada aqui e vai
+   junto no próximo envio. */
+
+const APP_ORIGEM = 'detalhada';
+
+async function chamarWorker(action, extra = {}, ms = 12000) {
+  const corta = new AbortController();
+  const t = setTimeout(() => corta.abort(), ms);
+  try {
+    const r = await fetch(WORKER_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...extra }),
+      signal: corta.signal,
+    });
+    if (!r.ok) throw new Error(`worker respondeu ${r.status}`);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+/** Manda as ações para o servidor. Sai agrupado e com atraso: marcar
+ *  três linhas seguidas não deve virar três commits no GitHub. */
+let _envioTimer = null;
+let _pendentes = new Set();
+
+function agendarEnvio(chaves) {
+  for (const k of chaves) _pendentes.add(k);
+  if (_envioTimer) clearTimeout(_envioTimer);
+  _envioTimer = setTimeout(enviarAcoes, 2500);
+}
+
+async function enviarAcoes() {
+  if (_envioTimer) { clearTimeout(_envioTimer); _envioTimer = null; }
+  if (!_pendentes.size) return true;
+
+  const chaves = [..._pendentes];
+  const itens = chaves.map(key => {
+    const reg = APP.acoes[key];
+    // apagada localmente = voltou para MANTER; precisa viajar assim para
+    // a reversão chegar aos outros dispositivos
+    if (!reg) return { key, acao: 'MANTER', repasse: null };
+    return {
+      key,
+      acao: reg.acao,
+      repasse: reg.repasse ? { ...reg.repasse, app: APP_ORIGEM } : null,
+    };
+  });
+
+  try {
+    syncShow('Salvando…');
+    await chamarWorker('saveAcaoCarteira', { itens, por: APP.sessao ? APP.sessao.nome : '' });
+    _pendentes.clear();
+    syncHide();
+    return true;
+  } catch (e) {
+    syncHide();
+    console.warn('não consegui enviar as ações:', e);
+    // fica pendente para a próxima: o local já tem tudo
+    return false;
+  }
+}
+
+/** Traz o que está no servidor e funde com o que há aqui.
+ *  Na dúvida vence o mais recente; sem data, vence o local — quem está
+ *  com o app aberto acabou de decidir. */
+async function baixarAcoes() {
+  let dados;
+  try { dados = await chamarWorker('getAcoesCarteira'); }
+  catch (e) { console.warn('não consegui ler as ações:', e); return false; }
+
+  const remotas = (dados && dados.acoes) || {};
+  let novas = 0;
+
+  for (const [key, reg] of Object.entries(remotas)) {
+    // só o que é nosso: a Carteira grava no mesmo arquivo
+    const meu = reg && reg.repasse && reg.repasse.app === APP_ORIGEM;
+    const chaveDaqui = key.split('|').length === 4;
+    if (!meu && !chaveDaqui) continue;
+
+    const local = APP.acoes[key];
+    if (!local) {
+      if (reg.acao && reg.acao !== ACAO_PADRAO) { APP.acoes[key] = { ...reg, visto: 'ABERTO' }; novas++; }
+      continue;
+    }
+    // Compara a ÚLTIMA ALTERAÇÃO, não a data do repasse. O escritório
+    // finaliza sem mexer em `em`, e comparando só por ela a novidade
+    // nunca chegava aqui — o vendedor via "aguardando" para sempre.
+    const quando = (r) => Math.max(Number(r && r.atualizadoEm) || 0, Number(r && r.em) || 0);
+    if (quando(reg.repasse) > quando(local.repasse)) {
+      APP.acoes[key] = { ...reg, visto: local.visto };
+      novas++;
+    }
+  }
+
+  if (novas) {
+    _ondeEsta = null;
+    try { localStorage.setItem(STORAGE.acoes, JSON.stringify(APP.acoes)); } catch (_) {}
+  }
+  return novas;
 }
 
 function salvarAcoes() {
@@ -2617,9 +2923,17 @@ function marcasConciliadas() {
         if (g) { e.estado = 'CONFIRMADO'; e.confirmadoEm = d.nome; e.gciNovo = g; break; }
       }
     }
+    // O escritório marca destino a destino: um GCI pode estar meio
+    // enviado, e dizer só "finalizado" esconderia a metade que falta.
+    const dest = (e.repasse && e.repasse.destinos) || [];
+    e.enviados = dest.filter(d => d.finalizadoEm).length;
+    e.totalDestinos = dest.length;
+
     // Novidade = mudou desde a última vez que o usuário olhou
     const visto = APP.acoes[e.keys[0]] && APP.acoes[e.keys[0]].visto;
-    e.novidade = visto !== e.estado && e.estado !== 'ABERTO';
+    const marco = e.enviados ? `${e.estado}:${e.enviados}` : e.estado;
+    e.novidade = visto !== marco && (e.estado !== 'ABERTO' || e.enviados > 0);
+    e.marco = marco;
   }
   return [...porGci.values()];
 }
@@ -2628,7 +2942,8 @@ function marcarComoVistas(entradas) {
   let mudou = false;
   for (const e of entradas) {
     for (const k of e.keys) {
-      if (APP.acoes[k] && APP.acoes[k].visto !== e.estado) { APP.acoes[k].visto = e.estado; mudou = true; }
+      const marco = e.marco || e.estado;
+      if (APP.acoes[k] && APP.acoes[k].visto !== marco) { APP.acoes[k].visto = marco; mudou = true; }
     }
   }
   if (mudou) salvarAcoes();
@@ -2839,6 +3154,12 @@ function abrirModalDestino(linhaIdx) {
     busca: '',
     // codigo -> caixas (ou 1, quando o GCI não divide)
     sel: {},
+    // codigo -> { prazo, campanha }. Cada destino vira uma encomenda nova,
+    // e clientes diferentes negociam condições diferentes.
+    cond: {},
+    // o último escolhido serve de padrão para o próximo destino: marcar
+    // três lojas não deveria custar três vezes a mesma escolha
+    ultimo: { prazo: '', campanha: '' },
     temRef: quemTemAReferencia(r[C.REF]),
     recebendo: jaVaiReceber(r[C.REF], r[C.COR], key),
   };
@@ -2964,6 +3285,26 @@ function renderModalDestino() {
       c.recebe ? `<span class="dest-recebe">já vai receber ${formatarNumero(c.recebe.reduce((s, x) => s + x.pares, 0))} de ${escHtml(c.recebe[0].de)}</span>` : '',
     ].filter(Boolean).join('');
 
+    const cond = m.cond[c.cod] || { prazo: '', campanha: '' };
+    const camps = campanhasDaLinha(m.r);
+    const campos = marcado ? `
+      <div class="dest-cond" data-cod="${escAttr(c.cod)}">
+        <label>
+          <span>Prazo <b>*</b></span>
+          <select data-campo="prazo" class="${cond.prazo ? '' : 'vazio'}">
+            <option value="">— Selecione —</option>
+            ${PRAZOS.map(v => `<option value="${escAttr(v)}" ${cond.prazo === v ? 'selected' : ''}>${escHtml(v)}</option>`).join('')}
+          </select>
+        </label>
+        <label>
+          <span>Campanha</span>
+          <select data-campo="campanha">
+            <option value="">— Sem campanha —</option>
+            ${camps.map(x => `<option value="${escAttr(x.id)}" ${cond.campanha === x.id ? 'selected' : ''}>${escHtml(x.id)}</option>`).join('')}
+          </select>
+        </label>
+      </div>` : '';
+
     const stepper = (marcado && dividir) ? `
       <div class="dest-stepper" data-cod="${escAttr(c.cod)}">
         <button data-passo="-1">−</button>
@@ -2979,7 +3320,8 @@ function renderModalDestino() {
           <p class="dest-meta">${meta}</p>
         </div>
         ${stepper}
-      </label>`;
+      </label>
+      ${campos}`;
   };
 
   const bloco = (titulo, cls, lista, alerta) => lista.length
@@ -3013,13 +3355,38 @@ function atualizarRodapeModal() {
   const n = Object.keys(m.sel).length;
   const totalCx = totalCaixasModal();
   const dist = distribuidoModal();
+  // Prazo é obrigatório, como no catálogo digital. Sem ele o escritório
+  // recebe o repasse e tem que voltar perguntando a condição.
+  const semPrazo = Object.keys(m.sel).filter(cod => !(m.cond[cod] || {}).prazo);
+
   const btn = $('md-confirmar');
-  btn.disabled = n === 0;
-  $('md-confirmar-label').textContent = n === 0
-    ? 'Selecione um destino'
+  btn.disabled = n === 0 || semPrazo.length > 0;
+  $('md-confirmar-label').textContent =
+    n === 0 ? 'Selecione um destino'
+    : semPrazo.length ? `Falta o prazo de ${semPrazo.length} destino${semPrazo.length > 1 ? 's' : ''}`
     : podeDividir(m.pares)
       ? `Confirmar · ${dist}/${totalCx} cx · ${n} loja${n > 1 ? 's' : ''}`
       : `Confirmar · ${n} destino`;
+}
+
+/** "hoje 14:32" ou "12/08/2026" — perto no tempo pede relógio, longe pede data. */
+function quandoTexto(em, por) {
+  if (!em) return '';
+  const d = new Date(em), h = new Date();
+  const hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const dias = Math.floor((h - d) / 86400000);
+  const quem = por ? ' por ' + por : '';
+  if (d.toDateString() === h.toDateString()) return `hoje ${hora}${quem}`;
+  if (dias <= 1) return `ontem ${hora}${quem}`;
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}${quem}`;
+}
+
+/** "Z35 · CO681" — o código basta, o resto ocupa espaço sem informar. */
+function condicaoTexto(d) {
+  const partes = [];
+  if (d.prazo) partes.push(String(d.prazo).split(' ')[0]);
+  if (d.campanha) partes.push(String(d.campanha).split(' ')[0]);
+  return partes.length ? ' · ' + partes.join(' · ') : '';
 }
 
 function confirmarDestino() {
@@ -3031,8 +3398,11 @@ function confirmarDestino() {
   const destinos = Object.entries(m.sel).map(([cod, cx]) => {
     const idx = APP.dic.cli.findIndex(c => c[0] === cod);
     const daBase = !idx || idx < 0 ? (_clientesBase || []).find(c => c.codigo === cod) : null;
+    const cond = m.cond[cod] || {};
     return {
       codigo: cod,
+      prazo: cond.prazo || '',
+      campanha: cond.campanha || '',
       nome: idx >= 0 ? APP.dic.cli[idx][1] : (daBase ? daBase.nome : cod),
       caixas: dividir ? cx : 0,
       pares: dividir ? cx * m.caixa : m.pares,
@@ -3043,6 +3413,12 @@ function confirmarDestino() {
   });
 
   const alvos = definirAcaoGci(m.r, 'REPASSAR', {
+    // Quando e por quem. Sem isso não há como filtrar por período nem
+    // dizer o que foi decidido hoje — e é informação que não se recupera
+    // depois: repasse gravado sem data fica sem data para sempre.
+    em: Date.now(),
+    atualizadoEm: Date.now(),
+    por: APP.sessao ? APP.sessao.nome : '',
     boxSize: dividir ? m.caixa : m.pares,
     totalCaixas: totalCaixasModal(),
     gci: m.gci,
@@ -3092,6 +3468,22 @@ function naListaDeRepasses() {
 
 function ligarModalDestino() {
   $('md-fechar').addEventListener('click', fecharModalDestino);
+  // Prazo e campanha por destino. O último escolhido vira o padrão do
+  // próximo, senão marcar várias lojas custa repetir a mesma escolha.
+  $('md-corpo').addEventListener('change', (e) => {
+    const sel = e.target.closest('.dest-cond select');
+    if (!sel) return;
+    e.stopPropagation();
+    const cod = sel.closest('.dest-cond').dataset.cod;
+    const campo = sel.dataset.campo;
+    const m = APP.md;
+    if (!m || !m.cond[cod]) return;
+    m.cond[cod][campo] = sel.value;
+    if (sel.value) m.ultimo[campo] = sel.value;
+    sel.classList.toggle('vazio', campo === 'prazo' && !sel.value);
+    atualizarRodapeModal();
+  });
+
   $('modal-destino').addEventListener('click', (e) => {
     if (e.target.id === 'modal-destino') fecharModalDestino();
   });
@@ -3149,6 +3541,7 @@ function ligarModalDestino() {
     const cod = chk.dataset.cod;
     if (m.sel[cod] != null) {
       delete m.sel[cod];
+      delete m.cond[cod];
     } else if (podeDividir(m.pares)) {
       if (distribuidoModal() >= totalCaixasModal()) {
         e.preventDefault(); chk.checked = false;
@@ -3156,8 +3549,10 @@ function ligarModalDestino() {
         return;
       }
       m.sel[cod] = 1;
+      m.cond[cod] = { ...m.ultimo };
     } else {
       m.sel = { [cod]: 1 };   // linha de caixa única: um destino só
+      m.cond = { [cod]: { ...m.ultimo } };
     }
     renderModalDestino();
   });
@@ -3289,7 +3684,7 @@ function renderBarraSelecao() {
     ? `<strong>${formatarNumero(n)}</strong> encomenda${n > 1 ? 's' : ''} · ` +
       `${clientes} cliente${clientes > 1 ? 's' : ''}` +
       `<small>${grupos.length} arquivo${grupos.length > 1 ? 's' : ''} de PDF</small>`
-    : 'Marque as encomendas<small>no produto ou uma a uma</small>';
+    : '<strong>Nenhuma marcada</strong>';
 
   $('bs-gerar').disabled = !n || !!_pdfEmCurso;
   $('bs-gerar-label').textContent = n
@@ -3613,21 +4008,88 @@ function fecharZoom() {
    FILTROS
    ============================================================ */
 // Opções de um filtro, considerando o recorte do preposto e do status
+const OPCOES_QUANDO = [
+  { id: 'tudo', label: 'Qualquer data' },
+  { id: 'hoje', label: 'Hoje' },
+  { id: '7',    label: 'Últimos 7 dias' },
+  { id: '30',   label: 'Últimos 30 dias' },
+];
+
+const OPCOES_ESTADO = [
+  { id: 'ENVIADO',    label: 'Já enviado pelo escritório' },
+  { id: 'ABERTO',     label: 'Ainda na carteira' },
+  { id: 'FATUROU',    label: 'Faturou na origem' },
+  { id: 'SUMIU',      label: 'Saiu da carteira' },
+  { id: 'CONFIRMADO', label: 'Confirmado no destino' },
+];
+
+/** Opções dos filtros da revisão: saem dos próprios repasses, não da base.
+ *  Contar em pares como nos outros filtros não ajudaria aqui — o que
+ *  interessa é quantos repasses cada um tem. */
+function opcoesDosRepasses(filtroId) {
+  const { feitos } = marcasDeRepasse();
+  const vistos = new Map();
+
+  for (const e of feitos) {
+    if (filtroId === 'repEstado') {
+      const id = e.enviados ? 'ENVIADO' : e.estado;
+      vistos.set(id, (vistos.get(id) || 0) + 1);
+      continue;
+    }
+    if (filtroId === 'repOrigem') {
+      vistos.set(e.codCliente, (vistos.get(e.codCliente) || 0) + 1);
+      continue;
+    }
+    for (const d of ((e.repasse && e.repasse.destinos) || [])) {
+      vistos.set(d.codigo, (vistos.get(d.codigo) || 0) + 1);
+    }
+  }
+
+  const nomeDe = (cod) => {
+    const i = APP.dic.cli.findIndex(c => c[0] === cod);
+    if (i >= 0) return `${APP.dic.cli[i][1]} · ${cod}`;
+    const f = feitos.find(e => ((e.repasse && e.repasse.destinos) || []).some(d => d.codigo === cod));
+    const d = f && f.repasse.destinos.find(x => x.codigo === cod);
+    return d ? `${d.nome} · ${cod}` : cod;
+  };
+
+  if (filtroId === 'repEstado') {
+    return OPCOES_ESTADO.filter(o => vistos.has(o.id))
+      .map(o => ({ ...o, extra: vistos.get(o.id) + ' repasse' + (vistos.get(o.id) > 1 ? 's' : '') }));
+  }
+  return [...vistos.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([cod, n]) => ({ id: cod, label: nomeDe(cod), extra: n + ' repasse' + (n > 1 ? 's' : '') }));
+}
+
 function opcoesDoFiltro(filtroId) {
   if (filtroId === 'ordem') return OPCOES_ORDEM;
+  if (filtroId === 'repQuando') return OPCOES_QUANDO;
+  if (filtroId.startsWith('rep')) return opcoesDosRepasses(filtroId);
 
   const campo = { cliente: C.CLI, preposto: C.PREP, marca: C.MARCA, fabrica: C.FAB, filial: C.FIL, oc: C.OC }[filtroId];
   const vistos = new Map();
 
+  // Os números ao lado seguem o que já está filtrado — escolhido um cliente,
+  // cada mês mostra os pares DELE. Só o próprio filtro fica de fora da conta,
+  // senão as outras opções sumiriam e não daria para trocar de escolha.
+  const outros = { ...APP.filtros, [filtroId]: new Set() };
+  const termos = (APP.busca || '').split(',').map(x => normalizar(x).trim()).filter(Boolean).slice(0, 3);
+  const masks = termos.map(mascaraDoTermo);
+
   for (let i = 0; i < APP.L.length; i++) {
     const r = APP.L[i];
-    if (APP.prepFixo >= 0 && r[C.PREP] !== APP.prepFixo) continue;
-    if (APP.status === 'CART' && !r[C.CART]) continue;
-    if (APP.status === 'FAT' && !r[C.FAT]) continue;
+    if (!passaFiltros(r, outros)) continue;
+    if (masks.length && !masks.every(m => linhaCasa(r, m))) continue;
 
     if (filtroId === 'mes') {
       const m = mesRef(r);
       if (m) vistos.set(m, (vistos.get(m) || 0) + r[C.CART] + r[C.FAT]);
+      continue;
+    }
+    if (filtroId === 'familia') {
+      const fam = familiaDaLinha(r);
+      if (fam >= 0) vistos.set(fam, (vistos.get(fam) || 0) + r[C.CART] + r[C.FAT]);
       continue;
     }
     const v = r[campo];
@@ -3638,10 +4100,11 @@ function opcoesDoFiltro(filtroId) {
   if (filtroId === 'mes') {
     return [...vistos.entries()]
       .sort((a, b) => mesOrdenavel(a[0]).localeCompare(mesOrdenavel(b[0])))
-      .map(([m, pares]) => ({ id: m, label: m, extra: formatarNumero(pares) + ' pares' }));
+      .map(([m, pares]) => ({ id: m, label: mesPorExtenso(m), extra: formatarNumero(pares) + ' pares' }));
   }
 
   const rotulo = (v) => {
+    if (filtroId === 'familia') return APP.familias[v];
     if (filtroId === 'cliente') { const [cod, nome] = APP.dic.cli[v]; return `${nome} · ${cod}`; }
     if (filtroId === 'preposto') return APP.dic.prep[v];
     if (filtroId === 'marca') return APP.dic.marca[v];
@@ -3656,7 +4119,47 @@ function opcoesDoFiltro(filtroId) {
     .map(([v, pares]) => ({ id: v, label: rotulo(v), extra: formatarNumero(pares) + ' pares' }));
 }
 
-const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês' };
+/* ---------- condições comerciais do repasse ----------
+   Vindas do catálogo digital (index.html da raiz): PRAZOS é o
+   `ORDER_PAYMENT_OPTIONS` e CAMPANHAS é o select `oxCampaign`. Se lá
+   mudar, muda aqui — são duas listas soltas, não há fonte comum.
+
+   Z01-Z17 têm uma duplicata, Z18-Z28 duas, Z29-Z35 três. */
+
+const PRAZOS = [
+  'Z01 - A VISTA',
+  'Z02 - 14 D', 'Z03 - 21 D', 'Z04 - 28 D', 'Z05 - 35 D', 'Z06 - 42 D',
+  'Z07 - 49 D', 'Z08 - 56 D', 'Z09 - 63 D', 'Z10 - 70 D', 'Z11 - 77 D',
+  'Z12 - 84 D', 'Z13 - 91 D', 'Z14 - 98 D', 'Z15 - 105 D', 'Z16 - 112 D',
+  'Z17 - 119 D',
+  'Z18 - 21/49 D', 'Z19 - 28/56 D', 'Z20 - 35/63 D', 'Z21 - 42/70 D',
+  'Z22 - 49/77 D', 'Z23 - 56/84 D', 'Z24 - 63/91 D', 'Z25 - 70/98 D',
+  'Z26 - 77/105 D', 'Z27 - 84/112 D', 'Z28 - 91/119 D',
+  'Z29 - 21/49/77 D', 'Z30 - 28/56/84 D', 'Z31 - 35/63/91 D',
+  'Z32 - 42/70/98 D', 'Z33 - 49/77/105 D', 'Z34 - 56/84/112 D',
+  'Z35 - 63/91/119 D',
+];
+
+const CAMPANHAS = [
+  { id: 'CO681 +28DD OLY', marca: 'OLY' },
+  { id: 'CO689 +56DD OLY', marca: 'OLY' },
+  { id: 'CO684 +28DD UA',  marca: 'UA'  },
+  { id: 'CO690 +56DD UA',  marca: 'UA'  },
+];
+
+/** Só as campanhas da marca do produto: a lista mistura OLY e UA, e
+ *  escolher a campanha da marca errada é erro fácil de cometer e chato de
+ *  descobrir depois. Marca desconhecida mostra todas. */
+function campanhasDaLinha(r) {
+  const marca = String(APP.dic.marca[r[C.MARCA]] || '').toUpperCase();
+  const ua = marca.includes('UA');
+  const oly = marca.includes('OLY');
+  if (ua === oly) return CAMPANHAS;                 // nenhuma ou as duas
+  return CAMPANHAS.filter(c => (c.marca === 'UA') === ua);
+}
+
+const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', familia: 'Produto', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês',
+  repOrigem: 'Cliente', repDestino: 'Destino', repEstado: 'Situação' };
 
 // O popover é fixo e vive no <body>, para nunca ser cortado pela barra de filtros.
 function posicionarPopover(pop, btnEl) {
@@ -3687,15 +4190,18 @@ function abrirPopoverFiltro(filtroId, btnEl) {
   if (jaEra) return;
   APP.popoverAberto = filtroId;
 
-  const ehOrdem = filtroId === 'ordem';
-  const sel = ehOrdem ? null : APP.filtros[filtroId];
+  const unico = filtroId === 'ordem' || filtroId === 'repQuando';
+  const ehOrdem = unico;
+  const sel = unico ? null : APP.filtros[filtroId];
   const opcoes = opcoesDoFiltro(filtroId);
   const comBusca = opcoes.length > 12;
 
   const pop = document.createElement('div');
   pop.className = 'filter-popover show';
 
-  const marcada = (o) => ehOrdem ? o.id === APP.ordem : sel.has(o.id);
+  const marcada = (o) => filtroId === 'ordem' ? o.id === APP.ordem
+    : filtroId === 'repQuando' ? o.id === APP.repQuando
+    : sel.has(o.id);
   const opcoesHtml = (lista) => lista.map(o => {
     const on = marcada(o);
     return `
@@ -3746,16 +4252,24 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     if (!opt) return;
     const bruto = opt.dataset.valor;
 
-    if (ehOrdem) {
-      APP.ordem = bruto;
-      $('ordem-label').textContent = (OPCOES_ORDEM.find(o => o.id === bruto) || {}).label || '';
+    if (unico) {
+      if (filtroId === 'repQuando') {
+        APP.repQuando = bruto;
+        $('repQuando-label').textContent =
+          (OPCOES_QUANDO.find(o => o.id === bruto) || {}).label || 'Quando';
+      } else {
+        APP.ordem = bruto;
+        $('ordem-label').textContent = (OPCOES_ORDEM.find(o => o.id === bruto) || {}).label || '';
+      }
       fecharTodosPopovers();
       reaplicar();
       return;
     }
 
     // Multi-seleção: marca e desmarca sem fechar, pra escolher vários de uma vez.
-    const valor = filtroId === 'mes' ? bruto : Number(bruto);
+    // Nos filtros de repasse o id é texto (código de cliente, nome do estado);
+    // nos de produto é o índice no dicionário.
+    const valor = (filtroId === 'mes' || filtroId.startsWith('rep')) ? bruto : Number(bruto);
     if (sel.has(valor)) sel.delete(valor); else sel.add(valor);
     desenhar(pop.querySelector('.fp-busca input')?.value || '');
     reaplicar();
@@ -3778,34 +4292,79 @@ function fecharTodosPopovers() {
   APP.popoverAberto = null;
 }
 
+/** A barra de filtros muda com a tela: os de produto não valem na revisão
+ *  de repasses, e ficavam à mostra sem fazer nada. */
+function trocarBarraDeFiltros() {
+  const naRevisao = APP.status === 'REPASSADO';
+  const rep = $('filter-row-rep');
+  if (rep) rep.style.display = naRevisao ? '' : 'none';
+  const prod = $('filter-row');
+  if (prod) prod.style.display = (APP.status === 'PEND' || naRevisao) ? 'none' : '';
+}
+
 function atualizarBotoesFiltros() {
+  trocarBarraDeFiltros();
   const rotulos = {
     cliente:  v => APP.dic.cli[v][1],
     preposto: v => APP.dic.prep[v],
+    familia:  v => APP.familias[v],
     marca:    v => APP.dic.marca[v],
     fabrica:  v => APP.dic.fab[v],
     filial:   v => APP.dic.fil[v],
     oc:       v => APP.dic.oc[v],
-    mes:      v => v,
+    mes:      v => mesPorExtenso(v),
+    repEstado: v => (OPCOES_ESTADO.find(o => o.id === v) || {}).label || v,
+    repOrigem: v => nomeDeCliente(v),
+    repDestino: v => nomeDeCliente(v),
   };
-  let algum = false;
+  let algum = false, algumRep = false;
   document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
     const id = btn.dataset.filter;
-    if (id === 'ordem') return;
+    if (id === 'ordem' || id === 'repQuando') return;
     const sel = APP.filtros[id];
     const span = btn.querySelector('span');
     btn.classList.toggle('active', sel.size > 0);
-    if (sel.size) algum = true;
+    if (sel.size) { if (id.startsWith('rep')) algumRep = true; else algum = true; }
     // 1 marcado mostra o nome; vários mostram a contagem.
     span.textContent = sel.size === 0 ? NOME_FILTRO[id]
       : sel.size === 1 ? rotulos[id]([...sel][0])
       : `${NOME_FILTRO[id]} · ${sel.size}`;
   });
   $('btn-limpar-filtros').classList.toggle('show', algum || !!APP.busca);
+  const lr = $('btn-limpar-rep');
+  if (lr) lr.classList.toggle('show', algumRep || APP.repQuando !== 'tudo' || !!APP.busca);
+  const rq = $('repQuando-label');
+  if (rq) rq.textContent = (OPCOES_QUANDO.find(o => o.id === APP.repQuando) || {}).label || 'Quando';
+  const chipQ = document.querySelector('.filter-chip[data-filter="repQuando"]');
+  if (chipQ) chipQ.classList.toggle('active', APP.repQuando !== 'tudo');
+}
+
+/** Nome do cliente pelo código, venha da Detalhada ou de um repasse. */
+function nomeDeCliente(cod) {
+  const i = APP.dic ? APP.dic.cli.findIndex(c => c[0] === cod) : -1;
+  if (i >= 0) return APP.dic.cli[i][1];
+  for (const [, reg] of Object.entries(APP.acoes)) {
+    const d = ((reg.repasse && reg.repasse.destinos) || []).find(x => x.codigo === cod);
+    if (d) return d.nome;
+  }
+  return cod;
+}
+
+function limparFiltrosRepasse() {
+  APP.filtros.repOrigem.clear();
+  APP.filtros.repDestino.clear();
+  APP.filtros.repEstado.clear();
+  APP.repQuando = 'tudo';
+  APP.busca = '';
+  const inp = $('busca');
+  if (inp) { inp.value = ''; $('search-wrap').classList.remove('has-value'); }
+  fecharTodosPopovers();
+  render();
 }
 
 function limparFiltros() {
   for (const s of Object.values(APP.filtros)) s.clear();
+  APP.repQuando = 'tudo';
   APP.busca = '';
   const inp = $('busca');
   if (inp) { inp.value = ''; $('search-wrap').classList.remove('has-value'); }
@@ -4043,6 +4602,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   carregarAcoes();
 
+  // O local abre a tela; a rede só complementa depois. Assim o app não
+  // fica refém do worker para funcionar.
+  baixarAcoes().then(novas => {
+    if (novas) { renderStatusChips(); if (APP.base) render(); }
+  });
+
+  // Sair com marca pendente perderia o envio agendado. `visibilitychange`
+  // é o gancho que sobrevive ao fechamento em celular, onde `beforeunload`
+  // muitas vezes nem dispara.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') enviarAcoes();
+  });
+  window.addEventListener('beforeunload', () => { enviarAcoes(); });
+
   $('btn-login').addEventListener('click', entrar);
   $('login-preposto').addEventListener('change', () => $('login-error').classList.remove('show'));
   $('btn-tema').addEventListener('click', toggleTema);
@@ -4064,6 +4637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); abrirPopoverFiltro(btn.dataset.filter, btn); });
   });
   $('btn-limpar-filtros').addEventListener('click', limparFiltros);
+  $('btn-limpar-rep').addEventListener('click', limparFiltrosRepasse);
   $('filter-backdrop').addEventListener('click', fecharTodosPopovers);
   // O popover é fixo e ancorado no botão: rolar a página ou redimensionar o
   // desencaixa. Rolar a lista de opções dentro dele não conta.
@@ -4097,9 +4671,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-atualizar').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     btn.classList.add('girando');
-    const r = await carregarBase();
+    // Junto com a base, traz o que o escritório mexeu: é aqui que o
+    // vendedor descobre que um repasse já foi enviado.
+    const [r, novas] = await Promise.all([carregarBase(), baixarAcoes()]);
     btn.classList.remove('girando');
+    if (novas) { renderStatusChips(); if (APP.base) render(); }
     if (r === 'nova') { APP.pagina = 1; APP.abertos.clear(); irParaProdutos(); toast('Base atualizada'); }
+    else if (novas) toast(`${novas} repasse(s) atualizado(s) pelo escritório`);
     else if (r === 'igual') toast('Já está na versão mais recente');
     else toast('Não consegui buscar a base');
   });
