@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · Repasses da Detalhada</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ============================================================
+   Mesma linguagem visual do Admin de Repasses (apps-oly/admin):
+   fundo cinza-azulado, cartões muito arredondados, marca azul.
+   O CSS é escrito à mão em vez de vir do Tailwind por CDN — a mesma
+   aparência, sem depender da rede carregar um framework inteiro.
+   ============================================================ */
+:root{
+  --bg:#f7f8fc; --card:#fff; --text:#0e1526; --line:#e6e9f3;
+  --brand:#2c39e2; --brand-soft:rgba(44,57,226,.09);
+  --muted:#5c6675; --muted-soft:#eaedf5;
+  --success:#15803d; --success-soft:#e6f6ec;
+  --warning:#b45309; --warning-soft:#fdf4dc;
+  --danger:#b91c1c;  --danger-soft:#fdeaea;
+  --info:#1d4ed8;    --info-soft:#e8effd;
+  --shadow:0 0 0 1px rgba(15,23,42,.03),0 1px 2px rgba(15,23,42,.04),0 16px 40px -20px rgba(15,23,42,.16);
+}
+.dark{
+  --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --line:#334155;
+  --brand:#818cf8; --brand-soft:rgba(129,140,248,.14);
+  --muted:#94a3b8; --muted-soft:#334155;
+  --success-soft:rgba(21,128,61,.18); --warning-soft:rgba(180,83,9,.18);
+  --danger-soft:rgba(185,28,28,.18);  --info-soft:rgba(29,78,216,.18);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+main{padding:16px;max-width:1400px;margin:0 auto}
+@media(min-width:640px){main{padding:24px}}
+
+.cartao{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:28px; box-shadow:var(--shadow);
+}
+.cms-badge{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:var(--brand);color:#fff;font-weight:800;font-size:13px;
+  display:flex;align-items:center;justify-content:center;letter-spacing:.5px;
+}
+
+/* ---- acesso restrito ---- */
+#tela-login{max-width:420px;margin:64px auto;padding:32px;text-align:center}
+#tela-login .icone{
+  width:56px;height:56px;border-radius:16px;margin:0 auto;
+  background:var(--brand-soft);color:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+#tela-login h1{margin:20px 0 0;font-size:22px;font-weight:800}
+#tela-login p{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.6}
+.botao-marca{
+  margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:13px;border-radius:16px;
+  background:var(--brand);color:#fff;font-size:13.5px;font-weight:800;
+}
+
+/* ---- cabeçalho ---- */
+header.topo{
+  position:sticky;top:16px;z-index:30;padding:16px 18px;margin-bottom:16px;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+}
+.topo-marca{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.topo-marca .nome{font-size:17px;font-weight:800}
+.topo-marca .sub{font-size:11.5px;color:var(--muted);font-weight:600}
+.topo-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.busca{
+  display:flex;align-items:center;gap:8px;min-width:210px;
+  border:1px solid var(--line);border-radius:999px;padding:8px 14px;background:var(--card);
+}
+.busca input{border:none;outline:none;background:transparent;width:100%;font-size:13px}
+.busca i{color:var(--muted);font-size:12px}
+.btn-redondo{
+  width:38px;height:38px;border-radius:50%;
+  border:1px solid var(--line);background:var(--card);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+}
+.btn-redondo:hover{background:var(--muted-soft);color:var(--text)}
+
+/* ---- seleção ---- */
+.col-chk{width:38px}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;margin:0}
+tbody tr.marcada{background:var(--brand-soft)}
+tbody tr.finalizada td:not(.col-chk){opacity:.62}
+tbody tr.arquivada td:not(.col-chk){opacity:.5;font-style:italic}
+
+.barra-sel{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 16px;margin-bottom:14px;border-radius:999px;
+  background:var(--brand);color:#fff;box-shadow:var(--shadow);
+  font-size:13px;font-weight:700;
+}
+.barra-sel-botoes{display:flex;flex-wrap:wrap;gap:8px}
+.bs-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:999px;font-size:12.5px;font-weight:700;
+  background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);
+}
+.bs-btn:hover{background:rgba(255,255,255,.26)}
+.bs-btn.primario{background:#fff;color:var(--brand);border-color:#fff}
+.bs-btn.primario:hover{background:#eef0ff}
+.bs-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---- filtros ---- */
+.filtros{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px;margin-bottom:16px;align-items:center}
+.filtros select{
+  border:1px solid var(--line);border-radius:999px;padding:8px 12px;
+  background:var(--card);font-size:12.5px;font-weight:600;outline:none;
+  max-width:200px;
+}
+.filtros select:focus{border-color:var(--brand)}
+.filtros .limpar{
+  padding:8px 14px;border-radius:999px;border:1px solid var(--line);
+  font-size:12.5px;font-weight:700;color:var(--muted);
+}
+.filtros .limpar:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ---- tabela ---- */
+.tabela-caixa{overflow-x:auto;border-radius:28px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px}
+thead th{
+  text-align:left;padding:12px 14px;white-space:nowrap;
+  font-size:10.5px;font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.4px;
+  border-bottom:1px solid var(--line);background:var(--card);
+  position:sticky;top:0;
+}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--muted-soft)}
+.forte{font-weight:700}
+.fraco{color:var(--muted);font-size:11.5px}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.seta{color:var(--brand);font-weight:700}
+
+.chip{
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;
+}
+.chip .ponto{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.chip.aguardando{background:var(--warning-soft);color:var(--warning)}
+.chip.faturou   {background:var(--danger-soft); color:var(--danger)}
+.chip.saiu      {background:var(--info-soft);   color:var(--info)}
+.chip.confirmado{background:var(--success-soft);color:var(--success)}
+.chip.finalizado{background:var(--brand-soft);color:var(--brand)}
+.marca{
+  display:inline-block;padding:3px 8px;border-radius:8px;
+  background:var(--brand-soft);color:var(--brand);
+  font-size:10.5px;font-weight:800;white-space:nowrap;
+}
+
+.vazio{padding:56px 20px;text-align:center;color:var(--muted)}
+.vazio i{font-size:30px;opacity:.4}
+.vazio p{margin:14px 0 0;font-size:14px;font-weight:700;color:var(--text)}
+.vazio small{display:block;margin-top:7px;font-size:12px;font-weight:500}
+.rodape{margin-top:14px;text-align:center;font-size:11.5px;color:var(--muted)}
+.escondido{display:none!important}
+</style>
+</head>
+<body>
+
+<main>
+  <!-- Mesma porta do outro admin: quem não veio do Portal como CMS não entra.
+       Sem senha própria — a sessão do Portal já é a autenticação. -->
+  <section id="tela-login" class="cartao">
+    <div class="icone"><i class="fa-solid fa-shield-halved"></i></div>
+    <h1>Acesso restrito</h1>
+    <p id="login-motivo">Este painel é exclusivo da CMS. Entre pelo Portal com o usuário CMS para acessar.</p>
+    <a class="botao-marca" href="https://cms-representacoes.github.io/apps-oly/">
+      <i class="fa-solid fa-arrow-left"></i><span>Voltar ao Portal</span>
+    </a>
+  </section>
+
+  <section id="painel" class="escondido">
+    <header class="topo cartao">
+      <div class="topo-marca">
+        <span class="cms-badge">CMS</span>
+        <div>
+          <div class="nome">Repasses da Detalhada</div>
+          <div class="sub" id="sub-topo">—</div>
+        </div>
+      </div>
+      <div class="topo-acoes">
+        <div class="busca">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="busca" placeholder="Cliente, GCI, produto, destino" autocomplete="off">
+        </div>
+        <button class="btn-redondo" id="btn-atualizar" title="Atualizar"><i class="fa-solid fa-rotate"></i></button>
+        <button class="btn-redondo" id="btn-tema" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </header>
+
+    <div class="filtros cartao">
+      <select id="f-vendedor"><option value="">Todos os vendedores</option></select>
+      <select id="f-origem"><option value="">Todos os clientes</option></select>
+      <select id="f-destino"><option value="">Todos os destinos</option></select>
+      <select id="f-quando">
+        <option value="tudo">Qualquer data</option>
+        <option value="hoje">Hoje</option>
+        <option value="7">Últimos 7 dias</option>
+        <option value="30">Últimos 30 dias</option>
+      </select>
+      <select id="f-situacao"><option value="">Todas as situações</option></select>
+      <select id="f-arquivo">
+        <option value="ativos">Sem os arquivados</option>
+        <option value="tudo">Com os arquivados</option>
+        <option value="arquivados">Só os arquivados</option>
+      </select>
+      <select id="f-envio">
+        <option value="">Enviados e pendentes</option>
+        <option value="pendente">Só os pendentes</option>
+        <option value="finalizado">Só os finalizados</option>
+      </select>
+      <button class="limpar" id="btn-limpar">Limpar</button>
+    </div>
+
+    <!-- Só aparece com algo marcado: barra vazia é ruído permanente. -->
+    <div class="barra-sel escondido" id="barra-sel">
+      <span id="sel-conta">—</span>
+      <div class="barra-sel-botoes">
+        <button class="bs-btn" id="btn-reabrir"><i class="fa-solid fa-rotate-left"></i> Reabrir</button>
+        <button class="bs-btn primario" id="btn-exportar"><i class="fa-solid fa-file-arrow-down"></i> Exportar e finalizar</button>
+        <button class="bs-btn" id="btn-nada">Limpar</button>
+      </div>
+    </div>
+
+    <div class="cartao tabela-caixa">
+      <table id="tabela">
+        <thead><tr>
+          <th class="col-chk"><input type="checkbox" id="chk-todos" title="Marcar todos os visíveis"></th>
+          <th>Vendedor</th><th>Cliente de origem</th><th>Produto · GCI</th>
+          <th class="num">Pares</th><th>Destino</th><th>Prazo</th><th>Campanha</th>
+          <th>Prev.</th><th>Situação</th><th>Quando</th>
+        </tr></thead>
+        <tbody id="corpo"></tbody>
+      </table>
+      <div id="vazio" class="vazio escondido"></div>
+    </div>
+
+    <p class="rodape" id="rodape"></p>
+  </section>
+</main>
+
+<script src="../xlsx.full.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
+<script>
+/* ============================================================
+   ADMIN · REPASSES DA DETALHADA
+   ============================================================
+   Lê o mesmo arquivo que a Carteira usa (`carteira-cms-acoes.json`,
+   via `getAcoesCarteira`) e separa o que é da Detalhada pela marca
+   `app: 'detalhada'` gravada dentro de cada repasse.
+
+   Uma linha por DESTINO, não por GCI: cada destino vira uma encomenda
+   nova na fábrica, com prazo e campanha próprios — é essa a unidade que
+   o escritório precisa passar adiante.
+   ============================================================ */
+
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
+const APP_ORIGEM = 'detalhada';
+
+const ESTADOS = {
+  ABERTO:     { rotulo: 'Aguardando',  cls: 'aguardando' },
+  FATUROU:    { rotulo: 'Faturou na origem', cls: 'faturou' },
+  SUMIU:      { rotulo: 'Saiu da carteira',  cls: 'saiu' },
+  CONFIRMADO: { rotulo: 'Confirmado',  cls: 'confirmado' },
+};
+
+const $ = (id) => document.getElementById(id);
+let LINHAS = [];
+let VISIVEIS = [];              // o que passou pelos filtros agora
+let ACOES = {};                 // o mapa cru do worker, para reescrever
+const SELECAO = new Set();      // ids de linha marcados
+
+/* ---------- a base publicada ----------
+   Situação e previsão não são decididas no momento do repasse: mudam
+   sozinhas conforme a Detalhada do dia. Guardá-las junto do repasse
+   deixaria o painel mostrando o passado. Então o admin lê a MESMA base
+   que o app publica e calcula na hora, como o vendedor faz. */
+
+const C = { CLI: 1, REF: 5, COR: 6, GCI: 7, PREV: 10, CART: 11, FAT: 12 };
+let BASE = null;            // { key -> { cart, fat, prev, produto } }
+
+async function carregarBase() {
+  try {
+    const r = await fetch('../dados/detalhada.json', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const b = await r.json();
+    const idx = new Map();
+    // Segundo índice: cliente + referência + cor -> GCIs que ele tem hoje.
+    // É com ele que se prova a chegada no destino — o GCI muda de número
+    // no repasse, então o que casa é o produto no cliente novo.
+    const porProduto = new Map();
+    for (const l of (b.l || [])) {
+      const cod = b.dic.cli[l[C.CLI]][0];
+      const pk = [cod, b.dic.ref[l[C.REF]][0], b.dic.cor[l[C.COR]]].join('|');
+      if (!porProduto.has(pk)) porProduto.set(pk, new Set());
+      porProduto.get(pk).add(l[C.GCI]);
+
+      const key = [cod, l[C.GCI], b.dic.ref[l[C.REF]][0], b.dic.cor[l[C.COR]]].join('|');
+      const ant = idx.get(key);
+      const item = {
+        cart: (ant ? ant.cart : 0) + l[C.CART],
+        fat:  (ant ? ant.fat  : 0) + l[C.FAT],
+        prev: l[C.PREV],
+        produto: (b.dic.ref[l[C.REF]][1] || b.dic.ref[l[C.REF]][0]) + ' · ' + b.dic.cor[l[C.COR]],
+      };
+      idx.set(key, item);
+    }
+    BASE = { idx, porProduto, gerado: b.gerado || '' };
+    return BASE;
+  } catch (_) { return null; }
+}
+
+/** Mesma leitura do app: sem linha = saiu da carteira; com faturamento na
+ *  origem = o repasse não saiu a tempo. */
+function situacaoDe(chaves) {
+  if (!BASE) return { estado: 'ABERTO', prev: -1, produto: '' };
+  let estado = 'SUMIU', prev = Infinity, produto = '';
+  for (const k of chaves) {
+    const it = BASE.idx.get(k);
+    if (!it) continue;
+    produto = produto || it.produto;
+    if (it.prev >= 0 && it.prev < prev) prev = it.prev;
+    if (it.cart > 0) estado = 'ABERTO';
+    else if (estado !== 'ABERTO' && it.fat > 0) estado = 'FATUROU';
+  }
+  return { estado, prev: prev === Infinity ? -1 : prev, produto };
+}
+
+/** O GCI novo que apareceu no destino depois do repasse.
+ *  `gcisAntes` é a foto do que aquele cliente já tinha do mesmo produto
+ *  no dia da decisão: qualquer GCI fora dessa lista é o que chegou. */
+function chegouNoDestino(rep, d) {
+  if (!BASE || !rep || !rep.ref || !rep.cor || !d || !d.codigo) return null;
+  const tem = BASE.porProduto.get([d.codigo, rep.ref, rep.cor].join('|'));
+  if (!tem) return null;
+  const antes = new Set(d.gcisAntes || []);
+  for (const g of tem) if (!antes.has(g)) return g;
+  return null;
+}
+
+const diaParaBR = (d) => {
+  if (d == null || d < 0) return '';
+  const dt = new Date(d * 86400000);
+  return `${String(dt.getUTCDate()).padStart(2,'0')}/${String(dt.getUTCMonth()+1).padStart(2,'0')}/${dt.getUTCFullYear()}`;
+};
+
+/* ---------- entrada, igual à do admin de repasses ---------- */
+function sessaoDoPortal() {
+  try {
+    const raw = localStorage.getItem('cms_portal_session_v1');
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.expiraEm || new Date(s.expiraEm).getTime() < Date.now()) return null;
+    return s;
+  } catch (_) { return null; }
+}
+const ehCms = () => { const s = sessaoDoPortal(); return !!(s && s.nome === 'CMS'); };
+
+/* ---------- dados ---------- */
+async function buscar() {
+  const r = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'getAcoesCarteira' }),
+  }).catch(() => null);
+
+  // O worker aceita a action por PATCH; o POST acima é só a primeira
+  // tentativa. Vale insistir no método certo antes de desistir.
+  const res = r && r.ok ? r : await fetch(WORKER_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'getAcoesCarteira' }),
+  });
+  if (!res.ok) throw new Error('o worker respondeu ' + res.status);
+  const dados = await res.json();
+  return (dados && dados.acoes) || {};
+}
+
+/** Um repasse pode cobrir vários itens do mesmo GCI: as chaves se repetem
+ *  com o mesmo objeto de repasse. Agrupamos por GCI para não multiplicar
+ *  a mesma decisão em várias linhas na tela. */
+function montarLinhas(acoes) {
+  const porGci = new Map();
+
+  for (const [key, reg] of Object.entries(acoes)) {
+    const rep = reg && reg.repasse;
+    if (!rep || rep.app !== APP_ORIGEM) continue;
+    if (!Array.isArray(rep.destinos) || !rep.destinos.length) continue;
+
+    const partes = key.split('|');
+    const gk = partes[0] + '|' + partes[1];
+    const ja = porGci.get(gk);
+    // Um GCI pode ter vários itens: as chaves se repetem com o mesmo
+    // repasse. Guardamos todas para consultar a base depois.
+    if (ja) { ja.chaves.push(key); continue; }
+    porGci.set(gk, { codOrigem: partes[0], gci: partes[1], rep, chaves: [key] });
+  }
+
+  const linhas = [];
+  for (const [gk, { codOrigem, gci, rep, chaves }] of porGci.entries()) {
+    const sit = situacaoDe(chaves);
+    for (const d of rep.destinos) {
+      // A confirmação é POR DESTINO: numa divisão em duas lojas, uma pode
+      // já ter recebido e a outra não.
+      const gciNovo = sit.estado === 'SUMIU' ? chegouNoDestino(rep, d) : null;
+      linhas.push({
+        // Identidade da linha: o destino DENTRO do GCI. Finalizar é por
+        // destino, não pelo GCI todo — exportando um filtro que pegou só
+        // uma loja, só ela pode ficar marcada como enviada.
+        id: gk + '|' + (d.codigo || ''),
+        gk, chaves,
+        finalizadoEm: Number(d.finalizadoEm) || 0,
+        finalizadoPor: d.finalizadoPor || '',
+        vendedor:  rep.por || '',
+        codOrigem, nomeOrigem: rep.origemNome || codOrigem,
+        gci,
+        produto:   sit.produto || [rep.ref, rep.cor].filter(Boolean).join(' · '),
+        pares:     Number(d.pares) || 0,
+        caixas:    Number(d.caixas) || 0,
+        codDest:   d.codigo || '',
+        nomeDest:  d.nome || d.codigo || '',
+        prazo:     d.prazo || '',
+        campanha:  d.campanha || '',
+        prev:      diaParaBR(sit.prev),
+        estado:    gciNovo ? 'CONFIRMADO' : sit.estado,
+        gciNovo:   gciNovo || '',
+        arquivado: !!rep.arquivado,
+        em:        Number(rep.em) || 0,
+      });
+    }
+  }
+  linhas.sort((a, b) => b.em - a.em);
+  return linhas;
+}
+
+/* ---------- filtros ---------- */
+function dentroDoPeriodo(em) {
+  const q = $('f-quando').value;
+  if (q === 'tudo') return true;
+  if (!em) return false;                        // repasse antigo, sem data
+  if (q === 'hoje') return new Date(em).toDateString() === new Date().toDateString();
+  return (Date.now() - em) / 86400000 <= Number(q);
+}
+
+function filtrar() {
+  const termos = ($('busca').value || '').split(',')
+    .map(t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim())
+    .filter(Boolean);
+
+  return LINHAS.filter(l => {
+    if ($('f-vendedor').value && l.vendedor !== $('f-vendedor').value) return false;
+    if ($('f-origem').value   && l.codOrigem !== $('f-origem').value) return false;
+    if ($('f-destino').value  && l.codDest !== $('f-destino').value) return false;
+    if ($('f-situacao').value && l.estado !== $('f-situacao').value) return false;
+    const arq = $('f-arquivo').value;
+    if (arq === 'ativos' && l.arquivado) return false;
+    if (arq === 'arquivados' && !l.arquivado) return false;
+    const env = $('f-envio').value;
+    if (env === 'pendente'   && l.finalizadoEm) return false;
+    if (env === 'finalizado' && !l.finalizadoEm) return false;
+    if (!dentroDoPeriodo(l.em)) return false;
+    if (!termos.length) return true;
+    const alvo = [l.vendedor, l.nomeOrigem, l.codOrigem, l.gci, l.produto,
+                  l.nomeDest, l.codDest, l.prazo, l.campanha]
+      .join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    return termos.every(t => alvo.includes(t));
+  });
+}
+
+/* ---------- desenho ---------- */
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const numero = (n) => Number(n || 0).toLocaleString('pt-BR');
+
+function quandoTexto(em) {
+  if (!em) return '—';
+  const d = new Date(em), h = new Date();
+  const hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (d.toDateString() === h.toDateString()) return 'hoje ' + hora;
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function preencherFiltro(id, valores) {
+  const sel = $(id), atual = sel.value;
+  const primeira = sel.options[0].outerHTML;
+  sel.innerHTML = primeira + [...valores.entries()]
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([v, rot]) => `<option value="${esc(v)}">${esc(rot)}</option>`).join('');
+  sel.value = atual;
+}
+
+function montarFiltros() {
+  const vend = new Map(), ori = new Map(), dest = new Map(), sit = new Map();
+  for (const l of LINHAS) {
+    if (l.vendedor) vend.set(l.vendedor, l.vendedor);
+    ori.set(l.codOrigem, `${l.nomeOrigem} · ${l.codOrigem}`);
+    dest.set(l.codDest, `${l.nomeDest} · ${l.codDest}`);
+    sit.set(l.estado, (ESTADOS[l.estado] || {}).rotulo || l.estado);
+  }
+  preencherFiltro('f-vendedor', vend);
+  preencherFiltro('f-origem', ori);
+  preencherFiltro('f-destino', dest);
+  preencherFiltro('f-situacao', sit);
+}
+
+function desenhar() {
+  const lista = filtrar();
+  VISIVEIS = lista;
+
+  if (!lista.length) {
+    $('corpo').innerHTML = '';
+    $('vazio').classList.remove('escondido');
+    $('vazio').innerHTML = LINHAS.length
+      ? `<i class="fa-solid fa-filter"></i><p>Nada com esses filtros</p><small>Limpe algum para ver o resto</small>`
+      : `<i class="fa-solid fa-truck-fast"></i><p>Nenhum repasse ainda</p>
+         <small>Aparecem aqui assim que um vendedor escolher o destino na Detalhada</small>`;
+    $('rodape').textContent = '';
+    return;
+  }
+  $('vazio').classList.add('escondido');
+
+  $('corpo').innerHTML = lista.map(l => {
+    const est = ESTADOS[l.estado] || { rotulo: l.estado, cls: 'aguardando' };
+    const marcada = SELECAO.has(l.id);
+    // Finalizado é decisão do escritório e vence na leitura: é o que diz
+    // se já foi passado adiante. A situação vinda da base fica embaixo,
+    // porque continua importando (pode ter faturado depois do envio).
+    const chip = l.finalizadoEm
+      ? `<span class="chip finalizado"><span class="ponto"></span>Finalizado</span>
+         <div class="fraco">${esc(est.rotulo)}</div>`
+      : `<span class="chip ${est.cls}"><span class="ponto"></span>${esc(est.rotulo)}</span>`;
+    return `<tr class="${marcada ? 'marcada' : ''} ${l.finalizadoEm ? 'finalizada' : ''} ${l.arquivado ? 'arquivada' : ''}">
+      <td class="col-chk"><input type="checkbox" data-id="${esc(l.id)}" ${marcada ? 'checked' : ''}></td>
+      <td class="forte">${esc(l.vendedor || '—')}</td>
+      <td><div class="forte">${esc(l.nomeOrigem)}</div><div class="fraco">${esc(l.codOrigem)}</div></td>
+      <td><div>${esc(l.produto || '—')}</div><div class="fraco">GCI ${esc(l.gci)}</div></td>
+      <td class="num"><div class="forte">${numero(l.pares)}</div>${l.caixas ? `<div class="fraco">${l.caixas} cx</div>` : ''}</td>
+      <td><div class="seta">→ ${esc(l.nomeDest)}</div><div class="fraco">${esc(l.codDest)}</div></td>
+      <td>${l.prazo ? `<span class="marca">${esc(String(l.prazo).split(' ')[0])}</span><div class="fraco">${esc(String(l.prazo).replace(/^\S+\s*-?\s*/, ''))}</div>` : '<span class="fraco">—</span>'}</td>
+      <td>${l.campanha ? `<span class="marca">${esc(String(l.campanha).split(' ')[0])}</span>` : '<span class="fraco">—</span>'}</td>
+      <td class="fraco">${esc(l.prev || '—')}</td>
+      <td>${chip}${l.gciNovo ? `<div class="fraco">GCI ${esc(l.gciNovo)}</div>` : ''}</td>
+      <td class="fraco">${esc(quandoTexto(l.em))}${l.finalizadoEm
+        ? `<div class="fraco">enviado ${esc(quandoTexto(l.finalizadoEm))}</div>` : ''}</td>
+    </tr>`;
+  }).join('');
+
+  const pares = lista.reduce((s, l) => s + l.pares, 0);
+  const pend = lista.filter(l => !l.finalizadoEm).length;
+  $('rodape').textContent =
+    `${lista.length} de ${LINHAS.length} linha(s) · ${numero(pares)} pares · ${pend} pendente(s)`;
+
+  atualizarSelecao();
+}
+
+/* ============================================================
+   SELEÇÃO E FINALIZAÇÃO
+   ============================================================
+   "Finalizado" quer dizer: o escritório já passou este repasse adiante.
+   Não é um estado da carteira — é uma decisão de quem trabalha aqui —,
+   então fica gravado dentro do DESTINO, junto do prazo e da campanha.
+
+   Grava de volta pelo mesmo `saveAcaoCarteira` que o vendedor usa. Como
+   um GCI pode ter vários itens, todas as chaves dele viajam juntas com o
+   repasse atualizado; senão metade ficaria marcada e metade não.
+
+   Tudo é reversível: exportar por engano se desfaz em "Reabrir".
+   ============================================================ */
+
+function atualizarSelecao() {
+  const n = SELECAO.size;
+  $('barra-sel').classList.toggle('escondido', n === 0);
+  if (n) {
+    const marcadas = LINHAS.filter(l => SELECAO.has(l.id));
+    const pares = marcadas.reduce((s, l) => s + l.pares, 0);
+    const jaEnviados = marcadas.filter(l => l.finalizadoEm).length;
+    $('sel-conta').textContent =
+      `${n} selecionado${n > 1 ? 's' : ''} · ${numero(pares)} pares` +
+      (jaEnviados ? ` · ${jaEnviados} já finalizado${jaEnviados > 1 ? 's' : ''}` : '');
+    $('btn-reabrir').disabled = jaEnviados === 0;
+  }
+  const visiveis = VISIVEIS.length;
+  const todas = visiveis > 0 && VISIVEIS.every(l => SELECAO.has(l.id));
+  const chk = $('chk-todos');
+  chk.checked = todas;
+  chk.indeterminate = !todas && VISIVEIS.some(l => SELECAO.has(l.id));
+}
+
+/** Escreve os destinos de volta no worker.
+ *  `alterar(destino)` decide o que muda em cada um. */
+async function gravarDestinos(linhas, alterar) {
+  const porGci = new Map();
+  for (const l of linhas) {
+    if (!porGci.has(l.gk)) porGci.set(l.gk, { chaves: l.chaves, destinos: new Set() });
+    porGci.get(l.gk).destinos.add(l.codDest);
+  }
+
+  const itens = [];
+  for (const [gk, { chaves, destinos }] of porGci.entries()) {
+    // Relê do mapa original: alterar o objeto que está na tela levaria
+    // junto qualquer coisa que o desenho tenha encostado.
+    const base = ACOES[chaves[0]];
+    if (!base || !base.repasse) continue;
+    const rep = JSON.parse(JSON.stringify(base.repasse));
+    rep.destinos = (rep.destinos || []).map(d =>
+      destinos.has(d.codigo) ? alterar({ ...d }) : d);
+    // Sem este carimbo o vendedor nunca fica sabendo: a fusão dele
+    // compara datas, e finalizar não mexe na data do repasse.
+    rep.atualizadoEm = Date.now();
+    for (const key of chaves) {
+      ACOES[key] = { ...ACOES[key], repasse: rep };
+      itens.push({ key, acao: ACOES[key].acao || 'REPASSAR', repasse: rep });
+    }
+  }
+  if (!itens.length) return 0;
+
+  const res = await fetch(WORKER_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'saveAcaoCarteira', itens, por: 'CMS' }),
+  });
+  if (!res.ok) throw new Error('o worker respondeu ' + res.status);
+  return itens.length;
+}
+
+async function marcarEnvio(linhas, finalizar) {
+  if (!linhas.length) return;
+  const antes = linhas.map(l => ({ l, em: l.finalizadoEm, por: l.finalizadoPor }));
+  const agora = finalizar ? Date.now() : 0;
+
+  // Pinta primeiro: a tela responde na hora e a rede vem atrás.
+  for (const l of linhas) { l.finalizadoEm = agora; l.finalizadoPor = finalizar ? 'CMS' : ''; }
+  desenhar();
+
+  try {
+    await gravarDestinos(linhas, (d) => {
+      if (finalizar) { d.finalizadoEm = agora; d.finalizadoPor = 'CMS'; }
+      else { delete d.finalizadoEm; delete d.finalizadoPor; }
+      return d;
+    });
+    $('sub-topo').textContent = finalizar
+      ? `${linhas.length} finalizado(s)`
+      : `${linhas.length} reaberto(s)`;
+  } catch (e) {
+    // Desfaz na tela: deixar marcado o que não gravou seria pior que o erro
+    for (const { l, em, por } of antes) { l.finalizadoEm = em; l.finalizadoPor = por; }
+    desenhar();
+    alert('Não consegui gravar no servidor. Nada foi alterado.\n\n' + (e.message || e));
+  }
+}
+
+/* ---------- Excel: é com ele que o escritório passa à fábrica ---------- */
+async function exportarEFinalizar() {
+  const lista = LINHAS.filter(l => SELECAO.has(l.id));
+  if (!lista.length) return;
+  if (typeof XLSX === 'undefined') { alert('A planilha ainda está carregando. Tente de novo.'); return; }
+
+  baixarExcel(lista);
+  const novos = lista.filter(l => !l.finalizadoEm);
+  if (novos.length) await marcarEnvio(novos, true);
+  SELECAO.clear();
+  desenhar();
+}
+
+function baixarExcel(lista) {
+  const dados = lista.map(l => ({
+    Vendedor: l.vendedor,
+    'Cliente origem': l.nomeOrigem, 'Cód. origem': l.codOrigem,
+    GCI: l.gci, Produto: l.produto,
+    Pares: l.pares, Caixas: l.caixas,
+    Destino: l.nomeDest, 'Cód. destino': l.codDest,
+    Prazo: l.prazo, Campanha: l.campanha,
+    'Prev. faturamento': l.prev,
+    Situação: (ESTADOS[l.estado] || {}).rotulo || l.estado,
+    'Repassado em': l.em ? new Date(l.em).toLocaleString('pt-BR') : '',
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dados), 'Repasses');
+  XLSX.writeFile(wb, `repasses-detalhada-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+/* ---------- ligar ---------- */
+async function atualizar() {
+  const btn = $('btn-atualizar');
+  btn.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i>';
+  try {
+    const [acoes] = await Promise.all([buscar(), carregarBase()]);
+    ACOES = acoes;
+    SELECAO.clear();
+    LINHAS = montarLinhas(acoes);
+    montarFiltros();
+    desenhar();
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    $('sub-topo').textContent = BASE
+      ? `atualizado às ${hora} · base de ${esc(BASE.gerado || '?').slice(0, 10)}`
+      : `atualizado às ${hora} · sem a base (situação não confere)`;
+  } catch (e) {
+    $('sub-topo').textContent = 'não consegui carregar';
+    $('vazio').classList.remove('escondido');
+    $('vazio').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>
+      <p>Não consegui carregar os repasses</p><small>${esc(e.message || e)}</small>`;
+  } finally {
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+  }
+}
+
+(function iniciar() {
+  if (localStorage.getItem('admin_dark') === '1') document.documentElement.classList.add('dark');
+
+  if (!ehCms()) {
+    // A sessão do Portal vive em `cms-representacoes.github.io`, e o
+    // localStorage não atravessa origens: rodando local ela nunca existe.
+    // Sem este aviso, a tela de acesso restrito parece defeito.
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      $('login-motivo').innerHTML =
+        'Rodando local, a sessão do Portal não chega até aqui — ela pertence ao ' +
+        'domínio <b>cms-representacoes.github.io</b>. Em produção funciona normalmente.' +
+        '<br><br>Para testar nesta máquina, cole no console:' +
+        '<br><code style="display:block;margin-top:8px;padding:10px;border-radius:10px;' +
+        'background:var(--muted-soft);font-size:11px;text-align:left;line-height:1.5">' +
+        "localStorage.setItem('cms_portal_session_v1',<br>&nbsp;&nbsp;JSON.stringify({nome:'CMS'," +
+        "expiraEm:new Date(Date.now()+864e5).toISOString()}));<br>location.reload()</code>";
+    }
+    return;                                      // fica na tela de acesso restrito
+  }
+  $('tela-login').classList.add('escondido');
+  $('painel').classList.remove('escondido');
+
+  for (const id of ['f-vendedor', 'f-origem', 'f-destino', 'f-quando', 'f-situacao']) {
+    $(id).addEventListener('change', desenhar);
+  }
+  let t;
+  $('busca').addEventListener('input', () => { clearTimeout(t); t = setTimeout(desenhar, 200); });
+  $('btn-limpar').addEventListener('click', () => {
+    for (const id of ['f-vendedor', 'f-origem', 'f-destino', 'f-situacao', 'f-envio']) $(id).value = '';
+    $('f-quando').value = 'tudo';
+    $('f-arquivo').value = 'ativos';
+    $('busca').value = '';
+    desenhar();
+  });
+  $('btn-atualizar').addEventListener('click', atualizar);
+  $('f-envio').addEventListener('change', desenhar);
+  $('f-arquivo').addEventListener('change', desenhar);
+
+  $('corpo').addEventListener('change', (e) => {
+    const chk = e.target.closest('input[data-id]');
+    if (!chk) return;
+    if (chk.checked) SELECAO.add(chk.dataset.id); else SELECAO.delete(chk.dataset.id);
+    chk.closest('tr').classList.toggle('marcada', chk.checked);
+    atualizarSelecao();
+  });
+
+  // Marca só o que está à vista: com um filtro ligado, "todos" não pode
+  // arrastar junto o que a pessoa não está vendo.
+  $('chk-todos').addEventListener('change', (e) => {
+    for (const l of VISIVEIS) {
+      if (e.target.checked) SELECAO.add(l.id); else SELECAO.delete(l.id);
+    }
+    desenhar();
+  });
+
+  $('btn-nada').addEventListener('click', () => { SELECAO.clear(); desenhar(); });
+  $('btn-exportar').addEventListener('click', exportarEFinalizar);
+  $('btn-reabrir').addEventListener('click', () => {
+    const alvo = LINHAS.filter(l => SELECAO.has(l.id) && l.finalizadoEm);
+    if (!alvo.length) return;
+    marcarEnvio(alvo, false).then(() => { SELECAO.clear(); desenhar(); });
+  });
+  $('btn-tema').addEventListener('click', () => {
+    const escuro = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('admin_dark', escuro ? '1' : '0');
+  });
+
+  atualizar();
+})();
+</script>
+</body>
+</html>

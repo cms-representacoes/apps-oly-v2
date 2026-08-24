@@ -1,0 +1,4712 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0D9488">
+  <title>Detalhada</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- SheetJS hospedado no próprio repo (a rede bloqueia CDNs externas). Fallback pra CDN só por segurança. -->
+  <script src="xlsx.full.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
+
+  <style>
+    /* =========================================================
+       VARIÁVEIS DE TEMA
+       ========================================================= */
+    :root {
+      --primary: #0D9488;
+      --primary-2: #0F766E;
+      --primary-soft: #CCFBF1;
+      --primary-bg: #F0FDFA;
+      --primary-rgb: 13, 148, 136;
+
+      --bg-1: #F8FAFC;
+      --bg-2: #F1F5F9;
+      --bg-grad: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+
+      --card-bg: #FFFFFF;
+      --card-bg-2: #F8FAFC;
+
+      --text: #0F172A;
+      --text-2: #475569;
+      --text-3: #94A3B8;
+
+      --border: #E2E8F0;
+      --border-2: #CBD5E1;
+
+      --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-lift: 0 4px 16px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.05);
+
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 20px;
+
+      --acao-manter:   #10B981;
+      --acao-cancelar: #EF4444;
+      --acao-repassar: #F59E0B;
+      --acao-gestao:   #F97316;
+
+      --tag-gci-bg: #E0F2FE;
+      --tag-gci-fg: #075985;
+      --tag-mes-bg: #FEF3C7;
+      --tag-mes-fg: #92400E;
+    }
+
+    html.dark {
+      --primary: #2DD4BF;
+      --primary-2: #5EEAD4;
+      --primary-soft: #134E4A;
+      --primary-bg: #0F2A28;
+      --primary-rgb: 45, 212, 191;
+
+      --bg-1: #0F172A;
+      --bg-2: #1E293B;
+      --bg-grad: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+
+      --card-bg: #1E293B;
+      --card-bg-2: #0F172A;
+
+      --text: #F1F5F9;
+      --text-2: #CBD5E1;
+      --text-3: #64748B;
+
+      --border: #334155;
+      --border-2: #475569;
+
+      --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+      --tag-gci-bg: #0C4A6E;
+      --tag-gci-fg: #BAE6FD;
+      --tag-mes-bg: #78350F;
+      --tag-mes-fg: #FDE68A;
+    }
+
+    /* =========================================================
+       RESET
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-grad);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input { font: inherit; color: inherit; }
+
+    @media (hover: none), (pointer: coarse) {
+      *, *::before, *::after {
+        transition: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+    }
+
+    /* =========================================================
+       LAYOUT GERAL
+       ========================================================= */
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 16px;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    /* Marca da CMS: badge de texto, como nos outros apps — aqui no teal do layout.
+       O gradiente é fixo porque o texto é sempre branco, nos dois temas. */
+    .logo-mark {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #14B8A6, #0F766E);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; letter-spacing: .04em;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(15, 118, 110, .28);
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
+    .logo-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .marca-switch { display: flex; align-items: center; gap: 6px; }
+    .marca-badge {
+      width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+      object-fit: cover; opacity: 0.32; filter: grayscale(0.55);
+      box-shadow: 0 0 0 1px var(--border-2); transition: opacity .15s, filter .15s, box-shadow .15s;
+    }
+    .marca-badge.ativo { opacity: 1; filter: none; box-shadow: 0 0 0 2px var(--primary); }
+    .marca-badge.escondida { display: none; }
+    .tipo-chips { display: flex; gap: 6px; margin-bottom: 10px; }
+    .tipo-chips.escondida { display: none; }
+    .tipo-chip {
+      font-size: 12px; padding: 5px 13px; border-radius: 16px; cursor: pointer;
+      border: 1px solid var(--border-2); background: var(--card-bg); color: var(--text-2);
+    }
+    .tipo-chip.ativo { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    @keyframes girar360 { to { transform: rotate(360deg); } }
+    .btn-icon.girando i { animation: girar360 .7s linear infinite; }
+    .btn-icon.ativo { background: var(--primary); color: #fff; }
+    .btn-icon.ativo i { color: #fff; }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--card-bg); color: var(--text-2);
+      display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-card);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-icon:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lift);
+      color: var(--primary);
+    }
+    .btn-icon.loading { opacity: .6; pointer-events: none; }
+
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      padding: 10px 18px; border-radius: 10px;
+      font-weight: 600; font-size: 14px;
+      display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+      transition: transform .15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .screen { display: none; flex: 1; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+    .login-wrap {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-lift);
+      padding: 32px 28px;
+      width: 100%; max-width: 380px;
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #14B8A6, #0F766E);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; letter-spacing: .04em;
+      margin: 0 auto 20px;
+      box-shadow: 0 6px 18px rgba(15, 118, 110, .3);
+    }
+    .login-title { font-size: 22px; font-weight: 700; text-align: center; margin: 0 0 6px; }
+    .login-sub { font-size: 13px; color: var(--text-2); text-align: center; margin: 0 0 28px; }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--text-2); margin-bottom: 6px;
+    }
+    .field select, .field input {
+      width: 100%; padding: 11px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      background: var(--card-bg-2); color: var(--text);
+      outline: none;
+    }
+    .field select:focus, .field input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+    }
+    .login-error {
+      background: #FEE2E2; color: #991B1B;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 12px;
+      display: none;
+    }
+    html.dark .login-error { background: #7F1D1D; color: #FECACA; }
+    .login-error.show { display: block; }
+
+    /* =========================================================
+       BUSCA COM X
+       ========================================================= */
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 100%;
+      padding: 14px 46px 14px 46px;
+      font-size: 15px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card-bg); color: var(--text);
+      outline: none;
+      box-shadow: var(--shadow-card);
+    }
+    .search-wrap input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15), var(--shadow-card);
+    }
+    .search-wrap .search-icon {
+      position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); font-size: 15px;
+      pointer-events: none;
+    }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-3);
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .search-clear:hover { background: var(--card-bg-2); color: var(--text); }
+    .search-wrap.has-value .search-clear { display: inline-flex; }
+    input[type="search"]::-webkit-search-cancel-button { display: none; }
+    input[type="search"]::-webkit-search-decoration { display: none; }
+
+    /* =========================================================
+       HEADER CONGELADO (sticky)
+       ========================================================= */
+    .frozen-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-2);
+      padding: 12px 0 14px;
+      margin: -12px 0 0;
+    }
+    .frozen-header::before {
+      content: '';
+      position: absolute;
+      left: -16px; right: -16px;
+      top: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: -1;
+    }
+    .frozen-header::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -10px;
+      height: 10px;
+      background: linear-gradient(180deg, var(--bg-2), transparent);
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       LISTAS
+       ========================================================= */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-2);
+    }
+    .empty-state i {
+      font-size: 48px;
+      color: var(--text-3);
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+    .empty-state p { font-size: 14px; margin: 0; }
+
+    .list-footer {
+      text-align: center; font-size: 12px;
+      color: var(--text-3); padding: 12px;
+    }
+
+    .products-summary {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .summary-chip {
+      flex-shrink: 0;
+      background: var(--card-bg);
+      box-shadow: var(--shadow-card);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+    .summary-chip strong { color: var(--text); font-weight: 700; margin-right: 3px; }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      padding: 7px 12px;
+      font-size: 11px;
+      color: var(--text-2);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+    .filter-chip:hover { color: var(--primary); border-color: var(--primary); }
+    .filter-chip i.fa-chevron-down { font-size: 9px; }
+    .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .filter-chip.active i { color: #fff; }
+    .filter-clear-btn {
+      width: 36px; height: 34px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-3);
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .filter-clear-btn.show { display: inline-flex; }
+    .filter-clear-btn:hover { color: var(--acao-cancelar); border-color: var(--acao-cancelar); }
+
+    .filter-popover {
+      position: fixed;
+      overflow-y: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-lift);
+      z-index: 25;
+      padding: 4px;
+      display: none;
+    }
+    .filter-popover.show { display: block; }
+    .filter-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-option:hover { background: var(--card-bg-2); }
+    .filter-option.active { background: var(--primary-bg); color: var(--primary-2); font-weight: 600; }
+    html.dark .filter-option.active { color: var(--primary); }
+    .filter-option i.check { font-size: 10px; width: 12px; }
+
+    /* =========================================================
+       CARDS DE PRODUTOS
+       ========================================================= */
+    .products-list {
+      display: flex; flex-direction: column;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .product-card {
+      background: var(--card-bg);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .product-main {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+
+    .product-thumb-wrap {
+      position: relative;
+      flex-shrink: 0;
+      cursor: zoom-in;
+    }
+    .product-thumb {
+      width: 54px;
+      height: 54px;
+      border-radius: 9px;
+      background: var(--card-bg-2);
+      object-fit: cover;
+      border: 1px solid var(--border);
+      display: block;
+    }
+    .product-thumb-fallback {
+      width: 54px;
+      height: 54px;
+      border-radius: 9px;
+      background: var(--card-bg-2);
+      border: 1px dashed var(--border-2);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-3);
+    }
+    .product-thumb-fallback i { font-size: 18px; opacity: 0.6; }
+    .product-thumb.failed { display: none; }
+    .product-thumb.failed + .product-thumb-fallback { display: flex; }
+    .product-thumb.failed ~ .product-zoom { display: none; }
+
+    @media (min-width: 768px) {
+      .product-thumb, .product-thumb-fallback { width: 64px; height: 64px; }
+      .product-thumb-fallback i { font-size: 21px; }
+    }
+
+    /* Selinho de lupa: só indica que a miniatura amplia. Quem trata o clique
+       é o .product-thumb-wrap inteiro, que na miniatura pequena é alvo melhor. */
+    .product-zoom {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.78);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      pointer-events: none;
+      transition: background .15s;
+      z-index: 2;
+    }
+    .product-thumb-wrap:hover .product-zoom { background: var(--primary); }
+    .product-zoom.hidden { display: none; }
+
+    /* Nome, cor/referência e tags na mesma linha — só quebram quando aperta. */
+    .product-info {
+      flex: 1; min-width: 0;
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 4px 12px;
+    }
+    .product-name {
+      font-size: 14px; font-weight: 700;
+      color: var(--text); margin: 0;
+      flex: 0 1 auto; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    @media (min-width: 768px) {
+      .product-name { font-size: 15px; }
+    }
+    .product-meta {
+      font-size: 12px; color: var(--text-2); margin: 0;
+      display: flex; gap: 6px; flex: 0 0 auto; white-space: nowrap;
+    }
+    .product-meta .dot { color: var(--text-3); }
+
+    .product-tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      flex: 0 1 auto;
+      min-width: 0;
+      margin: 0;
+    }
+    .tag {
+      font-size: 10.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag i { font-size: 9px; }
+    .tag-gci { background: var(--tag-gci-bg); color: var(--tag-gci-fg); }
+    .tag-mes { background: var(--tag-mes-bg); color: var(--tag-mes-fg); }
+    .tag-ped { background: var(--card-bg-2); color: var(--text-2); border: 1px solid var(--border); }
+
+    .product-price {
+      font-size: 13px; font-weight: 700;
+      color: var(--primary-2);
+      margin-top: 4px;
+    }
+    html.dark .product-price { color: var(--primary); }
+
+    .product-right {
+      display: flex; align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .product-total {
+      background: var(--primary-soft);
+      color: var(--primary-2);
+      font-weight: 700; font-size: 13px;
+      padding: 5px 12px; border-radius: 8px;
+    }
+    html.dark .product-total { color: var(--primary); }
+    .expand-icon {
+      color: var(--text-3); font-size: 12px;
+      transition: transform .2s;
+    }
+    .product-card.expanded .expand-icon { transform: rotate(180deg); }
+
+    .product-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease;
+      border-top: 1px solid transparent;
+    }
+    .product-card.expanded .product-details {
+      max-height: 800px;
+      border-top-color: var(--border);
+    }
+    .product-details-inner {
+      padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .detail-row {
+      display: flex; justify-content: space-between;
+      font-size: 13px;
+    }
+    .detail-row .label { color: var(--text-2); }
+    .detail-row .value { color: var(--text); font-weight: 500; }
+
+    .grade-row {
+      display: flex; gap: 4px;
+      flex-wrap: wrap; margin-top: 4px;
+    }
+    .grade-cell {
+      background: var(--primary-bg);
+      border: 1px solid var(--primary-soft);
+      border-radius: 6px;
+      padding: 4px 6px;
+      min-width: 36px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      line-height: 1.15;
+    }
+    html.dark .grade-cell { background: var(--primary-soft); border-color: var(--primary); }
+    .grade-cell .g-size {
+      display: block; font-size: 9px;
+      color: var(--primary-2); font-weight: 500;
+    }
+    .grade-cell .g-qty {
+      display: block; font-size: 12px;
+      font-weight: 700; color: var(--primary-2);
+    }
+    html.dark .grade-cell .g-size, html.dark .grade-cell .g-qty { color: var(--primary-2); }
+
+    .action-pills {
+      display: flex; gap: 6px;
+      flex-wrap: wrap; margin-top: 6px;
+    }
+    .action-pill {
+      flex: 1; min-width: 80px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      text-align: center;
+      background: var(--card-bg-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .action-pill:hover { border-color: var(--primary); color: var(--primary); }
+    /* =========================================================
+       ZOOM MODAL
+       ========================================================= */
+    .zoom-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .zoom-modal.show { display: flex; opacity: 1; }
+    .zoom-modal img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 12px;
+      cursor: zoom-out;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .zoom-modal .zoom-info p { margin: 0; }
+    .zoom-modal .zoom-info p:first-child { font-size: 16px; font-weight: 700; }
+    .zoom-modal .zoom-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .zoom-modal .zoom-close:hover { background: rgba(255,255,255,0.25); }
+
+    /* =========================================================
+       TOAST + SYNC + BACKDROP
+       ========================================================= */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--text); color: var(--card-bg);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow-lift);
+      transition: transform .3s;
+      z-index: 100;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .sync-indicator {
+      position: fixed;
+      top: 16px; right: 16px;
+      background: var(--primary);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      box-shadow: var(--shadow-lift);
+      display: none;
+      align-items: center; gap: 6px;
+      z-index: 99;
+    }
+    .sync-indicator.show { display: inline-flex; }
+
+    .file-input { display: none; }
+
+    .filter-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+    }
+    .filter-backdrop.show { display: block; }
+
+    @media (max-width: 480px) {
+      .app { padding: 12px; }
+      .login-card { padding: 24px 20px; }
+      .client-info-compact { max-width: 30%; }
+      .client-info-compact .name { font-size: 12px; }
+      .client-info-compact .meta { font-size: 10px; }
+    }
+    @media (min-width: 1024px) {
+      .app { padding: 24px 32px; }
+      .product-main { padding: 10px 16px; gap: 14px; }
+    }
+
+    /* =========================================================
+       DETALHADA — ACRÉSCIMOS
+       ========================================================= */
+    /* Topo da tela de produtos: nome, busca, chips e botões sempre na MESMA
+       linha. Quando os chips não cabem, a faixa deles rola na horizontal em vez
+       de quebrar — igual às faixas de chip do celular. */
+    .topbar-produtos { flex-wrap: wrap; gap: 10px 12px; }
+    .topbar-produtos .topbar-left       { order: 0; flex: 0 1 auto; min-width: 0; }
+    .topbar-produtos .topbar-left > div  { min-width: 0; }
+    .topbar-produtos .logo-text,
+    .topbar-produtos .logo-sub          { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar-produtos .tb-ferramentas    { order: 1; flex: 1 1 0; min-width: 0; }
+    .topbar-produtos .topbar-actions    { order: 2; flex: 0 0 auto; }
+
+    .tb-ferramentas {
+      position: relative;
+      display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0;
+    }
+    .tb-ferramentas .search-wrap { flex: 0 0 170px; }
+
+    .tb-rolagem {
+      flex: 1 1 0; min-width: 0;
+      display: flex; align-items: center; gap: 7px;
+      overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .tb-rolagem::-webkit-scrollbar { height: 0; display: none; }
+    .tb-rolagem > *                { flex: 0 0 auto; margin: 0; }
+    .tb-rolagem .tipo-chips        { gap: 4px; flex-wrap: nowrap; }
+    .tb-rolagem .tipo-chip         { padding: 5px 9px; font-size: 11.5px; white-space: nowrap; }
+    .tb-rolagem .products-summary  { gap: 4px; padding: 0; overflow: visible; flex-wrap: nowrap; }
+    .tb-rolagem .summary-chip      { padding: 5px 8px; white-space: nowrap; }
+
+    /* Véus nas bordas: avisam que ainda tem chip escondido de cada lado */
+    .tb-ferramentas::before,
+    .tb-ferramentas::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 26px;
+      pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 1;
+    }
+    .tb-ferramentas::after {
+      right: 0; background: linear-gradient(90deg, transparent, var(--bg-1));
+    }
+    .tb-ferramentas::before {
+      /* começa onde a busca termina, não na borda do bloco */
+      left: 178px; background: linear-gradient(270deg, transparent, var(--bg-1));
+    }
+    .tb-ferramentas.rolavel::after       { opacity: 1; }
+    .tb-ferramentas.rolavel-esq::before  { opacity: 1; }
+    @media (max-width: 480px) { .tb-ferramentas::before { left: 148px; } }
+
+    @media (max-width: 900px) {
+      /* Estreito: nome e botões em cima, ferramentas na faixa de baixo */
+      .topbar-produtos .topbar-left    { flex: 1 1 auto; }
+      .topbar-produtos .topbar-actions { order: 1; }
+      .topbar-produtos .tb-ferramentas { order: 2; flex: 1 1 100%; }
+    }
+    @media (max-width: 480px) {
+      .topbar-produtos .topbar-actions { gap: 4px; }
+      .topbar-produtos .btn-icon { width: 34px; height: 34px; }
+      .tb-ferramentas .search-wrap { flex: 0 0 140px; }
+    }
+
+    .search-wrap.compacta input {
+      padding: 8px 28px 8px 29px;
+      font-size: 12.5px;
+      border-radius: 9px;
+    }
+    .search-wrap.compacta .search-icon { left: 10px; font-size: 11px; }
+    .search-wrap.compacta .search-clear { right: 3px; width: 24px; height: 24px; font-size: 12px; }
+
+    .summary-chip strong.c-cart { color: var(--primary-2); }
+    html.dark .summary-chip strong.c-cart { color: var(--primary); }
+    .summary-chip strong.c-fat  { color: var(--text-2); }
+
+    .fonte-info {
+      font-size: 11px; color: var(--text-3); text-align: center;
+      padding: 2px 0 10px;
+    }
+    .fonte-info.velha { color: var(--acao-repassar); font-weight: 600; }
+
+
+
+    /* Coluna direita do card: carteira + faturado empilhados */
+    /* Carteira e faturado lado a lado, não empilhados */
+    .prod-nums { display: flex; align-items: baseline; gap: 14px; }
+    .num-linha { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+    /* Largura mínima para os números alinharem de um card pro outro.
+       Carteira é o número que importa: cor da marca e peso maior.
+       Faturado é histórico, fica em tom neutro. */
+    .num-linha .n { font-weight: 700; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+    .num-linha .n.cart { font-size: 16px; font-weight: 800; color: var(--primary-2); }
+    html.dark .num-linha .n.cart { color: var(--primary); }
+    .num-linha .n.fat  { font-size: 14px; color: var(--text-2); }
+    .num-linha .l { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .3px; }
+    .num-linha.cart .l { color: var(--text-2); font-weight: 600; }
+    .num-linha.zerada { opacity: .35; }
+
+    /* Em tela estreita os dois números voltam a empilhar, senão não sobra
+       largura nenhuma para o nome do produto. */
+    @media (max-width: 700px) {
+      .prod-nums { flex-direction: column; align-items: flex-end; gap: 2px; }
+      .product-right { gap: 10px; }
+      .product-main { gap: 10px; }
+    }
+    /* Em tela estreita a contagem de encomendas sai do card (ela reaparece no
+       cabeçalho quando o produto é aberto) para as tags caberem numa linha. */
+    @media (max-width: 620px) {
+      .product-tags .tag-ref { display: none; }
+    }
+
+    .tag-clientes { background: var(--card-bg-2); color: var(--text-2); border: 1px solid var(--border); }
+    .tag-ref { background: var(--tag-gci-bg); color: var(--tag-gci-fg); }
+
+    /* Linhas (GCI) dentro do card expandido */
+    .gci-head {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: var(--text-2); text-transform: uppercase;
+      letter-spacing: .4px; padding: 2px 0 8px;
+    }
+    /* flex-wrap ligado sempre: a faixa de destinos ocupa 100% e precisa cair
+       numa linha própria, senão ela espreme o resto do lançamento. */
+    .gci-item {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid var(--border);
+    }
+    .gci-item:last-child { border-bottom: none; }
+    .gci-info { flex: 1 1 220px; min-width: 0; }
+    .gci-item > .acao-pills, .gci-item > .gci-dir { flex: 0 0 auto; }
+    .gci-cli {
+      font-size: 13px; font-weight: 600; color: var(--text); margin: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .gci-meta { font-size: 11px; color: var(--text-2); margin: 2px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+    .gci-meta .sep { color: var(--text-3); }
+    .gci-num { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--text); }
+
+    /* Botão de copiar ao lado do GCI */
+    .copiar-btn {
+      width: 20px; height: 20px; flex-shrink: 0;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--card-bg-2);
+      color: var(--text-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .copiar-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .copiar-btn:active { transform: scale(.92); }
+
+    /* Gera o PDF do pedido no EBM — só aparece com a extensão instalada */
+    .pdf-btn {
+      width: 20px; height: 20px; flex-shrink: 0;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--card-bg-2);
+      color: var(--acao-cancelar);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .pdf-btn:hover { background: var(--acao-cancelar); border-color: var(--acao-cancelar); color: #fff; }
+    .pdf-btn:active { transform: scale(.92); }
+
+    /* Tarja de andamento da geração */
+    /* ---- seleção de encomendas para PDF ---- */
+    .sel-chk {
+      width: 17px; height: 17px; flex-shrink: 0;
+      accent-color: var(--primary); cursor: pointer;
+    }
+    .gci-item .sel-chk { align-self: center; margin-right: 2px; }
+    .gci-item.sel-marcada { background: var(--primary-soft); }
+    .product-card.sel-parcial .sel-chk { opacity: .9; }
+
+    /* Cor cheia: a barra é uma ação em curso, não um aviso discreto —
+       precisa saltar aos olhos sem o usuário procurar por ela. */
+    .barra-selecao {
+      position: fixed; left: 50%; bottom: 16px; z-index: 65;
+      transform: translateX(-50%) translateY(160%);
+      transition: transform .22s ease;
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px 9px 18px;
+      background: var(--primary-2); border: 1px solid var(--primary-2);
+      border-radius: 999px; box-shadow: var(--shadow-lift);
+      max-width: calc(100vw - 20px);
+    }
+    html.dark .barra-selecao { background: var(--primary); border-color: var(--primary); }
+    .barra-selecao.show { transform: translateX(-50%) translateY(0); }
+    .bs-txt { font-size: 12.5px; color: rgba(255,255,255,.9); white-space: nowrap; }
+    .bs-txt strong { font-weight: 800; color: #fff; }
+    .bs-txt small {
+      display: block; font-size: 10.5px; font-weight: 700;
+      color: rgba(255,255,255,.75); text-transform: uppercase; letter-spacing: .3px;
+    }
+    .barra-selecao button {
+      border-radius: 999px; font-size: 12.5px; font-weight: 700;
+      padding: 9px 14px; white-space: nowrap;
+    }
+    .bs-secundario {
+      background: rgba(255,255,255,.16); color: #fff;
+      border: 1px solid rgba(255,255,255,.28);
+    }
+    .bs-secundario:hover { background: rgba(255,255,255,.26); }
+    .bs-gerar {
+      background: #fff; color: var(--primary-2);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .bs-gerar:hover:not(:disabled) { background: #f1f5f9; }
+    .bs-gerar:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-icon.ativo { background: var(--primary); color: #fff; }
+    @media (max-width: 560px) {
+      .barra-selecao { gap: 7px; padding-left: 12px; }
+      .barra-selecao button { padding: 9px 11px; }
+      .bs-txt { white-space: normal; }
+    }
+
+    .tarja-pdf {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(140%);
+      z-index: 90;
+      display: flex; align-items: center; gap: 12px;
+      background: var(--card-bg); color: var(--text);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--primary);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-lift);
+      padding: 12px 18px 12px 14px;
+      min-width: 260px; max-width: 92vw;
+      transition: transform .25s ease;
+    }
+    .tarja-pdf.show { transform: translateX(-50%) translateY(0); }
+    .tarja-pdf.erro { border-left-color: var(--acao-cancelar); }
+    .tp-giro {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--primary-bg); color: var(--primary-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+      animation: pulsar 1.4s ease-in-out infinite;
+    }
+    .tarja-pdf.erro .tp-giro {
+      background: rgba(239, 68, 68, .12); color: var(--acao-cancelar); animation: none;
+    }
+    @keyframes pulsar { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+    .tp-titulo { font-size: 13px; font-weight: 700; margin: 0; }
+    .tp-detalhe { font-size: 11.5px; color: var(--text-2); margin: 2px 0 0; }
+
+    /* Tudo do card é selecionável — é assim que se copia por aqui */
+    .product-card { user-select: text; -webkit-user-select: text; }
+    /* Manter / Repassar / Cancelar — mesmas cores do app da Carteira */
+    .acao-pills { display: flex; gap: 4px; flex-shrink: 0; }
+    .acao-pill {
+      font-size: 10.5px; font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-3);
+      letter-spacing: .2px;
+      transition: background .12s, color .12s, border-color .12s;
+      white-space: nowrap;
+    }
+    .acao-pill:hover { border-color: var(--text-3); color: var(--text-2); }
+    .acao-pill.ativo { color: #fff; }
+    .acao-pill.manter.ativo   { background: var(--acao-manter);   border-color: var(--acao-manter); }
+    .acao-pill.repassar.ativo { background: var(--acao-repassar); border-color: var(--acao-repassar); }
+    .acao-pill.cancelar.ativo { background: var(--acao-cancelar); border-color: var(--acao-cancelar); }
+    .acao-pill.manter:hover   { border-color: var(--acao-manter);   color: var(--acao-manter); }
+    .acao-pill.repassar:hover { border-color: var(--acao-repassar); color: var(--acao-repassar); }
+    .acao-pill.cancelar:hover { border-color: var(--acao-cancelar); color: var(--acao-cancelar); }
+    .acao-pill.ativo:hover { color: #fff; }
+
+    /* Segundo passo do repasse: escolher o destino */
+    .btn-destino {
+      font-size: 10.5px; font-weight: 700;
+      padding: 4px 10px; border-radius: 6px;
+      border: 1px dashed var(--acao-repassar);
+      background: transparent; color: var(--acao-repassar);
+      display: inline-flex; align-items: center; gap: 5px;
+      white-space: nowrap;
+    }
+    .btn-destino:hover { background: var(--acao-repassar); color: #fff; border-style: solid; }
+    .btn-destino.definido {
+      border-style: solid; border-color: var(--primary);
+      background: var(--primary-bg); color: var(--primary-2);
+    }
+    html.dark .btn-destino.definido { color: var(--primary); }
+    .btn-destino.definido:hover { background: var(--primary); color: #fff; }
+    .gci-destinos {
+      flex: 1 1 100%; order: 2;
+      font-size: 11px; color: var(--primary-2);
+      display: flex; flex-wrap: wrap; gap: 3px 12px;
+      margin-top: 5px; padding-left: 2px;
+    }
+    html.dark .gci-destinos { color: var(--primary); }
+    .gci-destinos .gd { display: inline-flex; align-items: center; gap: 5px; }
+    .gci-destinos .gd i { font-size: 9px; }
+    .gci-destinos .gd small { color: var(--text-2); font-weight: 600; }
+    .gci-destinos .gd.falta { color: var(--acao-repassar); font-weight: 700; }
+
+    /* Em tela estreita os botões descem para uma linha própria */
+    @media (max-width: 700px) {
+      .gci-item { flex-wrap: wrap; }
+      .acao-pills { order: 1; flex: 1 1 100%; margin-top: 4px; }
+    }
+
+    /* =========================================================
+       MODAL DE DESTINO DO REPASSE
+       ========================================================= */
+    .modal-fundo {
+      position: fixed; inset: 0; z-index: 70;
+      background: rgba(15, 23, 42, .55);
+      display: none; align-items: flex-end; justify-content: center;
+      padding: 0;
+    }
+    .modal-fundo.show { display: flex; }
+    @media (min-width: 700px) {
+      .modal-fundo { align-items: center; padding: 24px; }
+    }
+    .modal-card {
+      background: var(--bg-1);
+      width: 100%; max-width: 620px;
+      max-height: 92vh;
+      border-radius: var(--r-xl) var(--r-xl) 0 0;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow-lift);
+    }
+    @media (min-width: 700px) { .modal-card { border-radius: var(--r-xl); max-height: 84vh; } }
+
+    .modal-topo {
+      padding: 14px 16px 12px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-linha1 { display: flex; align-items: flex-start; gap: 12px; }
+    .modal-titulo { font-size: 15px; font-weight: 700; color: var(--text); margin: 0; }
+    .modal-sub { font-size: 12px; color: var(--text-2); margin: 3px 0 0; }
+    .modal-fechar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--card-bg-2); color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-left: auto;
+    }
+    .modal-fechar:hover { background: var(--border); color: var(--text); }
+
+    .caixa-banner {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+      margin-top: 10px; padding: 8px 11px;
+      background: var(--primary-bg); border-radius: var(--r-sm);
+      font-size: 12px; color: var(--primary-2); font-weight: 600;
+    }
+    html.dark .caixa-banner { background: rgba(45, 212, 191, .1); color: var(--primary); }
+    .caixa-banner .cb-cont { margin-left: auto; font-weight: 800; }
+    .caixa-banner .cb-cont.cheio { color: var(--acao-manter); }
+    .caixa-toggle { display: inline-flex; border: 1px solid var(--border-2); border-radius: 6px; overflow: hidden; }
+    .caixa-toggle button { font-size: 10.5px; font-weight: 700; padding: 3px 9px; background: var(--card-bg); color: var(--text-2); }
+    .caixa-toggle button.ativo { background: var(--primary); color: #fff; }
+
+    .modal-escopo { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .escopo-chip {
+      font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 14px;
+      border: 1px solid var(--border-2); background: var(--card-bg); color: var(--text-2);
+    }
+    .escopo-chip.ativo { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .modal-busca { position: relative; margin-top: 10px; }
+    .modal-busca input {
+      width: 100%; padding: 9px 32px 9px 32px;
+      font-size: 13px; border-radius: 9px;
+      border: 1px solid var(--border); background: var(--card-bg-2); color: var(--text);
+      outline: none;
+    }
+    .modal-busca input:focus { border-color: var(--primary); background: var(--card-bg); }
+    .modal-busca .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 12px; }
+
+    .modal-corpo { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
+    .grupo-titulo {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+      margin: 14px 4px 6px; display: flex; align-items: center; gap: 6px;
+    }
+    .grupo-titulo.bom    { color: var(--acao-manter); }
+    .grupo-titulo.neutro { color: var(--text-3); }
+    .grupo-titulo.aviso  { color: var(--acao-cancelar); }
+    .grupo-lista { background: var(--card-bg); border-radius: var(--r-md); box-shadow: var(--shadow-card); overflow: hidden; }
+
+    .dest-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    .dest-item:last-child { border-bottom: none; }
+    .dest-item:hover { background: var(--card-bg-2); }
+    .dest-item.sel { background: var(--primary-bg); border-bottom: none; }
+    html.dark .dest-item.sel { background: rgba(45, 212, 191, .08); }
+    .dest-item.aviso { background: rgba(239, 68, 68, .06); }
+    .dest-item input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--primary); flex-shrink: 0; }
+    .dest-info { flex: 1; min-width: 0; }
+    .dest-nome { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+    .dest-nome .badge-rede {
+      font-size: 9px; font-weight: 800; background: var(--tag-gci-bg); color: var(--tag-gci-fg);
+      padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle;
+    }
+    .dest-meta { font-size: 11px; color: var(--text-2); margin: 2px 0 0; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+    .dest-cores { color: var(--primary-2); font-weight: 600; }
+    html.dark .dest-cores { color: var(--primary); }
+    .dest-cores.fat { color: var(--text-3); }
+    .dest-alerta { color: var(--acao-cancelar); font-weight: 700; }
+    .dest-recebe { color: var(--acao-repassar); font-weight: 700; }
+    .dest-stepper { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+    .dest-stepper button {
+      width: 24px; height: 24px; border-radius: 6px;
+      border: 1px solid var(--border-2); background: var(--card-bg);
+      color: var(--text-2); font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dest-stepper button:hover { border-color: var(--primary); color: var(--primary); }
+    .dest-stepper span { font-size: 12px; font-weight: 700; color: var(--text); min-width: 46px; text-align: center; }
+
+    .modal-rodape {
+      flex-shrink: 0; padding: 10px 12px;
+      background: var(--card-bg); border-top: 1px solid var(--border);
+      display: flex; gap: 8px;
+    }
+    .modal-rodape button {
+      padding: 12px; border-radius: var(--r-md);
+      font-size: 13px; font-weight: 700;
+    }
+    .btn-limpar-dest {
+      flex: 0 0 auto; padding-left: 16px; padding-right: 16px;
+      border: 1px solid var(--border-2); background: var(--card-bg); color: var(--text-2);
+    }
+    .btn-limpar-dest:hover { border-color: var(--acao-cancelar); color: var(--acao-cancelar); }
+    .btn-confirmar-dest {
+      flex: 1; background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-confirmar-dest:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Condição comercial de cada destino, dentro do modal de repasse. */
+    .dest-cond {
+      display: flex; gap: 12px;
+      padding: 4px 14px 15px 40px;
+      background: var(--primary-bg);
+      border-bottom: 1px solid var(--border);
+    }
+    html.dark .dest-cond { background: rgba(45, 212, 191, .08); }
+    .dest-cond label { flex: 1; min-width: 0; }
+    .dest-cond span {
+      display: block; font-size: 10.5px; font-weight: 800;
+      color: var(--primary-2); text-transform: uppercase; letter-spacing: .4px;
+      margin-bottom: 5px;
+    }
+    html.dark .dest-cond span { color: var(--primary); }
+    .dest-cond span b { color: var(--acao-cancelar); }
+    .dest-cond select {
+      width: 100%; padding: 10px 10px;
+      font-size: 12.5px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
+      outline: none;
+    }
+    .dest-cond select:focus { border-color: var(--primary); }
+    .dest-cond select.vazio { border-color: var(--acao-cancelar); }
+    @media (max-width: 560px) {
+      .dest-cond { flex-direction: column; gap: 10px; padding-left: 34px; }
+    }
+
+    .grupo-titulo.externo { color: var(--tag-gci-fg); }
+    .dest-prep { color: var(--text-3); font-weight: 600; }
+    .badge-externo {
+      font-size: 9px; font-weight: 800; background: var(--tag-mes-bg); color: var(--tag-mes-fg);
+      padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle;
+    }
+    .md-dica {
+      margin: 18px 6px 4px; padding: 10px 12px;
+      background: var(--card-bg-2); border: 1px dashed var(--border-2);
+      border-radius: var(--r-sm);
+      font-size: 12px; color: var(--text-2); line-height: 1.45;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .md-dica i { color: var(--primary-2); margin-top: 2px; }
+
+    /* =========================================================
+       CHIPS COM CONTADOR E A LISTA DE REPASSES
+       ========================================================= */
+    .chip-n {
+      display: inline-block; margin-left: 5px;
+      background: var(--card-bg-2); color: var(--text-2);
+      font-size: 10px; font-weight: 800;
+      padding: 1px 6px; border-radius: 9px;
+    }
+    .tipo-chip.ativo .chip-n { background: rgba(255,255,255,.25); color: #fff; }
+    .chip-alerta {
+      display: inline-block; margin-left: 4px;
+      background: var(--acao-cancelar); color: #fff;
+      font-size: 10px; font-weight: 800;
+      padding: 1px 6px; border-radius: 9px;
+    }
+
+    /* "A destinar" é trabalho parado: chip vermelho, fonte branca, sempre. */
+    .tipo-chip.alerta {
+      background: var(--acao-cancelar);
+      border-color: var(--acao-cancelar);
+      color: #fff; font-weight: 700;
+    }
+    .tipo-chip.alerta .chip-n     { background: rgba(255, 255, 255, .26); color: #fff; }
+    .tipo-chip.alerta .chip-alerta { background: #fff; color: var(--acao-cancelar); }
+    .tipo-chip.alerta.ativo {
+      background: #B91C1C; border-color: #B91C1C;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, .25);
+    }
+    .chip-ponto {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--acao-repassar); margin-left: 5px; vertical-align: middle;
+    }
+
+    .marca-card {
+      background: var(--card-bg); border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      padding: 10px 14px; margin-bottom: 7px;
+      border-left: 3px solid var(--border-2);
+    }
+    .marca-card.estado-aguardando { border-left-color: var(--acao-repassar); }
+    .marca-card.estado-faturou    { border-left-color: var(--acao-cancelar); }
+    .marca-card.estado-saiu,
+    .marca-card.estado-confirmado { border-left-color: var(--acao-manter); }
+    .marca-card.novidade { box-shadow: 0 0 0 2px rgba(var(--primary-rgb), .35), var(--shadow-card); }
+
+    .marca-topo { display: flex; align-items: flex-start; gap: 12px; }
+    .marca-info { flex: 1; min-width: 0; }
+    .marca-titulo { font-size: 14px; font-weight: 700; color: var(--text); margin: 0; }
+    .marca-sub { font-size: 11.5px; color: var(--text-2); margin: 3px 0 0; }
+    .marca-sub .cinza { color: var(--text-3); }
+    .marca-itens { font-size: 11px; color: var(--text-3); margin: 3px 0 0; }
+
+    .estado-badge.finalizado { background: var(--primary-soft); color: var(--primary-2); }
+    html.dark .estado-badge.finalizado { color: var(--primary); }
+    .gci-destinos .gd.enviado { color: var(--acao-manter); }
+
+    .estado-badge {
+      flex-shrink: 0; font-size: 10.5px; font-weight: 700;
+      padding: 4px 9px; border-radius: 6px;
+      display: inline-flex; align-items: center; gap: 5px;
+      white-space: nowrap;
+    }
+    .estado-badge i { font-size: 9px; }
+    .estado-badge.aguardando { background: var(--tag-mes-bg); color: var(--tag-mes-fg); }
+    .estado-badge.faturou    { background: var(--acao-cancelar); color: #fff; }
+    .estado-badge.saiu,
+    .estado-badge.confirmado { background: var(--acao-manter); color: #fff; }
+
+    .marca-alerta {
+      font-size: 11.5px; font-weight: 700; color: var(--acao-cancelar);
+      margin: 8px 0 0; display: flex; align-items: center; gap: 6px;
+    }
+    /* Destinos e botões dividem a mesma faixa: eram duas linhas empilhadas
+       e o cartão ficava alto demais para uma tela de conferência, em que o
+       que importa é ver muitos de uma vez. */
+    .marca-rodape {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 8px 14px; margin-top: 7px;
+    }
+    .marca-acoes { margin: 0; }
+    .marca-card .gci-destinos { margin: 0; padding-left: 0; flex: 1 1 auto; min-width: 0; }
+    @media (max-width: 700px) {
+      .marca-topo { flex-wrap: wrap; }
+      .estado-badge { order: -1; }
+    }
+
+    /* Linha marcada com algo diferente de Manter ganha uma barra na lateral */
+    .gci-item.marcada { padding-left: 10px; border-left: 3px solid transparent; }
+    .gci-item.acao-repassar { border-left-color: var(--acao-repassar); }
+    .gci-item.acao-cancelar { border-left-color: var(--acao-cancelar); }
+    .gci-item.acao-cancelar .gci-cli,
+    .gci-item.acao-cancelar .gci-pares { text-decoration: line-through; opacity: .65; }
+    /* Repasse marcado mas ainda sem destino: barra tracejada */
+    .gci-item.acao-repassar.pendente { border-left-style: dashed; }
+
+    .gci-dir { text-align: right; flex-shrink: 0; }
+    .gci-pares { font-size: 13px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+    .gci-pares.cart { color: var(--primary-2); font-weight: 800; }
+    html.dark .gci-pares.cart { color: var(--primary); }
+    .gci-pares.fat  { color: var(--text-2); font-weight: 600; }
+    .gci-quando { font-size: 11px; color: var(--text-2); margin: 2px 0 0; }
+    .gci-mais {
+      display: block; width: 100%; text-align: center; padding: 10px;
+      font-size: 12px; font-weight: 600; color: var(--primary-2);
+    }
+
+    /* Popover de filtro: multi-seleção, com topo e busca fixos no rolamento */
+    .filter-popover { z-index: 60; padding: 0; }
+    .fp-topo {
+      position: sticky; top: 0; z-index: 2;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 9px 12px; background: var(--card-bg); border-bottom: 1px solid var(--border);
+    }
+    .fp-contador { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+    .fp-limpar {
+      font-size: 11px; font-weight: 700; color: var(--primary-2);
+      padding: 3px 8px; border-radius: 6px;
+    }
+    .fp-limpar:hover { background: var(--primary-bg); }
+    .fp-lista { padding: 4px; }
+    .fo-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fo-extra { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+    .filter-option i.check { font-size: 13px; width: 14px; flex-shrink: 0; color: var(--text-3); }
+    .filter-option.active i.check { color: var(--primary); }
+    .fp-busca {
+      position: sticky; top: 37px; background: var(--card-bg);
+      padding: 8px; border-bottom: 1px solid var(--border); z-index: 1;
+    }
+    .fp-busca input {
+      width: 100%; padding: 8px 10px; border-radius: var(--r-sm);
+      border: 1px solid var(--border-2); background: var(--card-bg-2); outline: none;
+      font-size: 13px;
+    }
+    .fp-busca input:focus { border-color: var(--primary); }
+    .fp-vazio { padding: 14px; font-size: 12px; color: var(--text-3); text-align: center; }
+
+    /* Tela admin */
+    .admin-body { padding: 4px 0 32px; }
+    .admin-card {
+      background: var(--card-bg); border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card); padding: 20px; margin-bottom: 12px;
+    }
+    .admin-card h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; color: var(--text); }
+    .admin-card p.sub { font-size: 12px; color: var(--text-2); margin: 0 0 16px; }
+    .admin-drop {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 32px 20px; border: 2px dashed var(--border-2); border-radius: var(--r-md);
+      color: var(--text-2); cursor: pointer; text-align: center;
+    }
+    .admin-drop:hover, .admin-drop.over { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+    .admin-drop i { font-size: 30px; opacity: .7; }
+    .admin-drop strong { font-size: 14px; color: var(--text); }
+    .admin-drop span { font-size: 12px; }
+    .admin-passos { list-style: none; padding: 0; margin: 0; counter-reset: passo; }
+    .admin-passos li {
+      counter-increment: passo; position: relative; padding: 0 0 14px 34px;
+      font-size: 13px; color: var(--text-2); line-height: 1.5;
+    }
+    .admin-passos li:last-child { padding-bottom: 0; }
+    .admin-passos li::before {
+      content: counter(passo); position: absolute; left: 0; top: -1px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--primary-soft); color: var(--primary-2);
+      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    }
+    .admin-passos code {
+      background: var(--card-bg-2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 1px 6px; font-size: 12px; color: var(--text);
+    }
+    .admin-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 4px; }
+    .ar-item { background: var(--card-bg-2); border-radius: var(--r-sm); padding: 10px 12px; }
+    .ar-item .v { font-size: 17px; font-weight: 700; color: var(--text); }
+    .ar-item .l { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+    .admin-avisos { margin-top: 12px; }
+    .admin-aviso {
+      display: flex; gap: 8px; align-items: flex-start; font-size: 12px;
+      padding: 9px 12px; border-radius: var(--r-sm); margin-top: 6px;
+      background: rgba(245, 158, 11, .12); color: #92400E;
+    }
+    html.dark .admin-aviso { background: rgba(245, 158, 11, .16); color: #FDE68A; }
+    .admin-aviso.ok { background: var(--primary-bg); color: var(--primary-2); }
+    html.dark .admin-aviso.ok { background: rgba(45, 212, 191, .12); color: var(--primary-2); }
+    .admin-aviso i { margin-top: 2px; }
+    .btn-baixar {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 16px; padding: 13px;
+      background: var(--primary); color: #fff; border-radius: var(--r-md);
+      font-size: 14px; font-weight: 700;
+    }
+    .btn-baixar:disabled { opacity: .45; cursor: not-allowed; }
+    .barra-progresso { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 14px; display: none; }
+    .barra-progresso.show { display: block; }
+    .barra-progresso i { display: block; height: 100%; width: 30%; background: var(--primary); animation: barra 1.1s ease-in-out infinite; }
+    @keyframes barra { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+  </style>
+
+<body>
+
+<div class="app">
+
+  <!-- =================================================================
+       TELA 1 — LOGIN (sem senha, só escolher o nome)
+       ================================================================= -->
+  <div id="screen-login" class="screen active">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-logo">CMS</div>
+        <h1 class="login-title">Detalhada</h1>
+        <p class="login-sub">Carteira e faturamento por produto</p>
+
+        <div id="login-error" class="login-error"></div>
+
+        <div class="field">
+          <label>Quem é você?</label>
+          <select id="login-preposto">
+            <option value="">— Selecione —</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" id="btn-login" style="width:100%; justify-content:center; margin-top:8px;">
+          Entrar <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <p class="fonte-info" id="login-fonte" style="margin-top:18px;">Carregando dados…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       TELA 2 — PRODUTOS (a tela principal)
+       ================================================================= -->
+  <div id="screen-produtos" class="screen">
+
+    <div class="topbar topbar-produtos">
+      <div class="topbar-left">
+        <div class="logo-mark">CMS</div>
+        <div>
+          <div class="logo-text">Detalhada</div>
+          <div class="logo-sub" id="topbar-user">—</div>
+        </div>
+      </div>
+
+      <div class="tb-ferramentas">
+        <div class="search-wrap compacta" id="search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input
+            type="search"
+            id="busca"
+            inputmode="search"
+            enterkeyhint="search"
+            placeholder="Cliente, código, produto, cor, GCI"
+            autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Rola na horizontal quando não cabe, como as faixas de chip do celular -->
+        <div class="tb-rolagem" id="tb-rolagem">
+          <div class="tipo-chips" id="status-chips"></div>
+          <div class="products-summary" id="summary"></div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-selecao" title="Selecionar encomendas para gerar PDF" style="display:none;">
+          <i class="fa-solid fa-list-check"></i>
+        </button>
+        <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
+          <i class="fa-solid fa-file-arrow-up"></i>
+        </button>
+        <button class="btn-icon" id="btn-atualizar" title="Buscar base mais recente">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        <button class="btn-icon" id="btn-tema" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="btn-icon" id="btn-sair" title="Sair">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- HEADER CONGELADO — só a linha de filtros -->
+    <div class="frozen-header" id="frozen-header">
+
+      <!-- Filtros da revisão de repasses. Os de produto não valem aqui:
+           ficavam à mostra e não faziam nada. -->
+      <div class="filter-row" id="filter-row-rep" style="display:none;">
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repOrigem">
+            <i class="fa-solid fa-store"></i>
+            <span>Cliente</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repDestino">
+            <i class="fa-solid fa-arrow-right-long"></i>
+            <span>Destino</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repQuando">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span id="repQuando-label">Quando</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="repEstado">
+            <i class="fa-solid fa-signal"></i>
+            <span>Situação</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-clear-btn" id="btn-limpar-rep" title="Limpar filtros">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="filter-row" id="filter-row">
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="cliente">
+            <i class="fa-solid fa-store"></i>
+            <span>Cliente</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;" id="wrap-filtro-preposto">
+          <button class="filter-chip" data-filter="preposto">
+            <i class="fa-solid fa-user-tie"></i>
+            <span>Preposto</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="mes">
+            <i class="fa-solid fa-calendar"></i>
+            <span>Mês</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="familia">
+            <i class="fa-solid fa-shoe-prints"></i>
+            <span>Produto</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="marca">
+            <i class="fa-solid fa-tag"></i>
+            <span>Marca</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="fabrica">
+            <i class="fa-solid fa-industry"></i>
+            <span>Fábrica</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="filial">
+            <i class="fa-solid fa-warehouse"></i>
+            <span>Filial</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="oc">
+            <i class="fa-solid fa-hashtag"></i>
+            <span>OC</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <div style="position:relative;">
+          <button class="filter-chip" data-filter="ordem">
+            <i class="fa-solid fa-arrow-down-wide-short"></i>
+            <span id="ordem-label">Mês mais próximo</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-clear-btn" id="btn-limpar-filtros" title="Limpar filtros">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <div class="products-list" id="lista"></div>
+    <div class="list-footer" id="rodape"></div>
+    <p class="fonte-info" id="fonte-info"></p>
+  </div>
+
+  <!-- =================================================================
+       TELA 3 — ADMIN (subir a Detalhada do dia)
+       ================================================================= -->
+  <div id="screen-admin" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark">CMS</div>
+        <div>
+          <div class="logo-text">Atualizar base</div>
+          <div class="logo-sub" id="topbar-user-2">—</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="btn-tema-2" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </div>
+
+    <div class="frozen-header">
+      <div class="client-strip">
+        <button class="back" id="btn-voltar-admin" title="Voltar"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="client-info-compact">
+          <p class="name">Detalhada do dia</p>
+          <p class="meta" id="admin-atual">—</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-body">
+
+      <div class="admin-card">
+        <h3>1 · Importar o XLSX</h3>
+        <p class="sub">Arquivo <strong>DETALHADA PREPOSTOS</strong> exportado do sistema, com a aba <code>DETALHADA</code>.</p>
+
+        <label class="admin-drop" id="admin-drop" for="file-xlsx">
+          <i class="fa-solid fa-file-excel"></i>
+          <strong>Escolher arquivo</strong>
+          <span>ou arraste o .xlsx aqui</span>
+        </label>
+        <input type="file" id="file-xlsx" class="file-input" accept=".xlsx,.xls">
+
+        <div class="barra-progresso" id="admin-barra"><i></i></div>
+        <div id="admin-resultado"></div>
+      </div>
+
+      <div class="admin-card" id="admin-card-publicar" style="display:none;">
+        <h3>2 · Publicar para a equipe</h3>
+        <p class="sub">O arquivo abaixo é a base compactada que o app lê. Já está valendo <strong>neste aparelho</strong>; publique para os outros verem.</p>
+
+        <button class="btn-baixar" id="btn-baixar"><i class="fa-solid fa-download"></i> Baixar detalhada.json</button>
+
+        <ol class="admin-passos" style="margin-top:20px;">
+          <li>Baixe o <code>detalhada.json</code> no botão acima.</li>
+          <li>Substitua o arquivo <code>detalhada/dados/detalhada.json</code> no repositório.</li>
+          <li>Faça o commit. Em poucos minutos todo mundo vê a base nova ao abrir o app.</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =================================================================
+       MODAL DE ZOOM
+       ================================================================= -->
+  <div class="zoom-modal" id="zoom-modal">
+    <button class="zoom-close" id="zoom-close" aria-label="Fechar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="zoom-img" src="" alt="Produto">
+    <div class="zoom-info">
+      <p id="zoom-name">—</p>
+      <p id="zoom-meta">—</p>
+    </div>
+  </div>
+
+  <!-- =================================================================
+       MODAL — ESCOLHER O DESTINO DO REPASSE
+       ================================================================= -->
+  <div class="modal-fundo" id="modal-destino">
+    <div class="modal-card">
+      <div class="modal-topo">
+        <div class="modal-linha1">
+          <div style="min-width:0;">
+            <p class="modal-titulo" id="md-titulo">—</p>
+            <p class="modal-sub" id="md-sub">—</p>
+          </div>
+          <button class="modal-fechar" id="md-fechar" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="md-caixa"></div>
+        <div class="modal-escopo" id="md-escopo"></div>
+        <div class="modal-busca">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="search" id="md-busca" placeholder="Buscar cliente por nome ou código" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="modal-corpo" id="md-corpo"></div>
+
+      <div class="modal-rodape">
+        <button class="btn-limpar-dest" id="md-limpar">Limpar</button>
+        <button class="btn-confirmar-dest" id="md-confirmar" disabled>
+          <i class="fa-solid fa-check"></i> <span id="md-confirmar-label">Selecione um destino</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seleção de várias encomendas -->
+  <div class="barra-selecao" id="barra-selecao">
+    <div class="bs-txt" id="bs-resumo">—</div>
+    <button class="bs-secundario" id="bs-tudo">Marcar tudo</button>
+    <button class="bs-secundario" id="bs-limpar">Limpar</button>
+    <button class="bs-gerar" id="bs-gerar" disabled>
+      <i class="fa-solid fa-file-pdf"></i> <span id="bs-gerar-label">Gerar</span>
+    </button>
+  </div>
+
+  <!-- Andamento da geração do PDF pela extensão -->
+  <div class="tarja-pdf" id="tarja-pdf">
+    <div class="tp-giro"><i class="fa-solid fa-file-pdf"></i></div>
+    <div class="tp-txt">
+      <p class="tp-titulo" id="tarja-pdf-titulo">—</p>
+      <p class="tp-detalhe" id="tarja-pdf-detalhe">—</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="sync-indicator" id="sync-indicator">
+    <i class="fa-solid fa-cloud-arrow-down"></i>
+    <span id="sync-text">Carregando…</span>
+  </div>
+  <div class="filter-backdrop" id="filter-backdrop"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const ARQUIVO_BASE = 'dados/detalhada.json';
+const IMG_PATH = '../imagens_olympikus/';
+const VERSAO_BASE = 1;
+
+// Base completa de clientes do app Clientes (inclui quem não comprou este ano).
+// Só é buscada quando o usuário procura um destino que não está na Detalhada.
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
+const CODIGO_VENDEDOR = {
+  'JORGE': '114611', 'MARIANA': '109839', 'RAFAEL': '1333497',
+  'WILLAME': '25471', 'LEANDRO': '25745', 'C M S': '25846',
+};
+
+// Login sem senha: só escolher o nome. O papel define quem enxerga o quê.
+const PREPOSTOS = [
+  { nome: 'JORGE',     papel: 'vendedor' },
+  { nome: 'MARIANA',   papel: 'vendedor' },
+  { nome: 'RAFAEL',    papel: 'vendedor' },
+  { nome: 'WILLAME',   papel: 'vendedor' },
+  { nome: 'LEANDRO',   papel: 'vendedor' },
+  { nome: 'CHRISTIAN', papel: 'vendedor' },
+  { nome: 'C M S',     papel: 'admin'    },
+];
+
+// Nomes que a planilha usa e que precisam virar o nome oficial acima.
+const PREPOSTO_MAP = { 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'CMS': 'C M S', 'C': 'C M S' };
+
+const STORAGE = { sessao: 'detalhada.sessao', tema: 'detalhada.tema', acoes: 'detalhada.acoes' };
+
+// Ações possíveis para uma linha que ainda está em carteira.
+// MANTER é o padrão: toda linha em aberto nasce assim e não é gravada.
+const ACAO_PADRAO = 'MANTER';
+const ACOES = [
+  { id: 'MANTER',   label: 'Manter',   cls: 'manter' },
+  { id: 'REPASSAR', label: 'Repassar', cls: 'repassar' },
+  { id: 'CANCELAR', label: 'Cancelar', cls: 'cancelar' },
+];
+
+// Posição de cada campo na linha compacta da base
+const C = { PREP: 0, CLI: 1, MARCA: 2, FAB: 3, FIL: 4, REF: 5, COR: 6, GCI: 7, NF: 8, OC: 9, PREV: 10, CART: 11, FAT: 12, DFAT: 13 };
+
+const COLUNAS_XLSX = ['PREPOSTO', 'NOME FANTASIA', 'CODIGO', 'MARCA', 'FABRICA', 'FILIAL', 'NF', 'OC', 'GCI', 'REFERENCIA', 'DESCRICAO', 'COR', 'PREV FAT', 'CART', 'FAT', 'DATA FAT'];
+
+const OPCOES_ORDEM = [
+  { id: 'mais_pares',   label: 'Mais pares' },
+  { id: 'menos_pares',  label: 'Menos pares' },
+  { id: 'mes_proximo',  label: 'Mês mais próximo' },
+  { id: 'mes_distante', label: 'Mês mais distante' },
+  { id: 'descricao',    label: 'A-Z (descrição)' },
+];
+
+const POR_PAGINA = 120;
+// Acima disso a fila vira coisa de hora, e o vendedor precisa confirmar.
+const LIMITE_AVISO_PDF = 5;
+const LINHAS_POR_CARD = 40;
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const APP = {
+  sessao: null,
+  base: null,          // { v, gerado, origem, dic, l }
+  L: [],               // linhas compactas
+  dic: null,
+  idx: null,           // dicionários normalizados, pra busca
+  prepFixo: -1,        // índice do preposto do vendedor logado (-1 = vê tudo)
+  busca: '',
+  status: 'TUDO',      // TUDO | CART | FAT
+  // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
+  filtros: { cliente: new Set(), preposto: new Set(), familia: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
+             // usados só na revisão de repasses
+             repOrigem: new Set(), repDestino: new Set(), repEstado: new Set() },
+  repQuando: 'tudo',   // tudo | hoje | 7 | 30
+  popoverAberto: null,
+  ordem: 'mes_proximo',
+  grupos: [],
+  pagina: 1,
+  abertos: new Set(),
+  verTudo: new Set(),  // grupos com todas as linhas expandidas
+  baseNova: null,      // resultado do admin, aguardando download
+  acoes: {},           // chave da linha -> REPASSAR | CANCELAR (MANTER não entra)
+  modoSelecao: false,  // checkboxes à mostra
+  selecao: new Set(),  // índices de linha marcados para virar PDF
+  fila: null,          // PDFs em lote: { grupos, atual, ok, falhas }
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function normalizar(s) {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+function toast(msg, ms = 2800) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+function syncShow(texto) { $('sync-text').textContent = texto; $('sync-indicator').classList.add('show'); }
+function syncHide() { $('sync-indicator').classList.remove('show'); }
+function formatarNumero(n) { return Number(n || 0).toLocaleString('pt-BR'); }
+function escAttr(s) { return String(s ?? '').replace(/"/g, '&quot;'); }
+function escHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function corParaArquivo(cor) { return String(cor || '').replace(/\//g, '_').trim(); }
+
+// Datas viajam como dias inteiros desde 1970-01-01 (-1 = vazio)
+function diaParaBR(d) {
+  if (d == null || d < 0) return '';
+  const dt = new Date(d * 86400000);
+  return `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}/${dt.getUTCFullYear()}`;
+}
+const _cacheMes = new Map();
+function diaParaMes(d) {
+  if (d == null || d < 0) return '';
+  let m = _cacheMes.get(d);
+  if (m === undefined) {
+    const dt = new Date(d * 86400000);
+    m = `${String(dt.getUTCMonth() + 1).padStart(2, '0')}/${dt.getUTCFullYear()}`;
+    _cacheMes.set(d, m);
+  }
+  return m;
+}
+function mesOrdenavel(mes) { return mes ? mes.slice(3) + mes.slice(0, 2) : '999999'; }
+
+// "05/2026" continua sendo a chave em todo canto — é o que a base gera e o
+// que o filtro guarda. Só a leitura muda: número de mês ninguém decora.
+const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+function mesPorExtenso(mes) {
+  const m = /^(\d{2})\/(\d{4})$/.exec(mes || '');
+  return m ? `${NOMES_MES[Number(m[1]) - 1]} ${m[2]}` : (mes || '');
+}
+// Mês de referência: quando faturou, ou quando está previsto pra faturar.
+function mesRef(r) { return diaParaMes(r[C.DFAT] >= 0 ? r[C.DFAT] : r[C.PREV]); }
+function hojeEmDias() {
+  const h = new Date();
+  return Math.floor(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate()) / 86400000);
+}
+
+/* ============================================================
+   TEMA
+   ============================================================ */
+function aplicarTema() {
+  const escuro = localStorage.getItem(STORAGE.tema) === 'dark';
+  document.documentElement.classList.toggle('dark', escuro);
+  document.querySelectorAll('#btn-tema i, #btn-tema-2 i').forEach(i => {
+    i.className = escuro ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  });
+}
+function toggleTema() {
+  const escuro = !document.documentElement.classList.contains('dark');
+  localStorage.setItem(STORAGE.tema, escuro ? 'dark' : 'light');
+  aplicarTema();
+}
+
+/* ============================================================
+   CACHE LOCAL (IndexedDB — a base não cabe no localStorage)
+   ============================================================ */
+function abrirDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('detalhada', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function cacheSalvar(valor, chave = 'base') {
+  try {
+    const db = await abrirDB();
+    await new Promise((res, rej) => {
+      const t = db.transaction('kv', 'readwrite');
+      t.objectStore('kv').put(valor, chave);
+      t.oncomplete = res; t.onerror = () => rej(t.error);
+    });
+  } catch (e) { console.warn('cache: falha ao gravar', e); }
+}
+async function cacheLer(chave = 'base') {
+  try {
+    const db = await abrirDB();
+    return await new Promise((res, rej) => {
+      const t = db.transaction('kv', 'readonly');
+      const q = t.objectStore('kv').get(chave);
+      q.onsuccess = () => res(q.result || null);
+      q.onerror = () => rej(q.error);
+    });
+  } catch (e) { console.warn('cache: falha ao ler', e); return null; }
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+function instalarBase(base) {
+  APP.base = base;
+  APP.dic = base.dic;
+  APP.L = base.l;
+  _cacheMes.clear();
+  _redes = null;
+  _universo = null;
+  _gcis = null;
+  _ondeEsta = null;
+
+  montarFamilias(base.dic.ref);
+
+  // Dicionários normalizados: a busca compara aqui, não linha a linha.
+  APP.idx = {
+    cli:   base.dic.cli.map(([cod, nome]) => normalizar(cod + ' ' + nome)),
+    ref:   base.dic.ref.map(([ref, desc]) => normalizar(ref + ' ' + desc)),
+    cor:   base.dic.cor.map(normalizar),
+    oc:    base.dic.oc.map(normalizar),
+  };
+  atualizarFonteInfo();
+}
+
+/* ---------- famílias de produto ----------
+   CORRE, SAFIRA, MEIA, BERMUDA… não existem como coluna na planilha: são a
+   primeira palavra da DESCRIÇÃO. Como não vêm prontas, o índice é montado
+   uma vez ao instalar a base e guardado como número — comparar inteiro em
+   56 mil linhas é barato, refazer `split(' ')` a cada passada não é. */
+
+function montarFamilias(refs) {
+  const porNome = new Map();
+  APP.familias = [];
+  APP.famDaRef = new Int32Array(refs.length).fill(-1);
+
+  refs.forEach(([, desc], i) => {
+    const nome = String(desc || '').trim().split(/\s+/)[0].toUpperCase();
+    if (!nome) return;
+    let id = porNome.get(nome);
+    if (id === undefined) {
+      id = APP.familias.length;
+      porNome.set(nome, id);
+      APP.familias.push(nome);
+    }
+    APP.famDaRef[i] = id;
+  });
+}
+
+const familiaDaLinha = (r) => APP.famDaRef ? APP.famDaRef[r[C.REF]] : -1;
+
+function atualizarFonteInfo() {
+  const el = $('fonte-info'), elLogin = $('login-fonte'), elAdmin = $('admin-atual');
+  if (!APP.base) {
+    const msg = 'Nenhuma base carregada';
+    if (el) el.textContent = msg;
+    if (elLogin) elLogin.textContent = msg;
+    if (elAdmin) elAdmin.textContent = msg;
+    return;
+  }
+  const dias = hojeEmDias() - APP.base.dataDia;
+  const quando = dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`;
+  const txt = `Base de ${diaParaBR(APP.base.dataDia)} · ${quando} · ${formatarNumero(APP.L.length)} linhas`;
+  if (el) { el.textContent = txt; el.classList.toggle('velha', dias > 2); }
+  if (elLogin) { elLogin.textContent = txt; elLogin.classList.toggle('velha', dias > 2); }
+  if (elAdmin) elAdmin.textContent = txt;
+}
+
+async function carregarBase({ silencioso = false } = {}) {
+  if (!silencioso) syncShow('Carregando base…');
+  try {
+    const r = await fetch(ARQUIVO_BASE, { cache: 'no-store' });
+    if (r.ok) {
+      const base = await r.json();
+      if (base && base.v === VERSAO_BASE && Array.isArray(base.l)) {
+        const atual = APP.base?.gerado || '';
+        if (base.gerado !== atual) {
+          instalarBase(base);
+          cacheSalvar(base);
+          syncHide();
+          return 'nova';
+        }
+        syncHide();
+        return 'igual';
+      }
+    }
+  } catch (e) {
+    console.warn('Falha ao buscar a base publicada', e);
+  }
+  syncHide();
+  return 'falhou';
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+function popularPrepostos() {
+  const sel = $('login-preposto');
+  sel.innerHTML = '<option value="">— Selecione —</option>';
+  for (const p of PREPOSTOS) {
+    const opt = document.createElement('option');
+    opt.value = p.nome;
+    opt.textContent = p.papel === 'admin' ? `${p.nome} · admin` : p.nome;
+    sel.appendChild(opt);
+  }
+}
+
+function entrar() {
+  const nome = $('login-preposto').value;
+  const p = PREPOSTOS.find(x => x.nome === nome);
+  if (!p) {
+    const err = $('login-error');
+    err.textContent = 'Escolha o seu nome para entrar.';
+    err.classList.add('show');
+    return;
+  }
+  $('login-error').classList.remove('show');
+  APP.sessao = { nome: p.nome, papel: p.papel };
+  localStorage.setItem(STORAGE.sessao, JSON.stringify(APP.sessao));
+  irParaProdutos();
+}
+
+function logout() {
+  localStorage.removeItem(STORAGE.sessao);
+  APP.sessao = null;
+  APP.busca = '';
+  $('busca').value = '';
+  limparFiltros();
+  show('screen-login');
+}
+
+function irParaProdutos() {
+  const papel = APP.sessao.papel;
+  $('topbar-user').textContent = papel === 'admin' ? `${APP.sessao.nome} · vendo tudo` : APP.sessao.nome;
+  $('topbar-user-2').textContent = APP.sessao.nome;
+  $('btn-admin').style.display = papel === 'admin' ? '' : 'none';
+  // sem extensão não há PDF, e sem PDF a seleção não serve para nada
+  $('btn-selecao').style.display = temExtensao() ? '' : 'none';
+  $('wrap-filtro-preposto').style.display = papel === 'admin' ? '' : 'none';
+
+  // Vendedor só enxerga as próprias linhas.
+  APP.prepFixo = -1;
+  if (papel !== 'admin' && APP.dic) {
+    APP.prepFixo = APP.dic.prep.indexOf(APP.sessao.nome);
+    if (APP.prepFixo < 0) toast(`Nenhuma linha de ${APP.sessao.nome} nesta base`);
+  }
+
+  renderStatusChips();
+  show('screen-produtos');
+  render();
+  avisarNovidadesDeRepasse();
+}
+
+// Ao abrir o app, conta o que mudou de estado desde a última visita.
+function avisarNovidadesDeRepasse() {
+  if (!APP.base || !Object.keys(APP.acoes).length) return;
+  const novas = marcasConciliadas().filter(e => e.novidade);
+  if (!novas.length) return;
+  const saiu = novas.filter(e => e.estado === 'SUMIU' || e.estado === 'CONFIRMADO').length;
+  const fat = novas.filter(e => e.estado === 'FATUROU').length;
+  const partes = [];
+  if (saiu) partes.push(`${saiu} saíram da carteira`);
+  if (fat) partes.push(`${fat} faturaram no origem`);
+  toast(partes.join(' · ') + ' — veja em Repassados', 5000);
+}
+
+/* ============================================================
+   BUSCA — mesmos critérios do app da Carteira:
+   vírgula separa termos, todos precisam bater, sem acento e sem caixa.
+   ============================================================ */
+function mascaraDoTermo(t) {
+  const m = { num: /^\d+$/.test(t) ? t : null };
+  for (const campo of ['cli', 'ref', 'cor', 'oc']) {
+    const arr = APP.idx[campo];
+    const u = new Uint8Array(arr.length);
+    for (let i = 0; i < arr.length; i++) if (arr[i].includes(t)) u[i] = 1;
+    m[campo] = u;
+  }
+  return m;
+}
+function linhaCasa(r, m) {
+  if (m.cli[r[C.CLI]]) return true;
+  if (m.ref[r[C.REF]]) return true;
+  if (m.cor[r[C.COR]]) return true;
+  if (r[C.OC] >= 0 && m.oc[r[C.OC]]) return true;
+  if (m.num) {
+    if (r[C.GCI] && String(r[C.GCI]).includes(m.num)) return true;
+    if (r[C.NF] && String(r[C.NF]).includes(m.num)) return true;
+  }
+  return false;
+}
+
+/* ============================================================
+   AGREGAÇÃO — uma passada nas linhas monta os grupos (ref + cor)
+   ============================================================ */
+function passaFiltros(r, f) {
+  if (APP.prepFixo >= 0 && r[C.PREP] !== APP.prepFixo) return false;
+  if (f.preposto.size && !f.preposto.has(r[C.PREP])) return false;
+  if (f.cliente.size && !f.cliente.has(r[C.CLI])) return false;
+  if (f.familia.size && !f.familia.has(familiaDaLinha(r))) return false;
+  if (f.marca.size   && !f.marca.has(r[C.MARCA]))   return false;
+  if (f.fabrica.size && !f.fabrica.has(r[C.FAB]))   return false;
+  if (f.filial.size  && !f.filial.has(r[C.FIL]))    return false;
+  if (f.oc.size      && !f.oc.has(r[C.OC]))         return false;
+  if (APP.status === 'CART' && !r[C.CART]) return false;
+  if (APP.status === 'FAT' && !r[C.FAT]) return false;
+  if (f.mes.size && !f.mes.has(mesRef(r))) return false;
+  return true;
+}
+
+function agregar() {
+  const f = APP.filtros;
+  const termos = (APP.busca || '').split(',').map(s => normalizar(s).trim()).filter(Boolean).slice(0, 3);
+  const masks = termos.map(mascaraDoTermo);
+
+  const mapa = new Map();
+  const clientes = new Set();
+  let totCart = 0, totFat = 0, totLinhas = 0;
+
+  for (let i = 0; i < APP.L.length; i++) {
+    const r = APP.L[i];
+    if (!passaFiltros(r, f)) continue;
+    if (masks.length) {
+      let ok = true;
+      for (let k = 0; k < masks.length; k++) { if (!linhaCasa(r, masks[k])) { ok = false; break; } }
+      if (!ok) continue;
+    }
+
+    const chave = mkChave(r[C.REF], r[C.COR]);
+    let g = mapa.get(chave);
+    if (!g) {
+      g = { ref: r[C.REF], cor: r[C.COR], cart: 0, fat: 0, clientes: new Set(), prevMin: Infinity, linhas: [] };
+      mapa.set(chave, g);
+    }
+    g.cart += r[C.CART];
+    g.fat += r[C.FAT];
+    g.clientes.add(r[C.CLI]);
+    if (r[C.CART] > 0 && r[C.PREV] < g.prevMin) g.prevMin = r[C.PREV];
+    g.linhas.push(i);
+
+    clientes.add(r[C.CLI]);
+    totCart += r[C.CART];
+    totFat += r[C.FAT];
+    totLinhas++;
+  }
+
+  const grupos = [...mapa.values()];
+  ordenarGrupos(grupos);
+  return { grupos, totCart, totFat, totLinhas, nClientes: clientes.size };
+}
+
+function ordenarGrupos(g) {
+  const desc = i => APP.dic.ref[i][1] || APP.dic.ref[i][0];
+  switch (APP.ordem) {
+    case 'mais_pares':   g.sort((a, b) => (b.cart + b.fat) - (a.cart + a.fat)); break;
+    case 'menos_pares':  g.sort((a, b) => (a.cart + a.fat) - (b.cart + b.fat)); break;
+    case 'mes_proximo':  g.sort((a, b) => a.prevMin - b.prevMin); break;
+    case 'mes_distante': g.sort((a, b) => (b.prevMin === Infinity ? -1 : b.prevMin) - (a.prevMin === Infinity ? -1 : a.prevMin)); break;
+    case 'descricao':    g.sort((a, b) => desc(a.ref).localeCompare(desc(b.ref)) || APP.dic.cor[a.cor].localeCompare(APP.dic.cor[b.cor])); break;
+  }
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+// Separa as marcações de repasse: sem destino (a destinar) e com destino.
+function marcasDeRepasse() {
+  const todas = marcasConciliadas()
+    .filter(e => e.acao === 'REPASSAR')
+    .filter(e => !(e.repasse && e.repasse.arquivado));
+  const temDest = e => !!(e.repasse && e.repasse.destinos && e.repasse.destinos.length);
+  return { pend: todas.filter(e => !temDest(e)), feitos: todas.filter(temDest) };
+}
+
+// Mostra o véu da direita só quando existe chip fora da vista.
+function atualizarVeuRolagem() {
+  const rol = $('tb-rolagem');
+  if (!rol) return;
+  const fer = rol.parentElement;
+  const sobra = rol.scrollWidth - rol.scrollLeft - rol.clientWidth;
+  fer.classList.toggle('rolavel', sobra > 2);
+  fer.classList.toggle('rolavel-esq', rol.scrollLeft > 2);
+}
+
+function renderStatusChips() {
+  const { pend, feitos } = APP.base ? marcasDeRepasse() : { pend: [], feitos: [] };
+  const urgentes = pend.filter(e => e.estado === 'ABERTO' && diasAte(e.prev) <= DIAS_ALERTA).length;
+  const novidades = feitos.filter(e => e.novidade).length;
+
+  const opcoes = [
+    { id: 'TUDO', label: 'Tudo', icone: 'fa-layer-group' },
+    { id: 'CART', label: 'Carteira', icone: 'fa-hourglass-half' },
+    { id: 'FAT',  label: 'Faturado', icone: 'fa-circle-check' },
+    { id: 'PEND', label: 'A destinar', icone: 'fa-arrow-right-long', n: pend.length, alerta: urgentes, vermelho: true },
+    { id: 'REPASSADO', label: 'Repassados', icone: 'fa-truck-fast', n: feitos.length, ponto: novidades },
+  ];
+
+  $('status-chips').innerHTML = opcoes.map(o => {
+    if (o.n === 0) return '';
+    const cont = o.n != null ? `<span class="chip-n">${o.n}</span>` : '';
+    const alerta = o.alerta ? `<span class="chip-alerta" title="${o.alerta} com faturamento em menos de ${DIAS_ALERTA} dias">${o.alerta}</span>` : '';
+    const ponto = o.ponto ? `<span class="chip-ponto" title="${o.ponto} novidade(s)"></span>` : '';
+    const cls = ['tipo-chip', o.vermelho ? 'alerta' : '', APP.status === o.id ? 'ativo' : ''].filter(Boolean).join(' ');
+    return `<button class="${cls}" data-status="${o.id}"><i class="fa-solid ${o.icone}"></i> ${o.label}${cont}${alerta}${ponto}</button>`;
+  }).join('');
+
+  atualizarVeuRolagem();
+
+  $('status-chips').querySelectorAll('[data-status]').forEach(b => {
+    b.addEventListener('click', () => {
+      APP.status = b.dataset.status;
+      APP.pagina = 1;
+      renderStatusChips();
+      render();
+    });
+  });
+}
+
+/* ============================================================
+   LISTA DE REPASSES (chips "A destinar" e "Repassados")
+   ============================================================ */
+/** Recorte de tempo do filtro "Quando", em dias. */
+function dentroDoPeriodo(e) {
+  if (APP.repQuando === 'tudo') return true;
+  const em = e.repasse && e.repasse.em;
+  // Repasse antigo não tem data — some do recorte em vez de fingir que é de hoje
+  if (!em) return false;
+  const dias = (Date.now() - em) / 86400000;
+  if (APP.repQuando === 'hoje') {
+    const d = new Date(em), h = new Date();
+    return d.toDateString() === h.toDateString();
+  }
+  return dias <= Number(APP.repQuando);
+}
+
+function renderMarcas(tipo) {
+  const { pend, feitos } = marcasDeRepasse();
+  let lista = tipo === 'PEND' ? pend : feitos;
+
+  // Filtros da revisão. Só valem nos repassados: em "A destinar" ainda não
+  // há destino nem data para filtrar.
+  if (tipo === 'REPASSADO') {
+    const f = APP.filtros;
+    lista = lista.filter(e => {
+      if (f.repEstado.size && !f.repEstado.has(e.enviados ? 'ENVIADO' : e.estado)) return false;
+      if (f.repOrigem.size && !f.repOrigem.has(e.codCliente)) return false;
+      if (f.repDestino.size) {
+        const destinos = (e.repasse && e.repasse.destinos) || [];
+        if (!destinos.some(d => f.repDestino.has(d.codigo))) return false;
+      }
+      return dentroDoPeriodo(e);
+    });
+  }
+
+  const termos = (APP.busca || '').split(',').map(x => normalizar(x).trim()).filter(Boolean);
+  if (termos.length) {
+    lista = lista.filter(e => {
+      const hay = normalizar([
+        e.nomeCliente, e.codCliente, e.gci,
+        e.repasse ? e.repasse.ref : '', e.repasse ? e.repasse.cor : '',
+        ...e.linhas.map(i => APP.dic.ref[APP.L[i][C.REF]].join(' ') + ' ' + APP.dic.cor[APP.L[i][C.COR]]),
+        ...((e.repasse && e.repasse.destinos) || []).map(d => d.nome),
+      ].join(' '));
+      return termos.every(t => hay.includes(t));
+    });
+  }
+
+  // Novidade primeiro; depois o faturamento mais próximo.
+  lista.sort((a, b) => (b.novidade ? 1 : 0) - (a.novidade ? 1 : 0) || a.prev - b.prev);
+
+  const totPares = lista.reduce((s, e) => s + e.pares, 0);
+  const lojas = new Set();
+  lista.forEach(e => ((e.repasse && e.repasse.destinos) || []).forEach(d => lojas.add(d.codigo)));
+
+  $('summary').innerHTML = `
+    <div class="summary-chip"><strong class="c-cart">${formatarNumero(lista.length)}</strong> ${tipo === 'PEND' ? 'a destinar' : 'repassados'}</div>
+    <div class="summary-chip"><strong>${formatarNumero(totPares)}</strong> pares</div>
+    ${tipo === 'REPASSADO' && lojas.size ? `<div class="summary-chip"><strong>${lojas.size}</strong> loja${lojas.size > 1 ? 's' : ''}</div>` : ''}
+  `;
+  atualizarBotoesFiltros();
+  atualizarVeuRolagem();
+
+  if (!lista.length) {
+    $('lista').innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid ${tipo === 'PEND' ? 'fa-arrow-right-long' : 'fa-truck-fast'}"></i>
+        <p>${tipo === 'PEND' ? 'Nada esperando destino' : 'Nenhum repasse com destino ainda'}</p>
+        <p style="margin-top:8px;font-size:12px;">${tipo === 'PEND'
+          ? 'Marque um produto como Repassar na aba Carteira'
+          : 'Escolha o destino de um repasse pendente'}</p>
+      </div>`;
+    $('rodape').innerHTML = '';
+    return;
+  }
+
+  $('lista').innerHTML = lista.map(e => cardMarca(e, tipo)).join('');
+
+  const concluidos = lista.filter(e => e.estado === 'SUMIU' || e.estado === 'CONFIRMADO');
+  $('rodape').innerHTML = (tipo === 'REPASSADO' && concluidos.length)
+    ? `<button class="gci-mais" id="btn-limpar-concluidos" title="Sai da sua lista, mas continua no painel do escritório">Tirar da lista os ${concluidos.length} que já saíram da carteira</button>`
+    : `Fim da lista · ${formatarNumero(lista.length)} repasse${lista.length > 1 ? 's' : ''}`;
+
+  const btn = $('btn-limpar-concluidos');
+  if (btn) btn.addEventListener('click', () => {
+    // Arquiva, não apaga. Apagando, o registro era sobrescrito com
+    // MANTER e o repasse sumia do painel do escritório junto — inclusive
+    // os já finalizados. A lista do vendedor fica igualmente limpa.
+    const mexidas = [];
+    for (const e of concluidos) {
+      for (const k of e.keys) {
+        const reg = APP.acoes[k];
+        if (!reg || !reg.repasse) { delete APP.acoes[k]; mexidas.push(k); continue; }
+        reg.repasse = { ...reg.repasse, arquivado: true, atualizadoEm: Date.now() };
+        mexidas.push(k);
+      }
+    }
+    salvarAcoes();
+    agendarEnvio(mexidas);
+    renderStatusChips();
+    render();
+    toast(`${concluidos.length} repasse(s) arquivado(s) · continuam no painel do escritório`);
+  });
+
+  marcarComoVistas(lista);
+  renderStatusChips();
+}
+
+function cardMarca(e, tipo) {
+  const est = ESTADOS[e.estado];
+  const dias = diasAte(e.prev);
+  const temDestino = !!((e.repasse && e.repasse.destinos) || []).length;
+  // "decida o destino" para quem já decidiu é ruído — e ocupa uma linha inteira
+  const urgente = e.estado === 'ABERTO' && dias <= DIAS_ALERTA && !temDestino;
+
+  const quando = quandoTexto(e.repasse && e.repasse.em, e.repasse && e.repasse.por);
+
+  const nomeProduto = i => (APP.dic.ref[APP.L[i][C.REF]][1] || APP.dic.ref[APP.L[i][C.REF]][0]) + ' · ' + APP.dic.cor[APP.L[i][C.COR]];
+  const produtos = e.linhas.length
+    ? e.linhas.slice(0, 3).map(nomeProduto)
+    : [e.repasse ? `${e.repasse.ref} · ${e.repasse.cor}` : '—'];
+  const titulo = e.linhas.length > 1 ? `GCI ${e.gci} · ${e.linhas.length} itens` : produtos[0];
+
+  const linhaIdx = e.linhas.length ? e.linhas[0] : null;
+  const acoes = linhaIdx != null ? pillsDeAcao(APP.L[linhaIdx], linhaIdx) : '';
+
+  const destinos = ((e.repasse && e.repasse.destinos) || []).map(d =>
+    `<span class="gd ${d.finalizadoEm ? 'enviado' : ''}">${d.finalizadoEm ? '<i class="fa-solid fa-paper-plane" title="o escritório já enviou este"></i>' : '<i class="fa-solid fa-arrow-right-long"></i>'} ${escHtml(d.nome)}<small>${d.caixas ? d.caixas + ' cx · ' : ''}${formatarNumero(d.pares)} pares${condicaoTexto(d)}</small></span>`
+  ).join('');
+
+  return `
+    <div class="marca-card estado-${est.cls} ${e.novidade ? 'novidade' : ''}">
+      <div class="marca-topo">
+        <div class="marca-info">
+          <p class="marca-titulo">${escHtml(titulo)}</p>
+          <p class="marca-sub">${escHtml(e.nomeCliente)} <span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· repassado ${escHtml(quando)}</span>` : ''}</p>
+          ${e.linhas.length > 1 ? `<p class="marca-itens">${produtos.map(escHtml).join(' · ')}${e.linhas.length > 3 ? ' · +' + (e.linhas.length - 3) : ''}</p>` : ''}
+        </div>
+        ${e.enviados ? `<span class="estado-badge finalizado" title="${e.enviados} de ${e.totalDestinos} destino(s) já enviado(s) pelo escritório · situação na carteira: ${escHtml(est.rotulo)}">
+          <i class="fa-solid fa-paper-plane"></i>
+          ${e.enviados === e.totalDestinos ? 'Enviado' : `Enviado ${e.enviados}/${e.totalDestinos}`}
+        </span>` : `<span class="estado-badge ${est.cls}">
+          <i class="fa-solid ${est.icone}"></i>
+          ${e.estado === 'CONFIRMADO' ? 'Confirmado em ' + escHtml(e.confirmadoEm) : est.rotulo}
+        </span>`}
+      </div>
+      ${urgente ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${dias < 0 ? 'o faturamento já passou' : dias === 0 ? 'fatura hoje' : 'faltam ' + dias + ' dias para faturar'} — decida o destino</p>` : ''}
+      ${e.estado === 'FATUROU' ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> Faturou no cliente de origem — o repasse não saiu a tempo</p>` : ''}
+      ${destinos || acoes ? `<div class="marca-rodape">
+        ${destinos ? `<div class="gci-destinos">${destinos}</div>` : ''}
+        ${acoes ? `<div class="marca-acoes">${acoes}</div>` : ''}
+      </div>` : ''}
+    </div>`;
+}
+
+function render() {
+  if (!APP.base) {
+    $('lista').innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-cloud-arrow-down"></i>
+        <p>Base ainda não publicada</p>
+        <p style="margin-top:8px;font-size:12px;">O admin precisa subir a Detalhada do dia</p>
+      </div>`;
+    $('rodape').innerHTML = '';
+    $('summary').innerHTML = '';
+    return;
+  }
+
+  if (APP.status === 'PEND' || APP.status === 'REPASSADO') {
+    renderMarcas(APP.status);
+    return;
+  }
+
+  const t0 = performance.now();
+  const { grupos, totCart, totFat, totLinhas, nClientes } = agregar();
+  APP.grupos = grupos;
+
+  $('summary').innerHTML = `
+    <div class="summary-chip" title="${formatarNumero(totLinhas)} encomendas · ${formatarNumero(nClientes)} clientes"><strong class="c-cart">${formatarNumero(totCart)}</strong> carteira</div>
+    <div class="summary-chip"><strong class="c-fat">${formatarNumero(totFat)}</strong> faturado</div>
+    <div class="summary-chip"><strong>${formatarNumero(grupos.length)}</strong> produtos</div>
+  `;
+
+  atualizarBotoesFiltros();
+  atualizarVeuRolagem();
+
+  const lista = $('lista');
+  if (grupos.length === 0) {
+    lista.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>Nada encontrado</p>
+        <p style="margin-top:8px;font-size:12px;">Tente outro termo ou limpe os filtros</p>
+      </div>`;
+    $('rodape').innerHTML = '';
+    return;
+  }
+
+  const ate = Math.min(grupos.length, APP.pagina * POR_PAGINA);
+  lista.innerHTML = grupos.slice(0, ate).map((g, i) => cardProduto(g, i)).join('');
+  pintarParciais();
+
+  $('rodape').innerHTML = ate < grupos.length
+    ? `<button class="gci-mais" id="btn-mais">Carregar mais · ${formatarNumero(grupos.length - ate)} produtos restantes</button>`
+    : `Fim da lista · ${formatarNumero(grupos.length)} produto${grupos.length > 1 ? 's' : ''} em ${Math.round(performance.now() - t0)} ms`;
+
+  const btnMais = $('btn-mais');
+  if (btnMais) btnMais.addEventListener('click', () => { APP.pagina++; render(); });
+}
+
+// Chave numérica única do par referência+cor (o nº de cores é a base da conta)
+function mkChave(ref, cor) { return ref * APP.dic.cor.length + cor; }
+function chaveGrupo(g) { return mkChave(g.ref, g.cor); }
+
+function cardProduto(g, idx) {
+  const [referencia, descricao] = APP.dic.ref[g.ref];
+  const cor = APP.dic.cor[g.cor];
+  const imgKey = `${referencia}_${corParaArquivo(cor)}`;
+  const chave = chaveGrupo(g);
+  const aberto = APP.abertos.has(chave);
+  const mesProx = g.prevMin === Infinity ? '' : diaParaMes(g.prevMin);
+
+  const imgErro = `this.classList.add('failed');`;
+
+  return `
+    <div class="product-card ${aberto ? 'expanded' : ''}" data-chave="${chave}" data-idx="${idx}">
+      <div class="product-main">
+        ${caixaDoGrupo(g, chave)}
+        <div class="product-thumb-wrap" data-zoom="${chave}" title="Ampliar">
+          <img class="product-thumb" src="${IMG_PATH}${escAttr(imgKey)}.jpg" alt="${escAttr(descricao)}" loading="lazy" onerror="${imgErro}">
+          <div class="product-thumb-fallback"><i class="fa-solid fa-image"></i></div>
+          <span class="product-zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+        </div>
+        <div class="product-info">
+          <p class="product-name">${escHtml(descricao || referencia)}</p>
+          <p class="product-meta">
+            <span>${escHtml(cor)}</span>
+            <span class="dot">·</span>
+            <span>Ref. ${escHtml(referencia)}</span>
+          </p>
+          <div class="product-tags">
+            <span class="tag tag-clientes"><i class="fa-solid fa-store"></i> ${g.clientes.size} cliente${g.clientes.size > 1 ? 's' : ''}</span>
+            <span class="tag tag-ref"><i class="fa-solid fa-boxes-stacked"></i> ${g.linhas.length} encomenda${g.linhas.length > 1 ? 's' : ''}</span>
+            ${mesProx ? `<span class="tag tag-mes"><i class="fa-solid fa-calendar"></i> ${mesProx}</span>` : ''}
+          </div>
+        </div>
+        <div class="product-right">
+          <div class="prod-nums">
+            <div class="num-linha ${g.cart ? '' : 'zerada'}">
+              <span class="n cart">${formatarNumero(g.cart)}</span><span class="l">carteira</span>
+            </div>
+            <div class="num-linha ${g.fat ? '' : 'zerada'}">
+              <span class="n fat">${formatarNumero(g.fat)}</span><span class="l">faturado</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-down expand-icon"></i>
+        </div>
+      </div>
+
+      <div class="product-details">
+        <div class="product-details-inner">
+          ${aberto ? linhasDoGrupo(g, chave) : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function linhasDoGrupo(g, chave) {
+  // Carteira primeiro (é o que ainda dá pra agir), depois o faturado mais recente.
+  const linhas = g.linhas.slice().sort((ia, ib) => {
+    const a = APP.L[ia], b = APP.L[ib];
+    const ca = a[C.CART] > 0 ? 0 : 1, cb = b[C.CART] > 0 ? 0 : 1;
+    if (ca !== cb) return ca - cb;
+    if (ca === 0) return a[C.PREV] - b[C.PREV];
+    return b[C.DFAT] - a[C.DFAT];
+  });
+
+  const tudo = APP.verTudo.has(chave);
+  const ate = tudo ? linhas.length : Math.min(linhas.length, LINHAS_POR_CARD);
+
+  const itens = linhas.slice(0, ate).map(i => {
+    const r = APP.L[i];
+    const [codigo, fantasia] = APP.dic.cli[r[C.CLI]];
+    const emCarteira = r[C.CART] > 0;
+    const pares = emCarteira ? r[C.CART] : r[C.FAT];
+    const meta = [
+      r[C.GCI]
+        ? `<span class="gci-num"><button class="copiar-btn" data-copiar="${escAttr(r[C.GCI])}" title="Copiar GCI ${r[C.GCI]}"><i class="fa-solid fa-copy"></i></button>${botaoPdfHTML(r)} GCI ${r[C.GCI]}</span>`
+        : `<span><i class="fa-solid fa-receipt"></i> GCI —</span>`,
+      r[C.OC] >= 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span>` : '',
+      `<span class="sep">·</span><span>${escHtml(APP.dic.marca[r[C.MARCA]])}</span>`,
+      `<span class="sep">·</span><span>${escHtml(APP.dic.fab[r[C.FAB]])}/${escHtml(APP.dic.fil[r[C.FIL]])}</span>`,
+      APP.prepFixo < 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : '',
+      !emCarteira && r[C.NF] ? `<span class="sep">·</span><span>NF ${r[C.NF]}</span>` : '',
+    ].filter(Boolean).join(' ');
+
+    // Só quem ainda está em carteira pode ser mantido, repassado ou cancelado.
+    const acao = emCarteira ? acaoDaLinha(r) : null;
+    const classes = [
+      'gci-item',
+      acao && acao !== ACAO_PADRAO ? 'marcada acao-' + acao.toLowerCase() : '',
+      emCarteira && repassePendente(r) ? 'pendente' : '',
+      APP.modoSelecao && APP.selecao.has(i) ? 'sel-marcada' : '',
+    ].filter(Boolean).join(' ');
+
+    return `
+      <div class="${classes}">
+        ${caixaDaLinha(i, r)}
+        <div class="gci-info">
+          <p class="gci-cli">${escHtml(fantasia)} <span style="color:var(--text-3);font-weight:400;">${escHtml(codigo)}</span></p>
+          <p class="gci-meta">${meta}</p>
+        </div>
+        ${emCarteira ? pillsDeAcao(r, i) : ''}
+        <div class="gci-dir">
+          <p class="gci-pares ${emCarteira ? 'cart' : 'fat'}">${formatarNumero(pares)} pares</p>
+          <p class="gci-quando">${emCarteira ? 'prev. ' + diaParaBR(r[C.PREV]) : 'fat. ' + diaParaBR(r[C.DFAT])}</p>
+        </div>
+        ${emCarteira ? linhaDestinosHTML(repasseDaLinha(r), r[C.CART]) : ''}
+      </div>`;
+  }).join('');
+
+  const cabecalho = `<div class="gci-head"><span>${linhas.length} encomenda${linhas.length > 1 ? 's' : ''}</span><span>${g.clientes.size} cliente${g.clientes.size > 1 ? 's' : ''}</span></div>`;
+  const mais = ate < linhas.length
+    ? `<button class="gci-mais" data-vertudo="${chave}">Ver os ${formatarNumero(linhas.length - ate)} restantes</button>`
+    : '';
+
+  return cabecalho + itens + mais;
+}
+
+/* ============================================================
+   AÇÕES DA LINHA (manter / repassar / cancelar)
+   ============================================================ */
+// Chave estável: sobrevive à troca da base, ao contrário do índice da linha.
+function keyLinha(r) {
+  return [
+    APP.dic.cli[r[C.CLI]][0],
+    r[C.GCI],
+    APP.dic.ref[r[C.REF]][0],
+    APP.dic.cor[r[C.COR]],
+  ].join('|');
+}
+
+// Cada entrada é { acao, repasse } — o mesmo formato que o worker já guarda
+// em carteira-cms-acoes.json, para o dia em que isso for sincronizado.
+function registroDaLinha(r) {
+  return APP.acoes[keyLinha(r)] || null;
+}
+function acaoDaLinha(r) {
+  const reg = registroDaLinha(r);
+  return (reg && reg.acao) || ACAO_PADRAO;
+}
+function repasseDaLinha(r) {
+  const reg = registroDaLinha(r);
+  return (reg && reg.repasse) || null;
+}
+// Repasse marcado mas ainda sem destino escolhido
+function repassePendente(r) {
+  const rep = repasseDaLinha(r);
+  return acaoDaLinha(r) === 'REPASSAR' && !(rep && rep.destinos && rep.destinos.length);
+}
+
+/* ---------- o GCI é a unidade ----------
+   A fábrica anula o GCI inteiro e cria outro no cliente novo. Confirmado nas
+   bases de 20 e 21/08: dos 63 GCIs que saíram da carteira, 63 saíram com
+   todas as linhas. Então marcar uma linha marca as irmãs do mesmo GCI. */
+let _gcis = null;
+function chaveGci(r) { return APP.dic.cli[r[C.CLI]][0] + '|' + r[C.GCI]; }
+function indiceGci() {
+  if (_gcis) return _gcis;
+  _gcis = new Map();
+  for (let i = 0; i < APP.L.length; i++) {
+    const r = APP.L[i];
+    if (!r[C.CART]) continue;
+    const k = chaveGci(r);
+    let a = _gcis.get(k);
+    if (!a) { a = []; _gcis.set(k, a); }
+    a.push(i);
+  }
+  return _gcis;
+}
+function linhasDoGci(r) { return indiceGci().get(chaveGci(r)) || []; }
+function paresDoGci(r) { return linhasDoGci(r).reduce((s, i) => s + APP.L[i][C.CART], 0); }
+
+// Aplica a ação em todas as linhas do GCI de uma vez.
+function definirAcaoGci(r, acao, repasse = null) {
+  const idxs = linhasDoGci(r);
+  const alvos = idxs.length ? idxs : [APP.L.indexOf(r)];
+  const chaves = [];
+  for (const i of alvos) {
+    const key = keyLinha(APP.L[i]);
+    chaves.push(key);
+    if (acao === ACAO_PADRAO) delete APP.acoes[key];
+    else APP.acoes[key] = { acao, repasse, visto: 'ABERTO' };
+  }
+  salvarAcoes();
+  agendarEnvio(chaves);
+  return alvos;
+}
+
+/* ============================================================
+   SINCRONIZAÇÃO DAS AÇÕES
+   ============================================================
+   As marcas viviam só no `localStorage`: trocar de navegador perdia
+   tudo, e o escritório nunca via nada. Agora vão para o mesmo arquivo
+   que a Carteira usa (`data/carteira-cms-acoes.json`, via
+   `saveAcaoCarteira`), com duas ressalvas herdadas do worker:
+
+   · as duas aplicações dividem o arquivo. As chaves têm formatos
+     diferentes (a Carteira usa 6 partes, aqui são 4), então não se
+     sobrescrevem — mas para o admin saber o que é nosso, todo repasse
+     leva `app: 'detalhada'` dentro dele;
+
+   · `saveAcaoCarteira` está em WRITE_ACTIONS e exige `X-Admin-Token`.
+     Hoje passa porque o worker está em "modo legado", sem token
+     configurado — é o mesmo caminho que a Carteira já usa. No dia em
+     que o ADMIN_TOKEN for definido, os dois apps param de gravar.
+
+   O local continua sendo a fonte imediata: a rede é ajuda, não
+   dependência. Se o worker falhar, a marca fica gravada aqui e vai
+   junto no próximo envio. */
+
+const APP_ORIGEM = 'detalhada';
+
+async function chamarWorker(action, extra = {}, ms = 12000) {
+  const corta = new AbortController();
+  const t = setTimeout(() => corta.abort(), ms);
+  try {
+    const r = await fetch(WORKER_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...extra }),
+      signal: corta.signal,
+    });
+    if (!r.ok) throw new Error(`worker respondeu ${r.status}`);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+/** Manda as ações para o servidor. Sai agrupado e com atraso: marcar
+ *  três linhas seguidas não deve virar três commits no GitHub. */
+let _envioTimer = null;
+let _pendentes = new Set();
+
+function agendarEnvio(chaves) {
+  for (const k of chaves) _pendentes.add(k);
+  if (_envioTimer) clearTimeout(_envioTimer);
+  _envioTimer = setTimeout(enviarAcoes, 2500);
+}
+
+async function enviarAcoes() {
+  if (_envioTimer) { clearTimeout(_envioTimer); _envioTimer = null; }
+  if (!_pendentes.size) return true;
+
+  const chaves = [..._pendentes];
+  const itens = chaves.map(key => {
+    const reg = APP.acoes[key];
+    // apagada localmente = voltou para MANTER; precisa viajar assim para
+    // a reversão chegar aos outros dispositivos
+    if (!reg) return { key, acao: 'MANTER', repasse: null };
+    return {
+      key,
+      acao: reg.acao,
+      repasse: reg.repasse ? { ...reg.repasse, app: APP_ORIGEM } : null,
+    };
+  });
+
+  try {
+    syncShow('Salvando…');
+    await chamarWorker('saveAcaoCarteira', { itens, por: APP.sessao ? APP.sessao.nome : '' });
+    _pendentes.clear();
+    syncHide();
+    return true;
+  } catch (e) {
+    syncHide();
+    console.warn('não consegui enviar as ações:', e);
+    // fica pendente para a próxima: o local já tem tudo
+    return false;
+  }
+}
+
+/** Traz o que está no servidor e funde com o que há aqui.
+ *  Na dúvida vence o mais recente; sem data, vence o local — quem está
+ *  com o app aberto acabou de decidir. */
+async function baixarAcoes() {
+  let dados;
+  try { dados = await chamarWorker('getAcoesCarteira'); }
+  catch (e) { console.warn('não consegui ler as ações:', e); return false; }
+
+  const remotas = (dados && dados.acoes) || {};
+  let novas = 0;
+
+  for (const [key, reg] of Object.entries(remotas)) {
+    // só o que é nosso: a Carteira grava no mesmo arquivo
+    const meu = reg && reg.repasse && reg.repasse.app === APP_ORIGEM;
+    const chaveDaqui = key.split('|').length === 4;
+    if (!meu && !chaveDaqui) continue;
+
+    const local = APP.acoes[key];
+    if (!local) {
+      if (reg.acao && reg.acao !== ACAO_PADRAO) { APP.acoes[key] = { ...reg, visto: 'ABERTO' }; novas++; }
+      continue;
+    }
+    // Compara a ÚLTIMA ALTERAÇÃO, não a data do repasse. O escritório
+    // finaliza sem mexer em `em`, e comparando só por ela a novidade
+    // nunca chegava aqui — o vendedor via "aguardando" para sempre.
+    const quando = (r) => Math.max(Number(r && r.atualizadoEm) || 0, Number(r && r.em) || 0);
+    if (quando(reg.repasse) > quando(local.repasse)) {
+      APP.acoes[key] = { ...reg, visto: local.visto };
+      novas++;
+    }
+  }
+
+  if (novas) {
+    _ondeEsta = null;
+    try { localStorage.setItem(STORAGE.acoes, JSON.stringify(APP.acoes)); } catch (_) {}
+  }
+  return novas;
+}
+
+function salvarAcoes() {
+  _ondeEsta = null;   // as marcações mudaram: o índice precisa ser refeito
+  try {
+    localStorage.setItem(STORAGE.acoes, JSON.stringify(APP.acoes));
+  } catch (e) {
+    console.warn('não consegui gravar as ações', e);
+  }
+}
+
+function carregarAcoes() {
+  let bruto = {};
+  try {
+    const txt = localStorage.getItem(STORAGE.acoes);
+    bruto = txt ? JSON.parse(txt) : {};
+  } catch { bruto = {}; }
+  // Versão antiga guardava só a string da ação
+  APP.acoes = {};
+  for (const [k, v] of Object.entries(bruto || {})) {
+    APP.acoes[k] = (typeof v === 'string') ? { acao: v, repasse: null } : v;
+  }
+}
+
+/* ============================================================
+   CONCILIAÇÃO — o que aconteceu com o que foi marcado
+   ============================================================ */
+// Onde cada chave marcada está na base de hoje. Só indexa as linhas dos GCIs
+// marcados, então o mapa fica do tamanho das marcações, não da base.
+let _ondeEsta = null;
+function ondeEsta() {
+  if (_ondeEsta) return _ondeEsta;
+  const gcisMarcados = new Set();
+  for (const key of Object.keys(APP.acoes)) {
+    const p = key.split('|');
+    gcisMarcados.add(p[0] + '|' + p[1]);
+  }
+  _ondeEsta = new Map();
+  if (gcisMarcados.size) {
+    for (let i = 0; i < APP.L.length; i++) {
+      const r = APP.L[i];
+      if (!gcisMarcados.has(chaveGci(r))) continue;
+      _ondeEsta.set(keyLinha(r), i);
+    }
+  }
+  return _ondeEsta;
+}
+
+// Estado de uma marcação diante da base atual.
+//   ABERTO   segue em carteira, nada aconteceu ainda
+//   FATUROU  virou nota fiscal no cliente de origem — o repasse não saiu a tempo
+//   SUMIU    a linha não existe mais: GCI anulado (repasse feito ou pedido cancelado)
+function estadoDaMarca(key) {
+  const i = ondeEsta().get(key);
+  if (i === undefined) return 'SUMIU';
+  return APP.L[i][C.FAT] > 0 ? 'FATUROU' : 'ABERTO';
+}
+
+// Um destino confirma o repasse quando ganha um GCI que ele não tinha antes,
+// com a mesma referência e cor. Os GCIs que ele já tinha foram guardados na
+// hora de confirmar o destino, justamente para essa comparação.
+function destinoConfirmado(reg, dest) {
+  if (!reg.repasse || !dest) return null;
+  const antes = new Set(dest.gcisAntes || []);
+  const refIdx = APP.dic.ref.findIndex(x => x[0] === reg.repasse.ref);
+  const corIdx = APP.dic.cor.indexOf(reg.repasse.cor);
+  const cliIdx = APP.dic.cli.findIndex(c => c[0] === dest.codigo);
+  if (refIdx < 0 || corIdx < 0 || cliIdx < 0) return null;
+  for (const r of APP.L) {
+    if (r[C.CLI] !== cliIdx || r[C.REF] !== refIdx || r[C.COR] !== corIdx) continue;
+    if (!antes.has(r[C.GCI])) return r[C.GCI];
+  }
+  return null;
+}
+
+// GCIs que um cliente já tem de uma referência+cor — a "foto" de antes.
+function gcisDoCliente(codCliente, referencia, cor) {
+  const cliIdx = APP.dic.cli.findIndex(c => c[0] === codCliente);
+  const refIdx = APP.dic.ref.findIndex(x => x[0] === referencia);
+  const corIdx = APP.dic.cor.indexOf(cor);
+  if (cliIdx < 0 || refIdx < 0 || corIdx < 0) return [];
+  const out = [];
+  for (const r of APP.L) {
+    if (r[C.CLI] === cliIdx && r[C.REF] === refIdx && r[C.COR] === corIdx) out.push(r[C.GCI]);
+  }
+  return out;
+}
+
+const ESTADOS = {
+  ABERTO:      { rotulo: 'Aguardando',        cls: 'aguardando', icone: 'fa-hourglass-half' },
+  FATUROU:     { rotulo: 'Faturou no origem', cls: 'faturou',    icone: 'fa-triangle-exclamation' },
+  SUMIU:       { rotulo: 'Saiu da carteira',  cls: 'saiu',       icone: 'fa-circle-check' },
+  CONFIRMADO:  { rotulo: 'Confirmado',        cls: 'confirmado', icone: 'fa-circle-check' },
+};
+
+// Percorre as marcações e devolve o estado de cada uma, agrupado por GCI.
+function marcasConciliadas() {
+  const porGci = new Map();
+  for (const [key, reg] of Object.entries(APP.acoes)) {
+    const p = key.split('|');
+    const gk = p[0] + '|' + p[1];
+    let e = porGci.get(gk);
+    if (!e) {
+      e = { gci: p[1], codCliente: p[0], acao: reg.acao, repasse: reg.repasse, keys: [], linhas: [], estado: null };
+      porGci.set(gk, e);
+    }
+    e.keys.push(key);
+    const i = ondeEsta().get(key);
+    if (i !== undefined) e.linhas.push(i);
+    if (reg.repasse) e.repasse = reg.repasse;
+  }
+
+  for (const e of porGci.values()) {
+    const estados = e.keys.map(estadoDaMarca);
+    e.estado = estados.includes('ABERTO') ? 'ABERTO'
+             : estados.includes('FATUROU') ? 'FATUROU'
+             : 'SUMIU';
+    e.pares = e.linhas.reduce((s, i) => s + APP.L[i][C.CART], 0)
+      || ((e.repasse && e.repasse.destinos) || []).reduce((s, d) => s + (d.pares || 0), 0);
+    e.prev = e.linhas.length ? Math.min(...e.linhas.map(i => APP.L[i][C.PREV])) : -1;
+    e.nomeCliente = (e.repasse && e.repasse.origemNome)
+      || (e.linhas.length ? APP.dic.cli[APP.L[e.linhas[0]][C.CLI]][1] : e.codCliente);
+
+    if (e.estado === 'SUMIU' && e.repasse) {
+      for (const d of (e.repasse.destinos || [])) {
+        const g = destinoConfirmado({ repasse: e.repasse }, d);
+        if (g) { e.estado = 'CONFIRMADO'; e.confirmadoEm = d.nome; e.gciNovo = g; break; }
+      }
+    }
+    // O escritório marca destino a destino: um GCI pode estar meio
+    // enviado, e dizer só "finalizado" esconderia a metade que falta.
+    const dest = (e.repasse && e.repasse.destinos) || [];
+    e.enviados = dest.filter(d => d.finalizadoEm).length;
+    e.totalDestinos = dest.length;
+
+    // Novidade = mudou desde a última vez que o usuário olhou
+    const visto = APP.acoes[e.keys[0]] && APP.acoes[e.keys[0]].visto;
+    const marco = e.enviados ? `${e.estado}:${e.enviados}` : e.estado;
+    e.novidade = visto !== marco && (e.estado !== 'ABERTO' || e.enviados > 0);
+    e.marco = marco;
+  }
+  return [...porGci.values()];
+}
+
+function marcarComoVistas(entradas) {
+  let mudou = false;
+  for (const e of entradas) {
+    for (const k of e.keys) {
+      const marco = e.marco || e.estado;
+      if (APP.acoes[k] && APP.acoes[k].visto !== marco) { APP.acoes[k].visto = marco; mudou = true; }
+    }
+  }
+  if (mudou) salvarAcoes();
+}
+
+const DIAS_ALERTA = 20;
+function diasAte(dia) {
+  if (dia == null || dia < 0) return Infinity;
+  return dia - hojeEmDias();
+}
+
+/* ============================================================
+   BASE COMPLETA DE CLIENTES (app Clientes, via worker)
+   ============================================================ */
+let _clientesBase = null;      // [{codigo, nome, cidade, estado, vendedor}]
+let _carregandoBase = null;
+
+async function carregarBaseClientes() {
+  if (_clientesBase) return _clientesBase;
+  if (_carregandoBase) return _carregandoBase;
+
+  _carregandoBase = (async () => {
+    const cache = await cacheLer('clientesBase');
+    if (cache && Array.isArray(cache.lista) && cache.lista.length) _clientesBase = cache.lista;
+
+    try {
+      const codigos = Object.entries(CODIGO_VENDEDOR);
+      const partes = await Promise.all(codigos.map(async ([nome, cod]) => {
+        try {
+          const r = await fetch(WORKER_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getClientes', vendedor: cod }),
+          });
+          if (!r.ok) return [];
+          const d = await r.json();
+          return (d.clientes || []).map(c => ({
+            codigo: String(c.codigo || '').trim(),
+            nome: String(c.nome || '').trim(),
+            cidade: String(c.cidade || '').trim(),
+            estado: String(c.estado || '').trim(),
+            vendedor: nome,
+          }));
+        } catch { return []; }
+      }));
+      const mapa = new Map();
+      for (const p of partes) for (const c of p) if (c.codigo && !mapa.has(c.codigo)) mapa.set(c.codigo, c);
+      if (mapa.size) {
+        _clientesBase = [...mapa.values()];
+        cacheSalvar({ lista: _clientesBase, em: new Date().toISOString() }, 'clientesBase');
+      }
+    } catch (e) {
+      console.warn('base de clientes indisponível', e);
+    }
+    return _clientesBase || [];
+  })();
+
+  return _carregandoBase;
+}
+
+/* ---------- caixas: a Detalhada não traz grade, então inferimos dos pares ---------- */
+// 6 e 12 são as caixas usadas na prática; 94,8% das linhas de 24+ pares
+// dividem por 12 e 97,6% por 6.
+function caixaPadrao(pares) {
+  if (pares % 12 === 0) return 12;
+  if (pares % 6 === 0) return 6;
+  return pares;
+}
+// Só dá para espalhar entre lojas quando o GCI tem um item só. Com vários
+// itens, o que se move é o GCI inteiro — não faz sentido mandar "3 caixas"
+// de um pedido com 11 produtos diferentes.
+function podeDividir(pares, nLinhas = 1) {
+  return nLinhas === 1 && pares >= 24 && pares % 6 === 0;
+}
+function podeAlternarCaixa(pares) {
+  return podeDividir(pares) && pares % 12 === 0;
+}
+
+function pillsDeAcao(r, i) {
+  const key = keyLinha(r);
+  const atual = acaoDaLinha(r);
+  const rep = repasseDaLinha(r);
+  const destinos = (rep && rep.destinos) || [];
+
+  const pills = ACOES.map(a =>
+    `<button class="acao-pill ${a.cls}${atual === a.id ? ' ativo' : ''}" data-acao="${a.id}">${a.label}</button>`
+  ).join('');
+
+  // Segundo botão: só aparece depois de marcar REPASSAR.
+  let destino = '';
+  if (atual === 'REPASSAR') {
+    destino = destinos.length
+      ? `<button class="btn-destino definido" data-destino="${i}"><i class="fa-solid fa-pen"></i> ${rotuloDestinos(rep)}</button>`
+      : `<button class="btn-destino" data-destino="${i}"><i class="fa-solid fa-arrow-right-long"></i> Escolher destino</button>`;
+  }
+
+  return `<div class="acao-pills" data-key="${escAttr(key)}" data-linha="${i}">${pills}${destino}</div>`;
+}
+
+function rotuloDestinos(rep) {
+  const d = rep.destinos || [];
+  if (d.length === 1) return d[0].nome.length > 18 ? d[0].nome.slice(0, 18) + '…' : d[0].nome;
+  const cx = d.reduce((s, x) => s + (x.caixas || 0), 0);
+  return `${d.length} lojas${cx ? ' · ' + cx + ' cx' : ''}`;
+}
+
+function linhaDestinosHTML(rep, paresLinha) {
+  const d = (rep && rep.destinos) || [];
+  if (!d.length) return '';
+  const distribuido = d.reduce((s, x) => s + (x.pares || 0), 0);
+  const sobra = (paresLinha || 0) - distribuido;
+  return `<div class="gci-destinos">${d.map(x => `
+    <span class="gd"><i class="fa-solid fa-arrow-right-long"></i> ${escHtml(x.nome)}
+      <small>${x.caixas ? x.caixas + ' cx · ' : ''}${formatarNumero(x.pares)} pares</small>
+    </span>`).join('')}${
+    sobra > 0 ? `<span class="gd falta"><i class="fa-solid fa-triangle-exclamation"></i> faltam ${formatarNumero(sobra)} pares</span>` : ''
+  }</div>`;
+}
+
+/* ============================================================
+   MODAL DE DESTINO DO REPASSE
+   ============================================================ */
+// Índice de redes: nome fantasia com 2+ códigos, direto da base.
+let _redes = null;
+function redes() {
+  if (_redes) return _redes;
+  const porNome = {};
+  APP.dic.cli.forEach(([cod, nome], idx) => {
+    const nn = normalizar(nome);
+    if (!nn) return;
+    (porNome[nn] = porNome[nn] || { nome, idxs: [] }).idxs.push(idx);
+  });
+  _redes = {};
+  for (const [nn, r] of Object.entries(porNome)) if (r.idxs.length > 1) _redes[nn] = r;
+  return _redes;
+}
+function redeDoCliente(cliIdx) {
+  const nn = normalizar(APP.dic.cli[cliIdx][1]);
+  return redes()[nn] ? nn : null;
+}
+
+// Quem já tem esta referência, e em quais cores, separando carteira de faturado.
+function quemTemAReferencia(refIdx) {
+  const mapa = new Map(); // cliIdx -> { cart:Set(cor), fat:Set(cor) }
+  for (let i = 0; i < APP.L.length; i++) {
+    const r = APP.L[i];
+    if (r[C.REF] !== refIdx) continue;
+    let e = mapa.get(r[C.CLI]);
+    if (!e) { e = { cart: new Set(), fat: new Set() }; mapa.set(r[C.CLI], e); }
+    if (r[C.CART] > 0) e.cart.add(r[C.COR]); else e.fat.add(r[C.COR]);
+  }
+  return mapa;
+}
+
+// Todos os clientes do vendedor, e quais deles têm algo em carteira hoje.
+// Sem recorte de preposto: 6 de cada 10 repasses observados entre 20 e 21/08
+// foram para clientes de outro vendedor.
+let _universo = null;
+function universoDeClientes() {
+  if (_universo) return _universo;
+  const comCarteira = new Set(), todos = new Set(), prepDe = new Map();
+  for (let i = 0; i < APP.L.length; i++) {
+    const r = APP.L[i];
+    todos.add(r[C.CLI]);
+    if (!prepDe.has(r[C.CLI])) prepDe.set(r[C.CLI], APP.dic.prep[r[C.PREP]]);
+    if (r[C.CART] > 0) comCarteira.add(r[C.CLI]);
+  }
+  _universo = { todos, comCarteira, prepDe };
+  return _universo;
+}
+
+// Outras linhas da mesma referência+cor que já mandam para um dado cliente.
+function jaVaiReceber(refIdx, corIdx, keyAtual) {
+  const destino = {};
+  for (const [key, reg] of Object.entries(APP.acoes)) {
+    if (key === keyAtual) continue;
+    const dests = reg && reg.repasse && reg.repasse.destinos;
+    if (!dests || !reg.repasse.ref) continue;
+    if (reg.repasse.ref !== APP.dic.ref[refIdx][0] || reg.repasse.cor !== APP.dic.cor[corIdx]) continue;
+    for (const d of dests) {
+      (destino[d.codigo] = destino[d.codigo] || []).push({ pares: d.pares, de: reg.repasse.origemNome || '?' });
+    }
+  }
+  return destino;
+}
+
+function abrirModalDestino(linhaIdx) {
+  const r = APP.L[linhaIdx];
+  const key = keyLinha(r);
+  const irmas = linhasDoGci(r);
+  const [referencia, descricao] = APP.dic.ref[r[C.REF]];
+  const cor = APP.dic.cor[r[C.COR]];
+  const [codOrigem, nomeOrigem] = APP.dic.cli[r[C.CLI]];
+  const pares = paresDoGci(r) || r[C.CART];
+  const rep = repasseDaLinha(r);
+
+  const caixa = (rep && rep.boxSize) || caixaPadrao(pares);
+  const redeNN = redeDoCliente(r[C.CLI]);
+
+  APP.md = {
+    linhaIdx, key, r,
+    gci: r[C.GCI], irmas,
+    referencia, descricao, cor, pares,
+    codOrigem, nomeOrigem,
+    redeNN,
+    escopo: redeNN ? 'rede' : 'todos',
+    caixa,
+    busca: '',
+    // codigo -> caixas (ou 1, quando o GCI não divide)
+    sel: {},
+    // codigo -> { prazo, campanha }. Cada destino vira uma encomenda nova,
+    // e clientes diferentes negociam condições diferentes.
+    cond: {},
+    // o último escolhido serve de padrão para o próximo destino: marcar
+    // três lojas não deveria custar três vezes a mesma escolha
+    ultimo: { prazo: '', campanha: '' },
+    temRef: quemTemAReferencia(r[C.REF]),
+    recebendo: jaVaiReceber(r[C.REF], r[C.COR], key),
+  };
+  for (const d of ((rep && rep.destinos) || [])) APP.md.sel[d.codigo] = d.caixas || 1;
+
+  const varios = irmas.length > 1;
+  $('md-titulo').textContent = varios ? `GCI ${r[C.GCI]} · ${irmas.length} itens` : (descricao || referencia);
+  $('md-sub').textContent = varios
+    ? `${formatarNumero(pares)} pares de ${nomeOrigem} · o GCI inteiro vai junto`
+    : `${cor} · Ref. ${referencia} · ${formatarNumero(pares)} pares de ${nomeOrigem}`;
+  $('md-busca').value = '';
+  $('modal-destino').classList.add('show');
+  renderModalDestino();
+  if (window.innerWidth >= 700) $('md-busca').focus();
+
+  // A base completa entra depois, sem travar a abertura do modal.
+  carregarBaseClientes().then(() => { if (APP.md) renderModalDestino(); });
+}
+
+function fecharModalDestino() {
+  $('modal-destino').classList.remove('show');
+  APP.md = null;
+}
+
+function totalCaixasModal() {
+  const m = APP.md;
+  return podeDividir(m.pares, m.irmas.length) ? Math.round(m.pares / m.caixa) : 1;
+}
+function distribuidoModal() {
+  return Object.values(APP.md.sel).reduce((s, n) => s + n, 0);
+}
+
+function renderModalDestino() {
+  const m = APP.md;
+  if (!m) return;
+  const totalCx = totalCaixasModal();
+  const dividir = podeDividir(m.pares, m.irmas.length);
+
+  // Banner de caixas
+  $('md-caixa').innerHTML = dividir ? `
+    <div class="caixa-banner">
+      <span><i class="fa-solid fa-box"></i> ${totalCx} caixas de ${m.caixa} pares</span>
+      ${podeAlternarCaixa(m.pares) ? `<span class="caixa-toggle">
+        <button data-caixa="6" class="${m.caixa === 6 ? 'ativo' : ''}">6</button>
+        <button data-caixa="12" class="${m.caixa === 12 ? 'ativo' : ''}">12</button>
+      </span>` : ''}
+      <span class="cb-cont ${distribuidoModal() === totalCx ? 'cheio' : ''}">${distribuidoModal()}/${totalCx} cx</span>
+    </div>` : `
+    <div class="caixa-banner">
+      <span><i class="fa-solid fa-box"></i> ${formatarNumero(m.pares)} pares · uma loja só</span>
+      ${m.irmas.length > 1 ? `<span style="font-weight:500;opacity:.85">o GCI tem ${m.irmas.length} itens e sai inteiro</span>` : ''}
+    </div>`;
+
+  // Escopo de rede
+  $('md-escopo').innerHTML = m.redeNN ? `
+    <button class="escopo-chip ${m.escopo === 'rede' ? 'ativo' : ''}" data-escopo="rede">Rede ${escHtml(redes()[m.redeNN].nome)}</button>
+    <button class="escopo-chip ${m.escopo === 'todos' ? 'ativo' : ''}" data-escopo="todos">Todos os clientes</button>` : '';
+
+  // Monta os candidatos
+  const uni = universoDeClientes();
+  const busca = normalizar(m.busca.trim());
+  let candidatos = m.escopo === 'rede' && m.redeNN ? redes()[m.redeNN].idxs : [...uni.todos];
+
+  const jaTem = [], tier1 = [], tier2 = [], soFat = [];
+  for (const cliIdx of candidatos) {
+    const [cod, nome] = APP.dic.cli[cliIdx];
+    if (cod === m.codOrigem) continue;
+    if (busca && !normalizar(nome + ' ' + cod).includes(busca)) continue;
+
+    const t = m.temRef.get(cliIdx);
+    const coresCart = t ? t.cart : new Set();
+    const coresFat = t ? t.fat : new Set();
+    const corIdx = m.r[C.COR];
+    const temEstaCor = coresCart.has(corIdx) || coresFat.has(corIdx);
+    const temRef = coresCart.size > 0 || coresFat.size > 0;
+
+    const obj = {
+      cliIdx, cod, nome,
+      coresCart: [...coresCart].map(c => APP.dic.cor[c]),
+      coresFat: [...coresFat].map(c => APP.dic.cor[c]),
+      naRede: !!(m.redeNN && redes()[m.redeNN].idxs.includes(cliIdx)),
+      recebe: m.recebendo[cod] || null,
+      prep: uni.prepDe.get(cliIdx) || '',
+    };
+
+    if (temEstaCor) jaTem.push(obj);
+    else if (temRef) tier1.push(obj);
+    else if (uni.comCarteira.has(cliIdx)) tier2.push(obj);
+    else soFat.push(obj);
+  }
+
+  // ④ Base completa do app Clientes — só com busca, e só quem não está na
+  // Detalhada (quem está já apareceu num dos grupos acima).
+  const semCompra = [];
+  if (busca && busca.length >= 2) {
+    const naDetalhada = new Set(APP.dic.cli.map(c => c[0]));
+    for (const c of (_clientesBase || [])) {
+      if (naDetalhada.has(c.codigo) || c.codigo === m.codOrigem) continue;
+      if (!normalizar(c.nome + ' ' + c.codigo + ' ' + c.cidade).includes(busca)) continue;
+      semCompra.push({
+        cod: c.codigo, nome: c.nome, coresCart: [], coresFat: [],
+        naRede: false, recebe: null, externo: true,
+        cidade: c.cidade, estado: c.estado, vendedor: c.vendedor,
+      });
+      if (semCompra.length >= 60) break;
+    }
+  }
+
+  const ordena = a => a.sort((x, y) => x.nome.localeCompare(y.nome));
+  [jaTem, tier1, tier2, soFat, semCompra].forEach(ordena);
+
+  const item = (c, alerta) => {
+    const marcado = m.sel[c.cod] != null;
+    const cx = m.sel[c.cod] || 0;
+    const meta = [
+      `<span>${escHtml(c.cod)}</span>`,
+      c.cidade ? `<span>${escHtml(c.cidade)}${c.estado ? '/' + escHtml(c.estado) : ''}</span>` : '',
+      c.prep && c.prep !== APP.sessao.nome ? `<span class="dest-prep">${escHtml(c.prep)}</span>` : '',
+      c.vendedor ? `<span class="dest-prep">${escHtml(c.vendedor)}</span>` : '',
+      c.coresCart.length ? `<span class="dest-cores">tem ${escHtml(c.coresCart.join(', '))}</span>` : '',
+      c.coresFat.length ? `<span class="dest-cores fat">recebeu ${escHtml(c.coresFat.join(', '))}</span>` : '',
+      alerta ? `<span class="dest-alerta">já tem esta cor · dobraria</span>` : '',
+      c.recebe ? `<span class="dest-recebe">já vai receber ${formatarNumero(c.recebe.reduce((s, x) => s + x.pares, 0))} de ${escHtml(c.recebe[0].de)}</span>` : '',
+    ].filter(Boolean).join('');
+
+    const cond = m.cond[c.cod] || { prazo: '', campanha: '' };
+    const camps = campanhasDaLinha(m.r);
+    const campos = marcado ? `
+      <div class="dest-cond" data-cod="${escAttr(c.cod)}">
+        <label>
+          <span>Prazo <b>*</b></span>
+          <select data-campo="prazo" class="${cond.prazo ? '' : 'vazio'}">
+            <option value="">— Selecione —</option>
+            ${PRAZOS.map(v => `<option value="${escAttr(v)}" ${cond.prazo === v ? 'selected' : ''}>${escHtml(v)}</option>`).join('')}
+          </select>
+        </label>
+        <label>
+          <span>Campanha</span>
+          <select data-campo="campanha">
+            <option value="">— Sem campanha —</option>
+            ${camps.map(x => `<option value="${escAttr(x.id)}" ${cond.campanha === x.id ? 'selected' : ''}>${escHtml(x.id)}</option>`).join('')}
+          </select>
+        </label>
+      </div>` : '';
+
+    const stepper = (marcado && dividir) ? `
+      <div class="dest-stepper" data-cod="${escAttr(c.cod)}">
+        <button data-passo="-1">−</button>
+        <span>${cx} cx · ${formatarNumero(cx * m.caixa)}</span>
+        <button data-passo="1">+</button>
+      </div>` : '';
+
+    return `
+      <label class="dest-item ${marcado ? 'sel' : ''} ${alerta ? 'aviso' : ''}">
+        <input type="checkbox" data-cod="${escAttr(c.cod)}" ${marcado ? 'checked' : ''}>
+        <div class="dest-info">
+          <p class="dest-nome">${escHtml(c.nome)}${c.naRede ? '<span class="badge-rede">REDE</span>' : ''}${c.externo ? '<span class="badge-externo">SEM COMPRA</span>' : ''}</p>
+          <p class="dest-meta">${meta}</p>
+        </div>
+        ${stepper}
+      </label>
+      ${campos}`;
+  };
+
+  const bloco = (titulo, cls, lista, alerta) => lista.length
+    ? `<p class="grupo-titulo ${cls}">${titulo} <span style="opacity:.6">(${lista.length})</span></p>
+       <div class="grupo-lista">${lista.map(c => item(c, alerta)).join('')}</div>`
+    : '';
+
+  const html =
+    bloco('① Já tem o artigo · falta esta cor', 'bom', tier1, false) +
+    bloco('② Não tem este artigo', 'neutro', tier2, false) +
+    bloco('③ Só faturado no ano · sem carteira', 'neutro', soFat, false) +
+    bloco('④ Sem compra em 2026 · base de clientes', 'externo', semCompra, false) +
+    bloco('⚠ Já tem esta cor · receberia dobrado', 'aviso', jaTem, true);
+
+  const dica = !busca && _clientesBase
+    ? `<p class="md-dica"><i class="fa-solid fa-circle-info"></i> Não achou a loja? Digite o nome ou o código — a busca alcança os ${formatarNumero(_clientesBase.length)} clientes da base, inclusive quem não comprou este ano.</p>`
+    : '';
+
+  $('md-corpo').innerHTML = (html + dica) || `
+    <div class="empty-state" style="padding:40px 20px;">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <p>Nenhum destino${busca ? ' encontrado' : ''}</p>
+      ${busca && !_clientesBase ? '<p style="margin-top:8px;font-size:12px;">Buscando na base completa de clientes…</p>' : ''}
+    </div>`;
+
+  atualizarRodapeModal();
+}
+
+function atualizarRodapeModal() {
+  const m = APP.md;
+  const n = Object.keys(m.sel).length;
+  const totalCx = totalCaixasModal();
+  const dist = distribuidoModal();
+  // Prazo é obrigatório, como no catálogo digital. Sem ele o escritório
+  // recebe o repasse e tem que voltar perguntando a condição.
+  const semPrazo = Object.keys(m.sel).filter(cod => !(m.cond[cod] || {}).prazo);
+
+  const btn = $('md-confirmar');
+  btn.disabled = n === 0 || semPrazo.length > 0;
+  $('md-confirmar-label').textContent =
+    n === 0 ? 'Selecione um destino'
+    : semPrazo.length ? `Falta o prazo de ${semPrazo.length} destino${semPrazo.length > 1 ? 's' : ''}`
+    : podeDividir(m.pares)
+      ? `Confirmar · ${dist}/${totalCx} cx · ${n} loja${n > 1 ? 's' : ''}`
+      : `Confirmar · ${n} destino`;
+}
+
+/** "hoje 14:32" ou "12/08/2026" — perto no tempo pede relógio, longe pede data. */
+function quandoTexto(em, por) {
+  if (!em) return '';
+  const d = new Date(em), h = new Date();
+  const hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const dias = Math.floor((h - d) / 86400000);
+  const quem = por ? ' por ' + por : '';
+  if (d.toDateString() === h.toDateString()) return `hoje ${hora}${quem}`;
+  if (dias <= 1) return `ontem ${hora}${quem}`;
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}${quem}`;
+}
+
+/** "Z35 · CO681" — o código basta, o resto ocupa espaço sem informar. */
+function condicaoTexto(d) {
+  const partes = [];
+  if (d.prazo) partes.push(String(d.prazo).split(' ')[0]);
+  if (d.campanha) partes.push(String(d.campanha).split(' ')[0]);
+  return partes.length ? ' · ' + partes.join(' · ') : '';
+}
+
+function confirmarDestino() {
+  const m = APP.md;
+  const n = Object.keys(m.sel).length;
+  if (!n) return;
+  const dividir = podeDividir(m.pares, m.irmas.length);
+
+  const destinos = Object.entries(m.sel).map(([cod, cx]) => {
+    const idx = APP.dic.cli.findIndex(c => c[0] === cod);
+    const daBase = !idx || idx < 0 ? (_clientesBase || []).find(c => c.codigo === cod) : null;
+    const cond = m.cond[cod] || {};
+    return {
+      codigo: cod,
+      prazo: cond.prazo || '',
+      campanha: cond.campanha || '',
+      nome: idx >= 0 ? APP.dic.cli[idx][1] : (daBase ? daBase.nome : cod),
+      caixas: dividir ? cx : 0,
+      pares: dividir ? cx * m.caixa : m.pares,
+      // Foto dos GCIs que este destino já tinha deste produto. É o que permite
+      // dizer, amanhã, que o GCI novo que apareceu lá veio deste repasse.
+      gcisAntes: gcisDoCliente(cod, m.referencia, m.cor),
+    };
+  });
+
+  const alvos = definirAcaoGci(m.r, 'REPASSAR', {
+    // Quando e por quem. Sem isso não há como filtrar por período nem
+    // dizer o que foi decidido hoje — e é informação que não se recupera
+    // depois: repasse gravado sem data fica sem data para sempre.
+    em: Date.now(),
+    atualizadoEm: Date.now(),
+    por: APP.sessao ? APP.sessao.nome : '',
+    boxSize: dividir ? m.caixa : m.pares,
+    totalCaixas: totalCaixasModal(),
+    gci: m.gci,
+    ref: m.referencia,
+    cor: m.cor,
+    origem: m.codOrigem,
+    origemNome: m.nomeOrigem,
+    itens: m.irmas.length,
+    destinos,
+  });
+
+  const sobra = m.pares - destinos.reduce((s, d) => s + d.pares, 0);
+  toast(sobra > 0
+    ? `Repasse gravado · ${formatarNumero(sobra)} pares ainda sem destino`
+    : `Repasse gravado · ${destinos.length} loja${destinos.length > 1 ? 's' : ''}${m.irmas.length > 1 ? ' · GCI inteiro' : ''}`);
+
+  fecharModalDestino();
+  if (naListaDeRepasses()) { renderStatusChips(); render(); }
+  else { alvos.forEach(repintarLinha); renderStatusChips(); }
+}
+
+// Repinta uma linha só: refazer a lista fecharia os cards abertos.
+function repintarLinha(linhaIdx) {
+  const grupo = document.querySelector(`.acao-pills[data-linha="${linhaIdx}"]`);
+  if (!grupo) return;
+  const r = APP.L[linhaIdx];
+  const acao = acaoDaLinha(r);
+  const item = grupo.closest('.gci-item');
+
+  grupo.outerHTML = pillsDeAcao(r, linhaIdx);
+  if (!item) return;   // card da lista de repasses: ele se redesenha inteiro
+
+  const antigo = item.querySelector('.gci-destinos');
+  if (antigo) antigo.remove();
+  const html = linhaDestinosHTML(repasseDaLinha(r), r[C.CART]);
+  if (html) item.insertAdjacentHTML('beforeend', html);
+
+  item.classList.remove('marcada', 'acao-manter', 'acao-repassar', 'acao-cancelar');
+  if (acao !== ACAO_PADRAO) item.classList.add('marcada', 'acao-' + acao.toLowerCase());
+  item.classList.toggle('pendente', repassePendente(r));
+}
+
+// Nas abas de repasse a marcação muda a própria composição da lista.
+function naListaDeRepasses() {
+  return APP.status === 'PEND' || APP.status === 'REPASSADO';
+}
+
+function ligarModalDestino() {
+  $('md-fechar').addEventListener('click', fecharModalDestino);
+  // Prazo e campanha por destino. O último escolhido vira o padrão do
+  // próximo, senão marcar várias lojas custa repetir a mesma escolha.
+  $('md-corpo').addEventListener('change', (e) => {
+    const sel = e.target.closest('.dest-cond select');
+    if (!sel) return;
+    e.stopPropagation();
+    const cod = sel.closest('.dest-cond').dataset.cod;
+    const campo = sel.dataset.campo;
+    const m = APP.md;
+    if (!m || !m.cond[cod]) return;
+    m.cond[cod][campo] = sel.value;
+    if (sel.value) m.ultimo[campo] = sel.value;
+    sel.classList.toggle('vazio', campo === 'prazo' && !sel.value);
+    atualizarRodapeModal();
+  });
+
+  $('modal-destino').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-destino') fecharModalDestino();
+  });
+  $('md-confirmar').addEventListener('click', confirmarDestino);
+  $('md-limpar').addEventListener('click', () => {
+    APP.md.sel = {};
+    renderModalDestino();
+  });
+
+  let t;
+  $('md-busca').addEventListener('input', (e) => {
+    clearTimeout(t);
+    t = setTimeout(() => { APP.md.busca = e.target.value; renderModalDestino(); }, 180);
+  });
+  $('md-busca').addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.target.value = ''; APP.md.busca = ''; renderModalDestino(); }
+  });
+
+  $('md-caixa').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-caixa]');
+    if (!b) return;
+    APP.md.caixa = Number(b.dataset.caixa);
+    APP.md.sel = {};   // trocar o tamanho da caixa invalida a distribuição
+    renderModalDestino();
+  });
+
+  $('md-escopo').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-escopo]');
+    if (!b) return;
+    APP.md.escopo = b.dataset.escopo;
+    renderModalDestino();
+  });
+
+  $('md-corpo').addEventListener('click', (e) => {
+    const m = APP.md;
+    const passo = e.target.closest('[data-passo]');
+    if (passo) {
+      e.preventDefault(); e.stopPropagation();
+      const cod = passo.parentElement.dataset.cod;
+      const n = Number(passo.dataset.passo);
+      const atual = m.sel[cod] || 0;
+      if (n > 0) {
+        if (distribuidoModal() >= totalCaixasModal()) { toast('Todas as caixas já foram distribuídas'); return; }
+        m.sel[cod] = atual + 1;
+      } else {
+        if (atual <= 1) delete m.sel[cod]; else m.sel[cod] = atual - 1;
+      }
+      renderModalDestino();
+      return;
+    }
+
+    const chk = e.target.closest('input[data-cod]');
+    if (!chk) return;
+    const cod = chk.dataset.cod;
+    if (m.sel[cod] != null) {
+      delete m.sel[cod];
+      delete m.cond[cod];
+    } else if (podeDividir(m.pares)) {
+      if (distribuidoModal() >= totalCaixasModal()) {
+        e.preventDefault(); chk.checked = false;
+        toast('Todas as caixas já foram distribuídas');
+        return;
+      }
+      m.sel[cod] = 1;
+      m.cond[cod] = { ...m.ultimo };
+    } else {
+      m.sel = { [cod]: 1 };   // linha de caixa única: um destino só
+      m.cond = { [cod]: { ...m.ultimo } };
+    }
+    renderModalDestino();
+  });
+}
+
+/* ============================================================
+   PDF DO PEDIDO (via extensão do navegador)
+   ============================================================
+   O app não conhece a extensão: dispara um evento e escuta a resposta.
+   Sem ela instalada, o botão simplesmente não aparece. */
+function temExtensao() {
+  return !!document.documentElement.dataset.cmsEbm;
+}
+
+function botaoPdfHTML(r) {
+  if (!temExtensao() || !r[C.GCI]) return '';
+  return `<button class="pdf-btn" data-pdf="${escAttr(r[C.GCI])}" data-pdf-cli="${escAttr(APP.dic.cli[r[C.CLI]][1])}" data-pdf-st="${r[C.CART] > 0 ? 'A' : 'F'}" title="Gerar o PDF do pedido"><i class="fa-solid fa-file-pdf"></i></button>`;
+}
+
+/* ============================================================
+   SELEÇÃO DE VÁRIAS ENCOMENDAS
+   ============================================================
+   O EBM impõe dois limites que decidem o desenho daqui:
+
+   1. Vários GCIs numa consulta viram UM PDF só, e o arquivo é salvo com
+      o nome do cliente — misturar clientes daria um nome enganoso.
+   2. A consulta leva o status (Aberta/Fechada), e o EBM reaproveita
+      número de encomenda: buscar sem separar traz a antiga junto.
+
+   Por isso a seleção é livre na tela, mas na hora de gerar ela é
+   quebrada em um PDF por cliente e status, emitidos em fila. O número
+   de arquivos aparece na barra ANTES de gerar, para não ter surpresa.
+   ============================================================ */
+
+function caixaDoGrupo(g, chave) {
+  if (!APP.modoSelecao) return '';
+  const sel = g.linhas.filter(i => APP.L[i][C.GCI]);
+  if (!sel.length) return '';
+  const marcados = sel.filter(i => APP.selecao.has(i)).length;
+  return `<input type="checkbox" class="sel-chk" data-selgrupo="${chave}"` +
+    `${marcados === sel.length ? ' checked' : ''}` +
+    `${marcados && marcados < sel.length ? ' data-parcial="1"' : ''}` +
+    ` title="Marcar as ${sel.length} encomendas deste produto">`;
+}
+
+function caixaDaLinha(i, r) {
+  if (!APP.modoSelecao || !r[C.GCI]) return '';
+  return `<input type="checkbox" class="sel-chk" data-sellinha="${i}"` +
+    `${APP.selecao.has(i) ? ' checked' : ''} title="Marcar a encomenda ${escAttr(r[C.GCI])}">`;
+}
+
+/** O meio-marcado não existe em HTML: só dá para ligar por JS depois. */
+function pintarParciais() {
+  document.querySelectorAll('#lista .sel-chk[data-parcial]').forEach(c => {
+    c.indeterminate = true;
+  });
+}
+
+function alternarModoSelecao() {
+  APP.modoSelecao = !APP.modoSelecao;
+  if (!APP.modoSelecao) APP.selecao.clear();
+  $('btn-selecao').classList.toggle('ativo', APP.modoSelecao);
+  render();
+  renderBarraSelecao();
+}
+
+function marcarLinha(i, marcar) {
+  if (marcar) APP.selecao.add(i); else APP.selecao.delete(i);
+}
+
+function marcarGrupo(chave, marcar) {
+  const g = APP.grupos.find(x => chaveGrupo(x) === chave);
+  if (!g) return;
+  g.linhas.filter(i => APP.L[i][C.GCI]).forEach(i => marcarLinha(i, marcar));
+}
+
+/** Marca tudo que passa pelo filtro atual — o caso de filtrar um cliente
+ *  e um período e querer todos os pedidos de uma vez. */
+function marcarTudoFiltrado() {
+  const antes = APP.selecao.size;
+  APP.grupos.forEach(g => g.linhas.filter(i => APP.L[i][C.GCI]).forEach(i => APP.selecao.add(i)));
+  if (APP.selecao.size === antes && antes > 0) APP.selecao.clear();
+  render();
+  renderBarraSelecao();
+}
+
+/** Quebra a seleção como o EBM exige: um grupo por cliente e status.
+ *
+ *  E parte grupos grandes em pedaços. Os GCIs vão todos num campo de
+ *  texto só, separados por vírgula — um cliente com o semestre inteiro
+ *  marcado gerava uma linha de milhares de caracteres, e campo de tela
+ *  antiga costuma ter limite. Quebrar sai mais barato que descobrir o
+ *  limite na hora errada; os arquivos repetidos ganham (1), (2) no nome.
+ */
+const GCIS_POR_CONSULTA = 50;
+
+function gruposDaSelecao() {
+  const mapa = new Map();
+  for (const i of APP.selecao) {
+    const r = APP.L[i];
+    if (!r[C.GCI]) continue;
+    const [codigo, fantasia] = APP.dic.cli[r[C.CLI]];
+    const status = r[C.CART] > 0 ? 'A' : 'F';
+    const chave = codigo + '|' + status;
+    if (!mapa.has(chave)) mapa.set(chave, { codigo, nome: fantasia, status, gcis: new Set() });
+    mapa.get(chave).gcis.add(String(r[C.GCI]));
+  }
+
+  const saida = [];
+  for (const g of mapa.values()) {
+    const todos = [...g.gcis];
+    for (let i = 0; i < todos.length; i += GCIS_POR_CONSULTA) {
+      saida.push({ ...g, gcis: todos.slice(i, i + GCIS_POR_CONSULTA) });
+    }
+  }
+  return saida;
+}
+
+function renderBarraSelecao() {
+  const barra = $('barra-selecao');
+  if (!APP.modoSelecao) { barra.classList.remove('show'); return; }
+  barra.classList.add('show');
+
+  const n = APP.selecao.size;
+  const grupos = gruposDaSelecao();
+  const clientes = new Set(grupos.map(g => g.codigo)).size;
+
+  $('bs-resumo').innerHTML = n
+    ? `<strong>${formatarNumero(n)}</strong> encomenda${n > 1 ? 's' : ''} · ` +
+      `${clientes} cliente${clientes > 1 ? 's' : ''}` +
+      `<small>${grupos.length} arquivo${grupos.length > 1 ? 's' : ''} de PDF</small>`
+    : '<strong>Nenhuma marcada</strong>';
+
+  $('bs-gerar').disabled = !n || !!_pdfEmCurso;
+  $('bs-gerar-label').textContent = n
+    ? `Gerar ${grupos.length} PDF${grupos.length > 1 ? 's' : ''}`
+    : 'Gerar';
+}
+
+/* ---------- a fila ----------
+   A extensão faz um PDF por vez: dois pedidos ao mesmo tempo brigariam
+   pela sessão do EBM, que é única. */
+
+function gerarSelecionados() {
+  if (!temExtensao()) { toast('Extensão do EBM não instalada neste navegador'); return; }
+  if (_pdfEmCurso) { toast('Já tem um PDF sendo gerado — aguarde'); return; }
+  const grupos = gruposDaSelecao();
+  if (!grupos.length) return;
+
+  // Marcar um produto inteiro pega dezenas de clientes sem parecer que
+  // pega: 82 encomendas de um modelo viraram 36 arquivos no teste. Cada
+  // um leva um a dois minutos, então o total merece ser dito em voz alta
+  // antes de a fila começar.
+  if (grupos.length > LIMITE_AVISO_PDF) {
+    const min = grupos.length * 1.5;
+    const tempo = min >= 60
+      ? `${Math.round(min / 60 * 10) / 10} hora${min >= 90 ? 's' : ''}`
+      : `${Math.round(min)} minutos`;
+    const clientes = new Set(grupos.map(g => g.codigo)).size;
+    const ok = confirm([
+      `São ${grupos.length} arquivos, de ${clientes} cliente${clientes > 1 ? 's' : ''}.`,
+      `O EBM gera um por vez — isso deve levar perto de ${tempo}.`,
+      'Se você queria os pedidos de um cliente só, cancele e filtre por ele antes de marcar.',
+    ].join('\n\n'));
+    if (!ok) return;
+  }
+
+  APP.fila = { grupos, atual: 0, ok: 0, falhas: [] };
+  proximoDaFila();
+}
+
+function proximoDaFila() {
+  const f = APP.fila;
+  if (!f) return;
+
+  if (f.atual >= f.grupos.length) {
+    const total = f.grupos.length;
+    APP.fila = null;
+    if (f.falhas.length) {
+      toast(`${f.ok} de ${total} PDFs gerados · falhou: ${f.falhas.join(', ')}`);
+    } else {
+      toast(`${total} PDF${total > 1 ? 's' : ''} gerado${total > 1 ? 's' : ''}`);
+      APP.selecao.clear();
+      render();
+      renderBarraSelecao();
+    }
+    return;
+  }
+
+  const g = f.grupos[f.atual];
+  pedirPdf(g.gcis, g.nome, g.status);
+}
+
+/** Continua a fila depois de um arquivo pronto ou falhado. */
+function avancarFila(deuCerto, motivo) {
+  const f = APP.fila;
+  if (!f) return false;
+  if (deuCerto) f.ok++; else f.falhas.push(f.grupos[f.atual].nome);
+
+  // Sem sessão no EBM nenhum dos seguintes vai passar: parar aqui evita
+  // repetir o mesmo aviso uma vez por cliente.
+  if (!deuCerto && /entre no ebm/i.test(motivo || '')) {
+    const restam = f.grupos.length - f.atual - 1;
+    APP.fila = null;
+    if (restam > 0) toast(`Faltaram ${restam} PDF${restam > 1 ? 's' : ''} — entre no EBM e tente de novo`);
+    return true;
+  }
+
+  f.atual++;
+  setTimeout(proximoDaFila, 1500);
+  return true;
+}
+
+// Estado da geração em curso, só para a tarja de andamento.
+let _pdfEmCurso = null;
+
+function pedirPdf(gcis, nomeCliente, status) {
+  if (!temExtensao()) {
+    toast('Extensão do EBM não instalada neste navegador');
+    return;
+  }
+  if (_pdfEmCurso) { toast('Já tem um PDF sendo gerado — aguarde'); return; }
+
+  _pdfEmCurso = { gcis, nomeCliente };
+  const f = APP.fila;
+  mostrarTarjaPdf(
+    f ? `PDF ${f.atual + 1} de ${f.grupos.length} · ${nomeCliente}` : `Gerando o PDF de ${nomeCliente}…`,
+    'Abrindo o EBM');
+  renderBarraSelecao();
+
+  window.dispatchEvent(new CustomEvent('cms-ebm-pdf', {
+    detail: { gcis, status, nomeArquivo: nomeCliente },
+  }));
+}
+
+function mostrarTarjaPdf(titulo, detalhe) {
+  const t = $('tarja-pdf');
+  $('tarja-pdf-titulo').textContent = titulo;
+  $('tarja-pdf-detalhe').textContent = detalhe || '';
+  t.classList.add('show');
+  t.classList.remove('erro');
+}
+
+function fecharTarjaPdf(atraso = 0) {
+  setTimeout(() => $('tarja-pdf').classList.remove('show'), atraso);
+}
+
+function ligarRespostaPdf() {
+  window.addEventListener('cms-ebm-resposta', (ev) => {
+    const d = ev.detail || {};
+    // Passo a passo ao vivo: quando algo trava, é isto que diz onde.
+    if (d.tipo === 'log') { console.log('%c[PDF]', 'color:#0d9488', d.texto); return; }
+    if (d.tipo === 'progresso') {
+      $('tarja-pdf-detalhe').textContent = d.texto || '';
+      return;
+    }
+    if (d.tipo === 'fim') {
+      const nome = _pdfEmCurso ? _pdfEmCurso.nomeCliente : '';
+      _pdfEmCurso = null;
+      $('tarja-pdf-titulo').textContent = 'PDF pronto';
+      $('tarja-pdf-detalhe').textContent = d.texto || nome;
+      renderBarraSelecao();
+      if (avancarFila(true)) {
+        $('tarja-pdf-detalhe').textContent = 'Indo para o próximo…';
+        return;
+      }
+      fecharTarjaPdf(2500);
+      toast(d.texto || 'PDF gerado');
+      return;
+    }
+    if (d.tipo === 'erro') {
+      _pdfEmCurso = null;
+      const t = $('tarja-pdf');
+      t.classList.add('erro');
+      // Não estar logado no EBM não é defeito: é o passo que falta.
+      // Merece um aviso que diga o que fazer, não um "deu erro".
+      const semLogin = /entre no ebm/i.test(d.texto || '');
+      $('tarja-pdf-titulo').textContent = semLogin ? 'Entre no EBM primeiro' : 'Não consegui gerar';
+      $('tarja-pdf-detalhe').textContent = d.texto || 'erro desconhecido';
+      if (semLogin) toast('Abra o EBM e faça login para gerar o PDF');
+      renderBarraSelecao();
+      if (avancarFila(false, d.texto)) {
+        if (d.log) console.warn('[PDF] passo a passo:\n' + d.log.join('\n'));
+        return;
+      }
+      if (d.log) console.warn('[PDF] passo a passo:\n' + d.log.join('\n'));
+      fecharTarjaPdf(7000);
+    }
+  });
+}
+
+/* ============================================================
+   COPIAR
+   ============================================================ */
+function copiarTexto(texto) {
+  const t = String(texto ?? '').trim();
+  if (!t) return;
+  const aviso = () => toast('Copiado: ' + (t.length > 40 ? t.slice(0, 40) + '…' : t), 1500);
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(aviso).catch(() => copiarNaMarra(t, aviso));
+  } else {
+    copiarNaMarra(t, aviso);
+  }
+}
+
+// Reserva para quando a área de transferência não estiver liberada (http, permissão negada)
+function copiarNaMarra(t, aviso) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = t;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    if (ok) aviso(); else toast('Não consegui copiar');
+  } catch { toast('Não consegui copiar'); }
+}
+
+// Qualquer seleção de texto na tela vira cópia automática.
+function configurarCopiaAoSelecionar() {
+  let timer;
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      // Nunca interfere quando o usuário está num campo (digitando ou colando)
+      const ativo = document.activeElement;
+      if (ativo && /^(INPUT|TEXTAREA|SELECT)$/.test(ativo.tagName)) return;
+      const sel = window.getSelection();
+      const texto = sel ? sel.toString().trim() : '';
+      if (!texto || texto.length >= 300) return;
+      const node = sel.anchorNode;
+      if (node) {
+        const el = node.nodeType === 1 ? node : node.parentElement;
+        if (el && el.closest('input, textarea, [contenteditable]')) return;
+      }
+      copiarTexto(texto);
+    }, 400);
+  });
+}
+
+/* ============================================================
+   INTERAÇÃO DA LISTA
+   ============================================================ */
+function ligarLista() {
+  $('lista').addEventListener('click', (e) => {
+    const btnTudo = e.target.closest('[data-vertudo]');
+    if (btnTudo) {
+      e.stopPropagation();
+      APP.verTudo.add(Number(btnTudo.dataset.vertudo));
+      render();
+      return;
+    }
+
+    const zoom = e.target.closest('[data-zoom]');
+    if (zoom) {
+      e.stopPropagation();
+      abrirZoom(Number(zoom.dataset.zoom));
+      return;
+    }
+
+    const btnDestino = e.target.closest('[data-destino]');
+    if (btnDestino) {
+      e.stopPropagation();
+      abrirModalDestino(Number(btnDestino.dataset.destino));
+      return;
+    }
+
+    const pill = e.target.closest('.acao-pill');
+    if (pill) {
+      e.stopPropagation();
+      const grupo = pill.closest('.acao-pills');
+      const linhaIdx = Number(grupo.dataset.linha);
+      const r = APP.L[linhaIdx];
+      const acao = pill.dataset.acao;
+      const anterior = repasseDaLinha(r);
+      const irmas = linhasDoGci(r);
+
+      // Sair de REPASSAR joga fora os destinos; voltar a ele preserva o que já
+      // tinha sido escolhido, para não perder trabalho num clique errado.
+      const alvos = definirAcaoGci(r, acao, acao === 'REPASSAR' ? anterior : null);
+      if (naListaDeRepasses()) { renderStatusChips(); render(); }
+      else { alvos.forEach(repintarLinha); renderStatusChips(); }
+
+      if (irmas.length > 1 && acao !== ACAO_PADRAO) {
+        toast(`GCI ${r[C.GCI]} tem ${irmas.length} itens — todos foram marcados como ${acao.toLowerCase()}`, 3500);
+      }
+      return;
+    }
+
+    // Marcar não pode abrir nem fechar o card
+    if (e.target.classList.contains('sel-chk')) { e.stopPropagation(); return; }
+
+    const btnPdf = e.target.closest('[data-pdf]');
+    if (btnPdf) {
+      e.stopPropagation();
+      pedirPdf([btnPdf.dataset.pdf], btnPdf.dataset.pdfCli, btnPdf.dataset.pdfSt);
+      return;
+    }
+
+    const copiavel = e.target.closest('[data-copiar]');
+    if (copiavel) {
+      e.stopPropagation();
+      copiarTexto(copiavel.dataset.copiar);
+      return;
+    }
+
+    // Só a faixa de cima abre e fecha. Dentro dos detalhes o clique é livre,
+    // senão não dá pra selecionar texto sem o card fechar na cara do usuário.
+    if (!e.target.closest('.product-main')) return;
+
+    // Arrastar para selecionar termina em clique: não deixa isso fechar o card.
+    const selecao = window.getSelection();
+    if (selecao && !selecao.isCollapsed && selecao.toString().trim()) return;
+
+    const card = e.target.closest('.product-card');
+    if (!card) return;
+    const chave = Number(card.dataset.chave);
+    if (APP.abertos.has(chave)) {
+      APP.abertos.delete(chave);
+      APP.verTudo.delete(chave);
+      card.classList.remove('expanded');
+      card.querySelector('.product-details-inner').innerHTML = '';
+    } else {
+      APP.abertos.add(chave);
+      const g = APP.grupos.find(x => chaveGrupo(x) === chave);
+      if (g) {
+        card.querySelector('.product-details-inner').innerHTML = linhasDoGrupo(g, chave);
+        card.classList.add('expanded');
+      }
+    }
+  });
+}
+
+function abrirZoom(chave) {
+  const g = APP.grupos.find(x => chaveGrupo(x) === chave);
+  if (!g) return;
+  const [referencia, descricao] = APP.dic.ref[g.ref];
+  const cor = APP.dic.cor[g.cor];
+  $('zoom-img').src = `${IMG_PATH}${referencia}_${corParaArquivo(cor)}.jpg`;
+  $('zoom-name').textContent = descricao || referencia;
+  $('zoom-meta').textContent = `${cor} · Ref. ${referencia} · ${formatarNumero(g.cart)} em carteira · ${formatarNumero(g.fat)} faturados`;
+  $('zoom-modal').classList.add('show');
+}
+function fecharZoom() {
+  $('zoom-modal').classList.remove('show');
+  $('zoom-img').src = '';
+}
+
+/* ============================================================
+   FILTROS
+   ============================================================ */
+// Opções de um filtro, considerando o recorte do preposto e do status
+const OPCOES_QUANDO = [
+  { id: 'tudo', label: 'Qualquer data' },
+  { id: 'hoje', label: 'Hoje' },
+  { id: '7',    label: 'Últimos 7 dias' },
+  { id: '30',   label: 'Últimos 30 dias' },
+];
+
+const OPCOES_ESTADO = [
+  { id: 'ENVIADO',    label: 'Já enviado pelo escritório' },
+  { id: 'ABERTO',     label: 'Ainda na carteira' },
+  { id: 'FATUROU',    label: 'Faturou na origem' },
+  { id: 'SUMIU',      label: 'Saiu da carteira' },
+  { id: 'CONFIRMADO', label: 'Confirmado no destino' },
+];
+
+/** Opções dos filtros da revisão: saem dos próprios repasses, não da base.
+ *  Contar em pares como nos outros filtros não ajudaria aqui — o que
+ *  interessa é quantos repasses cada um tem. */
+function opcoesDosRepasses(filtroId) {
+  const { feitos } = marcasDeRepasse();
+  const vistos = new Map();
+
+  for (const e of feitos) {
+    if (filtroId === 'repEstado') {
+      const id = e.enviados ? 'ENVIADO' : e.estado;
+      vistos.set(id, (vistos.get(id) || 0) + 1);
+      continue;
+    }
+    if (filtroId === 'repOrigem') {
+      vistos.set(e.codCliente, (vistos.get(e.codCliente) || 0) + 1);
+      continue;
+    }
+    for (const d of ((e.repasse && e.repasse.destinos) || [])) {
+      vistos.set(d.codigo, (vistos.get(d.codigo) || 0) + 1);
+    }
+  }
+
+  const nomeDe = (cod) => {
+    const i = APP.dic.cli.findIndex(c => c[0] === cod);
+    if (i >= 0) return `${APP.dic.cli[i][1]} · ${cod}`;
+    const f = feitos.find(e => ((e.repasse && e.repasse.destinos) || []).some(d => d.codigo === cod));
+    const d = f && f.repasse.destinos.find(x => x.codigo === cod);
+    return d ? `${d.nome} · ${cod}` : cod;
+  };
+
+  if (filtroId === 'repEstado') {
+    return OPCOES_ESTADO.filter(o => vistos.has(o.id))
+      .map(o => ({ ...o, extra: vistos.get(o.id) + ' repasse' + (vistos.get(o.id) > 1 ? 's' : '') }));
+  }
+  return [...vistos.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([cod, n]) => ({ id: cod, label: nomeDe(cod), extra: n + ' repasse' + (n > 1 ? 's' : '') }));
+}
+
+function opcoesDoFiltro(filtroId) {
+  if (filtroId === 'ordem') return OPCOES_ORDEM;
+  if (filtroId === 'repQuando') return OPCOES_QUANDO;
+  if (filtroId.startsWith('rep')) return opcoesDosRepasses(filtroId);
+
+  const campo = { cliente: C.CLI, preposto: C.PREP, marca: C.MARCA, fabrica: C.FAB, filial: C.FIL, oc: C.OC }[filtroId];
+  const vistos = new Map();
+
+  // Os números ao lado seguem o que já está filtrado — escolhido um cliente,
+  // cada mês mostra os pares DELE. Só o próprio filtro fica de fora da conta,
+  // senão as outras opções sumiriam e não daria para trocar de escolha.
+  const outros = { ...APP.filtros, [filtroId]: new Set() };
+  const termos = (APP.busca || '').split(',').map(x => normalizar(x).trim()).filter(Boolean).slice(0, 3);
+  const masks = termos.map(mascaraDoTermo);
+
+  for (let i = 0; i < APP.L.length; i++) {
+    const r = APP.L[i];
+    if (!passaFiltros(r, outros)) continue;
+    if (masks.length && !masks.every(m => linhaCasa(r, m))) continue;
+
+    if (filtroId === 'mes') {
+      const m = mesRef(r);
+      if (m) vistos.set(m, (vistos.get(m) || 0) + r[C.CART] + r[C.FAT]);
+      continue;
+    }
+    if (filtroId === 'familia') {
+      const fam = familiaDaLinha(r);
+      if (fam >= 0) vistos.set(fam, (vistos.get(fam) || 0) + r[C.CART] + r[C.FAT]);
+      continue;
+    }
+    const v = r[campo];
+    if (v == null || v < 0) continue;
+    vistos.set(v, (vistos.get(v) || 0) + r[C.CART] + r[C.FAT]);
+  }
+
+  if (filtroId === 'mes') {
+    return [...vistos.entries()]
+      .sort((a, b) => mesOrdenavel(a[0]).localeCompare(mesOrdenavel(b[0])))
+      .map(([m, pares]) => ({ id: m, label: mesPorExtenso(m), extra: formatarNumero(pares) + ' pares' }));
+  }
+
+  const rotulo = (v) => {
+    if (filtroId === 'familia') return APP.familias[v];
+    if (filtroId === 'cliente') { const [cod, nome] = APP.dic.cli[v]; return `${nome} · ${cod}`; }
+    if (filtroId === 'preposto') return APP.dic.prep[v];
+    if (filtroId === 'marca') return APP.dic.marca[v];
+    if (filtroId === 'fabrica') return APP.dic.fab[v];
+    if (filtroId === 'filial') return APP.dic.fil[v];
+    if (filtroId === 'oc') return APP.dic.oc[v];
+    return String(v);
+  };
+
+  return [...vistos.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([v, pares]) => ({ id: v, label: rotulo(v), extra: formatarNumero(pares) + ' pares' }));
+}
+
+/* ---------- condições comerciais do repasse ----------
+   Vindas do catálogo digital (index.html da raiz): PRAZOS é o
+   `ORDER_PAYMENT_OPTIONS` e CAMPANHAS é o select `oxCampaign`. Se lá
+   mudar, muda aqui — são duas listas soltas, não há fonte comum.
+
+   Z01-Z17 têm uma duplicata, Z18-Z28 duas, Z29-Z35 três. */
+
+const PRAZOS = [
+  'Z01 - A VISTA',
+  'Z02 - 14 D', 'Z03 - 21 D', 'Z04 - 28 D', 'Z05 - 35 D', 'Z06 - 42 D',
+  'Z07 - 49 D', 'Z08 - 56 D', 'Z09 - 63 D', 'Z10 - 70 D', 'Z11 - 77 D',
+  'Z12 - 84 D', 'Z13 - 91 D', 'Z14 - 98 D', 'Z15 - 105 D', 'Z16 - 112 D',
+  'Z17 - 119 D',
+  'Z18 - 21/49 D', 'Z19 - 28/56 D', 'Z20 - 35/63 D', 'Z21 - 42/70 D',
+  'Z22 - 49/77 D', 'Z23 - 56/84 D', 'Z24 - 63/91 D', 'Z25 - 70/98 D',
+  'Z26 - 77/105 D', 'Z27 - 84/112 D', 'Z28 - 91/119 D',
+  'Z29 - 21/49/77 D', 'Z30 - 28/56/84 D', 'Z31 - 35/63/91 D',
+  'Z32 - 42/70/98 D', 'Z33 - 49/77/105 D', 'Z34 - 56/84/112 D',
+  'Z35 - 63/91/119 D',
+];
+
+const CAMPANHAS = [
+  { id: 'CO681 +28DD OLY', marca: 'OLY' },
+  { id: 'CO689 +56DD OLY', marca: 'OLY' },
+  { id: 'CO684 +28DD UA',  marca: 'UA'  },
+  { id: 'CO690 +56DD UA',  marca: 'UA'  },
+];
+
+/** Só as campanhas da marca do produto: a lista mistura OLY e UA, e
+ *  escolher a campanha da marca errada é erro fácil de cometer e chato de
+ *  descobrir depois. Marca desconhecida mostra todas. */
+function campanhasDaLinha(r) {
+  const marca = String(APP.dic.marca[r[C.MARCA]] || '').toUpperCase();
+  const ua = marca.includes('UA');
+  const oly = marca.includes('OLY');
+  if (ua === oly) return CAMPANHAS;                 // nenhuma ou as duas
+  return CAMPANHAS.filter(c => (c.marca === 'UA') === ua);
+}
+
+const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', familia: 'Produto', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês',
+  repOrigem: 'Cliente', repDestino: 'Destino', repEstado: 'Situação' };
+
+// O popover é fixo e vive no <body>, para nunca ser cortado pela barra de filtros.
+function posicionarPopover(pop, btnEl) {
+  const r = btnEl.getBoundingClientRect();
+  const largura = Math.min(300, window.innerWidth - 24);
+  pop.style.width = largura + 'px';
+
+  let left = r.left;
+  if (left + largura > window.innerWidth - 12) left = window.innerWidth - largura - 12;
+  pop.style.left = Math.max(12, left) + 'px';
+
+  const abaixo = window.innerHeight - r.bottom - 16;
+  const acima = r.top - 16;
+  if (abaixo < 200 && acima > abaixo) {
+    pop.style.top = 'auto';
+    pop.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+    pop.style.maxHeight = Math.min(360, acima) + 'px';
+  } else {
+    pop.style.bottom = 'auto';
+    pop.style.top = (r.bottom + 6) + 'px';
+    pop.style.maxHeight = Math.min(360, Math.max(160, abaixo)) + 'px';
+  }
+}
+
+function abrirPopoverFiltro(filtroId, btnEl) {
+  const jaEra = APP.popoverAberto === filtroId;
+  fecharTodosPopovers();
+  if (jaEra) return;
+  APP.popoverAberto = filtroId;
+
+  const unico = filtroId === 'ordem' || filtroId === 'repQuando';
+  const ehOrdem = unico;
+  const sel = unico ? null : APP.filtros[filtroId];
+  const opcoes = opcoesDoFiltro(filtroId);
+  const comBusca = opcoes.length > 12;
+
+  const pop = document.createElement('div');
+  pop.className = 'filter-popover show';
+
+  const marcada = (o) => filtroId === 'ordem' ? o.id === APP.ordem
+    : filtroId === 'repQuando' ? o.id === APP.repQuando
+    : sel.has(o.id);
+  const opcoesHtml = (lista) => lista.map(o => {
+    const on = marcada(o);
+    return `
+    <button class="filter-option ${on ? 'active' : ''}" data-valor="${escAttr(o.id)}">
+      <i class="check fa-${on ? 'solid fa-square-check' : 'regular fa-square'}"></i>
+      <span class="fo-label">${escHtml(o.label)}</span>
+      ${o.extra ? `<span class="fo-extra">${escHtml(o.extra)}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  const desenhar = (termo = '') => {
+    const t = normalizar(termo.trim());
+    const lista = t ? opcoes.filter(o => normalizar(o.label).includes(t)) : opcoes;
+    pop.querySelector('.fp-lista').innerHTML = lista.length
+      ? opcoesHtml(lista)
+      : `<p class="fp-vazio">Nada encontrado</p>`;
+    const cont = pop.querySelector('.fp-contador');
+    if (cont) cont.textContent = sel.size ? `${sel.size} marcado${sel.size > 1 ? 's' : ''}` : 'nenhum marcado';
+  };
+
+  pop.innerHTML =
+    (ehOrdem ? '' : `<div class="fp-topo"><span class="fp-contador"></span><button class="fp-limpar">Limpar</button></div>`) +
+    (comBusca ? `<div class="fp-busca"><input type="search" placeholder="Filtrar…" autocomplete="off"></div>` : '') +
+    `<div class="fp-lista"></div>`;
+
+  document.body.appendChild(pop);
+  posicionarPopover(pop, btnEl);
+  $('filter-backdrop').classList.add('show');
+  desenhar();
+
+  const reaplicar = () => {
+    APP.pagina = 1;
+    APP.abertos.clear();
+    render();
+  };
+
+  pop.addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    if (e.target.closest('.fp-limpar')) {
+      sel.clear();
+      desenhar(pop.querySelector('.fp-busca input')?.value || '');
+      reaplicar();
+      return;
+    }
+
+    const opt = e.target.closest('.filter-option');
+    if (!opt) return;
+    const bruto = opt.dataset.valor;
+
+    if (unico) {
+      if (filtroId === 'repQuando') {
+        APP.repQuando = bruto;
+        $('repQuando-label').textContent =
+          (OPCOES_QUANDO.find(o => o.id === bruto) || {}).label || 'Quando';
+      } else {
+        APP.ordem = bruto;
+        $('ordem-label').textContent = (OPCOES_ORDEM.find(o => o.id === bruto) || {}).label || '';
+      }
+      fecharTodosPopovers();
+      reaplicar();
+      return;
+    }
+
+    // Multi-seleção: marca e desmarca sem fechar, pra escolher vários de uma vez.
+    // Nos filtros de repasse o id é texto (código de cliente, nome do estado);
+    // nos de produto é o índice no dicionário.
+    const valor = (filtroId === 'mes' || filtroId.startsWith('rep')) ? bruto : Number(bruto);
+    if (sel.has(valor)) sel.delete(valor); else sel.add(valor);
+    desenhar(pop.querySelector('.fp-busca input')?.value || '');
+    reaplicar();
+  });
+
+  if (comBusca) {
+    const inp = pop.querySelector('.fp-busca input');
+    inp.addEventListener('input', () => desenhar(inp.value));
+    inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { if (inp.value) { inp.value = ''; desenhar(''); } else fecharTodosPopovers(); }
+    });
+    inp.focus();
+  }
+}
+
+function fecharTodosPopovers() {
+  document.querySelectorAll('.filter-popover').forEach(p => p.remove());
+  $('filter-backdrop').classList.remove('show');
+  APP.popoverAberto = null;
+}
+
+/** A barra de filtros muda com a tela: os de produto não valem na revisão
+ *  de repasses, e ficavam à mostra sem fazer nada. */
+function trocarBarraDeFiltros() {
+  const naRevisao = APP.status === 'REPASSADO';
+  const rep = $('filter-row-rep');
+  if (rep) rep.style.display = naRevisao ? '' : 'none';
+  const prod = $('filter-row');
+  if (prod) prod.style.display = (APP.status === 'PEND' || naRevisao) ? 'none' : '';
+}
+
+function atualizarBotoesFiltros() {
+  trocarBarraDeFiltros();
+  const rotulos = {
+    cliente:  v => APP.dic.cli[v][1],
+    preposto: v => APP.dic.prep[v],
+    familia:  v => APP.familias[v],
+    marca:    v => APP.dic.marca[v],
+    fabrica:  v => APP.dic.fab[v],
+    filial:   v => APP.dic.fil[v],
+    oc:       v => APP.dic.oc[v],
+    mes:      v => mesPorExtenso(v),
+    repEstado: v => (OPCOES_ESTADO.find(o => o.id === v) || {}).label || v,
+    repOrigem: v => nomeDeCliente(v),
+    repDestino: v => nomeDeCliente(v),
+  };
+  let algum = false, algumRep = false;
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    const id = btn.dataset.filter;
+    if (id === 'ordem' || id === 'repQuando') return;
+    const sel = APP.filtros[id];
+    const span = btn.querySelector('span');
+    btn.classList.toggle('active', sel.size > 0);
+    if (sel.size) { if (id.startsWith('rep')) algumRep = true; else algum = true; }
+    // 1 marcado mostra o nome; vários mostram a contagem.
+    span.textContent = sel.size === 0 ? NOME_FILTRO[id]
+      : sel.size === 1 ? rotulos[id]([...sel][0])
+      : `${NOME_FILTRO[id]} · ${sel.size}`;
+  });
+  $('btn-limpar-filtros').classList.toggle('show', algum || !!APP.busca);
+  const lr = $('btn-limpar-rep');
+  if (lr) lr.classList.toggle('show', algumRep || APP.repQuando !== 'tudo' || !!APP.busca);
+  const rq = $('repQuando-label');
+  if (rq) rq.textContent = (OPCOES_QUANDO.find(o => o.id === APP.repQuando) || {}).label || 'Quando';
+  const chipQ = document.querySelector('.filter-chip[data-filter="repQuando"]');
+  if (chipQ) chipQ.classList.toggle('active', APP.repQuando !== 'tudo');
+}
+
+/** Nome do cliente pelo código, venha da Detalhada ou de um repasse. */
+function nomeDeCliente(cod) {
+  const i = APP.dic ? APP.dic.cli.findIndex(c => c[0] === cod) : -1;
+  if (i >= 0) return APP.dic.cli[i][1];
+  for (const [, reg] of Object.entries(APP.acoes)) {
+    const d = ((reg.repasse && reg.repasse.destinos) || []).find(x => x.codigo === cod);
+    if (d) return d.nome;
+  }
+  return cod;
+}
+
+function limparFiltrosRepasse() {
+  APP.filtros.repOrigem.clear();
+  APP.filtros.repDestino.clear();
+  APP.filtros.repEstado.clear();
+  APP.repQuando = 'tudo';
+  APP.busca = '';
+  const inp = $('busca');
+  if (inp) { inp.value = ''; $('search-wrap').classList.remove('has-value'); }
+  fecharTodosPopovers();
+  render();
+}
+
+function limparFiltros() {
+  for (const s of Object.values(APP.filtros)) s.clear();
+  APP.repQuando = 'tudo';
+  APP.busca = '';
+  const inp = $('busca');
+  if (inp) { inp.value = ''; $('search-wrap').classList.remove('has-value'); }
+  APP.pagina = 1;
+  APP.abertos.clear();
+  fecharTodosPopovers();
+  if (APP.base) render();
+}
+
+/* ============================================================
+   CAMPO DE BUSCA COM X E ESC (igual ao app da Carteira)
+   ============================================================ */
+function configurarBuscaComX(inputId, wrapId, onChange) {
+  const input = $(inputId), wrap = $(wrapId);
+  const btn = wrap.querySelector('.search-clear');
+  const sync = () => wrap.classList.toggle('has-value', !!input.value);
+  input.addEventListener('input', () => { sync(); onChange(input.value); });
+  input.addEventListener('keydown', (e) => {
+    // ESC limpa mas mantém o foco, pra poder digitar de novo na hora.
+    if (e.key === 'Escape') { e.stopPropagation(); input.value = ''; sync(); onChange(''); }
+  });
+  btn.addEventListener('click', () => { input.value = ''; sync(); onChange(''); input.focus(); });
+  sync();
+}
+
+/* ============================================================
+   ADMIN — lê o XLSX e monta a base compacta
+   ============================================================ */
+function acharColuna(row, nome) {
+  const alvo = normalizar(nome);
+  for (const k of Object.keys(row)) if (normalizar(k) === alvo) return k;
+  return null;
+}
+
+function dataParaDias(v) {
+  if (v == null || v === '') return -1;
+  if (v instanceof Date) return Math.floor(Date.UTC(v.getFullYear(), v.getMonth(), v.getDate()) / 86400000);
+  if (typeof v === 'number') return Math.round(v - 25569); // serial do Excel
+  const s = String(v).trim();
+  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return Math.floor(Date.UTC(+m[3], +m[2] - 1, +m[1]) / 86400000);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000);
+  return -1;
+}
+
+function montarBase(rows, nomeArquivo) {
+  const dicPrep = [], dicMarca = [], dicFab = [], dicFil = [], dicCor = [], dicOc = [];
+  const dicCli = [], dicRef = [];
+  const iPrep = new Map(), iMarca = new Map(), iFab = new Map(), iFil = new Map(), iCor = new Map(), iOc = new Map();
+  const iCli = new Map(), iRef = new Map();
+
+  const idxSimples = (mapa, lista, v) => {
+    let i = mapa.get(v);
+    if (i === undefined) { i = lista.length; lista.push(v); mapa.set(v, i); }
+    return i;
+  };
+
+  const K = {};
+  for (const nome of COLUNAS_XLSX) K[nome] = acharColuna(rows[0] || {}, nome);
+  const faltando = COLUNAS_XLSX.filter(n => !K[n] && n !== 'PORTA');
+
+  const linhas = [];
+  const avisos = [];
+  const prepostosDesconhecidos = new Set();
+  let descartadas = 0, semData = 0;
+
+  for (const row of rows) {
+    const bruto = String(row[K['PREPOSTO']] ?? '').trim().toUpperCase();
+    const preposto = PREPOSTO_MAP[bruto] || bruto;
+    const referencia = String(row[K['REFERENCIA']] ?? '').trim();
+    const cor = String(row[K['COR']] ?? '').trim();
+    const codigo = String(row[K['CODIGO']] ?? '').trim();
+    if (!preposto || !referencia || !cor || !codigo) { descartadas++; continue; }
+
+    if (!PREPOSTOS.some(p => p.nome === preposto)) prepostosDesconhecidos.add(preposto);
+
+    const cart = Number(row[K['CART']] || 0) || 0;
+    const fat = Number(row[K['FAT']] || 0) || 0;
+    if (!cart && !fat) { descartadas++; continue; }
+
+    const prev = dataParaDias(row[K['PREV FAT']]);
+    const dfat = dataParaDias(row[K['DATA FAT']]);
+    if (prev < 0 && dfat < 0) semData++;
+
+    // cliente: código manda, o nome fantasia acompanha
+    let ci = iCli.get(codigo);
+    if (ci === undefined) { ci = dicCli.length; dicCli.push([codigo, String(row[K['NOME FANTASIA']] ?? '').trim()]); iCli.set(codigo, ci); }
+
+    let ri = iRef.get(referencia);
+    if (ri === undefined) { ri = dicRef.length; dicRef.push([referencia, String(row[K['DESCRICAO']] ?? '').trim()]); iRef.set(referencia, ri); }
+
+    const ocBruta = String(row[K['OC']] ?? '').trim();
+
+    linhas.push([
+      idxSimples(iPrep, dicPrep, preposto),
+      ci,
+      idxSimples(iMarca, dicMarca, String(row[K['MARCA']] ?? '').trim()),
+      idxSimples(iFab, dicFab, String(row[K['FABRICA']] ?? '').trim()),
+      idxSimples(iFil, dicFil, String(row[K['FILIAL']] ?? '').trim()),
+      ri,
+      idxSimples(iCor, dicCor, cor),
+      Number(row[K['GCI']] || 0) || 0,
+      Number(row[K['NF']] || 0) || 0,
+      ocBruta ? idxSimples(iOc, dicOc, ocBruta) : -1,
+      prev,
+      cart,
+      fat,
+      dfat,
+    ]);
+  }
+
+  if (faltando.length) avisos.push({ tipo: 'erro', texto: `Coluna não encontrada: ${faltando.join(', ')}` });
+  if (descartadas) avisos.push({ tipo: 'aviso', texto: `${formatarNumero(descartadas)} linha(s) ignorada(s) por estarem incompletas ou zeradas.` });
+  if (semData) avisos.push({ tipo: 'aviso', texto: `${formatarNumero(semData)} linha(s) sem PREV FAT e sem DATA FAT — não aparecem no filtro de mês.` });
+  if (prepostosDesconhecidos.size) avisos.push({ tipo: 'aviso', texto: `Preposto fora da lista de login: ${[...prepostosDesconhecidos].join(', ')}. As linhas entram na base, mas só o admin as vê.` });
+
+  // A data da base é a maior DATA FAT vista (o dia em que o relatório foi tirado)
+  let dataDia = -1;
+  for (const l of linhas) if (l[C.DFAT] > dataDia) dataDia = l[C.DFAT];
+  if (dataDia < 0) dataDia = hojeEmDias();
+
+  return {
+    base: {
+      v: VERSAO_BASE,
+      gerado: new Date().toISOString(),
+      origem: nomeArquivo,
+      dataDia,
+      dic: { prep: dicPrep, cli: dicCli, marca: dicMarca, fab: dicFab, fil: dicFil, ref: dicRef, cor: dicCor, oc: dicOc },
+      l: linhas,
+    },
+    avisos,
+  };
+}
+
+async function importarXLSX(file) {
+  if (typeof XLSX === 'undefined') {
+    toast('Biblioteca de planilha não carregou (xlsx.full.min.js).');
+    return;
+  }
+  $('admin-barra').classList.add('show');
+  $('admin-resultado').innerHTML = '';
+  $('admin-card-publicar').style.display = 'none';
+
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const nomeAba = wb.SheetNames.find(n => /DETALHADA/i.test(n)) || wb.SheetNames[0];
+    // O cabeçalho está na linha 2 da planilha (a 1 vem em branco).
+    const ws = wb.Sheets[nomeAba];
+    let rows = XLSX.utils.sheet_to_json(ws, { defval: null, range: 1 });
+    if (rows.length && !acharColuna(rows[0], 'PREPOSTO')) {
+      rows = XLSX.utils.sheet_to_json(ws, { defval: null });   // cabeçalho já na linha 1
+    }
+    if (!rows.length) { throw new Error('A aba está vazia'); }
+
+    const { base, avisos } = montarBase(rows, file.name);
+    if (!base.l.length) { throw new Error('Nenhuma linha aproveitável'); }
+
+    APP.baseNova = base;
+    instalarBase(base);
+    await cacheSalvar(base);
+
+    const totCart = base.l.reduce((s, l) => s + l[C.CART], 0);
+    const totFat = base.l.reduce((s, l) => s + l[C.FAT], 0);
+    const emCarteira = base.l.filter(l => l[C.CART] > 0).length;
+
+    const erro = avisos.some(a => a.tipo === 'erro');
+    $('admin-resultado').innerHTML = `
+      <div class="admin-resumo" style="margin-top:18px;">
+        <div class="ar-item"><div class="v">${formatarNumero(base.l.length)}</div><div class="l">linhas</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(emCarteira)}</div><div class="l">em carteira</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(totCart)}</div><div class="l">pares carteira</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(totFat)}</div><div class="l">pares faturados</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(base.dic.cli.length)}</div><div class="l">clientes</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(base.dic.ref.length)}</div><div class="l">referências</div></div>
+      </div>
+      <div class="admin-avisos">
+        <div class="admin-aviso ok"><i class="fa-solid fa-circle-check"></i><span>Base lida e já valendo neste aparelho · relatório de <strong>${diaParaBR(base.dataDia)}</strong>.</span></div>
+        ${avisos.map(a => `<div class="admin-aviso"><i class="fa-solid ${a.tipo === 'erro' ? 'fa-circle-exclamation' : 'fa-triangle-exclamation'}"></i><span>${escHtml(a.texto)}</span></div>`).join('')}
+      </div>`;
+
+    if (!erro) $('admin-card-publicar').style.display = '';
+    atualizarFonteInfo();
+    toast(`${formatarNumero(base.l.length)} linhas importadas`);
+  } catch (e) {
+    console.error(e);
+    $('admin-resultado').innerHTML = `
+      <div class="admin-avisos"><div class="admin-aviso"><i class="fa-solid fa-circle-exclamation"></i><span>Não consegui ler o arquivo: ${escHtml(e.message || e)}</span></div></div>`;
+  } finally {
+    $('admin-barra').classList.remove('show');
+  }
+}
+
+function baixarBase() {
+  if (!APP.baseNova) return;
+  const txt = JSON.stringify(APP.baseNova);
+  const blob = new Blob([txt], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'detalhada.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast(`detalhada.json gerado · ${(blob.size / 1048576).toFixed(1)} MB`);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  aplicarTema();
+  popularPrepostos();
+  ligarLista();
+  ligarModalDestino();
+  configurarCopiaAoSelecionar();
+  ligarRespostaPdf();
+
+  $('btn-selecao').addEventListener('click', alternarModoSelecao);
+  $('bs-tudo').addEventListener('click', marcarTudoFiltrado);
+  $('bs-limpar').addEventListener('click', () => {
+    APP.selecao.clear(); render(); renderBarraSelecao();
+  });
+  $('bs-gerar').addEventListener('click', gerarSelecionados);
+
+  $('lista').addEventListener('change', (e) => {
+    const chk = e.target.closest('.sel-chk');
+    if (!chk) return;
+    if (chk.dataset.sellinha != null) marcarLinha(Number(chk.dataset.sellinha), chk.checked);
+    else if (chk.dataset.selgrupo != null) marcarGrupo(Number(chk.dataset.selgrupo), chk.checked);
+    render();
+    renderBarraSelecao();
+  });
+  carregarAcoes();
+
+  // O local abre a tela; a rede só complementa depois. Assim o app não
+  // fica refém do worker para funcionar.
+  baixarAcoes().then(novas => {
+    if (novas) { renderStatusChips(); if (APP.base) render(); }
+  });
+
+  // Sair com marca pendente perderia o envio agendado. `visibilitychange`
+  // é o gancho que sobrevive ao fechamento em celular, onde `beforeunload`
+  // muitas vezes nem dispara.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') enviarAcoes();
+  });
+  window.addEventListener('beforeunload', () => { enviarAcoes(); });
+
+  $('btn-login').addEventListener('click', entrar);
+  $('login-preposto').addEventListener('change', () => $('login-error').classList.remove('show'));
+  $('btn-tema').addEventListener('click', toggleTema);
+  $('btn-tema-2').addEventListener('click', toggleTema);
+  $('btn-sair').addEventListener('click', logout);
+
+  let buscaTimer;
+  configurarBuscaComX('busca', 'search-wrap', (val) => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => {
+      APP.busca = val;
+      APP.pagina = 1;
+      APP.abertos.clear();
+      render();
+    }, 200);
+  });
+
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); abrirPopoverFiltro(btn.dataset.filter, btn); });
+  });
+  $('btn-limpar-filtros').addEventListener('click', limparFiltros);
+  $('btn-limpar-rep').addEventListener('click', limparFiltrosRepasse);
+  $('filter-backdrop').addEventListener('click', fecharTodosPopovers);
+  // O popover é fixo e ancorado no botão: rolar a página ou redimensionar o
+  // desencaixa. Rolar a lista de opções dentro dele não conta.
+  window.addEventListener('scroll', (e) => {
+    if (!APP.popoverAberto) return;
+    if (e.target instanceof Element && e.target.closest('.filter-popover')) return;
+    fecharTodosPopovers();
+  }, true);
+  window.addEventListener('resize', () => {
+    if (APP.popoverAberto) fecharTodosPopovers();
+    atualizarVeuRolagem();
+  });
+  $('tb-rolagem').addEventListener('scroll', atualizarVeuRolagem);
+
+  $('btn-admin').addEventListener('click', () => { atualizarFonteInfo(); show('screen-admin'); });
+  $('btn-voltar-admin').addEventListener('click', () => { show('screen-produtos'); render(); });
+  $('file-xlsx').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) importarXLSX(f);
+    e.target.value = '';
+  });
+  const drop = $('admin-drop');
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) importarXLSX(f);
+  });
+  $('btn-baixar').addEventListener('click', baixarBase);
+
+  $('btn-atualizar').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.classList.add('girando');
+    // Junto com a base, traz o que o escritório mexeu: é aqui que o
+    // vendedor descobre que um repasse já foi enviado.
+    const [r, novas] = await Promise.all([carregarBase(), baixarAcoes()]);
+    btn.classList.remove('girando');
+    if (novas) { renderStatusChips(); if (APP.base) render(); }
+    if (r === 'nova') { APP.pagina = 1; APP.abertos.clear(); irParaProdutos(); toast('Base atualizada'); }
+    else if (novas) toast(`${novas} repasse(s) atualizado(s) pelo escritório`);
+    else if (r === 'igual') toast('Já está na versão mais recente');
+    else toast('Não consegui buscar a base');
+  });
+
+  $('zoom-close').addEventListener('click', fecharZoom);
+  $('zoom-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'zoom-modal' || e.target.id === 'zoom-img') fecharZoom();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if ($('modal-destino').classList.contains('show')) fecharModalDestino();
+    else if ($('zoom-modal').classList.contains('show')) fecharZoom();
+    else if (document.querySelector('.filter-popover')) fecharTodosPopovers();
+  });
+
+  // 1) cache local pra abrir rápido  2) base publicada por cima
+  const cache = await cacheLer();
+  if (cache && cache.v === VERSAO_BASE) instalarBase(cache);
+
+  const ses = localStorage.getItem(STORAGE.sessao);
+  if (ses) { try { APP.sessao = JSON.parse(ses); } catch {} }
+  if (APP.sessao && APP.base) irParaProdutos();
+
+  const r = await carregarBase({ silencioso: !!cache });
+  if (r === 'nova' && APP.sessao) irParaProdutos();
+  else if (APP.sessao && APP.base && document.querySelector('#screen-produtos.active')) render();
+  atualizarFonteInfo();
+});
+</script>
+
+</body>
+</html>
