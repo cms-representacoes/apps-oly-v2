@@ -2023,11 +2023,32 @@ function atualizarFonteInfo() {
     if (elAdmin) elAdmin.textContent = msg;
     return;
   }
-  const dias = hojeEmDias() - APP.base.dataDia;
-  const quando = dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`;
-  const txt = `Base de ${diaParaBR(APP.base.dataDia)} · ${quando} · ${formatarNumero(APP.L.length)} linhas`;
-  if (el) { el.textContent = txt; el.classList.toggle('velha', dias > 2); }
-  if (elLogin) { elLogin.textContent = txt; elLogin.classList.toggle('velha', dias > 2); }
+  // Duas datas diferentes, e confundi-las custou uma manhã de dúvida:
+  //   · `dataDia` é o último faturamento DENTRO dos dados. Numa segunda ele
+  //     aponta para sexta, porque não se fatura no fim de semana;
+  //   · `publicadoEm` é quando a base subiu — é isto que responde
+  //     "atualizou?".
+  // Mostrar só o primeiro fazia uma base recém-publicada parecer velha de
+  // três dias toda segunda-feira.
+  const publicado = APP.base.publicadoEm || APP.base.gerado;
+  const diasPub = publicado
+    ? Math.floor((Date.now() - new Date(publicado).getTime()) / 86400000)
+    : null;
+  const quandoPub = diasPub === null ? ''
+    : diasPub <= 0 ? 'hoje' : diasPub === 1 ? 'ontem' : `há ${diasPub} dias`;
+  const hora = publicado
+    ? new Date(publicado).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  const txt = publicado
+    ? `Publicada ${quandoPub}${diasPub <= 0 ? ' às ' + hora : ''} · ` +
+      `dados até ${diaParaBR(APP.base.dataDia)} · ${formatarNumero(APP.L.length)} linhas`
+    : `Base de ${diaParaBR(APP.base.dataDia)} · ${formatarNumero(APP.L.length)} linhas`;
+
+  // Velha é base que não foi PUBLICADA, não dado de fim de semana.
+  const velha = diasPub !== null && diasPub > 1;
+  if (el) { el.textContent = txt; el.classList.toggle('velha', velha); }
+  if (elLogin) { elLogin.textContent = txt; elLogin.classList.toggle('velha', velha); }
   if (elAdmin) elAdmin.textContent = txt;
 }
 
