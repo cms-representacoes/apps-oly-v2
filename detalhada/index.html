@@ -367,6 +367,37 @@
       align-items: center;
       flex-wrap: wrap;
     }
+
+    /* Numa tela estreita os filtros quebravam em quatro linhas e comiam
+       metade do espaço útil. Viram UMA linha que rola na horizontal — o
+       mesmo gesto da barra de cima, que já é assim. */
+    .filtros-caixa { position: relative; }
+
+    @media (max-width: 900px) {
+      .filtros-caixa .filter-row {
+        flex-wrap: nowrap;
+        overflow-x: auto; overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; -ms-overflow-style: none;
+        padding-bottom: 2px;
+      }
+      /* Sem isto o flex espreme os chips para caber, em vez de deixar
+         transbordar — e aí não há o que arrastar. */
+      .filtros-caixa .filter-row > * { flex: 0 0 auto; }
+      .filtros-caixa .filter-chip    { white-space: nowrap; }
+      .filtros-caixa .filter-row::-webkit-scrollbar { height: 0; display: none; }
+
+      /* Véus: dizem que ainda há filtro escondido de cada lado. */
+      .filtros-caixa::before,
+      .filtros-caixa::after {
+        content: ''; position: absolute; top: 0; bottom: 0; width: 24px;
+        pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 2;
+      }
+      .filtros-caixa::after  { right: 0; background: linear-gradient(90deg, transparent, var(--bg-2)); }
+      .filtros-caixa::before { left: 0;  background: linear-gradient(270deg, transparent, var(--bg-2)); }
+      .filtros-caixa.rolavel::after      { opacity: 1; }
+      .filtros-caixa.rolavel-esq::before { opacity: 1; }
+    }
     .filter-chip {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -753,13 +784,31 @@
     /* Topo da tela de produtos: nome, busca, chips e botões sempre na MESMA
        linha. Quando os chips não cabem, a faixa deles rola na horizontal em vez
        de quebrar — igual às faixas de chip do celular. */
-    .topbar-produtos { flex-wrap: wrap; gap: 10px 12px; }
-    .topbar-produtos .topbar-left       { order: 0; flex: 0 1 auto; min-width: 0; }
-    .topbar-produtos .topbar-left > div  { min-width: 0; }
-    .topbar-produtos .logo-text,
-    .topbar-produtos .logo-sub          { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .topbar-produtos .tb-ferramentas    { order: 1; flex: 1 1 0; min-width: 0; }
-    .topbar-produtos .topbar-actions    { order: 2; flex: 0 0 auto; }
+    /* Uma faixa só, rolando na horizontal, com o selo CMS ancorado à
+       esquerda. Antes cada pedaço disputava espaço e a barra quebrava em
+       três linhas numa tela estreita; agora nada quebra — o que não cabe
+       espera do lado, a um arrasto de distância. */
+    .topbar-produtos { flex-wrap: nowrap; gap: 10px; align-items: center; }
+    .topbar-produtos .tb-caixa { position: relative; flex: 1 1 0; min-width: 0; }
+    .tb-faixa {
+      display: flex; align-items: center; gap: 8px;
+      overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding: 2px 0;
+    }
+    .tb-faixa::-webkit-scrollbar { height: 0; display: none; }
+    /* Sem isto o flex espreme tudo para caber e não sobra o que arrastar. */
+    .tb-faixa > * { flex: 0 0 auto; }
+    .tb-titulo { min-width: 0; padding-right: 4px; }
+    .tb-titulo .logo-text,
+    .tb-titulo .logo-sub { white-space: nowrap; }
+    .tb-faixa .tipo-chips       { gap: 4px; flex-wrap: nowrap; }
+    .tb-faixa .tipo-chip        { padding: 5px 9px; font-size: 11.5px; white-space: nowrap; }
+    .tb-faixa .products-summary { gap: 4px; padding: 0; overflow: visible; flex-wrap: nowrap; }
+    .tb-faixa .summary-chip     { padding: 5px 8px; white-space: nowrap; }
+    .tb-faixa .search-wrap      { flex: 0 0 170px; }
+    .tb-faixa .topbar-actions   { gap: 6px; margin-left: 4px; }
 
     .tb-ferramentas {
       position: relative;
@@ -781,7 +830,17 @@
     .tb-rolagem .products-summary  { gap: 4px; padding: 0; overflow: visible; flex-wrap: nowrap; }
     .tb-rolagem .summary-chip      { padding: 5px 8px; white-space: nowrap; }
 
-    /* Véus nas bordas: avisam que ainda tem chip escondido de cada lado */
+    /* Véus nas bordas: avisam que ainda tem coisa escondida de cada lado */
+    .tb-caixa::before,
+    .tb-caixa::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 24px;
+      pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 2;
+    }
+    .tb-caixa::after  { right: 0; background: linear-gradient(90deg, transparent, var(--bg-1)); }
+    .tb-caixa::before { left: 0;  background: linear-gradient(270deg, transparent, var(--bg-1)); }
+    .tb-caixa.rolavel::after      { opacity: 1; }
+    .tb-caixa.rolavel-esq::before { opacity: 1; }
+
     .tb-ferramentas::before,
     .tb-ferramentas::after {
       content: ''; position: absolute; top: 0; bottom: 0; width: 26px;
@@ -1464,15 +1523,17 @@
   <div id="screen-produtos" class="screen">
 
     <div class="topbar topbar-produtos">
-      <div class="topbar-left">
-        <div class="logo-mark">CMS</div>
-        <div>
+      <!-- Único elemento fixo: o selo. Até o nome do relatório rola junto
+           com o resto — numa tela estreita ele é o que menos faz falta. -->
+      <div class="logo-mark">CMS</div>
+
+      <div class="tb-caixa">
+      <div class="tb-faixa" id="tb-faixa">
+        <div class="tb-titulo">
           <div class="logo-text">Detalhada</div>
           <div class="logo-sub" id="topbar-user">—</div>
         </div>
-      </div>
 
-      <div class="tb-ferramentas">
         <div class="search-wrap compacta" id="search-wrap">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
           <input
@@ -1487,14 +1548,10 @@
           </button>
         </div>
 
-        <!-- Rola na horizontal quando não cabe, como as faixas de chip do celular -->
-        <div class="tb-rolagem" id="tb-rolagem">
-          <div class="tipo-chips" id="status-chips"></div>
-          <div class="products-summary" id="summary"></div>
-        </div>
-      </div>
+        <div class="tipo-chips" id="status-chips"></div>
+        <div class="products-summary" id="summary"></div>
 
-      <div class="topbar-actions">
+        <div class="topbar-actions">
         <button class="btn-icon" id="btn-selecao" title="Selecionar encomendas para gerar PDF" style="display:none;">
           <i class="fa-solid fa-list-check"></i>
         </button>
@@ -1510,6 +1567,8 @@
         <button class="btn-icon" id="btn-sair" title="Sair">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -1518,7 +1577,8 @@
 
       <!-- Filtros da revisão de repasses. Os de produto não valem aqui:
            ficavam à mostra e não faziam nada. -->
-      <div class="filter-row" id="filter-row-rep" style="display:none;">
+      <div class="filtros-caixa" id="caixa-rep" style="display:none;">
+      <div class="filter-row" id="filter-row-rep">
         <div style="position:relative;">
           <button class="filter-chip" data-filter="repOrigem">
             <i class="fa-solid fa-store"></i>
@@ -1551,7 +1611,9 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+      </div>
 
+      <div class="filtros-caixa" id="caixa-prod">
       <div class="filter-row" id="filter-row">
         <div style="position:relative;">
           <button class="filter-chip" data-filter="cliente">
@@ -1619,6 +1681,7 @@
         <button class="filter-clear-btn" id="btn-limpar-filtros" title="Limpar filtros">
           <i class="fa-solid fa-xmark"></i>
         </button>
+      </div>
       </div>
 
     </div>
@@ -2291,13 +2354,19 @@ function marcasDeRepasse() {
 }
 
 // Mostra o véu da direita só quando existe chip fora da vista.
-function atualizarVeuRolagem() {
-  const rol = $('tb-rolagem');
+function veuDe(rol) {
   if (!rol) return;
-  const fer = rol.parentElement;
+  const caixa = rol.parentElement;
+  if (!caixa) return;
   const sobra = rol.scrollWidth - rol.scrollLeft - rol.clientWidth;
-  fer.classList.toggle('rolavel', sobra > 2);
-  fer.classList.toggle('rolavel-esq', rol.scrollLeft > 2);
+  caixa.classList.toggle('rolavel', sobra > 2);
+  caixa.classList.toggle('rolavel-esq', rol.scrollLeft > 2);
+}
+
+function atualizarVeuRolagem() {
+  veuDe($('tb-faixa'));
+  veuDe($('filter-row'));
+  veuDe($('filter-row-rep'));
 }
 
 function renderStatusChips() {
@@ -4384,9 +4453,9 @@ function fecharTodosPopovers() {
  *  de repasses, e ficavam à mostra sem fazer nada. */
 function trocarBarraDeFiltros() {
   const naRevisao = APP.status === 'REPASSADO';
-  const rep = $('filter-row-rep');
+  const rep = $('caixa-rep');
   if (rep) rep.style.display = naRevisao ? '' : 'none';
-  const prod = $('filter-row');
+  const prod = $('caixa-prod');
   if (prod) prod.style.display = (APP.status === 'PEND' || naRevisao) ? 'none' : '';
 }
 
