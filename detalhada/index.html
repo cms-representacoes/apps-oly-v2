@@ -810,26 +810,6 @@
     .tb-faixa .search-wrap      { flex: 0 0 170px; }
     .tb-faixa .topbar-actions   { gap: 6px; margin-left: 4px; }
 
-    .tb-ferramentas {
-      position: relative;
-      display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0;
-    }
-    .tb-ferramentas .search-wrap { flex: 0 0 170px; }
-
-    .tb-rolagem {
-      flex: 1 1 0; min-width: 0;
-      display: flex; align-items: center; gap: 7px;
-      overflow-x: auto; overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; -ms-overflow-style: none;
-    }
-    .tb-rolagem::-webkit-scrollbar { height: 0; display: none; }
-    .tb-rolagem > *                { flex: 0 0 auto; margin: 0; }
-    .tb-rolagem .tipo-chips        { gap: 4px; flex-wrap: nowrap; }
-    .tb-rolagem .tipo-chip         { padding: 5px 9px; font-size: 11.5px; white-space: nowrap; }
-    .tb-rolagem .products-summary  { gap: 4px; padding: 0; overflow: visible; flex-wrap: nowrap; }
-    .tb-rolagem .summary-chip      { padding: 5px 8px; white-space: nowrap; }
-
     /* Véus nas bordas: avisam que ainda tem coisa escondida de cada lado */
     .tb-caixa::before,
     .tb-caixa::after {
@@ -840,33 +820,10 @@
     .tb-caixa::before { left: 0;  background: linear-gradient(270deg, transparent, var(--bg-1)); }
     .tb-caixa.rolavel::after      { opacity: 1; }
     .tb-caixa.rolavel-esq::before { opacity: 1; }
-
-    .tb-ferramentas::before,
-    .tb-ferramentas::after {
-      content: ''; position: absolute; top: 0; bottom: 0; width: 26px;
-      pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 1;
-    }
-    .tb-ferramentas::after {
-      right: 0; background: linear-gradient(90deg, transparent, var(--bg-1));
-    }
-    .tb-ferramentas::before {
-      /* começa onde a busca termina, não na borda do bloco */
-      left: 178px; background: linear-gradient(270deg, transparent, var(--bg-1));
-    }
-    .tb-ferramentas.rolavel::after       { opacity: 1; }
-    .tb-ferramentas.rolavel-esq::before  { opacity: 1; }
-    @media (max-width: 480px) { .tb-ferramentas::before { left: 148px; } }
-
-    @media (max-width: 900px) {
-      /* Estreito: nome e botões em cima, ferramentas na faixa de baixo */
-      .topbar-produtos .topbar-left    { flex: 1 1 auto; }
-      .topbar-produtos .topbar-actions { order: 1; }
-      .topbar-produtos .tb-ferramentas { order: 2; flex: 1 1 100%; }
-    }
     @media (max-width: 480px) {
       .topbar-produtos .topbar-actions { gap: 4px; }
       .topbar-produtos .btn-icon { width: 34px; height: 34px; }
-      .tb-ferramentas .search-wrap { flex: 0 0 140px; }
+      .tb-faixa .search-wrap { flex: 0 0 140px; }
     }
 
     .search-wrap.compacta input {
@@ -1923,6 +1880,17 @@ const APP = {
    HELPERS
    ============================================================ */
 function $(id) { return document.getElementById(id); }
+
+// Liga um evento sem reter o resto como refem. Antes, um id renomeado numa
+// mexida de layout estourava no meio da inicializacao e tudo que vinha
+// depois - inclusive o carregamento da base - nunca rodava. Agora o botao
+// perdido some sozinho e avisa no console.
+function ligar(id, evento, fn) {
+  const el = document.getElementById(id);
+  if (!el) { console.warn('[detalhada] elemento ausente: #' + id + ' (' + evento + ')'); return false; }
+  el.addEventListener(evento, fn);
+  return true;
+}
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
@@ -3594,10 +3562,10 @@ function naListaDeRepasses() {
 }
 
 function ligarModalDestino() {
-  $('md-fechar').addEventListener('click', fecharModalDestino);
+  ligar('md-fechar', 'click', fecharModalDestino);
   // Prazo e campanha por destino. O último escolhido vira o padrão do
   // próximo, senão marcar várias lojas custa repetir a mesma escolha.
-  $('md-corpo').addEventListener('change', (e) => {
+  ligar('md-corpo', 'change', (e) => {
     const sel = e.target.closest('.dest-cond select');
     if (!sel) return;
     e.stopPropagation();
@@ -3611,26 +3579,26 @@ function ligarModalDestino() {
     atualizarRodapeModal();
   });
 
-  $('modal-destino').addEventListener('click', (e) => {
+  ligar('modal-destino', 'click', (e) => {
     if (e.target.id === 'modal-destino') fecharModalDestino();
   });
-  $('md-confirmar').addEventListener('click', confirmarDestino);
-  $('md-limpar').addEventListener('click', () => {
+  ligar('md-confirmar', 'click', confirmarDestino);
+  ligar('md-limpar', 'click', () => {
     APP.md.sel = {};
     renderModalDestino();
   });
 
   let t;
-  $('md-busca').addEventListener('input', (e) => {
+  ligar('md-busca', 'input', (e) => {
     clearTimeout(t);
     t = setTimeout(() => { APP.md.busca = e.target.value; renderModalDestino(); }, 180);
   });
-  $('md-busca').addEventListener('keydown', (e) => {
+  ligar('md-busca', 'keydown', (e) => {
     e.stopPropagation();
     if (e.key === 'Escape') { e.target.value = ''; APP.md.busca = ''; renderModalDestino(); }
   });
 
-  $('md-caixa').addEventListener('click', (e) => {
+  ligar('md-caixa', 'click', (e) => {
     const b = e.target.closest('[data-caixa]');
     if (!b) return;
     APP.md.caixa = Number(b.dataset.caixa);
@@ -3638,14 +3606,14 @@ function ligarModalDestino() {
     renderModalDestino();
   });
 
-  $('md-escopo').addEventListener('click', (e) => {
+  ligar('md-escopo', 'click', (e) => {
     const b = e.target.closest('[data-escopo]');
     if (!b) return;
     APP.md.escopo = b.dataset.escopo;
     renderModalDestino();
   });
 
-  $('md-corpo').addEventListener('click', (e) => {
+  ligar('md-corpo', 'click', (e) => {
     const m = APP.md;
     const passo = e.target.closest('[data-passo]');
     if (passo) {
@@ -4057,7 +4025,7 @@ function configurarCopiaAoSelecionar() {
    INTERAÇÃO DA LISTA
    ============================================================ */
 function ligarLista() {
-  $('lista').addEventListener('click', (e) => {
+  ligar('lista', 'click', (e) => {
     const btnTudo = e.target.closest('[data-vertudo]');
     if (btnTudo) {
       e.stopPropagation();
@@ -4745,14 +4713,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   configurarCopiaAoSelecionar();
   ligarRespostaPdf();
 
-  $('btn-selecao').addEventListener('click', alternarModoSelecao);
-  $('bs-tudo').addEventListener('click', marcarTudoFiltrado);
-  $('bs-limpar').addEventListener('click', () => {
+  ligar('btn-selecao', 'click', alternarModoSelecao);
+  ligar('bs-tudo', 'click', marcarTudoFiltrado);
+  ligar('bs-limpar', 'click', () => {
     APP.selecao.clear(); render(); renderBarraSelecao();
   });
-  $('bs-gerar').addEventListener('click', gerarSelecionados);
+  ligar('bs-gerar', 'click', gerarSelecionados);
 
-  $('lista').addEventListener('change', (e) => {
+  ligar('lista', 'change', (e) => {
     const chk = e.target.closest('.sel-chk');
     if (!chk) return;
     if (chk.dataset.sellinha != null) marcarLinha(Number(chk.dataset.sellinha), chk.checked);
@@ -4776,11 +4744,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   window.addEventListener('beforeunload', () => { enviarAcoes(); });
 
-  $('btn-login').addEventListener('click', entrar);
-  $('login-preposto').addEventListener('change', () => $('login-error').classList.remove('show'));
-  $('btn-tema').addEventListener('click', toggleTema);
-  $('btn-tema-2').addEventListener('click', toggleTema);
-  $('btn-sair').addEventListener('click', logout);
+  ligar('btn-login', 'click', entrar);
+  ligar('login-preposto', 'change', () => $('login-error').classList.remove('show'));
+  ligar('btn-tema', 'click', toggleTema);
+  ligar('btn-tema-2', 'click', toggleTema);
+  ligar('btn-sair', 'click', logout);
 
   let buscaTimer;
   configurarBuscaComX('busca', 'search-wrap', (val) => {
@@ -4796,9 +4764,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); abrirPopoverFiltro(btn.dataset.filter, btn); });
   });
-  $('btn-limpar-filtros').addEventListener('click', limparFiltros);
-  $('btn-limpar-rep').addEventListener('click', limparFiltrosRepasse);
-  $('filter-backdrop').addEventListener('click', fecharTodosPopovers);
+  ligar('btn-limpar-filtros', 'click', limparFiltros);
+  ligar('btn-limpar-rep', 'click', limparFiltrosRepasse);
+  ligar('filter-backdrop', 'click', fecharTodosPopovers);
   // O popover é fixo e ancorado no botão: rolar a página ou redimensionar o
   // desencaixa. Rolar a lista de opções dentro dele não conta.
   window.addEventListener('scroll', (e) => {
@@ -4810,11 +4778,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (APP.popoverAberto) fecharTodosPopovers();
     atualizarVeuRolagem();
   });
-  $('tb-rolagem').addEventListener('scroll', atualizarVeuRolagem);
+  ligar('tb-faixa', 'scroll', atualizarVeuRolagem);
 
-  $('btn-admin').addEventListener('click', () => { atualizarFonteInfo(); show('screen-admin'); });
-  $('btn-voltar-admin').addEventListener('click', () => { show('screen-produtos'); render(); });
-  $('file-xlsx').addEventListener('change', (e) => {
+  ligar('btn-admin', 'click', () => { atualizarFonteInfo(); show('screen-admin'); });
+  ligar('btn-voltar-admin', 'click', () => { show('screen-produtos'); render(); });
+  ligar('file-xlsx', 'change', (e) => {
     const f = e.target.files[0];
     if (f) importarXLSX(f);
     e.target.value = '';
@@ -4826,10 +4794,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const f = e.dataTransfer?.files?.[0];
     if (f) importarXLSX(f);
   });
-  $('btn-baixar').addEventListener('click', baixarBase);
-  $('btn-publicar').addEventListener('click', publicarBase);
+  ligar('btn-baixar', 'click', baixarBase);
+  ligar('btn-publicar', 'click', publicarBase);
 
-  $('btn-atualizar').addEventListener('click', async (e) => {
+  ligar('btn-atualizar', 'click', async (e) => {
     const btn = e.currentTarget;
     btn.classList.add('girando');
     // Junto com a base, traz o que o escritório mexeu: é aqui que o
@@ -4843,8 +4811,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     else toast('Não consegui buscar a base');
   });
 
-  $('zoom-close').addEventListener('click', fecharZoom);
-  $('zoom-modal').addEventListener('click', (e) => {
+  ligar('zoom-close', 'click', fecharZoom);
+  ligar('zoom-modal', 'click', (e) => {
     if (e.target.id === 'zoom-modal' || e.target.id === 'zoom-img') fecharZoom();
   });
   document.addEventListener('keydown', (e) => {
