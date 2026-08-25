@@ -4912,5 +4912,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  localStorage.setItem('detalhada.tema', 'dark');
+  aplicarTema();
+  carregarBase().then(function(){
+    APP.sessao = { nome:'JORGE', papel:'vendedor' };
+    irParaProdutos();
+    aplicarTema();
+    window.scrollTo(0, 0);
+    var fh = document.getElementById('frozen-header');
+    var r = fh.getBoundingClientRect();
+    // deixa as coordenadas no titulo da pagina, que sai no --dump-dom
+    document.title = 'MARCAS ' + JSON.stringify({
+      escuro: document.documentElement.classList.contains('dark'),
+      rolagem: Math.round(window.scrollY),
+      topo: Math.round(r.top),
+      base: Math.round(r.bottom),
+      meio: Math.round((r.top + r.bottom) / 2),
+      esq: Math.round(r.left),
+      dir: Math.round(r.right),
+      dpr: window.devicePixelRatio
+    });
+  });
+});
+</script>
+
 </body>
 </html>
