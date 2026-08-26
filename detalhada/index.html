@@ -424,6 +424,19 @@
       border-color: var(--primary);
     }
     .filter-chip.active i { color: #fff; }
+    /* Na linha de filtros o botao segue a altura dos chips. Fixar um numero
+       aqui erra: o chip se dimensiona pelo proprio padding e da 32,5px, nao
+       34. O align-self: stretch faz o botao acompanhar a altura da linha,
+       qualquer que ela seja. */
+    .btn-na-linha {
+      width: 34px;
+      height: auto;
+      align-self: stretch;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex: 0 0 auto;
+    }
+
     .filter-clear-btn {
       width: 36px; height: 34px;
       border-radius: 8px;
@@ -479,6 +492,7 @@
       border-radius: var(--r-md);
       box-shadow: var(--shadow-card);
       overflow: hidden;
+      overflow: clip;   /* mesmo recorte, mas sem virar area de rolagem */
     }
 
     .product-main {
@@ -612,6 +626,17 @@
     }
     .product-card.expanded .expand-icon { transform: rotate(180deg); }
 
+    /* Com o card aberto, a faixa do produto acompanha a rolagem: sem isso
+       ela some no topo e a pessoa fica lendo uma lista de clientes sem
+       saber mais de qual produto. Para logo abaixo da barra de filtros —
+       a altura dela vem do JS, porque muda com a largura da tela. */
+    .product-card.expanded .product-main {
+      position: sticky;
+      top: var(--topo-congelado, 60px);
+      z-index: 3;
+      background: var(--card-bg);
+    }
+
     .product-details {
       max-height: 0;
       overflow: hidden;
@@ -619,7 +644,9 @@
       border-top: 1px solid transparent;
     }
     .product-card.expanded .product-details {
-      max-height: 800px;
+      /* sem teto: o corte em 800px escondia clientes sem aviso nenhum.
+         Quem anima a abertura e o JS, com a altura medida do conteudo. */
+      max-height: none;
       border-top-color: var(--border);
     }
     .product-details-inner {
@@ -1571,9 +1598,6 @@
         <div class="products-summary" id="summary"></div>
 
         <div class="topbar-actions">
-        <button class="btn-icon" id="btn-selecao" title="Selecionar encomendas para gerar PDF" style="display:none;">
-          <i class="fa-solid fa-list-check"></i>
-        </button>
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
           <i class="fa-solid fa-file-arrow-up"></i>
         </button>
@@ -1634,6 +1658,9 @@
 
       <div class="filtros-caixa" id="caixa-prod">
       <div class="filter-row" id="filter-row">
+        <button class="btn-icon btn-na-linha" id="btn-selecao" title="Selecionar encomendas para gerar PDF" style="display:none;">
+          <i class="fa-solid fa-list-check"></i>
+        </button>
         <div style="position:relative;">
           <button class="filter-chip" data-filter="cliente">
             <i class="fa-solid fa-store"></i>
@@ -2619,6 +2646,7 @@ function render() {
 
   atualizarBotoesFiltros();
   atualizarVeuRolagem();
+  medirTopoCongelado();
 
   const lista = $('lista');
   if (grupos.length === 0) {
@@ -4086,6 +4114,38 @@ function configurarCopiaAoSelecionar() {
 /* ============================================================
    INTERAÇÃO DA LISTA
    ============================================================ */
+
+// A faixa de filtros e congelada e tem altura variavel (muda com a largura
+// da tela). A linha do produto aberto gruda logo abaixo dela, entao precisa
+// saber essa altura — dai guardarmos em uma variavel de CSS.
+function medirTopoCongelado() {
+  const fh = $('frozen-header');
+  if (!fh) return;
+  const h = Math.round(fh.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--topo-congelado', h + 'px');
+}
+
+// Abre animando ate a altura real e depois solta o limite de vez. Enquanto
+// havia um teto fixo, todo produto com mais de ~10 clientes perdia o resto
+// da lista sem mostrar nada — nem barra de rolagem, nem aviso.
+function abrirDetalhes(det) {
+  const inner = det.querySelector('.product-details-inner');
+  det.style.maxHeight = inner.scrollHeight + 'px';
+  det.addEventListener('transitionend', function solta(e) {
+    if (e.propertyName !== 'max-height') return;
+    det.removeEventListener('transitionend', solta);
+    det.style.maxHeight = '';   // volta ao CSS, que agora e "none"
+  });
+}
+
+// Fechar precisa sair de um numero, senao nao ha o que animar: o CSS aberto
+// e "none", e ninguem anima de "none" ate zero.
+function fecharDetalhes(det) {
+  det.style.maxHeight = det.scrollHeight + 'px';
+  void det.offsetHeight;
+  det.style.maxHeight = '';
+}
+
 function ligarLista() {
   ligar('lista', 'click', (e) => {
     const btnTudo = e.target.closest('[data-vertudo]');
@@ -4160,9 +4220,11 @@ function ligarLista() {
     const card = e.target.closest('.product-card');
     if (!card) return;
     const chave = Number(card.dataset.chave);
+    const det = card.querySelector('.product-details');
     if (APP.abertos.has(chave)) {
       APP.abertos.delete(chave);
       APP.verTudo.delete(chave);
+      fecharDetalhes(det);
       card.classList.remove('expanded');
       card.querySelector('.product-details-inner').innerHTML = '';
     } else {
@@ -4171,6 +4233,8 @@ function ligarLista() {
       if (g) {
         card.querySelector('.product-details-inner').innerHTML = linhasDoGrupo(g, chave);
         card.classList.add('expanded');
+        medirTopoCongelado();
+        abrirDetalhes(det);
       }
     }
   });
@@ -4852,6 +4916,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     larguraJanela = window.innerWidth;
     if (mudouLargura && APP.popoverAberto) fecharTodosPopovers();
     atualizarVeuRolagem();
+    medirTopoCongelado();
   });
   ligar('tb-faixa', 'scroll', atualizarVeuRolagem);
 
