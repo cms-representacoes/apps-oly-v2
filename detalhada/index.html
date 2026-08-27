@@ -1944,7 +1944,8 @@ const APP = {
   L: [],               // linhas compactas
   dic: null,
   idx: null,           // dicionários normalizados, pra busca
-  prepFixo: -1,        // índice do preposto do vendedor logado (-1 = vê tudo)
+  prepFixo: -1,        // índice do preposto do vendedor logado (-1 = não achado)
+  veTudo: false,       // só a CMS (admin) enxerga o que é dos outros
   busca: '',
   status: 'TUDO',      // TUDO | CART | FAT
   // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
@@ -2276,9 +2277,11 @@ function irParaProdutos() {
   $('btn-selecao').style.display = temExtensao() ? '' : 'none';
   $('wrap-filtro-preposto').style.display = papel === 'admin' ? '' : 'none';
 
-  // Vendedor só enxerga as próprias linhas.
+  // Vendedor só enxerga as próprias linhas. O direito de ver tudo vem do
+  // papel, nunca de o nome ter sido achado ou não na base do dia.
+  APP.veTudo = papel === 'admin';
   APP.prepFixo = -1;
-  if (papel !== 'admin' && APP.dic) {
+  if (!APP.veTudo && APP.dic) {
     APP.prepFixo = APP.dic.prep.indexOf(APP.sessao.nome);
     if (APP.prepFixo < 0) toast(`Nenhuma linha de ${APP.sessao.nome} nesta base`);
   }
@@ -2332,7 +2335,7 @@ function linhaCasa(r, m) {
    AGREGAÇÃO — uma passada nas linhas monta os grupos (ref + cor)
    ============================================================ */
 function passaFiltros(r, f) {
-  if (APP.prepFixo >= 0 && r[C.PREP] !== APP.prepFixo) return false;
+  if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) return false;
   if (f.preposto.size && !f.preposto.has(r[C.PREP])) return false;
   if (f.cliente.size && !f.cliente.has(r[C.CLI])) return false;
   if (f.familia.size && !f.familia.has(familiaDaLinha(r))) return false;
@@ -2754,7 +2757,7 @@ function linhasDoGrupo(g, chave) {
       r[C.OC] >= 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span>` : '',
       `<span class="sep">·</span><span>${escHtml(APP.dic.marca[r[C.MARCA]])}</span>`,
       `<span class="sep">·</span><span>${escHtml(APP.dic.fab[r[C.FAB]])}/${escHtml(APP.dic.fil[r[C.FIL]])}</span>`,
-      APP.prepFixo < 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : '',
+      APP.veTudo ? `<span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : '',
       !emCarteira && r[C.NF] ? `<span class="sep">·</span><span>NF ${r[C.NF]}</span>` : '',
     ].filter(Boolean).join(' ');
 
@@ -3075,9 +3078,36 @@ const ESTADOS = {
 };
 
 // Percorre as marcações e devolve o estado de cada uma, agrupado por GCI.
+/* ============================================================
+   DE QUEM E CADA LANCAMENTO
+   ============================================================
+   O mapa APP.acoes vem do worker com o que TODOS os prepostos marcaram —
+   a chave e cliente|GCI|ref|cor e nao carrega o dono. Sem filtrar aqui,
+   um vendedor via os repasses dos colegas. */
+
+// A atribuicao de verdade e a da base: a coluna do preposto na linha.
+// O "por" (quem clicou) so entra quando o GCI ja saiu da carteira e nao
+// existe mais linha para consultar.
+function donoDaKey(key) {
+  const i = ondeEsta().get(key);
+  if (i !== undefined) return APP.dic.prep[APP.L[i][C.PREP]];
+  const reg = APP.acoes[key];
+  return (reg && reg.repasse && reg.repasse.por) || null;
+}
+
+// Um lancamento que nao da para atribuir a ninguem fica escondido para o
+// vendedor: preferimos esconder algo dele a mostrar algo de outro.
+function podeVer(key) {
+  if (APP.veTudo) return true;
+  if (!APP.sessao) return false;
+  const dono = donoDaKey(key);
+  return dono !== null && dono === APP.sessao.nome;
+}
+
 function marcasConciliadas() {
   const porGci = new Map();
   for (const [key, reg] of Object.entries(APP.acoes)) {
+    if (!podeVer(key)) continue;
     const p = key.split('|');
     const gk = p[0] + '|' + p[1];
     let e = porGci.get(gk);
@@ -3305,6 +3335,7 @@ function jaVaiReceber(refIdx, corIdx, keyAtual) {
   const destino = {};
   for (const [key, reg] of Object.entries(APP.acoes)) {
     if (key === keyAtual) continue;
+    if (!podeVer(key)) continue;   // nao revela o cliente de outro preposto
     const dests = reg && reg.repasse && reg.repasse.destinos;
     if (!dests || !reg.repasse.ref) continue;
     if (reg.repasse.ref !== APP.dic.ref[refIdx][0] || reg.repasse.cor !== APP.dic.cor[corIdx]) continue;
@@ -4596,7 +4627,8 @@ function atualizarBotoesFiltros() {
 function nomeDeCliente(cod) {
   const i = APP.dic ? APP.dic.cli.findIndex(c => c[0] === cod) : -1;
   if (i >= 0) return APP.dic.cli[i][1];
-  for (const [, reg] of Object.entries(APP.acoes)) {
+  for (const [key, reg] of Object.entries(APP.acoes)) {
+    if (!podeVer(key)) continue;
     const d = ((reg.repasse && reg.repasse.destinos) || []).find(x => x.codigo === cod);
     if (d) return d.nome;
   }
