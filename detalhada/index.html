@@ -49,6 +49,7 @@
       --acao-manter:   #10B981;
       --acao-cancelar: #EF4444;
       --acao-repassar: #F59E0B;
+      --acao-transferir: #3B82F6;
       --acao-gestao:   #F97316;
 
       --tag-gci-bg: #E0F2FE;
@@ -987,6 +988,13 @@
     }
     .gci-meta { font-size: 11px; color: var(--text-2); margin: 2px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
     .gci-meta .sep { color: var(--text-3); }
+    /* Marca e fábrica/filial só no monitor. No celular a linha do cliente
+       fica com GCI, OC e NF, que é o que se usa para achar a encomenda;
+       o resto empurrava o nome do cliente para uma segunda linha. */
+    .gci-meta .meta-mais { display: contents; }
+    @media (max-width: 700px) {
+      .gci-meta .meta-mais { display: none; }
+    }
     .gci-num { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--text); }
 
     /* Botão de copiar ao lado do GCI */
@@ -1117,9 +1125,11 @@
     .acao-pill.ativo { color: #fff; }
     .acao-pill.manter.ativo   { background: var(--acao-manter);   border-color: var(--acao-manter); }
     .acao-pill.repassar.ativo { background: var(--acao-repassar); border-color: var(--acao-repassar); }
+    .acao-pill.transferir.ativo { background: var(--acao-transferir); border-color: var(--acao-transferir); }
     .acao-pill.cancelar.ativo { background: var(--acao-cancelar); border-color: var(--acao-cancelar); }
     .acao-pill.manter:hover   { border-color: var(--acao-manter);   color: var(--acao-manter); }
     .acao-pill.repassar:hover { border-color: var(--acao-repassar); color: var(--acao-repassar); }
+    .acao-pill.transferir:hover { border-color: var(--acao-transferir); color: var(--acao-transferir); }
     .acao-pill.cancelar:hover { border-color: var(--acao-cancelar); color: var(--acao-cancelar); }
     .acao-pill.ativo:hover { color: #fff; }
 
@@ -1682,10 +1692,10 @@
             <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
-        <div style="position:relative;">
-          <button class="filter-chip" data-filter="familia">
-            <i class="fa-solid fa-shoe-prints"></i>
-            <span>Produto</span>
+        <div style="position:relative;" id="wrap-filtro-faixa">
+          <button class="filter-chip" data-filter="faixa">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Faixa</span>
             <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
@@ -1912,15 +1922,22 @@ const STORAGE = { sessao: 'detalhada.sessao', tema: 'detalhada.tema', acoes: 'de
 // MANTER é o padrão: toda linha em aberto nasce assim e não é gravada.
 const ACAO_PADRAO = 'MANTER';
 const ACOES = [
-  { id: 'MANTER',   label: 'Manter',   cls: 'manter' },
-  { id: 'REPASSAR', label: 'Repassar', cls: 'repassar' },
-  { id: 'CANCELAR', label: 'Cancelar', cls: 'cancelar' },
+  { id: 'MANTER',     label: 'Manter',     cls: 'manter' },
+  { id: 'REPASSAR',   label: 'Repassar',   cls: 'repassar' },
+  // Criado com o visual pronto e sem efeito nenhum ainda: o que ele faz
+  // será definido depois. Enquanto isso não grava nada — ver o clique em
+  // ligarLista(), que intercepta antes de definirAcaoGci().
+  { id: 'TRANSFERIR', label: 'Transferir', cls: 'transferir' },
+  { id: 'CANCELAR',   label: 'Cancelar',   cls: 'cancelar' },
 ];
 
 // Posição de cada campo na linha compacta da base
-const C = { PREP: 0, CLI: 1, MARCA: 2, FAB: 3, FIL: 4, REF: 5, COR: 6, GCI: 7, NF: 8, OC: 9, PREV: 10, CART: 11, FAT: 12, DFAT: 13 };
+const C = { PREP: 0, CLI: 1, MARCA: 2, FAB: 3, FIL: 4, REF: 5, COR: 6, GCI: 7, NF: 8, OC: 9, PREV: 10, CART: 11, FAT: 12, DFAT: 13,
+  // No fim de propósito: uma base publicada antes disso tem 14 campos e
+  // continua sendo lida — só fica sem o filtro de faixa.
+  FAIXA: 14 };
 
-const COLUNAS_XLSX = ['PREPOSTO', 'NOME FANTASIA', 'CODIGO', 'MARCA', 'FABRICA', 'FILIAL', 'NF', 'OC', 'GCI', 'REFERENCIA', 'DESCRICAO', 'COR', 'PREV FAT', 'CART', 'FAT', 'DATA FAT'];
+const COLUNAS_XLSX = ['PREPOSTO', 'NOME FANTASIA', 'CODIGO', 'MARCA', 'FAIXA', 'FABRICA', 'FILIAL', 'NF', 'OC', 'GCI', 'REFERENCIA', 'DESCRICAO', 'COR', 'PREV FAT', 'CART', 'FAT', 'DATA FAT'];
 
 const OPCOES_ORDEM = [
   { id: 'mais_pares',   label: 'Mais pares' },
@@ -1949,7 +1966,7 @@ const APP = {
   busca: '',
   status: 'TUDO',      // TUDO | CART | FAT
   // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
-  filtros: { cliente: new Set(), preposto: new Set(), familia: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
+  filtros: { cliente: new Set(), preposto: new Set(), faixa: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
              // usados só na revisão de repasses
              repOrigem: new Set(), repDestino: new Set(), repEstado: new Set() },
   repQuando: 'tudo',   // tudo | hoje | 7 | 30
@@ -2097,7 +2114,6 @@ function instalarBase(base) {
   _gcis = null;
   _ondeEsta = null;
 
-  montarFamilias(base.dic.ref);
 
   // Dicionários normalizados: a busca compara aqui, não linha a linha.
   APP.idx = {
@@ -2109,31 +2125,23 @@ function instalarBase(base) {
   atualizarFonteInfo();
 }
 
-/* ---------- famílias de produto ----------
-   CORRE, SAFIRA, MEIA, BERMUDA… não existem como coluna na planilha: são a
-   primeira palavra da DESCRIÇÃO. Como não vêm prontas, o índice é montado
-   uma vez ao instalar a base e guardado como número — comparar inteiro em
-   56 mil linhas é barato, refazer `split(' ')` a cada passada não é. */
+/* ---------- faixa ----------
+   Vem pronta da planilha, calculada pelo CMS_DETALHADA_GERAL.py: cruza
+   FAIXA + CATEGORIA + GÊNERO da fábrica e devolve CORRE, MEIA OLY,
+   CONF_FEM, ACESSORIOS e afins. Antes daqui existia uma "família" deduzida
+   da primeira palavra da descrição — um palpite que confundia MEIA com
+   MEIAS e não distinguia a bermuda CORRE do tênis CORRE.
 
-function montarFamilias(refs) {
-  const porNome = new Map();
-  APP.familias = [];
-  APP.famDaRef = new Int32Array(refs.length).fill(-1);
+   Uma base publicada antes da coluna existir tem 14 campos por linha, e
+   r[C.FAIXA] volta undefined: o -1 mantém o app funcionando e só esconde
+   o filtro, em vez de quebrar a tela do vendedor. */
+const faixaDaLinha = (r) => {
+  const i = r[C.FAIXA];
+  return (i === undefined || i === null) ? -1 : i;
+};
 
-  refs.forEach(([, desc], i) => {
-    const nome = String(desc || '').trim().split(/\s+/)[0].toUpperCase();
-    if (!nome) return;
-    let id = porNome.get(nome);
-    if (id === undefined) {
-      id = APP.familias.length;
-      porNome.set(nome, id);
-      APP.familias.push(nome);
-    }
-    APP.famDaRef[i] = id;
-  });
-}
-
-const familiaDaLinha = (r) => APP.famDaRef ? APP.famDaRef[r[C.REF]] : -1;
+// A base velha não tem o dicionário; sem ele o filtro não teria o que listar.
+const temFaixa = () => !!(APP.dic && Array.isArray(APP.dic.faixa) && APP.dic.faixa.length);
 
 function atualizarFonteInfo() {
   const el = $('fonte-info'), elLogin = $('login-fonte'), elAdmin = $('admin-atual');
@@ -2338,7 +2346,7 @@ function passaFiltros(r, f) {
   if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) return false;
   if (f.preposto.size && !f.preposto.has(r[C.PREP])) return false;
   if (f.cliente.size && !f.cliente.has(r[C.CLI])) return false;
-  if (f.familia.size && !f.familia.has(familiaDaLinha(r))) return false;
+  if (f.faixa.size && !f.faixa.has(faixaDaLinha(r))) return false;
   if (f.marca.size   && !f.marca.has(r[C.MARCA]))   return false;
   if (f.fabrica.size && !f.fabrica.has(r[C.FAB]))   return false;
   if (f.filial.size  && !f.filial.has(r[C.FIL]))    return false;
@@ -2755,8 +2763,8 @@ function linhasDoGrupo(g, chave) {
         ? `<span class="gci-num"><button class="copiar-btn" data-copiar="${escAttr(r[C.GCI])}" title="Copiar GCI ${r[C.GCI]}"><i class="fa-solid fa-copy"></i></button>${botaoPdfHTML(r)} GCI ${r[C.GCI]}</span>`
         : `<span><i class="fa-solid fa-receipt"></i> GCI —</span>`,
       r[C.OC] >= 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span>` : '',
-      `<span class="sep">·</span><span>${escHtml(APP.dic.marca[r[C.MARCA]])}</span>`,
-      `<span class="sep">·</span><span>${escHtml(APP.dic.fab[r[C.FAB]])}/${escHtml(APP.dic.fil[r[C.FIL]])}</span>`,
+      `<span class="meta-mais"><span class="sep">·</span><span>${escHtml(APP.dic.marca[r[C.MARCA]])}</span></span>`,
+      `<span class="meta-mais"><span class="sep">·</span><span>${escHtml(APP.dic.fab[r[C.FAB]])}/${escHtml(APP.dic.fil[r[C.FIL]])}</span></span>`,
       APP.veTudo ? `<span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : '',
       !emCarteira && r[C.NF] ? `<span class="sep">·</span><span>NF ${r[C.NF]}</span>` : '',
     ].filter(Boolean).join(' ');
@@ -4208,6 +4216,15 @@ function ligarLista() {
       const linhaIdx = Number(grupo.dataset.linha);
       const r = APP.L[linhaIdx];
       const acao = pill.dataset.acao;
+
+      // Ainda sem regra definida. Gravar agora criaria registros com um
+      // estado que nem o painel do escritório nem a contagem dos chips
+      // sabem tratar - e eles já teriam viajado para o worker.
+      if (acao === 'TRANSFERIR') {
+        toast('Transferir ainda não faz nada — vamos definir o que ele faz.', 3000);
+        return;
+      }
+
       const anterior = repasseDaLinha(r);
       const irmas = linhasDoGci(r);
 
@@ -4369,9 +4386,9 @@ function opcoesDoFiltro(filtroId) {
       if (m) vistos.set(m, (vistos.get(m) || 0) + r[C.CART] + r[C.FAT]);
       continue;
     }
-    if (filtroId === 'familia') {
-      const fam = familiaDaLinha(r);
-      if (fam >= 0) vistos.set(fam, (vistos.get(fam) || 0) + r[C.CART] + r[C.FAT]);
+    if (filtroId === 'faixa') {
+      const fx = faixaDaLinha(r);
+      if (fx >= 0) vistos.set(fx, (vistos.get(fx) || 0) + r[C.CART] + r[C.FAT]);
       continue;
     }
     const v = r[campo];
@@ -4386,7 +4403,7 @@ function opcoesDoFiltro(filtroId) {
   }
 
   const rotulo = (v) => {
-    if (filtroId === 'familia') return APP.familias[v];
+    if (filtroId === 'faixa') return APP.dic.faixa[v];
     if (filtroId === 'cliente') { const [cod, nome] = APP.dic.cli[v]; return `${nome} · ${cod}`; }
     if (filtroId === 'preposto') return APP.dic.prep[v];
     if (filtroId === 'marca') return APP.dic.marca[v];
@@ -4440,7 +4457,7 @@ function campanhasDaLinha(r) {
   return CAMPANHAS.filter(c => (c.marca === 'UA') === ua);
 }
 
-const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', familia: 'Produto', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês',
+const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', faixa: 'Faixa', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês',
   repOrigem: 'Cliente', repDestino: 'Destino', repEstado: 'Situação' };
 
 // O popover é fixo e vive no <body>, para nunca ser cortado pela barra de filtros.
@@ -4588,10 +4605,14 @@ function trocarBarraDeFiltros() {
 
 function atualizarBotoesFiltros() {
   trocarBarraDeFiltros();
+  // Base publicada antes da coluna existir: sem dicionário, o filtro não
+  // teria o que listar. Esconder é melhor que mostrar um popover vazio.
+  const wf = $('wrap-filtro-faixa');
+  if (wf) wf.style.display = temFaixa() ? '' : 'none';
   const rotulos = {
     cliente:  v => APP.dic.cli[v][1],
     preposto: v => APP.dic.prep[v],
-    familia:  v => APP.familias[v],
+    faixa:    v => APP.dic.faixa[v],
     marca:    v => APP.dic.marca[v],
     fabrica:  v => APP.dic.fab[v],
     filial:   v => APP.dic.fil[v],
@@ -4697,9 +4718,9 @@ function dataParaDias(v) {
 }
 
 function montarBase(rows, nomeArquivo) {
-  const dicPrep = [], dicMarca = [], dicFab = [], dicFil = [], dicCor = [], dicOc = [];
+  const dicPrep = [], dicMarca = [], dicFaixa = [], dicFab = [], dicFil = [], dicCor = [], dicOc = [];
   const dicCli = [], dicRef = [];
-  const iPrep = new Map(), iMarca = new Map(), iFab = new Map(), iFil = new Map(), iCor = new Map(), iOc = new Map();
+  const iPrep = new Map(), iMarca = new Map(), iFaixa = new Map(), iFab = new Map(), iFil = new Map(), iCor = new Map(), iOc = new Map();
   const iCli = new Map(), iRef = new Map();
 
   const idxSimples = (mapa, lista, v) => {
@@ -4710,7 +4731,7 @@ function montarBase(rows, nomeArquivo) {
 
   const K = {};
   for (const nome of COLUNAS_XLSX) K[nome] = acharColuna(rows[0] || {}, nome);
-  const faltando = COLUNAS_XLSX.filter(n => !K[n] && n !== 'PORTA');
+  const faltando = COLUNAS_XLSX.filter(n => !K[n] && n !== 'PORTA' && n !== 'FAIXA');
 
   const linhas = [];
   const avisos = [];
@@ -4759,6 +4780,10 @@ function montarBase(rows, nomeArquivo) {
       cart,
       fat,
       dfat,
+      // Vazia vira -1, como a OC: senão o "" entraria no dicionário e
+      // apareceria como uma opção em branco na lista do filtro.
+      (() => { const fx = String(row[K['FAIXA']] ?? '').trim();
+               return fx ? idxSimples(iFaixa, dicFaixa, fx) : -1; })(),
     ]);
   }
 
@@ -4778,7 +4803,7 @@ function montarBase(rows, nomeArquivo) {
       gerado: new Date().toISOString(),
       origem: nomeArquivo,
       dataDia,
-      dic: { prep: dicPrep, cli: dicCli, marca: dicMarca, fab: dicFab, fil: dicFil, ref: dicRef, cor: dicCor, oc: dicOc },
+      dic: { prep: dicPrep, cli: dicCli, marca: dicMarca, faixa: dicFaixa, fab: dicFab, fil: dicFil, ref: dicRef, cor: dicCor, oc: dicOc },
       l: linhas,
     },
     avisos,
