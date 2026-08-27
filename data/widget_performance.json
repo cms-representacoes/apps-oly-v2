@@ -6,54 +6,54 @@
  "vendedores": [
   {
    "nome": "Leandro",
-   "ftw": 6384680,
-   "demais": 1503650,
-   "ratio": 23.6,
+   "ftw": 6270764,
+   "demais": 1484252,
+   "ratio": 23.7,
    "elegivel": true
   },
   {
    "nome": "Jorge",
-   "ftw": 3849969,
-   "demais": 648614,
+   "ftw": 3874897,
+   "demais": 652558,
    "ratio": 16.8,
    "elegivel": true
   },
   {
    "nome": "CMS",
-   "ftw": 10034811,
-   "demais": 1541452,
+   "ftw": 9788872,
+   "demais": 1510550,
    "ratio": 15.4,
    "elegivel": true
   },
   {
    "nome": "Willame",
-   "ftw": 6270830,
-   "demais": 738861,
-   "ratio": 11.8,
+   "ftw": 6248571,
+   "demais": 721270,
+   "ratio": 11.5,
    "elegivel": false
   },
   {
    "nome": "Rafael",
-   "ftw": 3950184,
-   "demais": 351377,
-   "ratio": 8.9,
+   "ftw": 3748145,
+   "demais": 365243,
+   "ratio": 9.7,
    "elegivel": false
   },
   {
    "nome": "Mariana",
-   "ftw": 2512698,
-   "demais": 163900,
-   "ratio": 6.5,
+   "ftw": 2507969,
+   "demais": 167200,
+   "ratio": 6.7,
    "elegivel": false
   }
  ],
  "linhas": [
-  "Leandro 23,6% ✓",
+  "Leandro 23,7% ✓",
   "Jorge 16,8% ✓",
   "CMS 15,4% ✓",
-  "Willame 11,8% ✗",
-  "Rafael 8,9% ✗",
-  "Mariana 6,5% ✗"
+  "Willame 11,5% ✗",
+  "Rafael 9,7% ✗",
+  "Mariana 6,7% ✗"
  ],
- "atualizado": "25/08 08:52"
+ "atualizado": "27/08 15:57"
 }
