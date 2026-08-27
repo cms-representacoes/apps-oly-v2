@@ -2,58 +2,58 @@
  "ano": "2026",
  "trimestre": "3º Tri (Jul-Set)",
  "meta": 15,
- "resumo": "3 de 6 elegíveis · meta 15,0%",
+ "resumo": "6 de 6 elegíveis · meta 15,0%",
  "vendedores": [
   {
    "nome": "Leandro",
-   "ftw": 6384680,
-   "demais": 1503650,
-   "ratio": 23.6,
+   "ftw": 6572368,
+   "demais": 7655086,
+   "ratio": 116.5,
    "elegivel": true
   },
   {
    "nome": "Jorge",
-   "ftw": 3849969,
-   "demais": 648614,
-   "ratio": 16.8,
+   "ftw": 3878472,
+   "demais": 4386245,
+   "ratio": 113.1,
    "elegivel": true
   },
   {
    "nome": "CMS",
-   "ftw": 10034811,
-   "demais": 1541452,
-   "ratio": 15.4,
+   "ftw": 10191988,
+   "demais": 11452724,
+   "ratio": 112.4,
    "elegivel": true
   },
   {
    "nome": "Willame",
-   "ftw": 6270830,
-   "demais": 738861,
-   "ratio": 11.8,
-   "elegivel": false
+   "ftw": 6263690,
+   "demais": 6803845,
+   "ratio": 108.6,
+   "elegivel": true
   },
   {
    "nome": "Rafael",
-   "ftw": 3950184,
-   "demais": 351377,
-   "ratio": 8.9,
-   "elegivel": false
+   "ftw": 3767137,
+   "demais": 4027374,
+   "ratio": 106.9,
+   "elegivel": true
   },
   {
    "nome": "Mariana",
-   "ftw": 2512698,
-   "demais": 163900,
-   "ratio": 6.5,
-   "elegivel": false
+   "ftw": 2513904,
+   "demais": 2619412,
+   "ratio": 104.2,
+   "elegivel": true
   }
  ],
  "linhas": [
-  "Leandro 23,6% ✓",
-  "Jorge 16,8% ✓",
-  "CMS 15,4% ✓",
-  "Willame 11,8% ✗",
-  "Rafael 8,9% ✗",
-  "Mariana 6,5% ✗"
+  "Leandro 116,5% ✓",
+  "Jorge 113,1% ✓",
+  "CMS 112,4% ✓",
+  "Willame 108,6% ✓",
+  "Rafael 106,9% ✓",
+  "Mariana 104,2% ✓"
  ],
- "atualizado": "25/08 08:52"
+ "atualizado": "27/08 13:38"
 }
