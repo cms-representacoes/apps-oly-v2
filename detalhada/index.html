@@ -1143,6 +1143,44 @@
       white-space: nowrap;
     }
     .btn-destino:hover { background: var(--acao-repassar); color: #fff; border-style: solid; }
+
+    /* Botão da oferta: mesma forma do de destino, cor da própria ação. */
+    .btn-oferta {
+      font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px;
+      border: 1px dashed var(--acao-repassar);
+      background: transparent; color: var(--acao-repassar);
+      display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    }
+    .btn-oferta:hover { background: var(--acao-repassar); color: #fff; border-style: solid; }
+    .btn-oferta.definido { border-style: solid; }
+
+    .mo-card { max-width: 380px; }
+    .mo-corpo { padding: 14px 16px 4px; }
+    .mo-ajuda { font-size: 12.5px; color: var(--text-2); margin: 0 0 14px; line-height: 1.45; }
+    .mo-campo { display: flex; align-items: center; gap: 10px; }
+    .mo-campo input {
+      flex: 1; min-width: 0; text-align: center;
+      font-size: 26px; font-weight: 700; color: var(--text-1);
+      padding: 8px 6px; border: 1px solid var(--border); border-radius: var(--r-md);
+      background: var(--card-bg); font-variant-numeric: tabular-nums;
+    }
+    .mo-campo input:focus { outline: 2px solid var(--acao-repassar); outline-offset: 1px; }
+    .mo-passo {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--border); border-radius: var(--r-md);
+      background: var(--card-bg); color: var(--text-2); cursor: pointer;
+    }
+    .mo-passo:hover:not(:disabled) { border-color: var(--acao-repassar); color: var(--acao-repassar); }
+    .mo-passo:disabled { opacity: .4; cursor: default; }
+    .mo-atalhos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .mo-atalhos button {
+      font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--card-bg); color: var(--text-2); cursor: pointer;
+    }
+    .mo-atalhos button:hover { border-color: var(--acao-repassar); color: var(--acao-repassar); }
+    .mo-atalhos button.ativo { background: var(--acao-repassar); border-color: var(--acao-repassar); color: #fff; }
+    .mo-saldo { font-size: 12px; color: var(--text-2); margin: 12px 0 4px; min-height: 17px; }
+    .mo-saldo.erro { color: var(--acao-cancelar); font-weight: 600; }
     .btn-destino.definido {
       border-style: solid; border-color: var(--primary);
       background: var(--primary-bg); color: var(--primary-2);
@@ -1912,6 +1950,37 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
     </div>
   </div>
 
+  <!-- Quanto oferecer à equipe -->
+  <div class="modal-fundo" id="modal-oferta">
+    <div class="modal-card mo-card">
+      <div class="modal-topo">
+        <div class="modal-linha1">
+          <div style="min-width:0;">
+            <p class="modal-titulo" id="mo-titulo">—</p>
+            <p class="modal-sub" id="mo-sub">—</p>
+          </div>
+          <button class="modal-fechar" id="mo-fechar" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="modal-corpo mo-corpo">
+        <p class="mo-ajuda">Quantos pares vão para repasse? O que sobrar continua na sua carteira.</p>
+        <div class="mo-campo">
+          <button type="button" class="mo-passo" id="mo-menos" aria-label="Diminuir"><i class="fa-solid fa-minus"></i></button>
+          <input type="number" id="mo-pares" min="1" step="1" inputmode="numeric" aria-label="Pares para repasse">
+          <button type="button" class="mo-passo" id="mo-mais" aria-label="Aumentar"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div class="mo-atalhos" id="mo-atalhos"></div>
+        <p class="mo-saldo" id="mo-saldo">—</p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn-limpar-dest" id="mo-cancelar">Cancelar</button>
+        <button class="btn-confirmar-dest" id="mo-confirmar">
+          <i class="fa-solid fa-share-nodes"></i> <span id="mo-confirmar-label">Repassar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Seleção de várias encomendas -->
   <div class="barra-selecao" id="barra-selecao">
     <div class="bs-txt" id="bs-resumo">—</div>
@@ -1975,15 +2044,28 @@ const STORAGE = { sessao: 'detalhada.sessao', tema: 'detalhada.tema', acoes: 'de
 // Ações possíveis para uma linha que ainda está em carteira.
 // MANTER é o padrão: toda linha em aberto nasce assim e não é gravada.
 const ACAO_PADRAO = 'MANTER';
+// ATENÇÃO ao mexer aqui: o `id` é dado gravado, o `label` é só tela.
+//
+// O que hoje se chama TRANSFERIR sempre se chamou REPASSAR por dentro, e
+// o id tem de continuar assim. O arquivo `data/carteira-cms-acoes.json` é
+// dividido com o app da Carteira e já tem 63 registros com acao REPASSAR
+// no sentido antigo (mover entre clientes do próprio vendedor); a Carteira
+// continua gravando esse mesmo id com esse mesmo sentido. Renomear o id
+// faria 63 marcações trocarem de significado sozinhas e desencontraria os
+// dois apps. Por isso: rótulo novo, id antigo.
+//
+// A oferta à equipe é ação NOVA e nasce com id próprio, OFERTA, sem
+// histórico para atrapalhar.
 const ACOES = [
-  { id: 'MANTER',     label: 'Manter',     cls: 'manter' },
-  { id: 'REPASSAR',   label: 'Repassar',   cls: 'repassar' },
-  // Criado com o visual pronto e sem efeito nenhum ainda: o que ele faz
-  // será definido depois. Enquanto isso não grava nada — ver o clique em
-  // ligarLista(), que intercepta antes de definirAcaoGci().
-  { id: 'TRANSFERIR', label: 'Transferir', cls: 'transferir' },
-  { id: 'CANCELAR',   label: 'Cancelar',   cls: 'cancelar' },
+  { id: 'MANTER',   label: 'Manter',     cls: 'manter' },
+  { id: 'REPASSAR', label: 'Transferir', cls: 'transferir' },
+  { id: 'OFERTA',   label: 'Repassar',   cls: 'repassar' },
+  { id: 'CANCELAR', label: 'Cancelar',   cls: 'cancelar' },
 ];
+
+// Marcado sai da lista principal e passa a viver só na sua aba. Num só
+// lugar para ser fácil de voltar atrás: basta pôr false.
+const MARCADO_SAI_DA_LISTA = true;
 
 // Posição de cada campo na linha compacta da base
 const C = { PREP: 0, CLI: 1, MARCA: 2, FAB: 3, FIL: 4, REF: 5, COR: 6, GCI: 7, NF: 8, OC: 9, PREV: 10, CART: 11, FAT: 12, DFAT: 13,
@@ -2078,6 +2160,16 @@ function diaParaBR(d) {
   const dt = new Date(d * 86400000);
   return `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}/${dt.getUTCFullYear()}`;
 }
+const MESES_CURTOS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+/** "20/ago" — no celular a linha da encomenda nao comporta a data inteira,
+ *  e o ano quase nunca e a duvida de quem esta olhando a previsao. */
+function diaParaCurto(d) {
+  if (d == null || d < 0) return '';
+  const dt = new Date(d * 86400000);
+  return `${String(dt.getUTCDate()).padStart(2, '0')}/${MESES_CURTOS[dt.getUTCMonth()]}`;
+}
+
 const _cacheMes = new Map();
 function diaParaMes(d) {
   if (d == null || d < 0) return '';
@@ -2364,7 +2456,7 @@ function avisarNovidadesDeRepasse() {
   const partes = [];
   if (saiu) partes.push(`${saiu} saíram da carteira`);
   if (fat) partes.push(`${fat} faturaram no origem`);
-  toast(partes.join(' · ') + ' — veja em Repassados', 5000);
+  toast(partes.join(' · ') + ' — veja em Transferidos', 5000);
 }
 
 /* ============================================================
@@ -2420,8 +2512,11 @@ function agregar() {
   const clientes = new Set();
   let totCart = 0, totFat = 0, totLinhas = 0;
 
+  const fora = indicesMarcados();
+
   for (let i = 0; i < APP.L.length; i++) {
     const r = APP.L[i];
+    if (fora.has(i)) continue;
     if (!passaFiltros(r, f)) continue;
     if (masks.length) {
       let ok = true;
@@ -2468,11 +2563,31 @@ function ordenarGrupos(g) {
    ============================================================ */
 // Separa as marcações de repasse: sem destino (a destinar) e com destino.
 function marcasDeRepasse() {
-  const todas = marcasConciliadas()
-    .filter(e => e.acao === 'REPASSAR')
-    .filter(e => !(e.repasse && e.repasse.arquivado));
+  const vivas = marcasConciliadas().filter(e => !(e.repasse && e.repasse.arquivado));
+  const transf = vivas.filter(e => e.acao === 'REPASSAR');
   const temDest = e => !!(e.repasse && e.repasse.destinos && e.repasse.destinos.length);
-  return { pend: todas.filter(e => !temDest(e)), feitos: todas.filter(temDest) };
+  return {
+    pend: transf.filter(e => !temDest(e)),
+    feitos: transf.filter(temDest),
+    ofertas: vivas.filter(e => e.acao === 'OFERTA'),
+  };
+}
+
+// Ações que tiram a encomenda da lista principal: ela já tem aba própria,
+// e continuar nas duas fazia o vendedor decidir de novo o que já decidiu.
+const ACOES_QUE_SAEM = new Set(['REPASSAR', 'OFERTA']);
+
+function indicesMarcados() {
+  const fora = new Set();
+  if (!MARCADO_SAI_DA_LISTA || !APP.acoes) return fora;
+  const onde = ondeEsta();
+  for (const [key, reg] of Object.entries(APP.acoes)) {
+    if (!reg || !ACOES_QUE_SAEM.has(reg.acao)) continue;
+    if (reg.repasse && reg.repasse.arquivado) continue;
+    const i = onde.get(key);
+    if (i !== undefined) fora.add(i);
+  }
+  return fora;
 }
 
 // Mostra o véu da direita só quando existe chip fora da vista.
@@ -2492,7 +2607,7 @@ function atualizarVeuRolagem() {
 }
 
 function renderStatusChips() {
-  const { pend, feitos } = APP.base ? marcasDeRepasse() : { pend: [], feitos: [] };
+  const { pend, feitos, ofertas } = APP.base ? marcasDeRepasse() : { pend: [], feitos: [], ofertas: [] };
   const urgentes = pend.filter(e => e.estado === 'ABERTO' && diasAte(e.prev) <= DIAS_ALERTA).length;
   const novidades = feitos.filter(e => e.novidade).length;
 
@@ -2501,7 +2616,9 @@ function renderStatusChips() {
     { id: 'CART', label: 'Carteira', icone: 'fa-hourglass-half' },
     { id: 'FAT',  label: 'Faturado', icone: 'fa-circle-check' },
     { id: 'PEND', label: 'A destinar', icone: 'fa-arrow-right-long', n: pend.length, alerta: urgentes, vermelho: true },
-    { id: 'REPASSADO', label: 'Repassados', icone: 'fa-truck-fast', n: feitos.length, ponto: novidades },
+    // Rótulo acompanha a ação: o que tem destino escolhido foi transferido.
+    { id: 'REPASSADO', label: 'Transferidos', icone: 'fa-truck-fast', n: feitos.length, ponto: novidades },
+    { id: 'OFERTA', label: 'Em repasse', icone: 'fa-share-nodes', n: ofertas.length },
   ];
 
   $('status-chips').innerHTML = opcoes.map(o => {
@@ -2543,8 +2660,8 @@ function dentroDoPeriodo(e) {
 }
 
 function renderMarcas(tipo) {
-  const { pend, feitos } = marcasDeRepasse();
-  let lista = tipo === 'PEND' ? pend : feitos;
+  const { pend, feitos, ofertas } = marcasDeRepasse();
+  let lista = tipo === 'PEND' ? pend : tipo === 'OFERTA' ? ofertas : feitos;
 
   // Filtros da revisão. Só valem nos repassados: em "A destinar" ainda não
   // há destino nem data para filtrar.
@@ -2582,7 +2699,7 @@ function renderMarcas(tipo) {
   lista.forEach(e => ((e.repasse && e.repasse.destinos) || []).forEach(d => lojas.add(d.codigo)));
 
   $('summary').innerHTML = `
-    <div class="summary-chip"><strong class="c-cart">${formatarNumero(lista.length)}</strong> ${tipo === 'PEND' ? 'a destinar' : 'repassados'}</div>
+    <div class="summary-chip"><strong class="c-cart">${formatarNumero(lista.length)}</strong> ${tipo === 'PEND' ? 'a destinar' : tipo === 'OFERTA' ? 'em repasse' : 'transferidos'}</div>
     <div class="summary-chip"><strong>${formatarNumero(totPares)}</strong> pares</div>
     ${tipo === 'REPASSADO' && lojas.size ? `<div class="summary-chip"><strong>${lojas.size}</strong> loja${lojas.size > 1 ? 's' : ''}</div>` : ''}
   `;
@@ -2592,11 +2709,15 @@ function renderMarcas(tipo) {
   if (!lista.length) {
     $('lista').innerHTML = `
       <div class="empty-state">
-        <i class="fa-solid ${tipo === 'PEND' ? 'fa-arrow-right-long' : 'fa-truck-fast'}"></i>
-        <p>${tipo === 'PEND' ? 'Nada esperando destino' : 'Nenhum repasse com destino ainda'}</p>
+        <i class="fa-solid ${tipo === 'PEND' ? 'fa-arrow-right-long' : tipo === 'OFERTA' ? 'fa-share-nodes' : 'fa-truck-fast'}"></i>
+        <p>${tipo === 'PEND' ? 'Nada esperando destino'
+           : tipo === 'OFERTA' ? 'Nenhuma encomenda em repasse'
+           : 'Nenhuma transferência com destino ainda'}</p>
         <p style="margin-top:8px;font-size:12px;">${tipo === 'PEND'
-          ? 'Marque um produto como Repassar na aba Carteira'
-          : 'Escolha o destino de um repasse pendente'}</p>
+          ? 'Marque um produto como Transferir na aba Carteira'
+          : tipo === 'OFERTA'
+          ? 'Use Repassar quando nenhum cliente seu absorver o produto'
+          : 'Escolha o destino de uma transferência pendente'}</p>
       </div>`;
     $('rodape').innerHTML = '';
     return;
@@ -2607,7 +2728,9 @@ function renderMarcas(tipo) {
   const concluidos = lista.filter(e => e.estado === 'SUMIU' || e.estado === 'CONFIRMADO');
   $('rodape').innerHTML = (tipo === 'REPASSADO' && concluidos.length)
     ? `<button class="gci-mais" id="btn-limpar-concluidos" title="Sai da sua lista, mas continua no painel do escritório">Tirar da lista os ${concluidos.length} que já saíram da carteira</button>`
-    : `Fim da lista · ${formatarNumero(lista.length)} repasse${lista.length > 1 ? 's' : ''}`;
+    : `Fim da lista · ${formatarNumero(lista.length)} ${tipo === 'OFERTA'
+        ? 'em repasse'
+        : 'transferência' + (lista.length > 1 ? 's' : '')}`;
 
   const btn = $('btn-limpar-concluidos');
   if (btn) btn.addEventListener('click', () => {
@@ -2627,7 +2750,7 @@ function renderMarcas(tipo) {
     agendarEnvio(mexidas);
     renderStatusChips();
     render();
-    toast(`${concluidos.length} repasse(s) arquivado(s) · continuam no painel do escritório`);
+    toast(`${concluidos.length} transferência(s) arquivada(s) · continuam no painel do escritório`);
   });
 
   marcarComoVistas(lista);
@@ -2661,7 +2784,7 @@ function cardMarca(e, tipo) {
       <div class="marca-topo">
         <div class="marca-info">
           <p class="marca-titulo">${escHtml(titulo)}</p>
-          <p class="marca-sub">${escHtml(e.nomeCliente)} <span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· repassado ${escHtml(quando)}</span>` : ''}</p>
+          <p class="marca-sub">${escHtml(e.nomeCliente)} <span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· ${e.acao === 'OFERTA' ? 'em repasse' : 'transferido'} ${escHtml(quando)}</span>` : ''}</p>
           ${e.linhas.length > 1 ? `<p class="marca-itens">${produtos.map(escHtml).join(' · ')}${e.linhas.length > 3 ? ' · +' + (e.linhas.length - 3) : ''}</p>` : ''}
         </div>
         ${e.enviados ? `<span class="estado-badge finalizado" title="${e.enviados} de ${e.totalDestinos} destino(s) já enviado(s) pelo escritório · situação na carteira: ${escHtml(est.rotulo)}">
@@ -2694,7 +2817,7 @@ function render() {
     return;
   }
 
-  if (APP.status === 'PEND' || APP.status === 'REPASSADO') {
+  if (APP.status === 'PEND' || APP.status === 'REPASSADO' || APP.status === 'OFERTA') {
     renderMarcas(APP.status);
     return;
   }
@@ -2821,7 +2944,7 @@ function linhasDoGrupo(g, chave) {
       r[C.OC] >= 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span>` : '',
       `<span class="meta-mais"><span class="sep">·</span><span>${escHtml(APP.dic.marca[r[C.MARCA]])}</span></span>`,
       `<span class="meta-mais"><span class="sep">·</span><span>${escHtml(APP.dic.fab[r[C.FAB]])}/${escHtml(APP.dic.fil[r[C.FIL]])}</span></span>`,
-      APP.veTudo ? `<span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : '',
+      APP.veTudo ? `<span class="meta-prep"><span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span></span>` : '',
       !emCarteira && r[C.NF] ? `<span class="sep">·</span><span>NF ${r[C.NF]}</span>` : '',
     ].filter(Boolean).join(' ');
 
@@ -2844,7 +2967,10 @@ function linhasDoGrupo(g, chave) {
         ${emCarteira ? pillsDeAcao(r, i) : ''}
         <div class="gci-dir">
           <p class="gci-pares ${emCarteira ? 'cart' : 'fat'}">${formatarNumero(pares)} pares</p>
-          <p class="gci-quando">${emCarteira ? 'prev. ' + diaParaBR(r[C.PREV]) : 'fat. ' + diaParaBR(r[C.DFAT])}</p>
+          <p class="gci-quando">
+            <span class="q-longo">${emCarteira ? 'prev. ' + diaParaBR(r[C.PREV]) : 'fat. ' + diaParaBR(r[C.DFAT])}</span>
+            <span class="q-curto"><i class="fa-solid ${emCarteira ? 'fa-calendar-day' : 'fa-circle-check'}"></i> ${emCarteira ? diaParaCurto(r[C.PREV]) : diaParaCurto(r[C.DFAT])}</span>
+          </p>
         </div>
         ${emCarteira ? linhaDestinosHTML(repasseDaLinha(r), r[C.CART]) : ''}
       </div>`;
@@ -3325,12 +3451,17 @@ function pillsDeAcao(r, i) {
        `</span>
      </span>`;
 
-  // Segundo botão: só aparece depois de marcar REPASSAR.
+  // Segundo botão: depende da ação em vigor.
   let destino = '';
   if (atual === 'REPASSAR') {
     destino = destinos.length
       ? `<button class="btn-destino definido" data-destino="${i}"><i class="fa-solid fa-pen"></i> ${rotuloDestinos(rep)}</button>`
       : `<button class="btn-destino" data-destino="${i}"><i class="fa-solid fa-arrow-right-long"></i> Escolher destino</button>`;
+  } else if (atual === 'OFERTA') {
+    const of = rep && rep.oferta;
+    destino = of
+      ? `<button class="btn-oferta definido" data-oferta="${i}"><i class="fa-solid fa-pen"></i> ${formatarNumero(of.pares)} pares em repasse</button>`
+      : `<button class="btn-oferta" data-oferta="${i}"><i class="fa-solid fa-share-nodes"></i> Definir quantidade</button>`;
   }
 
   return `<div class="acao-pills" data-key="${escAttr(key)}" data-linha="${i}">${pills}${destino}</div>`;
@@ -3476,6 +3607,138 @@ function abrirModalDestino(linhaIdx) {
 function fecharModalDestino() {
   $('modal-destino').classList.remove('show');
   APP.md = null;
+}
+
+/* ============================================================
+   MODAL DA OFERTA — quantos pares vão para repasse
+   ============================================================
+   Repassar não é transferir. Aqui o vendedor não escolhe cliente
+   nenhum: ele avisa que sobrou produto que a carteira dele não
+   absorve, e quem procura destino é a equipe, no app de repasses.
+   Por isso o modal pergunta uma coisa só — quantos pares —, e não
+   abre lista de lojas como o de destino. */
+function abrirModalOferta(linhaIdx) {
+  const r = APP.L[linhaIdx];
+  const [referencia, descricao] = APP.dic.ref[r[C.REF]];
+  const cor = APP.dic.cor[r[C.COR]];
+  const [codOrigem, nomeOrigem] = APP.dic.cli[r[C.CLI]];
+  const irmas = linhasDoGci(r);
+  const pares = paresDoGci(r) || r[C.CART];
+  const rep = repasseDaLinha(r);
+  const of = rep && rep.oferta;
+
+  APP.mo = {
+    linhaIdx, r, irmas, pares,
+    gci: r[C.GCI], referencia, descricao, cor, codOrigem, nomeOrigem,
+    caixa: caixaPadrao(pares),
+    // reabrir para editar traz o que já foi ofertado; oferta nova nasce
+    // com o total, que é o caso comum de quem não tem onde colocar nada
+    valor: of ? of.pares : pares,
+  };
+
+  const varios = irmas.length > 1;
+  $('mo-titulo').textContent = varios ? `GCI ${r[C.GCI]} · ${irmas.length} itens` : (descricao || referencia);
+  $('mo-sub').textContent = varios
+    ? `${formatarNumero(pares)} pares de ${nomeOrigem} · o GCI inteiro vai junto`
+    : `${cor} · Ref. ${referencia} · ${formatarNumero(pares)} pares de ${nomeOrigem}`;
+  $('modal-oferta').classList.add('show');
+  renderModalOferta();
+  if (window.innerWidth >= 700) $('mo-pares').select();
+}
+
+function fecharModalOferta() {
+  $('modal-oferta').classList.remove('show');
+  APP.mo = null;
+}
+
+function atalhosDaOferta(m) {
+  const a = [{ n: m.pares, rot: 'Tudo' }];
+  if (m.pares >= 4 && m.pares % 2 === 0) a.push({ n: m.pares / 2, rot: 'Metade' });
+  if (m.caixa > 1 && m.caixa < m.pares) a.push({ n: m.caixa, rot: '1 caixa' });
+  return a;
+}
+
+function renderModalOferta() {
+  const m = APP.mo;
+  if (!m) return;
+  const v = m.valor;
+  const valido = Number.isFinite(v) && v >= 1 && v <= m.pares;
+
+  const campo = $('mo-pares');
+  if (campo.value !== String(v)) campo.value = v;
+  campo.max = m.pares;
+  $('mo-menos').disabled = v <= 1;
+  $('mo-mais').disabled = v >= m.pares;
+
+  $('mo-atalhos').innerHTML = atalhosDaOferta(m).map(a =>
+    `<button type="button" data-mo-atalho="${a.n}" class="${v === a.n ? 'ativo' : ''}">${a.rot} · ${formatarNumero(a.n)}</button>`
+  ).join('');
+
+  const saldo = $('mo-saldo');
+  if (!valido) {
+    saldo.textContent = `Informe de 1 a ${formatarNumero(m.pares)} pares.`;
+    saldo.classList.add('erro');
+  } else {
+    const sobra = m.pares - v;
+    saldo.textContent = sobra > 0
+      ? `${formatarNumero(sobra)} pares continuam na sua carteira.`
+      : 'A encomenda inteira vai para repasse.';
+    saldo.classList.remove('erro');
+  }
+  $('mo-confirmar').disabled = !valido;
+  $('mo-confirmar-label').textContent = valido
+    ? `Repassar ${formatarNumero(v)} pares`
+    : 'Repassar';
+}
+
+function mudarOferta(n) {
+  if (!APP.mo) return;
+  APP.mo.valor = n;
+  renderModalOferta();
+}
+
+function confirmarOferta() {
+  const m = APP.mo;
+  if (!m) return;
+  const v = m.valor;
+  if (!Number.isFinite(v) || v < 1 || v > m.pares) return;
+
+  const anterior = repasseDaLinha(m.r) || {};
+  // Sair de Transferir para Repassar descarta os destinos: são decisões
+  // diferentes, e um destino escolhido não vale como oferta à equipe.
+  const { destinos, ...resto } = anterior;
+
+  definirAcaoGci(m.r, 'OFERTA', {
+    ...resto,
+    em: anterior.em || Date.now(),
+    atualizadoEm: Date.now(),
+    por: APP.sessao ? APP.sessao.nome : '',
+    gci: m.gci,
+    ref: m.referencia,
+    cor: m.cor,
+    origem: m.codOrigem,
+    origemNome: m.nomeOrigem,
+    itens: m.irmas.length,
+    // O que o escritório vai ler. `status` nasce ABERTA e quem mexe nele
+    // é o admin — a tela dele ainda será desenhada, então aqui só se
+    // registra a oferta, sem inventar estados que ninguém trata.
+    oferta: {
+      pares: v,
+      total: m.pares,
+      em: (anterior.oferta && anterior.oferta.em) || Date.now(),
+      por: APP.sessao ? APP.sessao.nome : '',
+      status: 'ABERTA',
+    },
+  });
+
+  const sobra = m.pares - v;
+  toast(sobra > 0
+    ? `Em repasse · ${formatarNumero(v)} pares, ${formatarNumero(sobra)} ficaram com você`
+    : `Em repasse · ${formatarNumero(v)} pares${m.irmas.length > 1 ? ' · GCI inteiro' : ''}`);
+
+  fecharModalOferta();
+  renderStatusChips();
+  render();
 }
 
 function totalCaixasModal() {
@@ -3757,7 +4020,7 @@ function repintarLinha(linhaIdx) {
 
 // Nas abas de repasse a marcação muda a própria composição da lista.
 function naListaDeRepasses() {
-  return APP.status === 'PEND' || APP.status === 'REPASSADO';
+  return APP.status === 'PEND' || APP.status === 'REPASSADO' || APP.status === 'OFERTA';
 }
 
 function ligarModalDestino() {
@@ -3776,6 +4039,21 @@ function ligarModalDestino() {
     if (sel.value) m.ultimo[campo] = sel.value;
     sel.classList.toggle('vazio', campo === 'prazo' && !sel.value);
     atualizarRodapeModal();
+  });
+
+  ligar('mo-fechar', 'click', fecharModalOferta);
+  ligar('mo-cancelar', 'click', fecharModalOferta);
+  ligar('mo-confirmar', 'click', confirmarOferta);
+  ligar('mo-menos', 'click', () => mudarOferta(Math.max(1, APP.mo.valor - 1)));
+  ligar('mo-mais', 'click', () => mudarOferta(Math.min(APP.mo.pares, APP.mo.valor + 1)));
+  ligar('mo-pares', 'input', (e) => mudarOferta(parseInt(e.target.value, 10)));
+  ligar('mo-pares', 'keydown', (e) => { if (e.key === 'Enter') confirmarOferta(); });
+  ligar('mo-atalhos', 'click', (e) => {
+    const b = e.target.closest('[data-mo-atalho]');
+    if (b) mudarOferta(Number(b.dataset.moAtalho));
+  });
+  ligar('modal-oferta', 'click', (e) => {
+    if (e.target.id === 'modal-oferta') fecharModalOferta();
   });
 
   ligar('modal-destino', 'click', (e) => {
@@ -4272,6 +4550,13 @@ function ligarLista() {
       return;
     }
 
+    const btnOferta = e.target.closest('[data-oferta]');
+    if (btnOferta) {
+      e.stopPropagation();
+      abrirModalOferta(Number(btnOferta.dataset.oferta));
+      return;
+    }
+
     const btnDestino = e.target.closest('[data-destino]');
     if (btnDestino) {
       e.stopPropagation();
@@ -4287,21 +4572,26 @@ function ligarLista() {
       const r = APP.L[linhaIdx];
       const acao = pill.dataset.acao;
 
-      // Ainda sem regra definida. Gravar agora criaria registros com um
-      // estado que nem o painel do escritório nem a contagem dos chips
-      // sabem tratar - e eles já teriam viajado para o worker.
-      if (acao === 'TRANSFERIR') {
-        toast('Transferir ainda não faz nada — vamos definir o que ele faz.', 3000);
+      // Repassar precisa de quantidade antes de virar registro: gravar no
+      // clique criaria oferta sem pares, que o escritório não sabe ler.
+      if (acao === 'OFERTA') {
+        abrirModalOferta(linhaIdx);
         return;
       }
 
       const anterior = repasseDaLinha(r);
+      const anteriorAcao = acaoDaLinha(r);
       const irmas = linhasDoGci(r);
 
       // Sair de REPASSAR joga fora os destinos; voltar a ele preserva o que já
       // tinha sido escolhido, para não perder trabalho num clique errado.
       const alvos = definirAcaoGci(r, acao, acao === 'REPASSAR' ? anterior : null);
-      if (naListaDeRepasses()) { renderStatusChips(); render(); }
+      // Repintar a linha bastava enquanto marcar não mudava quem está na
+      // lista. Agora uma ação que tira a encomenda de vista exige montar a
+      // lista de novo — senão o card marcado fica na tela até o próximo
+      // render, e some sozinho depois, sem motivo aparente.
+      const sai = MARCADO_SAI_DA_LISTA && (ACOES_QUE_SAEM.has(acao) || ACOES_QUE_SAEM.has(anteriorAcao));
+      if (naListaDeRepasses() || sai) { renderStatusChips(); render(); }
       else { alvos.forEach(repintarLinha); renderStatusChips(); }
 
       if (irmas.length > 1 && acao !== ACAO_PADRAO) {
@@ -4670,7 +4960,7 @@ function trocarBarraDeFiltros() {
   const rep = $('caixa-rep');
   if (rep) rep.style.display = naRevisao ? '' : 'none';
   const prod = $('caixa-prod');
-  if (prod) prod.style.display = (APP.status === 'PEND' || naRevisao) ? 'none' : '';
+  if (prod) prod.style.display = (APP.status === 'PEND' || APP.status === 'OFERTA' || naRevisao) ? 'none' : '';
 }
 
 function atualizarBotoesFiltros() {
@@ -5084,6 +5374,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if ($('modal-oferta').classList.contains('show')) { fecharModalOferta(); return; }
     if ($('modal-destino').classList.contains('show')) fecharModalDestino();
     else if ($('zoom-modal').classList.contains('show')) fecharZoom();
     else if (document.querySelector('.filter-popover')) fecharTodosPopovers();
@@ -5563,6 +5854,94 @@ document.addEventListener('DOMContentLoaded', function(){
 /* E o cabecalho delas acompanha o recuo, senao o rotulo fica a esquerda
    dos clientes que ele encabeca. */
 .painel-detalhada #lista:has(.sel-chk) .gci-head{ padding-left:29px; }
+
+/* ── CELULAR ─────────────────────────────────────────────────────────────
+   As regras de selecao acima usam #lista e por isso vencem o grid estreito,
+   mesmo dentro do @media. Sem repeti-las aqui, a tela de celular recebia as
+   sete colunas do desktop: a soma das fixas passava da largura do aparelho e
+   o nome do produto, que e o 1fr, era espremido ate desaparecer.
+
+   As medidas encolhem junto com a tela e o nome continua sendo a unica
+   coluna elastica - e ele que precisa sobrar quando falta espaco. */
+@media (max-width:700px){
+  .painel-detalhada #lista:has(.sel-chk) .product-main{
+    grid-template-columns:16px 44px minmax(0,1fr) 66px 74px 18px;
+    gap:0 8px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .lista-head{ display:none; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item{
+    grid-template-columns:17px minmax(0,1fr) 90px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-head{ padding-left:25px; }
+
+  /* Sem selecao o grid tambem aperta: o mesmo encolhimento das colunas de
+     numero devolve espaco ao nome. */
+  .painel-detalhada .product-main{
+    grid-template-columns:44px minmax(0,1fr) 66px 74px 18px;
+    gap:0 8px;
+  }
+
+  /* Corpo de texto proporcional a tela. O nome perde meio ponto; quem
+     encolhe de verdade e o subtitulo, que e informacao de apoio. */
+  .painel-detalhada .product-name{ font-size:13px; }
+  .painel-detalhada .product-meta{ font-size:10px; }
+  .painel-detalhada .num-linha .n{ font-size:13px; }
+  .painel-detalhada .num-linha.col-fat .n{ font-size:13px; }
+}
+@media (max-width:400px){
+  .painel-detalhada #lista:has(.sel-chk) .product-main{
+    grid-template-columns:15px 40px minmax(0,1fr) 60px 68px 16px;
+    gap:0 7px;
+  }
+  .painel-detalhada .product-main{
+    grid-template-columns:40px minmax(0,1fr) 60px 68px 16px;
+    gap:0 7px;
+  }
+  .painel-detalhada .product-thumb,
+  .painel-detalhada .product-thumb-fallback{ width:40px; height:40px; }
+  .painel-detalhada .product-name{ font-size:12.5px; }
+  .painel-detalhada .product-meta{ font-size:9.5px; }
+  .painel-detalhada .num-linha .n{ font-size:12.5px; }
+  .painel-detalhada .num-linha.col-fat .n{ font-size:12.5px; }
+}
+
+/* Abaixo de 380px nao cabem quatro colunas numa linha: medido num aparelho
+   de 320px, o nome ficava com 43px, e com 21px no modo de selecao — ou seja,
+   sumia. Aqui carteira e faturado deixam de ser duas colunas e passam a ser
+   uma so, empilhados. O `display:contents` do .prod-nums e o que os promove
+   a itens da grade; desligando ele, os dois voltam a ser uma caixa unica e
+   devolvem uma coluna inteira ao nome do produto. */
+@media (max-width:380px){
+  .painel-detalhada .prod-nums{
+    display:flex !important; flex-direction:column;
+    align-items:flex-end; justify-content:center; gap:1px;
+  }
+  .painel-detalhada .product-main{
+    grid-template-columns:36px minmax(0,1fr) 62px 14px;
+    gap:0 7px; padding:8px 10px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .product-main{
+    grid-template-columns:14px 36px minmax(0,1fr) 62px 14px;
+    gap:0 6px; padding:8px 10px;
+  }
+  .painel-detalhada .product-thumb,
+  .painel-detalhada .product-thumb-fallback{ width:36px; height:36px; }
+  .painel-detalhada .num-linha{ text-align:right; }
+}
+
+/* ── ENCOMENDA NO CELULAR ────────────────────────────────────────────────
+   Sai o nome do vendedor: no celular quem olha e quase sempre o dono da
+   linha, e para o admin a coluna existe na tela larga. A data perde o
+   rotulo e o ano e vira icone + "20/ago" — a duvida de quem confere uma
+   previsao e o mes, nao o ano. As duas formas ja vem no HTML e o CSS
+   escolhe uma; assim girar o aparelho nao precisa refazer a lista. */
+.q-curto{ display:none; }
+.q-curto i{ font-size:9px; opacity:.75; margin-right:3px; }
+@media (max-width:700px){
+  .painel-detalhada .meta-prep{ display:none; }
+  .painel-detalhada .gci-quando .q-longo{ display:none; }
+  .painel-detalhada .gci-quando .q-curto{ display:inline-flex; align-items:center; white-space:nowrap; }
+}
 
 .painel-detalhada .lista-head .lh-img{
   width:52px; display:flex; justify-content:center; align-items:center;
