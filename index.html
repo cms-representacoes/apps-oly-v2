@@ -1430,6 +1430,22 @@
 
     /* ── LABELS MOBILE NOS BOTÕES DA ACTION BAR ── */
     .action-btn-wrap { display:inline-flex; flex-direction:column; align-items:center; gap:1px; }
+    /* Controle segmentado das colunas: duas opções visíveis, a ativa
+       preenchida. O usuário vê onde está e para onde pode ir sem clicar. */
+    .grp-layout { padding:2px; gap:2px; }
+    .lay-opt {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:34px; height:32px; border-radius:999px; border:0;
+      background:transparent; color:var(--muted,#6B7280);
+      font-size:13px; cursor:pointer; transition:background .15s, color .15s;
+    }
+    .lay-opt:hover { background:var(--oly-bg,#F3F4F6); color:var(--text,#111); }
+    .lay-opt.on {
+      background:var(--primary,#7C3AED); color:#fff;
+      box-shadow:0 1px 4px rgba(124,58,237,.35);
+    }
+    .lay-opt.on:hover { background:var(--primary,#7C3AED); color:#fff; }
+
     .action-btn-mobile-label { font-size:9px; font-weight:700; color:var(--primary); line-height:1; display:block; pointer-events:none; }
     @media(min-width:640px){ .action-btn-mobile-label { display:none; } }
 
@@ -2150,10 +2166,18 @@
               <span id="lblRefresh" class="hidden sm:inline">Atualizar</span>
             </button>
             <!-- Layout (agora vem depois de Limpar e Atualizar) -->
-            <button id="btnLayout" title="Alternar visualização em 2 ou 3 colunas" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-3 text-sm font-semibold hover:bg-oly-bg shrink-0">
-              <span class="action-btn-wrap"><i id="icoLayout" class="fa-solid fa-table-cells-large text-oly-blue"></i><span class="action-btn-mobile-label">Layout</span></span>
-              <span id="lblLayout" class="hidden sm:inline text-xs font-bold">2 Col</span>
-            </button>
+            <!-- As duas densidades ficam à vista, com a ativa destacada.
+                 Antes era um botão só que mostrava o PRÓXIMO estado: vendo 3
+                 colunas ele dizia "2 Col", e não dava para saber se aquilo
+                 era onde você estava ou para onde iria. -->
+            <div id="btnLayout" class="grp-layout inline-flex items-center rounded-full border border-oly-border bg-white shrink-0" role="group" aria-label="Colunas do catálogo">
+              <button type="button" class="lay-opt focus-ring" data-layout="duo" title="Ver em 2 colunas" aria-label="Ver em 2 colunas">
+                <i class="fa-solid fa-table-cells-large"></i>
+              </button>
+              <button type="button" class="lay-opt focus-ring" data-layout="trio" title="Ver em 3 colunas" aria-label="Ver em 3 colunas">
+                <i class="fa-solid fa-table-cells"></i>
+              </button>
+            </div>
             <!-- 5 Favoritos -->
             <button id="btnFavs" class="focus-ring inline-flex items-center justify-center gap-2 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-4 text-sm font-semibold hover:bg-oly-bg" title="Ver produtos favoritos">
               <span class="action-btn-wrap"><i id="btnFavsIcon" class="fa-regular fa-heart text-oly-blue"></i><span class="action-btn-mobile-label">Favoritos</span></span>
@@ -4440,18 +4464,22 @@ const LAYOUTS = [
   { id:"duo",  icon:"fa-table-cells-large", label:"2 Col" },
   { id:"trio", icon:"fa-table-cells",        label:"3 Col" },
 ];
+// Marca qual das duas densidades está valendo. O nome antigo ficou: ele é
+// chamado de outros pontos que mudam o layout (ex.: o "Limpar", que volta ao
+// padrão da tela).
 function updateLayoutBtn(){
-  const cur = LAYOUTS.findIndex(l => l.id === state.cardLayout);
-  const next = LAYOUTS[(cur + 1) % LAYOUTS.length];
-  const ico = $("icoLayout"), lbl = $("lblLayout");
-  if(ico) ico.className = `fa-solid ${next.icon} text-oly-blue`;
-  if(lbl) lbl.textContent = next.label;
+  document.querySelectorAll("#btnLayout .lay-opt").forEach(b => {
+    b.classList.toggle("on", b.dataset.layout === state.cardLayout);
+    b.setAttribute("aria-pressed", b.dataset.layout === state.cardLayout ? "true" : "false");
+  });
 }
-$("btnLayout")?.addEventListener("click", ()=>{
-  const cur = LAYOUTS.findIndex(l => l.id === state.cardLayout);
-  state.cardLayout = LAYOUTS[(cur + 1) % LAYOUTS.length].id;
-  updateLayoutBtn();
-  renderCards();
+document.querySelectorAll("#btnLayout .lay-opt").forEach(b => {
+  b.addEventListener("click", ()=>{
+    if(state.cardLayout === b.dataset.layout) return;   // já está nessa
+    state.cardLayout = b.dataset.layout;
+    updateLayoutBtn();
+    renderCards();
+  });
 });
 // Sincroniza o botão de layout com o padrão inicial (trio)
 updateLayoutBtn();
