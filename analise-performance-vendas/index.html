@@ -192,6 +192,49 @@
   /* o percentual do ranking herda a cor do status da carta campanha:
      verde (elegível) / âmbar (não elegível) — um número só, sem repetição */
   .ratio-cell.cc-ok .ratio-val,.ratio-cell.cc-low .ratio-val{color:var(--cc);font-weight:700}
+  /* Linha CMS (empresa inteira): fica acima do ranking, separada por uma
+     borda embaixo — não disputa posição com os vendedores. */
+  .escritorio-row td{
+    border-bottom:2px solid var(--bd, #e5e7eb);
+    background:var(--esc-bg, #f8fafc);
+    font-weight:600;
+  }
+  .escritorio-row .rk{ text-align:left; }
+
+  /* A inicial ocupa o lugar do número de ranking e usa a MESMA cor do chip
+     do nome. O acabamento é o mesmo do .vindex e do .cms-logo: gradiente a
+     135deg com sombra colorida por baixo — é o que dá a eles o aspecto de
+     relevo em vez de retângulo chapado. */
+  .ini{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px; height:24px; border-radius:6px;
+    font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:12px;
+    color:#fff;
+    background:linear-gradient(135deg,#2B3550,var(--ink));
+    box-shadow:0 2px 6px rgba(14,23,38,.28);
+  }
+  /* Empresa: o mesmo roxo do selo da CMS no topo da página. */
+  .ini-cms{
+    background:linear-gradient(135deg,#9B6BF0,#7C3AED);
+    box-shadow:0 2px 6px rgba(124,58,237,.25);
+  }
+  /* Os chips de nome ganham o mesmo acabamento, para a dupla
+     inicial + nome ficar coerente. */
+  .who .tag{
+    background:linear-gradient(135deg,#2B3550,var(--ink));
+    box-shadow:0 2px 6px rgba(14,23,38,.22);
+  }
+  .tag-escritorio{
+    background:linear-gradient(135deg,#9B6BF0,#7C3AED) !important;
+    box-shadow:0 2px 6px rgba(124,58,237,.25);
+    color:#fff !important;
+  }
+  html.dark .ini, html.dark .who .tag{
+    background:linear-gradient(135deg,#4A5570,#2B3550);
+    box-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  html.dark .escritorio-row td{ background:rgba(255,255,255,.04); }
+
   /* carta campanha */
   .cc-ok{--cc:#12a150;--cc-bg:rgba(18,161,80,.12)}
   .cc-low{--cc:#c98a00;--cc-bg:rgba(201,138,0,.14)}
@@ -852,10 +895,17 @@ function showNoDataForVendor(){
       <p>Não encontramos uma aba de performance com o seu nome na planilha atual. Assim que ela for atualizada com os seus dados, aparece aqui automaticamente.</p>`;
   }
 }
-// primeiro nome do vendedor (CMS fica "CMS")
+// primeiro nome do vendedor. O vendedor CMS aparece como "Núcleo" —
+// o nome "CMS" passou a ser da linha da empresa inteira, no topo da
+// visão consolidada. Só o rótulo muda: v.key segue 'CMS'.
+// Primeira letra do nome que aparece na tela. Os vendedores têm nome de
+// uma palavra só (Leandro, Jorge, Willame...), então uma letra basta.
+function inicial(nome){
+  return String(nome || '').trim().charAt(0).toUpperCase();
+}
 function firstName(v){
   const nome=(v.nome||v.key||'').trim();
-  if(norm(v.key)==='cms' || norm(nome)==='c m s') return 'CMS';
+  if(norm(v.key)==='cms' || norm(nome)==='c m s') return 'Núcleo';
   return nome.split(/\s+/)[0] || v.key;
 }
 function buildVendTabs(vendors){
@@ -1127,7 +1177,7 @@ function render(vendors){
     ranked.forEach((c,i)=>{
       const bw=c.ratio/maxRatio*100;
       crows+=`<tr>
-        <td class="rk">${String(i+1).padStart(2,'0')}</td>
+        <td class="rk"><span class="ini">${inicial(firstName(c))}</span></td>
         <td class="who"><span class="tag">${firstName(c)}</span></td>
         <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
         <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
@@ -1135,6 +1185,22 @@ function render(vendors){
         ${ccOn?ccCell(c):''}
       </tr>`;
     });
+    // Linha CMS: a empresa inteira somada, do mesmo aggregate() que a visão
+    // "Consolidado" usa — os dois lugares mostram sempre o mesmo número.
+    //
+    // O percentual é a soma de "demais" dividida pela soma de FTW, e NÃO a
+    // média dos percentuais dos vendedores: quem fatura mais pesa mais.
+    const escr = aggregate(ranked);
+    const escrBw = Math.min(escr.ratio / maxRatio * 100, 100);
+    const escrRow = `<tr class="escritorio-row">
+        <td class="rk"><span class="ini ini-cms">${inicial('CMS')}</span></td>
+        <td class="who"><span class="tag tag-escritorio">CMS</span></td>
+        <td class="num h-ftw">${fmtBRL(escr.ftw)}</td>
+        <td class="num h-demais">${fmtBRL(escr.demais_v)}</td>
+        <td class="ratio-cell ${ccOn?ccStatus(escr).cls:''}"><div class="ratio-track"><div class="ratio-fill" style="width:${escrBw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(escr.ratio)}</span></div></td>
+        ${ccOn?(escr.ratio>=CC_META?ccCell(escr):'<td class="r"></td>'):''}
+      </tr>`;
+
     let secs='';
     ranked.forEach((v,idx)=>{ secs+=vendorSection(v, String(idx+1).padStart(2,'0')); });
     document.getElementById('report').innerHTML=`
@@ -1143,7 +1209,7 @@ function render(vendors){
         <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
           <th class="r h-ftw" data-tip="Faturamento de tênis Olympikus no período.">FTW Olympikus</th><th class="r h-demais" data-tip="Meias + acessórios + confecção + chinelos + Under Armour.">Demais faixas</th>
           <th class="r ratio-h" data-tip="Demais faixas dividido pelo FTW. O ranking é ordenado por este índice.">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h" data-tip="Elegibilidade pelo critério de mix: índice igual ou acima de '+fmtPct(CC_META)+' no trimestre. A carta campanha considera outros requisitos.">Carta campanha</th>':''}</tr></thead>
-          <tbody>${crows}</tbody></table></div>
+          <tbody>${escrRow}${crows}</tbody></table></div>
       <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
   }
   document.getElementById('empty').style.display='none';
