@@ -173,6 +173,14 @@ body.idle{cursor:none}
 body.claro .prow.head{background:rgba(109,40,217,.12);border-color:rgba(109,40,217,.3)}
 body.claro .prow.head span{color:#3B2E7E}
 .p-rank{color:var(--dim);font-size:.95rem;font-weight:600}
+/* A inicial ocupa o lugar do numero de posicao e usa a MESMA cor do chip do
+   nome — igual ao dashboard. A ordem das linhas ja diz a colocacao; o numero
+   so repetia isso. */
+.p-ini{display:inline-flex;align-items:center;justify-content:center;
+  width:2.1rem;height:2.1rem;border-radius:.55rem;
+  background:linear-gradient(135deg,#9B6BF0,#7C3AED);color:#fff;
+  font-size:1rem;font-weight:700;justify-self:center}
+.prow.empresa .p-ini{background:linear-gradient(135deg,#C4A5FF,#9B6BF0)}
 .p-nome{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#9B6BF0,#7C3AED);
   color:#fff;font-size:1rem;font-weight:600;border-radius:.55rem;padding:.3rem .8rem;justify-self:start}
 .p-val{text-align:right;color:var(--tx);font-size:1.15rem;font-weight:600}
@@ -215,6 +223,23 @@ body.claro .p-selo.low{background:rgba(180,94,0,.1);color:#8A4500}
 #dots{position:fixed;bottom:3.4rem;left:0;right:0;display:flex;justify-content:center;gap:.55rem;z-index:6}
 #dots span{width:.55rem;height:.55rem;border-radius:99rem;background:var(--off);transition:all .35s}
 #dots span.on{width:1.7rem;background:linear-gradient(90deg,#9B6BF0,#7C3AED)}
+/* O pontinho tem meio rem: pequeno demais para acertar. O ::after amplia a
+   área de clique sem mudar o desenho. */
+#dots span{position:relative;cursor:pointer}
+#dots span::after{content:'';position:absolute;inset:-.8rem}
+
+/* Enquanto pausado, o ponto da cena atual pisca — senão ninguém descobre
+   por que a TV parou de girar. */
+body.pausado #dots span.on{animation:pulsaPausa 1.4s ease-in-out infinite}
+@keyframes pulsaPausa{50%{opacity:.35}}
+
+/* A dica acompanha o cursor: aparece ao mexer o mouse e some junto com ele,
+   pela mesma classe .idle que já esconde o ponteiro. Numa TV parada, nada
+   disso fica na tela. */
+#dica-nav{position:fixed;bottom:1.1rem;left:0;right:0;text-align:center;z-index:6;
+  font:500 .78rem 'Inter',sans-serif;letter-spacing:.04em;color:var(--off);
+  opacity:.75;transition:opacity .4s;pointer-events:none}
+body.idle #dica-nav{opacity:0}
 #barra{position:fixed;bottom:0;left:0;right:0;height:2.6rem;background:rgba(16,12,30,.85);
   border-top:.06rem solid rgba(155,107,240,.15);backdrop-filter:blur(.6rem);
   display:flex;align-items:center;padding:0 1.6rem;gap:.8rem;z-index:6;overflow:hidden}
@@ -248,6 +273,7 @@ body.claro .p-selo.low{background:rgba(180,94,0,.1);color:#8A4500}
 <div id="palco"></div>
 
 <div id="dots"></div>
+<div id="dica-nav">← → trocar &nbsp;·&nbsp; espaço pausar &nbsp;·&nbsp; clique tela cheia</div>
 
 <div id="barra">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.2" stroke-linecap="round" style="flex:none"><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.7 4.7a10.4 10.4 0 0 0 0 14.6M19.3 4.7a10.4 10.4 0 0 1 0 14.6"/></svg>
@@ -264,7 +290,7 @@ body.claro .p-selo.low{background:rgba(180,94,0,.1);color:#8A4500}
 /* CONFIG */
 const DATA_URL = '../data/tv_data.json';   // mesmo domínio (GitHub Pages)
 const POLL_MS  = 10*60*1000;               // re-consulta a cada 10 min
-let CENA_MS    = 18*1000;                  // duração de cada cena (o admin pode ajustar)
+let CENA_MS    = 10*1000;                  // duração de cada cena (o admin pode ajustar)
 const CATS = ['TÊNIS','MEIAS','ACESSÓRIOS','CONFECÇÃO','CHINELO'];
 const fmt = n => Math.round(n).toLocaleString('pt-BR');
 const mil = n => n>=1000 ? (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil' : fmt(n);
@@ -382,6 +408,11 @@ function cenaMatriz(el, cfg){
   stagger(el);
 }
 
+// Primeiras letras do nome. Usado nas cenas de ranking e, desde que o
+// dashboard trocou o numero de posicao pela inicial, tambem aqui — os dois
+// lugares mostram a mesma coisa.
+const iniciais = nome => String(nome||'—').trim().split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
+
 function cenaPerformance(el){
   const p = PERF;
   const brl = n => 'R$\u00A0' + fmt(n);
@@ -408,7 +439,7 @@ function cenaPerformance(el){
     const ew = Math.min((e.ratio||0)/20*100, 100);
     const er = document.createElement('div');
     er.className = 'prow stag card empresa';
-    er.innerHTML = `<span class="p-rank tnum sg"></span>
+    er.innerHTML = `<span class="p-ini sg">${iniciais(e.nome||'CMS')}</span>
       <span class="p-nome sg">${e.nome||'CMS'}</span>
       <span class="p-val tnum sg">${brl(e.ftw)}</span>
       <span class="p-val tnum sg">${brl(e.demais)}</span>
@@ -426,7 +457,7 @@ function cenaPerformance(el){
     const w = Math.min((v.ratio||0)/20*100, 100);   // escala 0-20%, meta em 75%
     const r = document.createElement('div');
     r.className = 'prow stag card';
-    r.innerHTML = `<span class="p-rank tnum sg">0${i+1}</span>
+    r.innerHTML = `<span class="p-ini sg">${iniciais(v.nome)}</span>
       <span class="p-nome sg">${v.nome}</span>
       <span class="p-val tnum sg">${brl(v.ftw)}</span>
       <span class="p-val tnum sg">${brl(v.demais)}</span>
@@ -441,7 +472,6 @@ function cenaPerformance(el){
 }
 
 const RK_CORES = ['#9B6BF0','#7C3AED','#B794F6','#8B6FE0','#6D28D9','#A78BFA','#7C6FE8'];
-const iniciais = nome => String(nome||'—').trim().split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
 function cenaRanking(el, cfg){
   el.innerHTML = `<div class="c6">
     <div class="stag c6-top">
@@ -534,6 +564,57 @@ function mostrar(i){
     {duration:440, delay:140, easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards'});
 }
 function girar(){ clearInterval(timer); timer = setInterval(()=>mostrar(idx+1), CENA_MS); }
+
+/* NAVEGAÇÃO MANUAL
+   A TV gira sozinha, mas quem está olhando às vezes quer voltar uma tela ou
+   segurar a que está lendo. Quatro formas:
+       ← →        troca de cena
+       espaço     pausa e retoma o giro
+       pontinho   vai direto para aquela cena
+       arrastar   no celular ou TV com toque
+
+   Nenhuma delas usa o clique simples, que já é o atalho de tela cheia.
+   Qualquer troca reinicia o cronômetro: quem acabou de mudar ganha o tempo
+   inteiro para ler, em vez do resto do ciclo anterior. */
+let pausado = false;
+
+function irPara(i){
+  mostrar(i);
+  if(!pausado) girar();
+}
+function alternarPausa(){
+  pausado = !pausado;
+  if(pausado) clearInterval(timer); else girar();
+  document.body.classList.toggle('pausado', pausado);
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight' || e.key==='PageDown'){ e.preventDefault(); irPara(idx+1); }
+  else if(e.key==='ArrowLeft' || e.key==='PageUp'){ e.preventDefault(); irPara(idx-1); }
+  else if(e.key===' '){ e.preventDefault(); alternarPausa(); }
+});
+
+// O stopPropagation é essencial: sem ele, clicar no pontinho também
+// dispararia o clique global e entraria/sairia de tela cheia.
+dotsBox.addEventListener('click', e=>{
+  const i = dots.indexOf(e.target);
+  if(i < 0) return;
+  e.stopPropagation();
+  irPara(i);
+});
+
+// Arrastar o dedo. Só conta como troca se for um gesto horizontal de verdade —
+// um toque simples continua sendo o atalho de tela cheia.
+let toqueX = 0, toqueY = 0;
+document.addEventListener('touchstart', e=>{
+  toqueX = e.touches[0].clientX; toqueY = e.touches[0].clientY;
+}, {passive:true});
+document.addEventListener('touchend', e=>{
+  const dx = e.changedTouches[0].clientX - toqueX;
+  const dy = e.changedTouches[0].clientY - toqueY;
+  if(Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+  irPara(idx + (dx < 0 ? 1 : -1));
+}, {passive:true});
 
 /* DADOS */
 const PERF_URL = '../data/widget_performance.json';
@@ -637,7 +718,7 @@ async function carregar(primeira){
     const mudou = perfMudou || repasseMudou || !DATA || novo.generatedAt !== DATA.generatedAt;
     DATA = novo;
     if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;
-    document.body.classList.toggle('claro', DATA.config && DATA.config.tema==='claro');
+    document.body.classList.toggle('claro', !(DATA.config && DATA.config.tema==='escuro'));
     try{ localStorage.setItem('tv_cache', JSON.stringify(novo)); }catch(_){}
     document.getElementById('aviso').classList.remove('show');
     if(primeira || mudou){ montarCenas(); montarTicker(); mostrar(0); girar(); }
@@ -646,7 +727,7 @@ async function carregar(primeira){
       try{ DATA = JSON.parse(localStorage.getItem('tv_cache')); }catch(_){}
       if(DATA){
         if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;
-        document.body.classList.toggle('claro', DATA.config && DATA.config.tema==='claro');
+        document.body.classList.toggle('claro', !(DATA.config && DATA.config.tema==='escuro'));
         montarCenas(); montarTicker(); mostrar(0); girar(); }
       else document.getElementById('aviso').classList.add('show');
     }

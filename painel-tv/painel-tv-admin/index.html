@@ -122,12 +122,12 @@ details summary::-webkit-details-marker{display:none}
         <input type="date" id="ajData" style="width:100%;border:1px solid var(--line);border-radius:9px;
           padding:9px 12px;font:500 13px 'Inter',sans-serif;color:var(--navy);background:#FCFCFB"></div>
       <div><label>Tempo de cada cena do carrossel (segundos)</label>
-        <input type="text" id="ajCena" value="18" inputmode="numeric"></div>
+        <input type="text" id="ajCena" value="10" inputmode="numeric"></div>
       <div><label>Tema da TV</label>
         <select id="ajTema" style="width:100%;border:1px solid var(--line);border-radius:9px;
           padding:9px 12px;font:500 13px 'Inter',sans-serif;color:var(--navy);background:#FCFCFB">
-          <option value="escuro">Escuro (padrão)</option>
-          <option value="claro">Claro</option>
+          <option value="claro">Claro (padrão)</option>
+          <option value="escuro">Escuro</option>
         </select></div>
       <div><label>Rebatizar nesta publicação</label>
         <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--navy);
@@ -450,7 +450,7 @@ async function processarCore(linhas){
   }
 
   /* --- payload da TV --- */
-  const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 18));
+  const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 10));
   $('ajCena').value = cenaSeg;
   const tvData = {
     generatedAt: new Date().toISOString(),
@@ -589,7 +589,7 @@ $('ajustesBtn').onclick = async ()=>{
       $('ajustesBtn').disabled = false; return;
     }
     const dados = atual.json;
-    const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 18));
+    const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 10));
     $('ajCena').value = cenaSeg;
     dados.config = {...(dados.config||{}), cenaSeg, tema: $('ajTema').value};
     dados.generatedAt = new Date().toISOString();   // a TV percebe a mudança e aplica
