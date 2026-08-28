@@ -7858,8 +7858,66 @@ function fitRect(imgW, imgH, boxW, boxH){
   return { x, y, w, h };
 }
 
+// ── Modal de progresso do PDF ────────────────────────────────────────────
+// Só desenha o estado; quem decide os passos é o exportOrderPdf.
+const PdfProg = {
+  abrir(){
+    const m = $("pdfProgModal"); if(!m) return;
+    $("pdfProgIcone").textContent = "📄";
+    $("pdfProgTitulo").textContent = "Gerando o PDF…";
+    $("pdfProgPasso").textContent = "preparando";
+    $("pdfProgBarra").style.width = "0%";
+    $("pdfProgBarra").style.background = "var(--primary)";
+    $("pdfProgContagem").textContent = "";
+    $("pdfProgErroBox").classList.add("hidden");
+    $("pdfProgFechar").classList.add("hidden");
+    $("pdfProgFechar").onclick = () => m.classList.add("hidden");
+    m.classList.remove("hidden");
+  },
+  passo(texto, pct, contagem){
+    if(!$("pdfProgModal") || $("pdfProgModal").classList.contains("hidden")) return;
+    $("pdfProgPasso").textContent = texto;
+    if(typeof pct === "number") $("pdfProgBarra").style.width = Math.max(0, Math.min(100, pct)) + "%";
+    $("pdfProgContagem").textContent = contagem || "";
+  },
+  // Fecha sozinho no sucesso: mais um clique não ajuda ninguém.
+  concluir(){
+    const m = $("pdfProgModal"); if(!m) return;
+    $("pdfProgIcone").textContent = "✅";
+    $("pdfProgTitulo").textContent = "PDF pronto";
+    $("pdfProgPasso").textContent = "baixando o arquivo";
+    $("pdfProgBarra").style.width = "100%";
+    setTimeout(()=> m.classList.add("hidden"), 900);
+  },
+  // No erro NÃO fecha: a mensagem é a única pista que o usuário terá.
+  falhar(erro){
+    const m = $("pdfProgModal"); if(!m) return;
+    m.classList.remove("hidden");
+    $("pdfProgIcone").textContent = "⚠️";
+    $("pdfProgTitulo").textContent = "Deu problema";
+    $("pdfProgPasso").textContent = "a geração foi interrompida";
+    $("pdfProgBarra").style.background = "#DC2626";
+    $("pdfProgErroBox").classList.remove("hidden");
+    $("pdfProgErroMsg").textContent =
+      (erro && (erro.message || erro.toString())) || "erro desconhecido";
+    $("pdfProgFechar").classList.remove("hidden");
+    console.error("[PDF]", erro);
+  }
+};
+
 async function exportOrderPdf(showGrade = true){
   if(state.cart.size === 0){ toast("Sacola vazia ✅"); return; }
+  try{
+    return await _exportOrderPdf(showGrade);
+  }catch(e){
+    // Sem isto, uma exceção no meio da geração só aparecia no console e o
+    // usuário ficava olhando para uma tela que não fazia nada.
+    PdfProg.falhar(e);
+  }
+}
+
+async function _exportOrderPdf(showGrade = true){
+  PdfProg.abrir();
   saveCustomerToStorage();
 
   // Estado/decisões
@@ -7907,22 +7965,39 @@ async function exportOrderPdf(showGrade = true){
   const cut = (s, n) => { s = String(s||""); return s.length>n ? s.slice(0,n-1)+"…" : s; };
 
   // Imagem helper
-  async function loadDataUrl(src){
+  // Carrega a imagem como data URL. Devolve null quando nao der — NUNCA fica
+  // pendurada.
+  //
+  // Duas falhas silenciosas ja moravam aqui, e as duas travavam o PDF inteiro
+  // sem erro nenhum na tela:
+  //   1. O try/catch envolvia so a MONTAGEM do Image. Se o toDataURL lancasse
+  //      dentro do onload (canvas contaminado, imagem corrompida, memoria),
+  //      ninguem chamava resolve e o await do drawProductCard esperava para
+  //      sempre.
+  //   2. Sem prazo: uma requisicao que nao volta nem com onload nem com
+  //      onerror segura a geracao indefinidamente.
+  // Uma imagem que falha custa um quadro cinza no PDF. Travar custa o pedido.
+  async function loadDataUrl(src, prazoMs = 8000){
     return new Promise(resolve => {
+      let pronto = false;
+      const encerra = (v) => { if(pronto) return; pronto = true; clearTimeout(t); resolve(v); };
+      const t = setTimeout(() => encerra(null), prazoMs);
       try{
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
-          const cv = document.createElement("canvas");
-          cv.width = img.naturalWidth || 200; cv.height = img.naturalHeight || 200;
-          const ctx = cv.getContext("2d");
-          ctx.fillStyle = "#fff"; ctx.fillRect(0,0,cv.width,cv.height);
-          ctx.drawImage(img, 0, 0);
-          resolve(cv.toDataURL("image/jpeg", 0.85));
+          try{
+            const cv = document.createElement("canvas");
+            cv.width = img.naturalWidth || 200; cv.height = img.naturalHeight || 200;
+            const ctx = cv.getContext("2d");
+            ctx.fillStyle = "#fff"; ctx.fillRect(0,0,cv.width,cv.height);
+            ctx.drawImage(img, 0, 0);
+            encerra(cv.toDataURL("image/jpeg", 0.85));
+          }catch(_){ encerra(null); }
         };
-        img.onerror = () => resolve(null);
+        img.onerror = () => encerra(null);
         img.src = src;
-      }catch(_){ resolve(null); }
+      }catch(_){ encerra(null); }
     });
   }
 
@@ -8301,6 +8376,8 @@ async function exportOrderPdf(showGrade = true){
       yPos = drawSectionTitle(yPos, "Produtos do pedido (continuação)");
       yPos += 2;
     }
+    PdfProg.passo("montando os produtos", 10 + Math.round((i / items.length) * 75),
+                  (i + 1) + " de " + items.length);
     yPos = await drawProductCard(items[i], yPos);
   }
 
@@ -8316,8 +8393,10 @@ async function exportOrderPdf(showGrade = true){
   yPos = drawSignature(yPos);
   drawFooter();
 
+  PdfProg.passo("finalizando o documento", 92);
   const nomePdf = `pedido_cliente_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
   doc.save(nomePdf);
+  PdfProg.concluir();
   toast("PDF gerado ✅");
   // Oferece compartilhar (menu do sistema — anexa o PDF de verdade)
   try{
@@ -11521,7 +11600,7 @@ function _mpRenderFinalizados(){
         <div class="mp-pedido-actions">
           <button class="mp-pedido-btn" onclick="mpReordenar('${_mpEscape(p.id)}')"><i class="fa-solid fa-rotate-left"></i> Reordenar</button>
           <button class="mp-pedido-btn primary" onclick="mpBaixarExcel('${_mpEscape(p.id)}')"><i class="fa-solid fa-file-excel"></i> Excel</button>
-          <button class="mp-pedido-btn" onclick="mpBaixarPDF('${_mpEscape(p.id)}')" ${sacolaVazia ? "" : "disabled title=\"Esvazie a sacola pra gerar PDF\""}><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          <button class="mp-pedido-btn" onclick="mpBaixarPDF('${_mpEscape(p.id)}')"${sacolaVazia ? "" : ' title="Esvazie a sacola para gerar o PDF deste pedido"'}><i class="fa-solid fa-file-pdf"></i> PDF</button>
         </div>
       </div>
     </div>`;
@@ -11964,8 +12043,12 @@ document.addEventListener("click", (e)=>{
 
 // Baixar PDF: usa "Reordenar silencioso" + chama o PDF da sacola
 function mpBaixarPDF(id){
+  // O PDF é montado a partir da sacola, então ela precisa estar livre. Antes
+  // o botão vinha "disabled": no celular não há hover para ler o title, e o
+  // toque simplesmente não fazia nada — que é como o usuário descreveu o
+  // problema. Agora o botão responde e explica.
   if(state.cart.size !== 0){
-    toast("Esvazie a sacola antes de gerar PDF do histórico");
+    toast("Sua sacola tem " + state.cart.size + " item(ns). Esvazie ou finalize antes de gerar o PDF deste pedido.", "info");
     return;
   }
   const pedido = _mpFindPedidoById(id);
@@ -12377,6 +12460,44 @@ loadCatalog({ cacheBust:false });
 </div>
 
 <!-- Modal: compartilhar PDF após gerar -->
+<!-- ═══════════ MODAL: PROGRESSO DA GERAÇÃO DO PDF ═══════════ -->
+<!-- Antes, gerar PDF de um pedido grande deixava a tela parada por vários
+     segundos sem sinal nenhum, e uma falha no meio não aparecia. Este modal
+     mostra em que passo está e, se der errado, o que deu. -->
+<div id="pdfProgModal" class="hidden fixed inset-0 z-[94]">
+  <div class="absolute inset-0 bg-black/60"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="rounded-2xl p-5 max-w-sm w-full" style="background:var(--card-bg, #fff)">
+      <div class="flex items-center gap-3 mb-3">
+        <div id="pdfProgIcone" class="text-3xl">📄</div>
+        <div class="min-w-0">
+          <div id="pdfProgTitulo" class="text-lg font-black" style="color:var(--text)">Gerando o PDF…</div>
+          <div id="pdfProgPasso" class="text-sm truncate" style="color:var(--muted)">preparando</div>
+        </div>
+      </div>
+
+      <div class="rounded-full overflow-hidden mb-1" style="height:8px;background:var(--oly-bg,#eee)">
+        <div id="pdfProgBarra" class="h-full rounded-full transition-all duration-300"
+             style="width:0%;background:var(--primary)"></div>
+      </div>
+      <div id="pdfProgContagem" class="text-xs text-right mb-3" style="color:var(--muted)"></div>
+
+      <!-- só aparece quando algo dá errado -->
+      <div id="pdfProgErroBox" class="hidden rounded-xl p-3 mb-3" style="background:#FEF2F2;border:1px solid #FECACA">
+        <div class="text-sm font-bold mb-1" style="color:#991B1B">Não consegui gerar o PDF</div>
+        <div id="pdfProgErroMsg" class="text-xs" style="color:#7F1D1D;word-break:break-word"></div>
+        <div class="text-xs mt-2" style="color:#7F1D1D;opacity:.8">
+          Se acontecer de novo, tire um print desta mensagem e mande para o suporte.
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="pdfProgFechar" class="hidden flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="sharePdfModal" class="hidden fixed inset-0 z-[93]">
   <div class="absolute inset-0 bg-black/60"></div>
   <div class="absolute inset-0 flex items-center justify-center p-4">
