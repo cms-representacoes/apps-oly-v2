@@ -826,29 +826,11 @@ async function tvwPublicar(vendors){
       elegivel: v.ratio >= CC_META,
     }));
     const eleg = lista.filter(v=>v.elegivel).length;
-
-    // Linha da EMPRESA INTEIRA, pelo mesmo aggregate() que a tela usa na
-    // "Visão consolidada" — painel, TV e portal passam a mostrar o mesmo
-    // número, sem ninguém recalcular soma por conta própria.
-    //
-    // Vai num campo à parte, e NÃO dentro de `vendedores`: o painel de TV
-    // percorre esse array, e a empresa apareceria lá como se fosse mais um
-    // vendedor. O `resumo` também segue contando só os vendedores.
-    const escr = aggregate(vendors);
-    const empresa = {
-      nome: 'CMS',
-      ftw: Math.round(escr.ftw),
-      demais: Math.round(escr.demais_v),
-      ratio: Math.round(escr.ratio*1000)/10,
-      elegivel: escr.ratio >= CC_META,
-    };
-
     const corpo = {
       ano: String(new Date().getFullYear()),
       trimestre: tri.rotulo,
       meta: CC_META*100,
       resumo: eleg+' de '+lista.length+' elegíveis · meta '+fmtPct(CC_META),
-      empresa: empresa,
       vendedores: lista,
       linhas: lista.map(v=>v.nome+' '+String(v.ratio).replace('.',',')+'% '+(v.elegivel?'✓':'✗')),
     };
