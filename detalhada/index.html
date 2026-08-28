@@ -5535,6 +5535,35 @@ document.addEventListener('DOMContentLoaded', function(){
 .painel-detalhada .product-card.expanded .product-main{
   top:calc(var(--topo-congelado, 60px) + var(--alt-cab-tabela) - 1px);
 }
+/* ── MODO DE SELECAO ─────────────────────────────────────────────────────
+   A caixa de marcar entra como primeiro filho da linha, que e uma grade de
+   colunas fixas. Sem uma coluna para ela, virava o setimo item de uma grade
+   de seis: a miniatura caia na coluna do nome, o nome na de CLIENTES, e a
+   linha inteira andava um passo para a direita, fora dos titulos.
+
+   A coluna extra vale para a lista toda enquanto ha selecao, e nao so para
+   as linhas que ganharam caixa: produto sem encomenda com GCI nao recebe
+   caixa nenhuma, e sozinho ficaria desalinhado dos vizinhos. Quem nao tem
+   caixa ganha a celula vazia pelo ::before. */
+.painel-detalhada #lista:has(.sel-chk) .lista-head,
+.painel-detalhada #lista:has(.sel-chk) .product-main{
+  grid-template-columns:17px 64px minmax(0,1fr) 86px 96px 108px 26px;
+}
+.painel-detalhada #lista:has(.sel-chk) .lista-head::before,
+.painel-detalhada #lista:has(.sel-chk) .product-main:not(:has(> .sel-chk))::before{
+  content:'';
+}
+/* Mesma correcao nas encomendas, que tambem sao grade. */
+.painel-detalhada #lista:has(.sel-chk) .gci-item{
+  grid-template-columns:19px minmax(0,1fr) auto 104px;
+}
+.painel-detalhada #lista:has(.sel-chk) .gci-item:not(:has(> .sel-chk))::before{
+  content:'';
+}
+/* E o cabecalho delas acompanha o recuo, senao o rotulo fica a esquerda
+   dos clientes que ele encabeca. */
+.painel-detalhada #lista:has(.sel-chk) .gci-head{ padding-left:29px; }
+
 .painel-detalhada .lista-head .lh-img{
   width:52px; display:flex; justify-content:center; align-items:center;
   color:var(--d-faint); font-size:12px;
