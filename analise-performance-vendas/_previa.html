@@ -1,0 +1,1730 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análise de Performance de Vendas</title>
+<!-- PWA: permite "Adicionar à tela inicial" com cara de app (Android e iOS) -->
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#7C3AED">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Performance CMS">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
+    --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
+    --ftw:#7C3AED; --ftw-lite:#A78BFA; --ftw-ink:#FFFFFF; --meias:#4C6EF5; --acess:#15AABF; --conf:#7950F2;
+    --chinelos:#0CA678; --ua:#2B2E33; --sum:#0E1726;
+  }
+  [data-theme="dark"]{
+    --ink:#E8EBF1; --navy:#D6DDEA; --slate:#9AA4B5; --mute:#828DA0;
+    --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
+    --ua:#6B7280; --sum:#8A93A3;
+  }
+  [data-theme="dark"] .btn.primary{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
+  [data-theme="dark"] .who .tag{background:var(--ftw);color:var(--ftw-ink)}
+  [data-theme="dark"] .toast{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  [data-theme="dark"] .tipbox{background:#222A37;color:#E8EBF1;border:1px solid #39435A}
+  [data-theme="dark"] .drop.drag{background:rgba(124,58,237,.12)}
+  [data-theme="dark"] .fill-sum{background:linear-gradient(90deg,#8A93A3,#5B6678)}
+  [data-theme="dark"] .selo-up,[data-theme="dark"] .vkpi-cmp.up{color:#34D399}
+  [data-theme="dark"] .selo-down,[data-theme="dark"] .vkpi-cmp.down{color:#F2868B}
+  [data-theme="dark"] .cms-logo{box-shadow:0 4px 14px rgba(124,58,237,.4)}
+  .theme-btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;
+    width:38px;height:38px;display:grid;place-items:center;padding:0}
+  .theme-btn:hover{border-color:#CBD2DC}
+  .iconbtn{width:38px;height:38px;padding:0;display:grid;place-items:center;flex:none}
+  .iconbtn svg{width:17px;height:17px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px 96px}
+  .num,.cval,.cqtd,.crel,.cmix,.ratio-val,.vkpi-val{font-variant-numeric:tabular-nums}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--paper);z-index:20}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .cms-logo{width:46px;height:46px;border-radius:14px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(135deg,#9B6BF0,#7C3AED);color:#fff;font-family:"Space Grotesk",sans-serif;
+    font-weight:700;font-size:15px;letter-spacing:.02em;box-shadow:0 4px 12px rgba(124,58,237,.25)}
+  .brand-txt{display:flex;flex-direction:column;line-height:1.18;min-width:0}
+  .brand-name{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:16px;color:var(--ink);letter-spacing:-.01em}
+  .brand-sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
+  .topbar .spacer{flex:1}
+  .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:8px 14px}
+  .btn:hover{border-color:#CBD2DC}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  /* tela cheia */
+  #fsBtn{background:color-mix(in srgb, var(--ftw) 14%, transparent);
+    border-color:color-mix(in srgb, var(--ftw) 45%, transparent);color:var(--ftw);
+    display:inline-flex;align-items:center;gap:7px;font-weight:700}
+  #fsBtn:hover{background:color-mix(in srgb, var(--ftw) 24%, transparent);
+    border-color:var(--ftw)}
+  #fsBtn svg{width:14px;height:14px;flex:none}
+  #tvBtn svg{width:14px;height:14px;flex:none}
+  #tvBtn.tv-ok{border-color:#12a150;color:#12a150}
+  #tvBtn.tv-err{border-color:#c43d3d;color:#c43d3d}
+  body.is-fs .hide-fs{display:none!important}
+  body.is-fs{overflow-y:auto}
+  #exportBtn{background:#7C3AED;color:#fff;border-color:#7C3AED}
+  #exportBtn:hover{background:#6D28D9;border-color:#6D28D9}
+
+  /* hero */
+  .hero{padding:26px 0 18px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap}
+  .eyebrow{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:.18em;
+    text-transform:uppercase;font-size:12px;color:var(--ftw);margin:0 0 16px}
+  .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:clamp(14px,1.5vw,17px);
+    line-height:1.1;letter-spacing:-.01em;margin:0;flex:none;color:var(--slate)}
+  .lede{color:var(--slate);max-width:64ch;margin:0;font-size:16px}
+  .lede code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 7px;
+    font-family:"Space Grotesk",sans-serif;font-size:13px;color:var(--navy)}
+  /* ano base (pill abaixo do título) */
+  /* seletor de período (ano + semestre) */
+  .period{display:flex;align-items:center;gap:12px;margin:0;flex-wrap:wrap}
+  .period[hidden]{display:none}
+  .pgroup{display:flex;align-items:center;gap:8px}
+  .pgroup label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+  .period select{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;color:var(--navy);
+    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 9px;cursor:pointer}
+  .period select:hover{border-color:#CBD2DC}
+  .plabel{display:inline-flex;align-items:center;gap:7px;font-family:"Space Grotesk",sans-serif;font-size:12.5px;
+    font-weight:600;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 14px}
+  /* comparar com ano anterior */
+  .vend-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;border:0;
+    flex-basis:100%;order:9}
+  .vend-tab{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;
+    border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
+  .vend-tab:hover{border-color:#CBD2DC}
+  .vend-tab.on{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
+  .cmp-toggle{margin:0;display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;color:var(--slate);
+    background:var(--card);border:1px solid var(--line);border-radius:99px;padding:5px 12px;transition:color .15s,border-color .15s}
+  .cmp-toggle .cmp-dot{width:9px;height:9px;border-radius:50%;background:#CBD2DC;transition:background .15s}
+  .cmp-toggle.on{color:var(--navy);border-color:var(--ftw)}
+  .cmp-toggle.on .cmp-dot{background:var(--ftw)}
+  .cmp-toggle[hidden]{display:none}
+  /* Botão Filtros: por padrão a tela mostra só Ano + Período.
+     Comparar, Consolidar, abas de vendedor e os KPIs dos cards
+     só aparecem com os filtros abertos (estado no localStorage). */
+  body:not(.filtros-on) #cmpToggle,
+  body:not(.filtros-on) #consToggle,
+  body:not(.filtros-on) #vendTabs,
+  body:not(.filtros-on) .cc-cards,
+  body:not(.filtros-on) .vkpi{display:none !important}
+  .selo{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;margin-top:2px}
+  .selo-up{color:#0CA678}
+  .selo-down{color:#C92A2A}
+  .selo-new{color:var(--mute)}
+  .vkpi-cmp{font-family:"Space Grotesk",sans-serif;font-size:11px;color:var(--slate);margin-top:4px}
+  .vkpi-cmp.up{color:#0CA678}
+  .vkpi-cmp.down{color:#C92A2A}
+  .vkpi-total .vkpi-val,.vkpi-pares .vkpi-val{color:var(--ftw);font-size:19px}
+  .ratio-rt{display:flex;flex-direction:column;align-items:flex-end;min-width:54px}
+  .ratio-cmp{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;color:var(--slate);margin-top:1px}
+  .vindex-sum{font-size:18px;font-weight:700}
+  .conscount{font-weight:500;color:var(--slate);font-size:13px;font-family:"Inter",sans-serif}
+  [data-tip]{cursor:help}
+  .tipbox{position:fixed;background:var(--navy);color:#fff;font-family:"Inter",sans-serif;font-weight:500;
+    font-size:11.5px;line-height:1.5;white-space:pre-line;text-align:left;padding:9px 12px;border-radius:9px;
+    box-shadow:0 10px 30px rgba(15,23,42,.28);max-width:250px;z-index:9999;pointer-events:none}
+  .tipbox[hidden]{display:none}
+  /* modal de publicação */
+  .modal{position:fixed;inset:0;background:rgba(14,23,38,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal[hidden]{display:none}
+  .modal-card{background:var(--card);border-radius:16px;padding:24px 24px 20px;width:340px;max-width:100%;box-shadow:0 24px 64px rgba(16,23,38,.32)}
+  .modal-card h3{font-family:"Space Grotesk",sans-serif;font-size:18px;font-weight:600;margin:0 0 4px}
+  .modal-sub{font-size:12px;color:var(--mute);margin:0 0 18px;word-break:break-all}
+  .fld{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:600;color:var(--slate);
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+  .fld input,.fld select{font-family:"Inter",sans-serif;font-size:15px;font-weight:400;text-transform:none;letter-spacing:0;
+    color:var(--ink);padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--card)}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+  /* toast (feedback de upload) */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);
+    background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:11px;
+    box-shadow:0 12px 32px rgba(16,23,38,.28);opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;z-index:40;max-width:90vw}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* dropzone */
+  .drop{margin:48px 0;border:2px dashed #CBD2DC;border-radius:18px;background:var(--card);
+    padding:56px 28px;text-align:center;transition:border-color .15s,background .15s}
+  .drop.drag{border-color:var(--ftw);background:#FFFBF0}
+  .drop h2{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:20px;margin:0 0 8px}
+  .drop p{color:var(--slate);margin:0 0 22px}
+  .drop .hint{font-size:12px;color:var(--mute);margin-top:18px}
+  .err{color:#C92A2A;font-size:13px;margin-top:14px;display:none}
+
+  /* blocks */
+  .block{padding:14px 0 6px}
+  .block>h3{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--mute);margin:0 0 20px;display:flex;align-items:center;gap:12px}
+  .block>h3::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .ctable{width:100%;border-collapse:collapse}
+  .ctable thead th{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--mute);text-align:left;padding:0 14px 12px;border-bottom:1px solid var(--line)}
+  .ctable thead th.r{text-align:right}
+  .ctable tbody tr{border-bottom:1px solid var(--line-2)}
+  .ctable tbody tr:hover{background:var(--line-2)}
+  .ctable td{padding:14px;vertical-align:middle}
+  .rk{font-family:"Space Grotesk",sans-serif;color:var(--mute);font-weight:600;width:38px}
+  .who .tag{display:inline-block;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:12px;
+    background:var(--ink);color:#fff;border-radius:5px;padding:2px 8px;margin-right:10px}
+  .who .full{color:var(--navy);font-weight:500}
+  td.num{text-align:right;color:var(--navy);white-space:nowrap}
+  .ctable th.ratio-h{width:32%}
+  .ratio-cell{display:flex;align-items:center;gap:12px}
+  .ratio-track{flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden}
+  .ratio-fill{height:100%;background:linear-gradient(90deg,var(--ftw),var(--ftw-lite));border-radius:99px}
+  .ratio-val{font-family:"Space Grotesk",sans-serif;font-weight:600;min-width:54px;text-align:right}
+  /* o percentual do ranking herda a cor do status da carta campanha:
+     verde (elegível) / âmbar (não elegível) — um número só, sem repetição */
+  .ratio-cell.cc-ok .ratio-val,.ratio-cell.cc-low .ratio-val{color:var(--cc);font-weight:700}
+  /* Linha CMS (empresa inteira): fica acima do ranking, separada por uma
+     borda embaixo — não disputa posição com os vendedores. */
+  .escritorio-row td{
+    border-bottom:2px solid var(--bd, #e5e7eb);
+    background:var(--esc-bg, #f8fafc);
+    font-weight:600;
+  }
+  .escritorio-row .rk{ text-align:left; }
+
+  /* A inicial ocupa o lugar do numero de ranking e usa a MESMA cor do chip
+     do nome. O acabamento e o mesmo do .vindex e do .cms-logo: gradiente a
+     135deg com sombra colorida por baixo — e o que da a eles o aspecto de
+     relevo em vez de retangulo chapado. */
+  .ini{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px; height:24px; border-radius:6px;
+    font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:12px;
+    color:#fff;
+    background:linear-gradient(135deg,#2B3550,var(--ink));
+    box-shadow:0 2px 6px rgba(14,23,38,.28);
+  }
+  /* Empresa: o mesmo roxo do selo da CMS no topo da pagina. */
+  .ini-cms{
+    background:linear-gradient(135deg,#9B6BF0,#7C3AED);
+    box-shadow:0 2px 6px rgba(124,58,237,.25);
+  }
+  /* Os chips de nome ganham o mesmo acabamento, para a dupla
+     inicial + nome ficar coerente. */
+  .who .tag{
+    background:linear-gradient(135deg,#2B3550,var(--ink));
+    box-shadow:0 2px 6px rgba(14,23,38,.22);
+  }
+  .tag-escritorio{
+    background:linear-gradient(135deg,#9B6BF0,#7C3AED) !important;
+    box-shadow:0 2px 6px rgba(124,58,237,.25);
+    color:#fff !important;
+  }
+  html.dark .ini, html.dark .who .tag{
+    background:linear-gradient(135deg,#4A5570,#2B3550);
+    box-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  html.dark .escritorio-row td{ background:rgba(255,255,255,.04); }
+
+  /* carta campanha */
+  .cc-ok{--cc:#12a150;--cc-bg:rgba(18,161,80,.12)}
+  .cc-low{--cc:#c98a00;--cc-bg:rgba(201,138,0,.14)}
+  .cc-pct{font-family:"Space Grotesk",sans-serif;font-weight:700;color:var(--cc);font-variant-numeric:tabular-nums}
+  .cc-badge{display:inline-block;font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:700;
+    letter-spacing:.04em;padding:3px 9px;border-radius:99px;background:var(--cc-bg);color:var(--cc);white-space:nowrap}
+  .ctable th.cc-h{width:15%}
+  .cc-cell{text-align:right}
+  .cc-cell .cc-pct{display:block;font-size:14px}
+  .cc-cell .cc-badge{margin-top:3px}
+  .cc-cards{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+  .cc-card{flex:1;min-width:150px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--card)}
+  .cc-card .lbl{font-family:"Space Grotesk",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--mute)}
+  .cc-card .val{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;margin-top:2px}
+  .cc-note{font-size:11.5px;color:var(--mute);margin:-8px 0 16px}
+  /* painel do vendedor logado - pílula mínima (opção C) */
+  .ccp{display:inline-flex;align-items:center;gap:8px;background:var(--cc-bg);border-radius:99px;
+       padding:6px 13px;margin:10px 0 0;max-width:100%}
+  .ccp-ico{width:15px;height:15px;color:var(--cc);flex:none}
+  .ccp-txt{font-family:"Space Grotesk",sans-serif;font-size:11.5px;font-weight:700;color:var(--cc);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ccp-track{position:relative;width:72px;height:5px;background:color-mix(in srgb, var(--cc) 28%, transparent);
+             border-radius:99px;flex:none}
+  .ccp-fill{position:absolute;left:0;top:0;height:100%;background:var(--cc);border-radius:99px}
+  .ccp-mark{position:absolute;left:75%;top:-2px;width:2px;height:9px;background:var(--cc);
+            filter:brightness(.55)}
+  .ccp-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11.5px;
+            color:var(--mute);margin-top:7px}
+  .ccp-obs{font-size:11px;color:var(--mute);opacity:.85;margin-top:4px}
+  .vmob{display:none}
+  /* Em smartphone o relatório é só consulta: escondemos todos os botões
+     de ação e todos os filtros (Ano, Período, Filtros). O período abre
+     automaticamente no trimestre corrente, que é o que interessa na meta.
+     Para mexer nos filtros ou importar, usa-se o computador. */
+  @media (max-width:720px){
+    .topbar a.btn,.topbar .btn,.topbar .theme-btn{display:none !important}
+    #period,#filtrosBtn,#cmpToggle,#consToggle,#vendTabs{display:none !important}
+    .vkpi{display:none !important}
+    /* cards por vendedor: tabela sai, entra a versão em linhas */
+    .vend .catgrid{display:none}
+    .vend{padding:0;overflow:hidden}
+    .vhead{padding:12px 14px;margin-bottom:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .vhead::after{content:'▾';font-size:14px;color:var(--mute);margin-left:auto;
+      transition:transform .25s ease;flex:none}
+    .vend.open .vhead::after{transform:rotate(180deg)}
+    .vtitle{flex:1 1 auto}
+    .vtitle h2{font-size:15px}
+    .vmob{display:none;padding:0 14px 12px}
+    .vend.open .vmob{display:block}
+    /* vendedor logado (card único): já abre expandido, sem seta */
+    section.vend:only-of-type .vmob{display:block}
+    section.vend:only-of-type .vhead{cursor:default}
+    section.vend:only-of-type .vhead::after{display:none}
+    .mrow{display:flex;align-items:center;gap:6px;padding:8px 0;
+      border-bottom:1px solid var(--line-2);font-variant-numeric:tabular-nums}
+    .mrow:last-of-type{border-bottom:0}
+    .m-fx{flex:1;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--navy)}
+    .m-fx .dot{width:8px;height:8px;border-radius:2px;flex:none}
+    .m-val{width:104px;text-align:center;font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;color:var(--navy)}
+    .m-q{width:56px;text-align:center;font-size:11px;color:var(--slate)}
+    .m-p{width:48px;text-align:center;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;color:var(--ftw)}
+    .m-p.m-base{color:var(--mute);font-weight:400}
+    .m-head{padding:0 0 6px;border-bottom:1px solid var(--line-2)}
+    .m-head .m-fx,.m-head .m-val,.m-head .m-q,.m-head .m-p{font-family:"Inter",sans-serif;
+      font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+    .m-var{font-size:9.5px;font-weight:700;margin-left:4px;letter-spacing:0}
+    .m-var.up{color:#12a150}
+    .m-var.down{color:#c43d3d}
+    .m-neg{background:rgba(196,61,61,.08);margin:0 -10px;padding:8px 10px;border-radius:8px;border-bottom:1px solid var(--line-2)}
+    .m-neg .m-fx,.m-negtxt{color:#c43d3d}
+    .m-neg .m-val,.m-neg .m-q{color:#c43d3d}
+    .m-sum{background:color-mix(in srgb, var(--ftw) 8%, transparent);margin:8px -10px 0;
+      padding:9px 10px;border-radius:10px;border-bottom:0}
+    .m-sum .m-fx,.m-sum .m-val{color:var(--ftw)}
+    .m-sum .m-q{color:var(--ftw);opacity:.75}
+    .m-p.m-ok{color:#12a150}
+    .m-p.m-low{color:#c98a00}
+    .m-nota{font-size:10px;color:var(--mute);text-align:center;margin-top:8px}
+
+  }
+  .upd{font-size:11px;color:var(--mute);margin:0;white-space:nowrap;flex:none;cursor:help}
+  /* tooltips: usa o motor JS que ja existe no rodape (atributo data-tip) */
+  .hero .spacer-h{flex:1;min-width:0}
+
+  /* vendor cards */
+  .block>h3{margin:0 0 8px}
+  .vend{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 20px;
+    margin-top:10px;box-shadow:0 1px 2px rgba(16,23,38,.03)}
+  .vhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+  .vindex{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:#fff;
+    border:0;background:linear-gradient(135deg,#9B6BF0,#7C3AED);
+    box-shadow:0 2px 6px rgba(124,58,237,.25);
+    border-radius:8px;width:28px;height:28px;display:grid;place-items:center;flex:none}
+  .vtitle{flex:1;min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .vtag{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ftw)}
+  .vtitle h2{font-family:"Space Grotesk",sans-serif;font-size:17px;font-weight:600;margin:0;letter-spacing:-.01em;line-height:1.2}
+  .vkpi{text-align:right;flex:none}
+  .vkpi-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  .vkpi-val{font-family:"Space Grotesk",sans-serif;font-size:21px;font-weight:700;line-height:1;color:var(--ftw);margin:2px 0}
+  .vkpi-note{font-size:11px;color:var(--slate)}
+
+  .catgrid{display:flex;flex-direction:column}
+  .catrow{display:grid;grid-template-columns:170px 1fr 88px 120px 72px 64px;align-items:center;gap:14px;
+    padding:6px 0;border-bottom:1px solid var(--line-2)}
+  .catrow.head{padding-bottom:9px;border-bottom:1px solid var(--line);font-family:"Space Grotesk",sans-serif;
+    font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+  .catrow.head .cqtd,.catrow.head .cval,.catrow.head .crel,.catrow.head .cmix{text-align:center}
+  .catrow.head .cbar{color:var(--mute)}
+  .basenote{text-transform:none;letter-spacing:0;color:#B7BECB}
+  .catlabel{display:flex;flex-direction:column;gap:1px;position:relative;padding-left:18px}
+  .dot{position:absolute;left:0;top:5px;width:9px;height:9px;border-radius:3px}
+  .dot-ftw{background:var(--ftw)}.dot-meias{background:var(--meias)}.dot-acess{background:var(--acess)}
+  .dot-conf{background:var(--conf)}.dot-chinelos{background:var(--chinelos)}.dot-ua{background:var(--ua)}
+  .dot-sum{background:var(--sum)}
+  .head .catlabel{padding-left:0}
+  .cname{font-weight:600;color:var(--navy);font-size:13px}
+  .csub{font-size:11px;color:var(--mute)}
+  .cbar-track{height:11px;background:var(--line-2);border-radius:5px;overflow:hidden}
+  .cbar-fill{height:100%;border-radius:5px;min-width:2px}
+  .fill-ftw{background:repeating-linear-gradient(90deg,var(--ftw),var(--ftw) 10px,var(--ftw-lite) 10px,var(--ftw-lite) 20px)}
+  .fill-meias{background:var(--meias)}.fill-acess{background:var(--acess)}.fill-conf{background:var(--conf)}
+  .fill-chinelos{background:var(--chinelos)}.fill-ua{background:var(--ua)}
+  .fill-sum{background:linear-gradient(90deg,var(--ink),#37425A)}
+  .cqtd{text-align:center;color:var(--slate);font-size:13px;white-space:nowrap}
+  .cval{text-align:center;color:var(--navy);font-size:14px;white-space:nowrap}
+  .crel{text-align:center;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px}
+  .crel.is-base{color:var(--ftw)}
+  .cmix{text-align:center;color:var(--slate);font-size:13px}
+  .catrow.is-zero{opacity:.45}
+  .catrow.sumrow{margin-top:6px;border-top:2px solid var(--ink);border-bottom:none;padding-top:14px}
+  .catrow.sumrow .cname{color:var(--ink)}
+  .catrow.sumrow .cbar-track{height:16px}
+
+  footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--line);color:var(--mute);font-size:12px;
+    display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  footer b{color:var(--slate)}
+  .foot-text{max-width:72ch}
+  .totop-link{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:8px;padding:9px 14px;
+    white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+  .totop-link:hover{border-color:#CBD2DC}
+
+  /* botão flutuante voltar ao topo */
+  #totop{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:13px;
+    border:1px solid var(--line);background:var(--card);color:var(--navy);font-size:20px;cursor:pointer;
+    box-shadow:0 8px 24px rgba(16,23,38,.14);opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;transform:translateY(10px);z-index:30;display:grid;place-items:center}
+  #totop.show{opacity:1;pointer-events:auto;transform:none}
+  #totop:hover{border-color:#CBD2DC}
+
+  @media (max-width:780px){
+    .wrap{overflow-x:hidden}
+    .topbar{gap:10px;flex-wrap:wrap}
+    .topbar .spacer{display:none}
+    .brand{flex:1 1 100%}
+    .btn{padding:8px 12px}
+    .hero{padding:18px 0 14px;gap:10px 14px}
+
+    /* ranking consolidado: nome + barra/%, sem as colunas de valor */
+    .ctable td{padding:12px 8px}
+    .ctable td.num.h-ftw,.ctable th.h-ftw,
+    .ctable td.num.h-demais,.ctable th.h-demais{display:none}
+    .ctable th.ratio-h{width:48%}
+    .who .full{font-size:13px}
+
+    /* cards: nome + % vs FTW (1ª linha), R$ + qtd (2ª), barra (3ª) */
+    .catrow{grid-template-columns:1fr auto;gap:4px 12px;padding:14px 0}
+    .catrow.head{display:none}
+    .catlabel{order:0}
+    .crel{order:1}
+    .cval{order:2;text-align:left}
+    .cqtd{order:3}
+    .cbar{order:4;grid-column:1 / -1;margin-top:3px}
+    .cmix{display:none}
+    .vhead{flex-wrap:wrap;gap:10px}
+    .vkpi{text-align:left}
+    footer{flex-direction:column}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .cbar-fill,.ratio-fill{animation:grow .8s cubic-bezier(.22,1,.36,1) both}
+    @keyframes grow{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1)}}
+  }
+</style>
+</head>
+<body>
+<!-- Splash animada: aparece só quando o relatório é aberto pelo ícone do
+     app (modo standalone). Cobre o carregamento inicial e some sozinha. -->
+<div id="appSplash" hidden>
+  <div class="spl-box">
+    <div class="spl-logo">CMS<span class="spl-shine"></span></div>
+    <div class="spl-name">CMS Representações</div>
+    <div class="spl-sub">Performance de Vendas</div>
+    <div class="spl-chart" aria-hidden="true">
+      <span class="spl-bar b1"></span><span class="spl-bar b2"></span>
+      <span class="spl-bar b3"></span><span class="spl-bar b4"><svg class="spl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+    </div>
+  </div>
+</div>
+<style>
+  #appSplash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;
+    background:linear-gradient(160deg,#9B6BF0,#7C3AED 55%,#6D28D9);
+    opacity:1;transition:opacity .45s ease}
+  #appSplash.out{opacity:0;pointer-events:none}
+  #appSplash[hidden]{display:none}
+  .spl-box{display:flex;flex-direction:column;align-items:center;gap:10px;
+    animation:splIn .5s cubic-bezier(.22,1,.36,1) both}
+  .spl-logo{position:relative;overflow:hidden;width:92px;height:92px;border-radius:24px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+    display:grid;place-items:center;color:#fff;font:700 30px "Space Grotesk",sans-serif;
+    letter-spacing:.02em;box-shadow:0 14px 40px rgba(0,0,0,.25);
+    animation:splPulse 1.6s ease-in-out .4s infinite}
+  .spl-shine{position:absolute;top:-30%;left:-80%;width:55%;height:160%;transform:rotate(18deg);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
+    animation:splShine 1.8s ease-in-out .6s infinite}
+  .spl-name{color:#fff;font:600 15px "Space Grotesk",sans-serif;letter-spacing:.01em}
+  .spl-sub{color:rgba(255,255,255,.75);font:500 11.5px "Inter",sans-serif;
+    letter-spacing:.14em;text-transform:uppercase}
+  .spl-chart{display:flex;align-items:flex-end;gap:7px;height:58px;margin-top:12px}
+  .spl-bar{width:12px;border-radius:4px 4px 2px 2px;display:block;height:0;
+    transform-origin:bottom;position:relative;
+    animation:splSobe .6s cubic-bezier(.22,1,.36,1) forwards,
+              splOnda 1.5s ease-in-out 2.1s infinite}
+  .spl-bar.b1{background:rgba(255,255,255,.5);--h:18px;animation-delay:.5s,2.1s}
+  .spl-bar.b2{background:rgba(255,255,255,.68);--h:30px;animation-delay:.7s,2.23s}
+  .spl-bar.b3{background:rgba(255,255,255,.84);--h:42px;animation-delay:.9s,2.36s}
+  .spl-bar.b4{background:#fff;--h:54px;animation-delay:1.1s,2.49s}
+  .spl-arrow{position:absolute;top:-17px;left:-2px;width:15px;height:15px;color:#fff;
+    opacity:0;animation:splSeta .4s cubic-bezier(.22,1,.36,1) 1.55s forwards}
+  @keyframes splSobe{0%{height:0}70%{height:calc(var(--h) + 5px)}100%{height:var(--h)}}
+  @keyframes splOnda{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.07)}}
+  @keyframes splSeta{from{opacity:0;transform:translate(-6px,6px) scale(.6)}to{opacity:1;transform:translate(0,0) scale(1)}}
+  @keyframes splIn{from{transform:scale(.86);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes splPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  @keyframes splShine{0%{left:-80%}55%,100%{left:130%}}
+  @media (prefers-reduced-motion:reduce){
+    .spl-logo,.spl-shine{animation:none}
+    .spl-bar{animation:none;height:var(--h)}
+    .spl-arrow{animation:none;opacity:1}
+  }
+</style>
+<script>
+(function(){
+  // só no app instalado (Android: display-mode; iOS: navigator.standalone)
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  if(!standalone) return;
+  const el=document.getElementById('appSplash');
+  el.hidden=false;
+  const inicio=Date.now();
+  const MIN=2600;     // um ciclo completo de pulso + brilho, sem pressa
+  const MAX=6000;     // nunca fica presa, mesmo se o carregamento falhar
+  window.__hideSplash=function(){
+    const espera=Math.max(0, MIN-(Date.now()-inicio));
+    setTimeout(()=>{ el.classList.add('out');
+      setTimeout(()=>{ el.hidden=true; }, 500); }, espera);
+  };
+  setTimeout(()=>{ window.__hideSplash && window.__hideSplash(); }, MAX);
+})();
+</script>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="cms-logo">CMS</span>
+      <div class="brand-txt">
+        <span class="brand-name">CMS Representações</span>
+        <span class="brand-sub">Olympikus · Under Armour</span>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <a href="https://cms-representacoes.github.io/apps-oly/" class="btn hide-fs" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px" data-tip="Voltar para o portal de aplicativos da CMS">&larr; Portal</a>
+    <button id="tvBtn" class="btn iconbtn" type="button" hidden aria-label="Painel TV" data-tip="Painel TV: publica o resumo da carta campanha para a cena Performance da TV. Clique para configurar o token.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </button>
+    <button id="fsBtn" class="btn iconbtn" type="button" aria-label="Tela cheia" data-tip="Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    </button>
+    <button class="theme-btn hide-fs" id="themeBtn" type="button" aria-label="Alternar tema claro/escuro" data-tip="Alternar entre tema claro e escuro"></button>
+    <button class="btn iconbtn hide-fs" id="exportBtn" type="button" hidden aria-label="Exportar Excel" data-tip="Exportar Excel: gera um .xlsx com exatamente o que está na tela — o período e o vendedor selecionados.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    </button>
+    <button class="btn primary iconbtn hide-fs" id="loadBtn" aria-label="Carregar planilha" data-tip="Carregar planilha: importa o PERFORMANCE_&lt;ano&gt;.xlsx gerado pelo script e publica para todos os dispositivos.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    </button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm" style="display:none">
+  </div>
+
+  <header class="hero">
+    <h1>Análise de Performance de Vendas</h1>
+    <div class="period" id="period" hidden></div>
+    <button class="cmp-toggle" id="filtrosBtn" type="button" aria-pressed="false" hidden data-tip="Mostra ou esconde os filtros extras (comparar, consolidar, abas de vendedor) e os KPIs dos cards."><span class="cmp-dot"></span>Filtros</button>
+    <div class="upd" id="updAt" hidden data-tip="Data e hora em que este período foi publicado para todos os dispositivos"></div>
+    <span class="spacer-h"></span>
+    <button class="cmp-toggle" id="cmpToggle" type="button" aria-pressed="false" hidden data-tip="Mostra a variação contra o mesmo recorte do ano anterior (ex.: 3º trimestre de 2026 contra o de 2025)."><span class="cmp-dot"></span>Comparar com ano anterior</button>
+    <button class="cmp-toggle" id="consToggle" type="button" aria-pressed="false" hidden data-tip="Soma todos os vendedores num único relatório, em vez de mostrar um card para cada um."><span class="cmp-dot"></span>Consolidar tudo</button>
+    <div class="vend-tabs" id="vendTabs" hidden></div>
+  </header>
+
+  <div id="empty" class="drop">
+    <h2>Carregue a planilha de performance</h2>
+    <p>Arraste o arquivo <strong>.xlsx</strong> aqui ou clique para selecionar.</p>
+    <button class="btn primary" id="loadBtn2">Selecionar arquivo</button>
+    <div class="err" id="err"></div>
+    <div class="hint">Uma aba por vendedor &middot; colunas usadas: <code>Marca</code>, <code>FatP_Qtd</code>, <code>FATP_VLR</code></div>
+  </div>
+
+  <div id="report" style="display:none"></div>
+
+  <footer id="footer" style="display:none">
+    
+    <button class="totop-link" data-totop>&uarr; Voltar ao início</button>
+  </footer>
+
+</div>
+
+<button id="totop" title="Voltar ao topo" aria-label="Voltar ao topo">&uarr;</button>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="pubModal" class="modal" hidden>
+  <div class="modal-card">
+    <h3>Publicar planilha</h3>
+    <p class="modal-sub" id="pubFile"></p>
+    <label class="fld">Ano<input type="number" id="pubAno" min="2000" max="2100" step="1" placeholder="2026"></label>
+    <label class="fld">Período<select id="pubSem">
+      <option value="ALL">Ano todo</option>
+      <option value="S1">1º semestre</option>
+      <option value="S2">2º semestre</option>
+    </select></label>
+    <div class="modal-actions">
+      <button class="btn" id="pubCancel">Cancelar</button>
+      <button class="btn primary" id="pubOk">Publicar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tela cheia ───────────────────────────────────────────────────────────────
+// Usa a Fullscreen API. Em tela cheia esconde o que é navegação (.hide-fs),
+// porque o vendedor costuma deixar aberto numa TV ou monitor auxiliar.
+(function(){
+  const btn=document.getElementById('fsBtn');
+  if(!btn) return;
+  const txt=document.getElementById('fsTxt');
+  const suportado = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if(!suportado){ btn.hidden=true; return; }
+
+  function entrar(){
+    const el=document.documentElement;
+    (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
+  }
+  function sair(){
+    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
+  }
+  const ativo=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+
+  btn.onclick=()=>{ ativo()?sair():entrar(); };
+
+  function sincronizar(){
+    const on=ativo();
+    document.body.classList.toggle('is-fs',on);
+    if(txt) txt.textContent = on ? 'Sair da tela cheia' : 'Tela cheia';
+    btn.setAttribute('data-tip', on
+      ? 'Voltar ao modo normal. Atalho: Esc'
+      : 'Abre o relatório em tela cheia, sem as barras do navegador. Atalho: F11 · sair com Esc');
+  }
+  document.addEventListener('fullscreenchange',sincronizar);
+  document.addEventListener('webkitfullscreenchange',sincronizar);
+  sincronizar();
+})();
+
+// ── SSO do Portal ────────────────────────────────────────────────────────────
+function getPortalSession(){
+  try{
+    const raw = localStorage.getItem('cms_portal_session_v1');
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !s.expiraEm || new Date(s.expiraEm).getTime() < Date.now()) return null;
+    return s;
+  }catch(_){ return null; }
+}
+const PORTAL_SESSION = getPortalSession() ||
+  { nome: 'CMS', expiraEm: '2099-01-01T00:00:00.000Z' };   // PREVIA: sem SSO
+// PREVIA: o redirecionamento para o Portal fica desligado de proposito.
+// CMS e Christian Lucas têm acesso total (igual admin) — os demais vendedores
+// só veem a própria aba, sem poder trocar pra ver a de outra pessoa.
+const SESSION_NOME = String(PORTAL_SESSION?.nome || '').trim().toUpperCase();
+const IS_ADMIN_LIKE = SESSION_NOME === 'CMS' || SESSION_NOME === 'CHRISTIAN LUCAS';
+
+const FAIXAS = [
+  {key:'ftw',      label:'FTW Olympikus', sub:'Calçados Olympikus',  cls:'ftw'},
+  {key:'meias',    label:'Meias',         sub:'Olympikus',           cls:'meias'},
+  {key:'acess',    label:'Acessórios',    sub:'Olympikus',           cls:'acess'},
+  {key:'conf',     label:'Confecção',     sub:'Vestuário Olympikus', cls:'conf'},
+  {key:'chinelos', label:'Chinelos',      sub:'Olympikus',           cls:'chinelos'},
+  {key:'ua',       label:'Under Armour',  sub:'Todas as categorias', cls:'ua'},
+];
+const OLY_MAP = {calcados:'ftw', meias:'meias', acessorios:'acess', vestuario:'conf', chinelos:'chinelos'};
+// ==== formato novo (aba DADOS do PERFORMANCE_<ano>.xlsx) ====
+const FAIXA_MAP = {ftw:'ftw', meias:'meias', acessorios:'acess', acess:'acess',
+  confeccao:'conf', conf:'conf', vestuario:'conf', chinelos:'chinelos',
+  under_armour:'ua', 'under armour':'ua', ua:'ua', calcados:'ftw'};
+const MES_NOME = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const RECORTES = [
+  {id:'ANO', label:'Ano completo',            meses:[1,2,3,4,5,6,7,8,9,10,11,12]},
+  {id:'S1',  label:'1º Semestre (Jan-Jun)',   meses:[1,2,3,4,5,6]},
+  {id:'S2',  label:'2º Semestre (Jul-Dez)',   meses:[7,8,9,10,11,12]},
+  {id:'T1',  label:'1º Trimestre (Jan-Mar)',  meses:[1,2,3]},
+  {id:'T2',  label:'2º Trimestre (Abr-Jun)',  meses:[4,5,6]},
+  {id:'T3',  label:'3º Trimestre (Jul-Set)',  meses:[7,8,9]},
+  {id:'T4',  label:'4º Trimestre (Out-Dez)',  meses:[10,11,12]},
+];
+function recortesDe(mesesDisp){
+  const s = new Set(mesesDisp.map(Number));
+  const out = RECORTES.filter(r => r.meses.some(m => s.has(m)))
+    .map(r => ({id:r.id, label:r.label, meses:r.meses.filter(m => s.has(m))}));
+  [...s].sort((a,b)=>a-b).forEach(m =>
+    out.push({id:'M'+m, label:MES_NOME[m], meses:[m]}));
+  return out;
+}
+const NOMES = {cms:'C M S', jorge:'Jorge Luiz das Neves', leandro:'Leandro de Paula',
+  mariana:'Mariana Fernandes', rafael:'Rafael Lima Moreira', willame:'Willame Rocha Teixeira'};
+const LS_DATA='apv_xlsx_b64', LS_NAME='apv_xlsx_name', LS_ANO='apv_ano_base', LS_ACCENT='apv_accent', LS_PERIODS='apv_periods';
+
+// ==== Sincronização entre dispositivos (Cloudflare Worker) ====
+// URL do Worker. Deixe '' para desativar e usar só este navegador.
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
+
+const fmtBRL = v => 'R$ ' + Math.round(v||0).toLocaleString('pt-BR');
+const fmtQtd = v => (v==null) ? '—' : Math.round(v).toLocaleString('pt-BR');
+const fmtPct = v => (v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const norm = s => (s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+
+function findCol(headerRow, names){
+  for(let i=0;i<headerRow.length;i++){ if(names.includes(norm(headerRow[i]))) return i; }
+  return -1;
+}
+function parseSheet(rows){
+  let h=0;
+  for(let i=0;i<Math.min(rows.length,5);i++){ if(rows[i].some(c=>norm(c)==='marca')) {h=i;break;} }
+  const head=rows[h];
+  const cM = findCol(head,['marca'])>=0 ? findCol(head,['marca']) : 0;
+  const cQ = findCol(head,['fatp_qtd','fatp qtd','qtd']);
+  const cV = findCol(head,['fatp_vlr','fatp vlr','vlr','valor']);
+  const cQly = findCol(head,['fatp_qtd_ly']);
+  const cVly = findCol(head,['fatp_vlr_ly']);
+  if(cV<0) return null;
+  const num=(r,c)=> c>=0 ? (Number(r[c])||0) : 0;
+  const v={ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0,
+    q:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    ly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},      // valor ano anterior por faixa
+    qly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},     // qtd ano anterior por faixa
+    total_v:0, total_q:0, total_v_ly:0, total_q_ly:0};
+  let brand=null;
+  for(let i=h+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const n=norm(r[cM]); const val=num(r,cV); const qtd=num(r,cQ); const vly=num(r,cVly); const qly=num(r,cQly);
+    if(n==='olympikus'){ brand='oly'; continue; }
+    if(n==='under armour'||n==='underarmour'){ brand='ua'; v.ua=val; v.q.ua=qtd; v.ly.ua=vly; v.qly.ua=qly; continue; }
+    if(n==='total'){ v.total_v=val; v.total_q=qtd; v.total_v_ly=vly; v.total_q_ly=qly; continue; }
+    if(brand==='oly' && OLY_MAP[n]){ const k=OLY_MAP[n]; v[k]=val; v.q[k]=qtd; v.ly[k]=vly; v.qly[k]=qly; }
+  }
+  if(!v.total_v) v.total_v=v.ftw+v.meias+v.acess+v.conf+v.chinelos+v.ua;
+  if(!v.total_q) v.total_q=v.q.ftw+v.q.meias+v.q.acess+v.q.conf+v.q.chinelos+v.q.ua;
+  if(!v.total_v_ly) v.total_v_ly=v.ly.ftw+v.ly.meias+v.ly.acess+v.ly.conf+v.ly.chinelos+v.ly.ua;
+  if(!v.total_q_ly) v.total_q_ly=v.qly.ftw+v.qly.meias+v.qly.acess+v.qly.conf+v.qly.chinelos+v.qly.ua;
+  v.demais_v=v.total_v-v.ftw; v.demais_q=v.total_q-v.q.ftw; v.ratio=v.ftw?v.demais_v/v.ftw:0;
+  v.demais_v_ly=v.total_v_ly-v.ly.ftw; v.ratio_ly=v.ly.ftw?v.demais_v_ly/v.ly.ftw:0;
+  v.demais_q_ly=v.total_q_ly-v.qly.ftw;
+  return v;
+}
+function build(workbook){
+  const vendors=[];
+  workbook.SheetNames.forEach(sn=>{
+    const rows=XLSX.utils.sheet_to_json(workbook.Sheets[sn],{header:1,raw:true,defval:null});
+    const v=parseSheet(rows);
+    if(v && v.ftw>0){ v.key=sn; v.nome=NOMES[norm(sn)]||sn; vendors.push(v); }
+  });
+  if(!vendors.length) throw new Error('Nenhuma aba válida encontrada. Confira se cada aba tem as colunas Marca / FatP_Qtd / FATP_VLR e as linhas OLYMPIKUS · Calcados.');
+  finishBuild(vendors);
+}
+
+// ==== leitura do formato novo (aba DADOS) ====
+function novoV(){
+  return {ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0,
+    q:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    ly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    qly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    total_v:0,total_q:0,total_v_ly:0,total_q_ly:0};
+}
+function fecharV(v){
+  v.total_v    = v.ftw+v.meias+v.acess+v.conf+v.chinelos+v.ua;
+  v.total_q    = v.q.ftw+v.q.meias+v.q.acess+v.q.conf+v.q.chinelos+v.q.ua;
+  v.total_v_ly = v.ly.ftw+v.ly.meias+v.ly.acess+v.ly.conf+v.ly.chinelos+v.ly.ua;
+  v.total_q_ly = v.qly.ftw+v.qly.meias+v.qly.acess+v.qly.conf+v.qly.chinelos+v.qly.ua;
+  v.demais_v = v.total_v - v.ftw;
+  v.demais_q = v.total_q - v.q.ftw;
+  v.ratio    = v.ftw ? v.demais_v/v.ftw : 0;
+  v.demais_v_ly = v.total_v_ly - v.ly.ftw;
+  v.demais_q_ly = v.total_q_ly - v.qly.ftw;
+  v.ratio_ly = v.ly.ftw ? v.demais_v_ly/v.ly.ftw : 0;
+  return v;
+}
+// converte a aba DADOS num array compacto [vend, mes, faixa, q, v, qly, vly]
+function sheetToDados(ws){
+  const rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  let h=-1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    if(rows[i] && rows[i].some(c=>norm(c)==='vendedor')){ h=i; break; }
+  }
+  if(h<0) return null;
+  const head=rows[h];
+  const cVe=findCol(head,['vendedor']), cMe=findCol(head,['mes','mês']),
+        cFa=findCol(head,['faixa']), cQ=findCol(head,['qtd']),
+        cV=findCol(head,['valor']), cQl=findCol(head,['qtd_ly']),
+        cVl=findCol(head,['valor_ly']);
+  if(cVe<0||cMe<0||cFa<0||cV<0) return null;
+  const out=[];
+  for(let i=h+1;i<rows.length;i++){
+    const r=rows[i]; if(!r||r[cVe]==null) continue;
+    const mes=Number(String(r[cMe]).replace(/\D/g,''));
+    if(!mes||mes<1||mes>12) continue;
+    out.push([String(r[cVe]).trim(), mes, String(r[cFa]||'').trim(),
+      Number(r[cQ])||0, Number(r[cV])||0,
+      cQl>=0?(Number(r[cQl])||0):0, cVl>=0?(Number(r[cVl])||0):0]);
+  }
+  return out.length ? out : null;
+}
+function vendorsFromDados(dados, meses){
+  const setM=new Set(meses.map(Number));
+  const map={}, ordem=[];
+  dados.forEach(r=>{
+    const vend=r[0], mes=Number(r[1]);
+    if(!setM.has(mes)) return;
+    const k=FAIXA_MAP[norm(r[2])]; if(!k) return;
+    let o=map[vend];
+    if(!o){ o=map[vend]=novoV(); ordem.push(vend); }
+    o[k]      += Number(r[4])||0;
+    o.q[k]    += Number(r[3])||0;
+    o.ly[k]   += Number(r[6])||0;
+    o.qly[k]  += Number(r[5])||0;
+  });
+  return ordem.map(vk=>{
+    const v=fecharV(map[vk]); v.key=vk; v.nome=NOMES[norm(vk)]||vk; return v;
+  }).filter(v=>v.total_v>0 || v.total_v_ly>0);
+}
+function buildFromDados(dados, meses){
+  const vendors=vendorsFromDados(dados, meses);
+  if(!vendors.length) throw new Error('Nenhum dado no período selecionado.');
+  finishBuild(vendors);
+}
+
+let LAST_VENDORS=[];      // vendedores do recorte atualmente na tela
+
+// ============================================================
+// PONTE COM O PAINEL TV - publica data/widget_performance.json
+// (a cena "Performance" da TV lê esse arquivo). Requer token
+// salvo neste navegador (botão da TV na topbar, só admin).
+// ============================================================
+const TVW = {
+  KEY_TOKEN: 'apv_tv_token',
+  path: 'data/widget_performance.json',
+  repo: 'cms-representacoes/apps-oly-v2',
+  branch: 'main',
+};
+function tvwToken(){ return (localStorage.getItem(TVW.KEY_TOKEN)||'').trim(); }
+function tvwTrimestreAtual(){
+  const q = Math.floor(new Date().getMonth()/3);   // 0..3
+  return { id:'T'+(q+1),
+    rotulo:['1º Tri (Jan-Mar)','2º Tri (Abr-Jun)','3º Tri (Jul-Set)','4º Tri (Out-Dez)'][q] };
+}
+async function tvwPublicar(vendors){
+  try{
+    const tok = tvwToken();
+    if(!tok || !IS_ADMIN_LIKE) return;
+    const tri = tvwTrimestreAtual();
+    // só publica quando o recorte na tela é o trimestre corrente do ano corrente
+    if(CURRENT_SEL !== 'R:'+tri.id) return;
+    if(!DATASET || String(DATASET.ano) !== String(new Date().getFullYear())) return;
+
+    const lista = [...vendors].sort((a,b)=>b.ratio-a.ratio).map(v=>({
+      nome: firstName(v),
+      ftw: Math.round(v.ftw),
+      demais: Math.round(v.demais_v),
+      ratio: Math.round(v.ratio*1000)/10,
+      elegivel: v.ratio >= CC_META,
+    }));
+    const eleg = lista.filter(v=>v.elegivel).length;
+    const corpo = {
+      ano: String(new Date().getFullYear()),
+      trimestre: tri.rotulo,
+      meta: CC_META*100,
+      resumo: eleg+' de '+lista.length+' elegíveis · meta '+fmtPct(CC_META),
+      vendedores: lista,
+      linhas: lista.map(v=>v.nome+' '+String(v.ratio).replace('.',',')+'% '+(v.elegivel?'✓':'✗')),
+    };
+    // evita commit repetido: só publica se os números mudaram
+    const assin = JSON.stringify(corpo);
+    if(localStorage.getItem('apv_tv_hash') === assin) return;
+    corpo.atualizado = new Date().toLocaleString('pt-BR',
+      {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
+
+    const url = 'https://api.github.com/repos/'+TVW.repo+'/contents/'+TVW.path;
+    const cab = {'Authorization':'Bearer '+tok,'Accept':'application/vnd.github+json',
+                 'Content-Type':'application/json'};
+    let sha = null;
+    const g = await fetch(url+'?ref='+TVW.branch, {headers:cab});
+    if(g.ok){ sha = (await g.json()).sha; }
+    const body = {message:'tv: resumo performance (dashboard)',
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(corpo, null, 1)))),
+      branch: TVW.branch};
+    if(sha) body.sha = sha;
+    const p = await fetch(url, {method:'PUT', headers:cab, body: JSON.stringify(body)});
+    if(!p.ok) throw new Error('HTTP '+p.status);
+    localStorage.setItem('apv_tv_hash', assin);
+    console.log('[TV] resumo da carta campanha publicado.');
+    const b = document.getElementById('tvBtn'); if(b){ b.classList.add('tv-ok'); setTimeout(()=>b.classList.remove('tv-ok'), 2500); }
+  }catch(e){
+    console.warn('[TV] falha ao publicar o resumo:', e.message);
+    const b = document.getElementById('tvBtn');
+    if(b){ b.classList.add('tv-err'); b.title = 'Painel TV: falha ao publicar - '+e.message; }
+  }
+}
+
+function finishBuild(vendors){
+  LAST_VENDORS = vendors;
+  tvwPublicar(vendors);
+  const eb=document.getElementById('exportBtn'); if(eb) eb.hidden=!IS_ADMIN_LIKE;
+  const tb=document.getElementById('tvBtn'); if(tb) tb.hidden=!IS_ADMIN_LIKE;
+
+  if(!IS_ADMIN_LIKE){
+    // Vendedor comum: trava direto na própria aba, sem opção de trocar.
+    const meu = vendors.find(v => norm(firstName(v)) === norm(SESSION_NOME));
+    if(!meu){
+      showNoDataForVendor();
+      return;
+    }
+    CUR_VEND = meu.key;
+  }
+  render(vendors);
+}
+let CMP_ON=false;
+let CONS_ON=false;
+let CUR_VEND='';   // '' = Todos; senão, a key da aba do vendedor
+
+function showNoDataForVendor(){
+  const empty=document.getElementById('empty');
+  const report=document.getElementById('report');
+  const footer=document.getElementById('footer');
+  if(report) report.style.display='none';
+  if(footer) footer.style.display='none';
+  if(empty){
+    empty.style.display='';
+    empty.innerHTML = `<h2>Nenhum dado disponível ainda</h2>
+      <p>Não encontramos uma aba de performance com o seu nome na planilha atual. Assim que ela for atualizada com os seus dados, aparece aqui automaticamente.</p>`;
+  }
+}
+// primeiro nome do vendedor. O vendedor CMS aparece como "Núcleo" —
+// o nome "CMS" passou a ser da linha da empresa inteira, no topo da
+// visão consolidada. Só o rótulo muda: v.key segue 'CMS'.
+// Primeira letra do nome que aparece na tela. Os vendedores tem nome de
+// uma palavra so (Leandro, Jorge, Willame...), entao uma letra basta.
+function inicial(nome){
+  return String(nome || '').trim().charAt(0).toUpperCase();
+}
+function firstName(v){
+  const nome=(v.nome||v.key||'').trim();
+  if(norm(v.key)==='cms' || norm(nome)==='c m s') return 'Núcleo';
+  return nome.split(/\s+/)[0] || v.key;
+}
+function buildVendTabs(vendors){
+  const box=document.getElementById('vendTabs');
+  if(!box) return;
+  if(!IS_ADMIN_LIKE || CONS_ON || !vendors.length){ box.hidden=true; box.innerHTML=''; return; }
+  if(CUR_VEND && !vendors.some(v=>v.key===CUR_VEND)) CUR_VEND='';
+  box.hidden=false; box.innerHTML='';
+  const mk=(label,key)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='vend-tab'+(CUR_VEND===key?' on':''); b.textContent=label;
+    b.onclick=()=>{ CUR_VEND=key; render(vendors); };
+    box.appendChild(b);
+  };
+  mk('Todos','');
+  vendors.forEach(v=> mk(firstName(v), v.key));
+}
+function fmtPctSigned(v){ const s=v*100; const t=Math.abs(s).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; return (s>=0?'+':'−')+t; }
+function ppText(dpp){ return (dpp>=0?'+':'−')+Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.'; }
+// selo inline (atual vs ano anterior) — entra embaixo do número, sem coluna nova
+function deltaSelo(cur, prev, yl, yWord, fmt){
+  if(!CMP_ON) return '';
+  if((!prev) && cur>0) return `<div class="selo selo-new" data-tip="Atual: ${fmt(cur)}&#10;${yWord}: sem vendas">novo ${yl}</div>`;
+  if(prev>0 && (!cur)) return `<div class="selo selo-down" data-tip="Atual: sem vendas&#10;${yWord}: ${fmt(prev)}&#10;Variação: −100%">▼ saiu ${yl}</div>`;
+  if(!prev) return '';
+  const d=(cur-prev)/prev, dif=cur-prev, cls=d>=0?'selo-up':'selo-down', arr=d>=0?'▲':'▼';
+  const difStr=(dif>=0?'+':'−')+fmt(Math.abs(dif));
+  const tip=`Atual: ${fmt(cur)}&#10;${yWord}: ${fmt(prev)}&#10;Diferença: ${difStr}&#10;Variação: ${fmtPctSigned(d)}`;
+  return `<div class="selo ${cls}" data-tip="${tip}">${arr} ${fmtPctSigned(d)} ${yl}</div>`;
+}
+function valSelo(cur, prev, yl, yWord){ return deltaSelo(cur, prev, yl, yWord, x=>fmtBRL(x)); }
+function qtySelo(cur, prev, yl, yWord){ return deltaSelo(cur, prev, yl, yWord, x=>fmtQtd(x)+' pares'); }
+// ===== Carta Campanha =====
+// Meta trimestral: razão Demais faixas / FTW Olympikus (a mesma conta da
+// coluna "Demais / FTW"). Ex.: 618.499 / 3.882.809 = 15,9%.
+const CC_META = 0.15;                        // meta oficial
+const CC_ATIVO_EM = ['T1','T2','T3','T4'];   // só vale em trimestre
+
+function ccPart(v){ return v.ratio || 0; }   // demais / FTW
+function ppTxt(x){ return Math.abs(x).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.'; }
+function ccStatus(v){
+  const p=ccPart(v), d=(p-CC_META)*100;
+  return p>=CC_META
+    ? {cls:'cc-ok', txt:'Elegível p/ Carta Campanha', curto:'Elegível', p}
+    : {cls:'cc-low', txt:'Não elegível &middot; faltam '+ppTxt(d), curto:'Não elegível', p};
+}
+
+// Referência: trimestre anterior do mesmo ano; se não houver, o mesmo
+// trimestre do ano anterior (as colunas _LY já vêm por mês).
+function ccRef(v){
+  const rid = CURRENT_SEL ? CURRENT_SEL.slice(2) : '';
+  const n = Number(String(rid).replace('T',''));
+  if(n>1 && DATASET && DATASET.dados){
+    const rec = recortesDe(DATASET.meses).find(r=>r.id==='T'+(n-1));
+    if(rec){
+      const ant = vendorsFromDados(DATASET.dados, rec.meses).find(x=>x.key===v.key);
+      if(ant && ant.ftw>0){
+        const d=(ccPart(v)-ant.ratio)*100;
+        return {txt:'T'+(n-1)+' fechou em '+fmtPct(ant.ratio), dpp:d};
+      }
+    }
+  }
+  if(v.ly && v.ly.ftw>0){
+    const d=(ccPart(v)-v.ratio_ly)*100;
+    return {txt:'mesmo trimestre do ano anterior: '+fmtPct(v.ratio_ly), dpp:d};
+  }
+  return null;
+}
+// A campanha é trimestral: fora de T1-T4 a coluna não aparece.
+function ccVisivel(){
+  return !!(CURRENT_SEL && CURRENT_SEL.startsWith('R:') &&
+            CC_ATIVO_EM.includes(CURRENT_SEL.slice(2)));
+}
+function ccCell(v){
+  const st=ccStatus(v);
+  return `<td class="cc-cell ${st.cls}"><span class="cc-badge">${st.curto}</span></td>`;
+}
+// Painel do vendedor logado. Compacto: cabe na tela sem rolagem.
+function ccPainel(v){
+  // Pílula mínima: status + percentual + mini-barra da meta.
+  // O contexto completo (trimestre, meta, valores, comparação com o
+  // trimestre anterior) vive no tooltip.
+  const st=ccStatus(v), ref=ccRef(v);
+  const rid=CURRENT_SEL.slice(2), nome=(recortesDe(DATASET?DATASET.meses:[]).find(r=>r.id===rid)||{label:rid}).label;
+  const w=Math.min(ccPart(v)/0.20*100,100);      // escala 0-20%, meta em 75%
+  const tip=`Carta campanha (critério de mix) &middot; ${nome}. `+
+    `${fmtBRL(v.demais_v)} em demais faixas sobre ${fmtBRL(v.ftw)} de FTW &middot; meta ${fmtPct(CC_META)}.`+
+    (ref?` ${ref.txt} (${ref.dpp>=0?'&#9650;':'&#9660;'} ${ppTxt(ref.dpp)}).`:'');
+  return `<div class="ccp ${st.cls}" data-tip="${tip}">
+    <svg class="ccp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.5 13l1.5 8-5-3-5 3 1.5-8"/></svg>
+    <span class="ccp-txt">Carta campanha: ${st.curto} &middot; ${fmtPct(ccPart(v))}</span>
+    <span class="ccp-track"><span class="ccp-fill" style="width:${w.toFixed(1)}%"></span><span class="ccp-mark"></span></span>
+  </div>`;
+}
+
+function ccCards(vendors){
+  const sts=vendors.map(ccStatus);
+  const ok=sts.filter(x=>x.cls==='cc-ok').length;
+  const n=vendors.length;
+  return `<div class="cc-cards">
+    <div class="cc-card cc-ok" data-tip="Vendedores com índice Demais / FTW igual ou acima da meta no trimestre."><div class="lbl">Elegíveis</div><div class="val" style="color:var(--cc)">${ok} de ${n}</div></div>
+    <div class="cc-card cc-low" data-tip="Vendedores abaixo da meta de mix no trimestre."><div class="lbl">Não elegíveis</div><div class="val" style="color:var(--cc)">${n-ok} de ${n}</div></div>
+    <div class="cc-card"><div class="lbl">Meta trimestral</div><div class="val">${fmtPct(CC_META)}</div></div>
+  </div>`;
+}
+
+function ratioCmp(v, prevYear){
+  if(!CMP_ON) return '';
+  if(!v.ly.ftw) return `<div class="vkpi-cmp">sem base em ${prevYear}</div>`;
+  const dpp=(v.ratio-v.ratio_ly)*100, arr=dpp>=0?'▲':'▼';
+  const tip=`Diversificação demais / FTW&#10;Atual: ${fmtPct(v.ratio)}&#10;${prevYear}: ${fmtPct(v.ratio_ly)}&#10;Variação: ${ppText(dpp)}`;
+  return `<div class="vkpi-cmp" data-tip="${tip}">${fmtPct(v.ratio_ly)} em ${prevYear} · ${arr} ${Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</div>`;
+}
+function ratioCmpShort(v, yWord){
+  if(!CMP_ON) return '';
+  if(!v.ly.ftw) return '<span class="ratio-cmp" data-tip="Sem base no ano anterior">novo</span>';
+  const dpp=(v.ratio-v.ratio_ly)*100, arr=dpp>=0?'▲':'▼';
+  const tip=`Diversificação demais / FTW&#10;Atual: ${fmtPct(v.ratio)}&#10;${yWord}: ${fmtPct(v.ratio_ly)}&#10;Variação: ${ppText(dpp)}`;
+  return `<span class="ratio-cmp" data-tip="${tip}">${arr} ${Math.abs(dpp).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</span>`;
+}
+function paresCmp(v, yWord){
+  if(!CMP_ON) return '';
+  const cur=v.total_q, prev=v.total_q_ly;
+  if(!prev) return `<div class="vkpi-cmp">sem base em ${yWord}</div>`;
+  const d=(cur-prev)/prev, dif=cur-prev, cls=d>=0?'up':'down', arr=d>=0?'▲':'▼';
+  const difStr=(dif>=0?'+':'−')+fmtQtd(Math.abs(dif))+' pares';
+  const tip=`Atual: ${fmtQtd(cur)} pares&#10;${yWord}: ${fmtQtd(prev)} pares&#10;Diferença: ${difStr}&#10;Variação: ${fmtPctSigned(d)}`;
+  return `<div class="vkpi-cmp ${cls}" data-tip="${tip}">${arr} ${fmtPctSigned(d)} vs ${yWord}</div>`;
+}
+function totalCmp(v, yWord){
+  if(!CMP_ON) return '';
+  const cur=v.total_v, prev=v.total_v_ly;
+  if(!prev) return `<div class="vkpi-cmp">sem base em ${yWord}</div>`;
+  const d=(cur-prev)/prev, dif=cur-prev, cls=d>=0?'up':'down', arr=d>=0?'▲':'▼';
+  const difStr=(dif>=0?'+':'−')+fmtBRL(Math.abs(dif));
+  const tip=`Atual: ${fmtBRL(cur)}&#10;${yWord}: ${fmtBRL(prev)}&#10;Diferença: ${difStr}&#10;Variação: ${fmtPctSigned(d)}`;
+  return `<div class="vkpi-cmp ${cls}" data-tip="${tip}">${arr} ${fmtPctSigned(d)} vs ${yWord}</div>`;
+}
+function aggregate(vendors){
+  const KS=['ftw','meias','acess','conf','chinelos','ua'];
+  const a={ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0,
+    q:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    ly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    qly:{ftw:0,meias:0,acess:0,conf:0,chinelos:0,ua:0},
+    total_v:0,total_q:0,total_v_ly:0,total_q_ly:0};
+  vendors.forEach(v=>{
+    KS.forEach(k=>{ a[k]+=v[k]||0; a.q[k]+=(v.q[k]||0); a.ly[k]+=(v.ly[k]||0); a.qly[k]+=(v.qly?v.qly[k]||0:0); });
+    a.total_v+=v.total_v||0; a.total_q+=v.total_q||0; a.total_v_ly+=v.total_v_ly||0; a.total_q_ly+=v.total_q_ly||0;
+  });
+  a.demais_v=a.total_v-a.ftw; a.demais_q=a.total_q-a.q.ftw; a.ratio=a.ftw?a.demais_v/a.ftw:0;
+  a.demais_v_ly=a.total_v_ly-a.ly.ftw; a.ratio_ly=a.ly.ftw?a.demais_v_ly/a.ly.ftw:0;
+  a.demais_q_ly=a.total_q_ly-a.qly.ftw;
+  a.key='TODOS'; a.nome='Consolidado · todos os vendedores';
+  return a;
+}
+// ---- layout mobile dos cards (celular: linhas compactas) ----
+const FAIXA_CURTA={ftw:'FTW',meias:'Meias',acess:'Acessórios',conf:'Confecção',chinelos:'Chinelos',ua:'UA'};
+function fmtCompact(n){
+  const neg=n<0, a=Math.abs(n||0); let s;
+  if(a>=1e6) s=(a/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' mi';
+  else if(a>=1e3) s=(a/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mil';
+  else s=Math.round(a).toLocaleString('pt-BR');
+  return (neg?'-':'')+s;
+}
+function seloVarM(cur, ly){
+  if(!ly || !isFinite(ly)) return '';
+  const d=(cur-ly)/Math.abs(ly)*100;
+  if(!isFinite(d)) return '';
+  const up=d>=0;
+  return `<span class="m-var ${up?'up':'down'}">${up?'▲':'▼'}${Math.abs(d).toFixed(0)}%</span>`;
+}
+function render(vendors){
+  if(window.__hideSplash){ window.__hideSplash(); window.__hideSplash=null; }
+  buildVendTabs(vendors);
+  const _ano = (CURRENT_KEY && PERIODS[CURRENT_KEY]) ? PERIODS[CURRENT_KEY].ano : '';
+  const prevYear = (_ano && /^\d{4}$/.test(_ano)) ? ('vs '+(+_ano-1)) : 'vs ano anterior';
+  const prevYearShort = (_ano && /^\d{4}$/.test(_ano)) ? String(+_ano-1) : 'ano anterior';
+  const maxRatio=Math.max(...vendors.map(v=>v.ratio),0.0001);
+  const ranked=[...vendors].sort((a,b)=>b.ratio-a.ratio);
+
+  function vendorSection(v, idxLabel){
+    let rows='', mrows='';
+    FAIXAS.forEach(f=>{
+      const val=v[f.key], qtd=v.q[f.key], isFtw=f.key==='ftw';
+      const rel=v.ftw?val/v.ftw:0, mix=v.total_v?val/v.total_v:0;
+      const w=isFtw?100:Math.min(rel*100,100);
+      const zero=(!val)?' is-zero':'';
+      rows+=`<div class="catrow${zero}">
+        <div class="catlabel"><span class="dot dot-${f.cls}"></span><span class="cname">${f.label}</span><span class="csub">${f.sub}</span></div>
+        <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-${f.cls}" style="width:${w.toFixed(1)}%"></div></div></div>
+        <div class="cqtd">${fmtQtd(qtd)}${qtySelo(qtd, v.qly[f.key], prevYear, prevYearShort)}</div>
+        <div class="cval">${fmtBRL(val)}${valSelo(val, v.ly[f.key], prevYear, prevYearShort)}</div>
+        <div class="crel ${isFtw?'is-base':''}">${isFtw?'— base —':fmtPct(rel)}</div>
+        <div class="cmix">${fmtPct(mix)}</div>
+      </div>`;
+      // versão mobile: uma linha por faixa; zeradas não aparecem
+      if(val || qtd){
+        const neg=val<0;
+        mrows+=`<div class="mrow${neg?' m-neg':''}">
+          <span class="m-fx"><span class="dot dot-${f.cls}"></span>${FAIXA_CURTA[f.key]||f.label}</span>
+          <span class="m-val">${fmtCompact(val)}${seloVarM(val, v.ly[f.key])}</span>
+          <span class="m-q">${fmtCompact(qtd)}</span>
+          <span class="m-p${isFtw?' m-base':''}${neg?' m-negtxt':''}">${isFtw?'—':fmtPct(rel)}</span>
+        </div>`;
+      }
+    });
+    const sumW=Math.min(v.ratio*100,100);
+    const idx = idxLabel!=null ? `<div class="vindex">${idxLabel}</div>` : `<div class="vindex vindex-sum">Σ</div>`;
+    return `<section class="vend" id="${v.key}">
+      <header class="vhead">
+        ${idx}
+        <div class="vtitle"><h2>${firstName(v)}</h2>${(ccVisivel()&&IS_ADMIN_LIKE)?`<span class="cc-badge ${ccStatus(v).cls}" data-tip="Carta campanha (critério de mix, no trimestre): ${fmtPct(ccStatus(v).p)} — meta ${fmtPct(CC_META)}">${ccStatus(v).curto} · ${fmtPct(ccStatus(v).p)}</span>`:''}</div>
+        <div class="vkpi vkpi-total" data-tip="Soma de FTW Olympikus + meias, acessórios, confecção, chinelos e Under Armour no período."><div class="vkpi-label">Faturamento total</div><div class="vkpi-val">${fmtBRL(v.total_v)}</div><div class="vkpi-note">FTW + demais faixas</div>${totalCmp(v, prevYearShort)}</div>
+        <div class="vkpi vkpi-pares" data-tip="Quantidade total de itens no período, somando todas as faixas."><div class="vkpi-label">Pares totais</div><div class="vkpi-val">${fmtQtd(v.total_q)}</div><div class="vkpi-note">pares no período</div>${paresCmp(v, prevYearShort)}</div>
+        <div class="vkpi" data-tip="Índice de diversificação: tudo que não é tênis Olympikus dividido pelo FTW. É o critério de mix da carta campanha (meta 15%)."><div class="vkpi-label">Demais faixas&nbsp;/&nbsp;FTW</div><div class="vkpi-val">${fmtPct(v.ratio)}</div><div class="vkpi-note">${fmtBRL(v.demais_v)} sobre ${fmtBRL(v.ftw)}</div>${ratioCmp(v, prevYearShort)}</div>
+      </header>
+      <div class="catgrid">
+        <div class="catrow head">
+          <div class="catlabel">Faixa</div>
+          <div class="cbar" data-tip="Cada barra é comparada ao FTW Olympikus, que ocupa a trilha inteira."></div>
+          <div class="cqtd" data-tip="Quantidade de itens faturados + em carteira no período.">Qtd (pares)</div>
+          <div class="cval">Faturamento</div>
+          <div class="crel" data-tip="Valor da faixa dividido pelo FTW Olympikus.">% vs FTW</div>
+          <div class="cmix" data-tip="Participação da faixa no faturamento total do vendedor. A soma das faixas dá 100%.">% do total</div>
+        </div>
+        ${rows}
+        <div class="catrow sumrow">
+          <div class="catlabel" data-tip="Soma de meias, acessórios, confecção, chinelos e Under Armour. É o numerador do índice Demais / FTW."><span class="dot dot-sum"></span><span class="cname">Todas as faixas somadas</span><span class="csub">exceto FTW</span></div>
+          <div class="cbar"><div class="cbar-track"><div class="cbar-fill fill-sum" style="width:${sumW.toFixed(1)}%"></div></div></div>
+          <div class="cqtd">${fmtQtd(v.demais_q)}${qtySelo(v.demais_q, v.demais_q_ly, prevYear, prevYearShort)}</div>
+          <div class="cval">${fmtBRL(v.demais_v)}${valSelo(v.demais_v, v.demais_v_ly, prevYear, prevYearShort)}</div>
+          <div class="crel is-base">${fmtPct(v.ratio)}</div>
+          <div class="cmix">${fmtPct(v.total_v?v.demais_v/v.total_v:0)}</div>
+        </div>
+      </div>
+      <div class="vmob">
+        <div class="mrow m-head">
+          <span class="m-fx">Faixa</span><span class="m-val">Faturam.</span>
+          <span class="m-q">Pares</span><span class="m-p">% FTW</span>
+        </div>
+        ${mrows}
+        <div class="mrow m-sum">
+          <span class="m-fx">Outras faixas</span>
+          <span class="m-val">${fmtCompact(v.demais_v)}${seloVarM(v.demais_v, v.demais_v_ly)}</span>
+          <span class="m-q">${fmtCompact(v.demais_q)}</span>
+          <span class="m-p ${v.ratio>=CC_META?'m-ok':'m-low'}">${fmtPct(v.ratio)}</span>
+        </div>
+        <div class="m-nota">valores em R$ · variação vs ano anterior</div>
+      </div>
+    </section>`;
+  }
+
+  if(CONS_ON){
+    const agg=aggregate(vendors);
+    document.getElementById('report').innerHTML=
+      `<div class="block"><h3>Consolidado · todos os vendedores <span class="conscount">(${vendors.length} vendedores somados)</span></h3>${vendorSection(agg,null)}</div>`;
+  } else if(CUR_VEND){
+    const v=vendors.find(x=>x.key===CUR_VEND);
+    if(v){
+      const pos=ranked.findIndex(x=>x.key===CUR_VEND)+1;
+      // Painel da carta campanha só para o vendedor logado, e só em trimestre.
+      const painel = (!IS_ADMIN_LIKE && ccVisivel()) ? ccPainel(v) : '';
+      document.getElementById('report').innerHTML=
+        `${painel}<div class="block"><h3>Detalhamento por vendedor</h3>${vendorSection(v, String(pos).padStart(2,'0'))}</div>`;
+    }
+  } else {
+    const ccOn=ccVisivel();
+    let crows='';
+    ranked.forEach((c,i)=>{
+      const bw=c.ratio/maxRatio*100;
+      crows+=`<tr>
+        <td class="rk"><span class="ini">${inicial(firstName(c))}</span></td>
+        <td class="who"><span class="tag">${firstName(c)}</span></td>
+        <td class="num h-ftw">${fmtBRL(c.ftw)}</td>
+        <td class="num h-demais">${fmtBRL(c.demais_v)}</td>
+        <td class="ratio-cell ${ccOn?ccStatus(c).cls:''}"><div class="ratio-track"><div class="ratio-fill" style="width:${bw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(c.ratio)}</span>${ratioCmpShort(c, prevYearShort)}</div></td>
+        ${ccOn?ccCell(c):''}
+      </tr>`;
+    });
+    // Linha CMS: a empresa inteira somada, do mesmo aggregate() que a visão
+    // "Consolidado" usa — os dois lugares mostram sempre o mesmo número.
+    //
+    // O percentual é a soma de "demais" dividida pela soma de FTW, e NÃO a
+    // média dos percentuais dos vendedores: quem fatura mais pesa mais.
+    const escr = aggregate(ranked);
+    const escrBw = Math.min(escr.ratio / maxRatio * 100, 100);
+    const escrRow = `<tr class="escritorio-row">
+        <td class="rk"><span class="ini ini-cms">${inicial('CMS')}</span></td>
+        <td class="who"><span class="tag tag-escritorio">CMS</span></td>
+        <td class="num h-ftw">${fmtBRL(escr.ftw)}</td>
+        <td class="num h-demais">${fmtBRL(escr.demais_v)}</td>
+        <td class="ratio-cell ${ccOn?ccStatus(escr).cls:''}"><div class="ratio-track"><div class="ratio-fill" style="width:${escrBw.toFixed(1)}%"></div></div><div class="ratio-rt"><span class="ratio-val">${fmtPct(escr.ratio)}</span></div></td>
+        ${ccOn?(escr.ratio>=CC_META?ccCell(escr):'<td class="r"></td>'):''}
+      </tr>`;
+
+    let secs='';
+    ranked.forEach((v,idx)=>{ secs+=vendorSection(v, String(idx+1).padStart(2,'0')); });
+    document.getElementById('report').innerHTML=`
+      <div class="block"><h3>Visão consolidada</h3>
+        ${ccOn?ccCards(ranked):''}
+        <table class="ctable"><thead><tr><th></th><th>Vendedor</th>
+          <th class="r h-ftw" data-tip="Faturamento de tênis Olympikus no período.">FTW Olympikus</th><th class="r h-demais" data-tip="Meias + acessórios + confecção + chinelos + Under Armour.">Demais faixas</th>
+          <th class="r ratio-h" data-tip="Demais faixas dividido pelo FTW. O ranking é ordenado por este índice.">Demais&nbsp;/&nbsp;FTW</th>${ccOn?'<th class="r cc-h" data-tip="Elegibilidade pelo critério de mix: índice igual ou acima de '+fmtPct(CC_META)+' no trimestre. A carta campanha considera outros requisitos.">Carta campanha</th>':''}</tr></thead>
+          <tbody>${escrRow}${crows}</tbody></table></div>
+      <div class="block"><h3>Detalhamento por vendedor</h3>${secs}</div>`;
+  }
+  document.getElementById('empty').style.display='none';
+  document.getElementById('report').style.display='block';
+  document.getElementById('footer').style.display='flex';
+  document.getElementById('cmpToggle').hidden=false;
+  document.getElementById('consToggle').hidden=!IS_ADMIN_LIKE;
+  const _fb=document.getElementById('filtrosBtn'); if(_fb) _fb.hidden=false;
+}
+
+let _toastT;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_toastT); _toastT=setTimeout(()=>t.classList.remove('show'), 2800);
+}
+function toB64(u8){ let bin='',CH=0x8000; for(let i=0;i<u8.length;i+=CH){bin+=String.fromCharCode.apply(null,u8.subarray(i,i+CH));} return btoa(bin); }
+function fromB64(b64){ const bin=atob(b64); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i); return u8; }
+
+// ===== períodos =====
+// Chave "<ano>-ALL" para o formato novo (aba DADOS, JSON) e as chaves
+// antigas "<ano>-S1/S2/ALL" (xlsx em base64) continuam funcionando.
+let PERIODS = {};
+let CURRENT_KEY = null;    // chave do período carregado
+let CURRENT_SEL = null;    // 'K:<chave>' (legado) ou 'R:<recorte>' (novo)
+let DATASET = null;        // {ano, dados:[], meses:[]} do formato novo
+
+const semText = s => s==='S1' ? '1º semestre' : s==='S2' ? '2º semestre' : 'Ano todo';
+const semOrder = s => s==='S2' ? 2 : s==='S1' ? 1 : 0;
+const periodLabel = (ano,sem) => ano + ' · ' + semText(sem);
+// Rótulo do que está na tela agora (usado no nome do arquivo exportado).
+// Data/hora que o período foi publicado (o Worker grava updatedAt).
+function fmtWhen(iso){
+  try{
+    const d=new Date(iso); if(isNaN(d)) return '';
+    return d.toLocaleDateString('pt-BR')+' às '+
+      d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }catch(_){ return ''; }
+}
+function renderUpdatedAt(){
+  const el=document.getElementById('updAt'); if(!el) return;
+  const p = CURRENT_KEY ? PERIODS[CURRENT_KEY] : null;
+  const w = p && p.updatedAt ? fmtWhen(p.updatedAt) : '';
+  if(w){ el.textContent='Atualizado em '+w; el.hidden=false; }
+  else { el.textContent=''; el.hidden=true; }
+}
+function selLabel(){
+  const p = CURRENT_KEY ? PERIODS[CURRENT_KEY] : null;
+  if(!p) return '';
+  if(!CURRENT_SEL || CURRENT_SEL.startsWith('K:')) return periodLabel(p.ano, p.sem);
+  const r = recortesDe(p.meses||[]).find(x=>x.id===CURRENT_SEL.slice(2));
+  return p.ano + ' · ' + (r ? r.label : 'Ano completo');
+}
+
+function sortedKeys(){
+  return Object.keys(PERIODS).sort((a,b)=>{
+    const A=PERIODS[a], B=PERIODS[b];
+    if(+B.ano!==+A.ano) return +B.ano - +A.ano;
+    return semOrder(B.sem) - semOrder(A.sem);
+  });
+}
+function normalizePeriods(j){
+  if(!j) return {};
+  if(j.periods && typeof j.periods==='object') return j.periods;
+  if(j.b64) return { '2025-ALL': {ano:String(j.ano||'2025'), sem:'ALL', name:j.name||'planilha.xlsx', b64:j.b64} };
+  return {};
+}
+function cachePeriods(){ try{ localStorage.setItem(LS_PERIODS, JSON.stringify(PERIODS)); }catch(_){}}
+
+// --- base64 <-> texto (UTF-8) ---
+function textToB64(txt){ return toB64(new TextEncoder().encode(txt)); }
+function b64ToText(b64){ return new TextDecoder('utf-8').decode(fromB64(b64)); }
+
+// Descobre se o período é do formato novo (JSON) ou antigo (xlsx).
+function hydrate(p){
+  if(p._hyd) return p;
+  p._hyd = true;
+  p.kind = 'xlsx';
+  try{
+    if(atob(p.b64.slice(0,8)).charCodeAt(0) === 0x7B){   // '{' => JSON
+      const j = JSON.parse(b64ToText(p.b64));
+      if(j && Array.isArray(j.dados) && j.dados.length){
+        p.kind  = 'dados';
+        p.dados = j.dados;
+        p.meses = [...new Set(j.dados.map(r=>Number(r[1])))].sort((a,b)=>a-b);
+      }
+    }
+  }catch(_){ p.kind='xlsx'; }
+  return p;
+}
+
+function anosDisponiveis(){
+  return [...new Set(Object.keys(PERIODS).map(k=>PERIODS[k].ano))].sort((a,b)=>+b-+a);
+}
+// Opções do seletor de período para um ano.
+function opcoesDoAno(ano){
+  const ops=[];
+  const chaves = sortedKeys().filter(k=>PERIODS[k].ano===ano);
+  const novo = chaves.map(k=>hydrate(PERIODS[k])).find(p=>p.kind==='dados');
+  if(novo){
+    recortesDe(novo.meses).forEach(r=>ops.push({val:'R:'+r.id, label:r.label, meses:r.meses}));
+  }
+  if(!novo){
+    // Só lista o formato antigo quando não existe importação nova do ano,
+    // senão o dashboard ficaria sem nenhuma opção selecionável.
+    chaves.forEach(k=>ops.push({val:'K:'+k, label:semText(PERIODS[k].sem)}));
+  }
+  return ops;
+}
+
+function buildControls(){
+  const el=document.getElementById('period');
+  const anos=anosDisponiveis();
+  if(!anos.length){ el.hidden=true; el.innerHTML=''; return; }
+  const ano = (CURRENT_KEY && PERIODS[CURRENT_KEY]) ? PERIODS[CURRENT_KEY].ano : anos[0];
+  const ops = opcoesDoAno(ano);
+  el.innerHTML =
+    '<div class="pgroup"><label data-tip="Ano-base do relatório. O comparativo usa sempre o ano imediatamente anterior.">Ano</label><select id="selAno" data-tip="Trocar o ano recarrega o período selecionado.">'+
+      anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+
+    '</select></div>'+
+    '<div class="pgroup"><label data-tip="Recorte dentro do ano: completo, semestre, trimestre ou um mês específico. Só aparecem os recortes com dados importados.">Período</label><select id="selRec" data-tip="A troca é instantânea: os meses do recorte são somados na hora.">'+
+      ops.map(o=>'<option value="'+o.val+'"'+(o.val===CURRENT_SEL?' selected':'')+'>'+o.label+'</option>').join('')+
+    '</select></div>';
+  el.hidden=false;
+  document.getElementById('selAno').onchange=e=>{
+    const ops2=opcoesDoAno(e.target.value);
+    if(ops2.length) aplicarSelecao(e.target.value, ops2[0].val);
+  };
+  document.getElementById('selRec').onchange=e=>{
+    aplicarSelecao(document.getElementById('selAno').value, e.target.value);
+  };
+}
+
+function aplicarSelecao(ano, sel){
+  const err=document.getElementById('err');
+  try{
+    if(sel.startsWith('K:')){          // período antigo (xlsx)
+      const key=sel.slice(2);
+      const p=hydrate(PERIODS[key]); if(!p) return;
+      CURRENT_KEY=key; CURRENT_SEL=sel; DATASET=null;
+      build(XLSX.read(fromB64(p.b64),{type:'array'}));
+    }else{                             // recorte do formato novo
+      const key=ano+'-ALL';
+      let p=PERIODS[key] ? hydrate(PERIODS[key]) : null;
+      if(!p || p.kind!=='dados'){
+        p = sortedKeys().map(k=>hydrate(PERIODS[k]))
+              .find(x=>x.ano===ano && x.kind==='dados');
+        if(!p) return;
+        CURRENT_KEY = Object.keys(PERIODS).find(k=>PERIODS[k]===p);
+      }else{ CURRENT_KEY=key; }
+      CURRENT_SEL=sel; DATASET=p;
+      const rid=sel.slice(2);
+      const rec=recortesDe(p.meses).find(r=>r.id===rid) || {meses:p.meses};
+      buildFromDados(p.dados, rec.meses);
+    }
+    if(err) err.style.display='none';
+  }catch(ex){
+    if(err){ err.textContent=ex.message||'Falha ao montar o período.'; err.style.display='block'; }
+  }
+  buildControls();
+  renderUpdatedAt();
+}
+
+// Recorte inicial: trimestre vigente (pela data de hoje). Se não houver
+// dado nele, cai no último trimestre com dado; por fim, no ano completo.
+function recorteInicial(p){
+  const ops = recortesDe(p.meses).map(r=>r.id);
+  const hoje = new Date();
+  if(String(hoje.getFullYear())===String(p.ano)){
+    const tri = 'T'+(Math.floor(hoje.getMonth()/3)+1);
+    if(ops.includes(tri)) return tri;
+  }
+  const tris = ops.filter(x=>/^T[1-4]$/.test(x));
+  if(tris.length) return tris[tris.length-1];
+  return ops[0] || 'ANO';
+}
+function showPeriod(key){
+  const p=PERIODS[key]; if(!p) return;
+  hydrate(p);
+  const sel = p.kind==='dados' ? 'R:'+recorteInicial(p) : 'K:'+key;
+  aplicarSelecao(p.ano, sel);
+}
+function loadPeriods(obj){
+  PERIODS = obj || {};
+  const keys=sortedKeys();
+  if(!keys.length) return false;
+  const preferida = keys.map(k=>({k,p:hydrate(PERIODS[k])})).find(x=>x.p.kind==='dados');
+  showPeriod(preferida ? preferida.k : keys[0]);
+  return true;
+}
+
+// ===== upload =====
+// Arquivo com aba DADOS  -> formato novo (guarda JSON, pergunta só o ano)
+// Arquivo sem aba DADOS  -> formato antigo (pergunta ano + semestre)
+let _pending=null;
+function readFile(file){
+  const err=document.getElementById('err'); err.style.display='none';
+  const fr=new FileReader();
+  fr.onload=e=>{
+    const u8=new Uint8Array(e.target.result);
+    let wb;
+    try{ wb=XLSX.read(u8,{type:'array'}); }
+    catch(ex){ err.textContent='Não foi possível ler o arquivo (.xlsx inválido).'; err.style.display='block'; return; }
+
+    let dados=null;
+    const abaDados = wb.SheetNames.find(sn=>norm(sn)==='dados');
+    if(abaDados) dados = sheetToDados(wb.Sheets[abaDados]);
+
+    if(abaDados && !dados){
+      err.textContent='A aba DADOS existe mas está fora do padrão (VENDEDOR / MES / FAIXA / QTD / VALOR).';
+      err.style.display='block'; return;
+    }
+
+    _pending = dados ? {dados, name:file.name} : {u8, name:file.name};
+    const anoArq = (file.name.match(/(20\d{2})/)||[])[1];
+    document.getElementById('pubFile').textContent =
+      file.name + (dados ? ' — '+dados.length+' linhas' : '');
+    document.getElementById('pubAno').value = anoArq ||
+      (CURRENT_KEY && PERIODS[CURRENT_KEY] && PERIODS[CURRENT_KEY].ano) ||
+      String(new Date().getFullYear());
+    const selSem=document.getElementById('pubSem');
+    selSem.value='ALL';
+    const lblSem=selSem.closest('label'); if(lblSem) lblSem.style.display = dados ? 'none' : '';
+    document.getElementById('pubModal').hidden=false;
+    document.getElementById('pubAno').focus();
+  };
+  fr.readAsArrayBuffer(file);
+}
+function closePubModal(){ document.getElementById('pubModal').hidden=true; _pending=null; }
+
+async function confirmPublish(){
+  if(!_pending) return;
+  const ano=String(document.getElementById('pubAno').value||'').trim();
+  if(!/^\d{4}$/.test(ano)){ alert('Informe um ano válido (4 dígitos).'); return; }
+  const ehNovo = !!_pending.dados;
+  const sem = ehNovo ? 'ALL' : document.getElementById('pubSem').value;
+  const key = ano+'-'+sem;
+
+  // O Worker exige o campo b64. No formato novo enviamos o JSON codificado
+  // em base64 — assim nada muda no Worker e o payload fica ~20x menor.
+  const b64 = ehNovo ? textToB64(JSON.stringify({ano, dados:_pending.dados}))
+                     : toB64(_pending.u8);
+
+  PERIODS[key]={ano, sem, name:_pending.name, b64};
+  document.getElementById('pubModal').hidden=true;
+  cachePeriods();
+  showPeriod(key);
+  const p=PERIODS[key]; _pending=null;
+
+  if(!WORKER_URL){ showToast('Salvo neste navegador'); return; }
+  showToast('Publicando ' + ano + (ehNovo?'':' · '+semText(sem)) + '…');
+  try{
+    const res=await fetch(WORKER_URL,{ method:'PATCH',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action:'savePerformance', data:{ key, ano:p.ano, sem:p.sem, name:p.name, b64:p.b64 } }) });
+    if(!res.ok){ showToast('Falha ao publicar'); return; }
+    showToast('Publicado para todos os dispositivos');
+  }catch(_){ showToast('Sem conexão — salvo só neste navegador'); }
+}
+
+// inputs
+const input=document.getElementById('fileInput');
+['loadBtn','loadBtn2'].forEach(id=>document.getElementById(id).onclick=()=>input.click());
+input.onchange=()=>{ if(input.files[0]){ readFile(input.files[0]); input.value=''; } };
+document.getElementById('pubCancel').onclick=closePubModal;
+document.getElementById('pubOk').onclick=confirmPublish;
+document.getElementById('pubAno').addEventListener('keydown',e=>{ if(e.key==='Enter') confirmPublish(); });
+const drop=document.getElementById('empty');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) readFile(f); });
+
+// ── Botão Filtros ────────────────────────────────────────────────────────────
+// Liga/desliga os controles extras e os KPIs. O padrão é escondido, porque a
+// tela roda sozinha (atualização autônoma) e quase sempre é só consulta.
+const LS_FILTROS='apv_filtros_on';
+(function(){
+  const b=document.getElementById('filtrosBtn'); if(!b) return;
+  function aplicar(on){
+    document.body.classList.toggle('filtros-on', on);
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on?'true':'false');
+  }
+  let on=false; try{ on=localStorage.getItem(LS_FILTROS)==='1'; }catch(_){}
+  aplicar(on);
+  b.onclick=()=>{ on=!on; aplicar(on); try{ localStorage.setItem(LS_FILTROS, on?'1':'0'); }catch(_){} };
+})();
+
+// cards recolhíveis no celular: toque no cabeçalho abre/fecha
+(function(){
+  const b = document.getElementById('tvBtn'); if(!b) return;
+  b.onclick = ()=>{
+    const atual = tvwToken();
+    const msg = atual
+      ? 'Painel TV conectado.\n\nCole um token novo para trocar, deixe vazio e OK para manter, ou digite REMOVER para desconectar:'
+      : 'Conectar ao Painel TV:\n\nCole o token do GitHub (o mesmo do tv-admin). O resumo da carta campanha passa a ser publicado automaticamente sempre que voce abrir o Performance com dados do trimestre corrente.';
+    const r = prompt(msg, '');
+    if(r === null) return;
+    const v = r.trim();
+    if(v.toUpperCase() === 'REMOVER'){ localStorage.removeItem(TVW.KEY_TOKEN); localStorage.removeItem('apv_tv_hash'); alert('Desconectado do Painel TV.'); return; }
+    if(v){ localStorage.setItem(TVW.KEY_TOKEN, v); localStorage.removeItem('apv_tv_hash'); }
+    if(tvwToken() && LAST_VENDORS.length){ tvwPublicar(LAST_VENDORS); alert('Conectado. Publicando o resumo agora - o icone fica verde quando concluir.'); }
+  };
+})();
+
+document.addEventListener('click', e=>{
+  if(!window.matchMedia('(max-width:720px)').matches) return;
+  const h=e.target.closest('.vhead'); if(!h) return;
+  const sec=h.closest('.vend'); if(!sec) return;
+  const unico=document.querySelectorAll('section.vend').length===1;
+  if(unico) return;      // card único (vendedor logado) fica sempre aberto
+  sec.classList.toggle('open');
+});
+
+// tema fixo em roxo (a paleta dourada foi aposentada)
+(function(){
+  document.documentElement.style.setProperty('--ftw', '#7C3AED');
+  document.documentElement.style.setProperty('--ftw-lite', '#A78BFA');
+  document.documentElement.style.setProperty('--ftw-ink', '#FFFFFF');
+  try{ localStorage.setItem(LS_ACCENT, 'purple'); }catch(_){}
+})();
+
+
+// tema claro/escuro (padrão: escuro)
+const LS_THEME='apv_theme';
+const ICON_MOON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const ICON_SUN='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+function applyTheme(mode){
+  const dark = (mode==='dark');
+  document.documentElement.setAttribute('data-theme', dark?'dark':'light');
+  const b=document.getElementById('themeBtn');
+  if(b) b.innerHTML = dark ? ICON_SUN : ICON_MOON;
+  try{ localStorage.setItem(LS_THEME, dark?'dark':'light'); }catch(_){}
+}
+(function(){
+  let m='dark'; try{ m=localStorage.getItem(LS_THEME)||'dark'; }catch(_){}
+  applyTheme(m);
+  const b=document.getElementById('themeBtn');
+  if(b) b.addEventListener('click', function(){
+    const cur=document.documentElement.getAttribute('data-theme')==='dark';
+    applyTheme(cur?'light':'dark');
+  });
+})();
+
+// comparar com ano anterior (camada opt-in)
+(function(){
+  const t=document.getElementById('cmpToggle');
+  t.addEventListener('click', function(){
+    CMP_ON=!CMP_ON;
+    t.classList.toggle('on', CMP_ON);
+    t.setAttribute('aria-pressed', CMP_ON?'true':'false');
+    if(CURRENT_KEY) showPeriod(CURRENT_KEY);
+  });
+})();
+
+// consolidar tudo (soma todos os vendedores e oculta os individuais)
+(function(){
+  const t=document.getElementById('consToggle');
+  t.addEventListener('click', function(){
+    CONS_ON=!CONS_ON;
+    t.classList.toggle('on', CONS_ON);
+    t.setAttribute('aria-pressed', CONS_ON?'true':'false');
+    if(CURRENT_KEY) showPeriod(CURRENT_KEY);
+  });
+})();
+
+// ===== exportar para Excel (espelha o que está na tela) =====
+(function(){
+  const FILL=hex=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+hex}});
+  const bs={style:'thin',color:{argb:'FFBFBFBF'}}; const BORD={top:bs,left:bs,right:bs,bottom:bs};
+  const AR=(b,c)=>({name:'Arial',size:11,bold:!!b,color:c?{argb:c}:undefined});
+  const PCT='0.0%', CUR='R$ #,##0', INT='#,##0';
+  function hcell(ws,r,c,txt){ const cell=ws.getCell(r,c); cell.value=txt; cell.font=AR(true,'FFFFFFFF');
+    cell.fill=FILL('1F4E78'); cell.alignment={horizontal:c===1?'left':'right',vertical:'middle'}; cell.border=BORD; return cell; }
+  function put(ws,r,c,val,fmt,opt){ const cell=ws.getCell(r,c);
+    cell.value=(val===null||val===undefined||val==='')?null:val; cell.font=AR(opt&&opt.bold); cell.border=BORD;
+    cell.alignment={horizontal:(opt&&opt.left)?'left':(c===1?'left':'right')};
+    if(fmt) cell.numFmt=fmt; if(opt&&opt.fill) cell.fill=FILL(opt.fill); return cell; }
+
+  function kpiTable(ws, v, startRow, cmp, ly){
+    (cmp?['Indicador','Valor','Variação vs '+ly]:['Indicador','Valor']).forEach((h,i)=>hcell(ws,startRow,i+1,h));
+    const varFat=v.total_v_ly>0?v.total_v/v.total_v_ly-1:null;
+    const varPar=v.total_q_ly>0?v.total_q/v.total_q_ly-1:null;
+    const varRat=(v.ly&&v.ly.ftw>0)?v.ratio-v.ratio_ly:null;
+    const rows=[['Faturamento total',v.total_v,CUR,varFat],['Pares totais',v.total_q,INT,varPar],['Demais faixas / FTW',v.ratio,PCT,varRat]];
+    let r=startRow+1;
+    rows.forEach(row=>{ let c=1; put(ws,r,c++,row[0],null,{left:true,bold:true}); put(ws,r,c++,row[1],row[2]); if(cmp) put(ws,r,c++,row[3],PCT); r++; });
+    return r;
+  }
+  function faixaTable(ws, v, startRow, cmp){
+    (cmp?['Faixa','Qtd (pares)','Var. qtd','Faturamento','Var. fat.','% vs FTW','% do total']
+        :['Faixa','Qtd (pares)','Faturamento','% vs FTW','% do total']).forEach((h,i)=>hcell(ws,startRow,i+1,h));
+    const FAIXA=[{k:'ftw',l:'FTW Olympikus'},{k:'meias',l:'Meias'},{k:'acess',l:'Acessórios'},{k:'conf',l:'Confecção'},{k:'chinelos',l:'Chinelos'},{k:'ua',l:'Under Armour'}];
+    let r=startRow+1;
+    FAIXA.forEach(f=>{ const val=v[f.k]||0, qtd=(v.q&&v.q[f.k])||0, isF=f.k==='ftw';
+      const rel=isF?'— base —':(v.ftw?val/v.ftw:0), mix=v.total_v?val/v.total_v:0;
+      const valLY=(v.ly&&v.ly[f.k])||0, qtyLY=(v.qly&&v.qly[f.k])||0;
+      let c=1; put(ws,r,c++,f.l,null,{left:true}); put(ws,r,c++,qtd,INT);
+      if(cmp) put(ws,r,c++, qtyLY>0?qtd/qtyLY-1:null, PCT);
+      put(ws,r,c++,val,CUR); if(cmp) put(ws,r,c++, valLY>0?val/valLY-1:null, PCT);
+      put(ws,r,c++, rel, isF?null:PCT); put(ws,r,c++, mix, PCT); r++;
+    });
+    const dq=v.demais_q||0, dv=v.demais_v||0, dr=v.ratio||0, dmix=v.total_v?dv/v.total_v:0, dqLY=v.demais_q_ly||0, dvLY=v.demais_v_ly||0;
+    const T={bold:true,fill:'D9D9D9'}; let c=1;
+    put(ws,r,c++,'Demais faixas (exceto FTW)',null,{bold:true,fill:'D9D9D9',left:true});
+    put(ws,r,c++,dq,INT,T); if(cmp) put(ws,r,c++, dqLY>0?dq/dqLY-1:null, PCT,T);
+    put(ws,r,c++,dv,CUR,T); if(cmp) put(ws,r,c++, dvLY>0?dv/dvLY-1:null, PCT,T);
+    put(ws,r,c++,dr,PCT,T); put(ws,r,c++,dmix,PCT,T);
+    return r;
+  }
+  function vendorSheet(wb, v, name, cmp, ly){
+    const ws=wb.addWorksheet(name);
+    const kEnd=kpiTable(ws, v, 1, cmp, ly);
+    faixaTable(ws, v, kEnd+1, cmp);
+    ws.getColumn(1).width=28; for(let i=2;i<=7;i++) ws.getColumn(i).width=15;
+    return ws;
+  }
+  function rankingSheet(wb, vendors, cmp, ly){
+    const ws=wb.addWorksheet('Ranking');
+    (cmp?['Vendedor','FTW Olympikus','Demais faixas','Demais / FTW','Var. (p.p.) vs '+ly]
+        :['Vendedor','FTW Olympikus','Demais faixas','Demais / FTW']).forEach((h,i)=>hcell(ws,1,i+1,h));
+    let r=2;
+    [...vendors].sort((a,b)=>b.ratio-a.ratio).forEach(v=>{ let c=1;
+      put(ws,r,c++,v.key,null,{left:true}); put(ws,r,c++,v.ftw,CUR); put(ws,r,c++,v.demais_v,CUR); put(ws,r,c++,v.ratio,PCT);
+      if(cmp) put(ws,r,c++, (v.ly&&v.ly.ftw>0)?v.ratio-v.ratio_ly:null, PCT); r++;
+    });
+    ws.getColumn(1).width=18; ws.getColumn(2).width=16; ws.getColumn(3).width=16; ws.getColumn(4).width=13; if(cmp) ws.getColumn(5).width=17;
+    ws.views=[{state:'frozen',ySplit:1}];
+    return ws;
+  }
+  async function exportExcel(){
+    if(!CURRENT_KEY || !PERIODS[CURRENT_KEY] || typeof ExcelJS==='undefined' || typeof XLSX==='undefined') return;
+    const P=PERIODS[CURRENT_KEY];
+    // Exporta exatamente o que está na tela (ano/semestre/trimestre/mês).
+    // Antes relia o .xlsx do período; no formato novo o conteúdo é JSON.
+    const vendors=LAST_VENDORS||[];
+    if(!vendors.length) return;
+    const cmp=CMP_ON, ly=/^\d{4}$/.test(P.ano)?String(+P.ano-1):'ano ant.';
+    const wb=new ExcelJS.Workbook(); let fname;
+    if(CONS_ON){
+      vendorSheet(wb, aggregate(vendors), 'Consolidado', cmp, ly);
+      fname='Performance · Consolidado · '+selLabel()+'.xlsx';
+    } else {
+      rankingSheet(wb, vendors, cmp, ly);
+      [...vendors].sort((a,b)=>b.ratio-a.ratio).forEach(v=> vendorSheet(wb, v, String(v.key).slice(0,31), cmp, ly));
+      fname='Performance · '+selLabel()+'.xlsx';
+    }
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
+  const btn=document.getElementById('exportBtn');
+  if(btn) btn.addEventListener('click', ()=>{ btn.disabled=true; const t=btn.textContent; btn.textContent='Gerando…';
+    Promise.resolve().then(exportExcel).catch(e=>console.error(e)).finally(()=>{ btn.disabled=false; btn.textContent=t; }); });
+})();
+
+(function(){
+  const tip=document.createElement('div'); tip.className='tipbox'; tip.hidden=true;
+  document.body.appendChild(tip);
+  function place(e){
+    const pad=14; const r=tip.getBoundingClientRect();
+    let x=e.clientX+pad, y=e.clientY+pad;
+    if(x+r.width>window.innerWidth-8) x=e.clientX-r.width-pad;
+    if(y+r.height>window.innerHeight-8) y=e.clientY-r.height-pad;
+    tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';
+  }
+  document.addEventListener('mouseover', function(e){
+    const el=e.target.closest && e.target.closest('[data-tip]');
+    if(el){ tip.textContent=el.getAttribute('data-tip'); tip.hidden=false; place(e); }
+  });
+  document.addEventListener('mousemove', function(e){
+    if(tip.hidden) return;
+    const el=e.target.closest && e.target.closest('[data-tip]');
+    if(el) place(e); else tip.hidden=true;
+  });
+})();
+
+// voltar ao topo
+const totop=document.getElementById('totop');
+const goTop=()=>window.scrollTo({top:0,behavior:'smooth'});
+totop.onclick=goTop;
+document.querySelectorAll('[data-totop]').forEach(b=>b.onclick=goTop);
+window.addEventListener('scroll',()=>{ totop.classList.toggle('show', window.scrollY>500); });
+
+// carregamento inicial:
+// 1) Worker (todos os períodos)  2) cache local  3) planilha no repositório (período legado)  4) dropzone
+(async()=>{
+  if(WORKER_URL){
+    try{
+      const res=await fetch(WORKER_URL,{ method:'PATCH',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ action:'getPerformance' }) });
+      if(res.ok){
+        const P=normalizePeriods(await res.json());
+        if(Object.keys(P).length){ loadPeriods(P); cachePeriods(); return; }
+      }
+    }catch(_){}
+  }
+  try{
+    const saved=localStorage.getItem(LS_PERIODS);
+    if(saved){ const P=JSON.parse(saved); if(Object.keys(P).length){ loadPeriods(P); return; } }
+  }catch(_){}
+  for(const name of ['Performance_de_Vendas.xlsx','dados.xlsx','data.xlsx']){
+    try{
+      const res=await fetch(name); if(!res.ok) continue;
+      const buf=await res.arrayBuffer();
+      loadPeriods({ '2025-ALL': {ano:'2025', sem:'ALL', name, b64:toB64(new Uint8Array(buf))} }); return;
+    }catch(_){}
+  }
+})();
+</script>
+<div style="position:fixed;left:0;right:0;bottom:0;z-index:99999;
+     background:#0f172a;color:#fff;font:600 12px system-ui,sans-serif;
+     padding:9px 14px;text-align:center;box-shadow:0 -4px 20px rgba(0,0,0,.35)">
+  PREVIA &middot; linha CMS no topo, vendedor CMS virou Nucleo &middot; entrando sem passar pelo Portal
+</div>
+</body>
+</html>
