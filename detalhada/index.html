@@ -3695,15 +3695,54 @@ function abrirModalOferta(linhaIdx) {
    ============================================================
    Aparece depois de mais ou menos uma tela de rolagem: antes disso o
    topo ainda esta a um gesto de distancia e o botao so cobriria a
-   lista. O ouvinte e passivo e so marca um quadro para medir, senao
-   cada pixel rolado viraria um calculo de layout. */
-let _topoVisivel = false, _topoAgendado = false;
+   lista.
+
+   O ouvinte e passivo e mede direto, sem requestAnimationFrame: a
+   medida e uma leitura de scrollY comparada com o estado anterior, e
+   so mexe no DOM quando o estado vira. Enfileirar isso num quadro
+   custava mais do que o proprio trabalho — e amarrava o botao a um
+   quadro que nem sempre vem. */
+let _topoVisivel = false, _topoModo = null;
+
+/** Altura do que fica grudado no alto: a barra de filtros mais o cabecalho
+ *  de colunas. Medida, e nao lida das variaveis, porque no celular o
+ *  cabecalho de colunas nao existe e a conta mudaria sozinha. */
+function alturaGrudada() {
+  let h = 0;
+  const fh = $('frozen-header');
+  if (fh) h += fh.getBoundingClientRect().height;
+  const cab = document.querySelector('#lista .lista-head');
+  if (cab && cab.offsetParent !== null) h += cab.getBoundingClientRect().height;
+  return Math.round(h);
+}
+
+/** Para onde o botao leva. Com um produto aberto e a tela ja dentro dele,
+ *  o destino e o comeco DESSE produto — quem rolou quarenta clientes quer
+ *  voltar para o produto, nao perder o lugar na lista inteira. Fora disso,
+ *  o topo da lista. Clicando de novo la em cima, ja nao ha produto por
+ *  baixo e o botao leva ao topo da lista: os dois destinos num botao so,
+ *  na ordem em que se precisa deles. */
+function alvoDoTopo() {
+  const card = document.querySelector('#lista .product-card.expanded');
+  if (!card) return 0;
+  const topo = card.getBoundingClientRect().top + window.scrollY - alturaGrudada();
+  return (window.scrollY > topo + 4) ? Math.max(0, Math.round(topo)) : 0;
+}
 
 function medirBotaoTopo() {
-  _topoAgendado = false;
   const btn = $('btn-topo');
   if (!btn) return;
   const deve = window.scrollY > Math.max(400, window.innerHeight * 0.9);
+
+  // O rotulo diz para onde vai, porque os dois destinos existem. So escreve
+  // quando o destino muda: isto roda a cada evento de rolagem.
+  const modo = alvoDoTopo() > 0 ? 'produto' : 'lista';
+  if (modo !== _topoModo) {
+    _topoModo = modo;
+    const rot = btn.querySelector('span');
+    if (rot) rot.textContent = modo === 'produto' ? 'Topo do produto' : 'Voltar ao topo';
+  }
+
   if (deve === _topoVisivel) return;
   _topoVisivel = deve;
   if (deve) {
@@ -3722,15 +3761,11 @@ function medirBotaoTopo() {
 }
 
 function ligarBotaoTopo() {
-  window.addEventListener('scroll', () => {
-    if (_topoAgendado) return;
-    _topoAgendado = true;
-    requestAnimationFrame(medirBotaoTopo);
-  }, { passive: true });
+  window.addEventListener('scroll', medirBotaoTopo, { passive: true });
 
   ligar('btn-topo', 'click', () => {
     const suave = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: suave ? 'smooth' : 'auto' });
+    window.scrollTo({ top: alvoDoTopo(), behavior: suave ? 'smooth' : 'auto' });
   });
 }
 
