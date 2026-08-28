@@ -857,7 +857,7 @@ function renderVendedor(){
     const alvo=fst?fst.value:'';
     if(alvo) base=base.filter(d=>d.pst===alvo);
   } else {
-    base = (CURCAT==='Todos') ? aggregateTodos() : DATA.filter(d=>d.cat===CURCAT);
+    base = (CURCAT==='Todos') ? aggregateTodos() : aggregateCategoria(CURCAT);
   }
   base=base.filter(d=>(!F.cidade||d.cidade===F.cidade) && (!F.f360||is360(d)) && matchSearch(d,F.search));
   if(F.vend) base=base.filter(d=>d.vend===F.vend);
@@ -878,7 +878,7 @@ function renderVendedor(){
       kpi('Nunca compraram',fmtN(nunca),'na carteira, sem o produto','#7C3AED');
   } else {
     document.getElementById('catsum').innerHTML=
-      kpi('Clientes'+(CURCAT==='Todos'?'':' na categoria'),fmtN(tot),'na carteira (todos)','var(--ftw)')+
+      kpi('Clientes',fmtN(tot),'na carteira (todos)','var(--ftw)')+
       kpi('Compraram no '+semLab,fmtN(compraram),tot?Math.round(compraram*100/tot)+'% da carteira':'','var(--green)')+
       kpi('Sem comprar no '+semLab,fmtN(semcomprar),pct+'% · oportunidade','var(--red)');
   }
@@ -1017,6 +1017,39 @@ function baseProduto(prodKey){
 function pstBadge(st){
   const c = PSTATUS[st]; if(!c) return '';
   return '<span class="pst" style="--pc:'+c.cor+'" title="'+c.desc+'">'+c.curto+'</span>';
+}
+
+// Universo por CATEGORIA, mantendo TODOS os clientes.
+//
+// O aggregateTodos() junta as categorias de cada cliente e devolve um cliente
+// por linha. Este faz o mesmo recorte de gente, mas com os numeros de UMA
+// categoria: quem nao comprou nela entra zerado, em vez de sumir da conta.
+//
+// E o que permite ler "dos 323 clientes do Jorge, N compraram tenis". Antes,
+// escolher a categoria trocava o denominador para "clientes que tem tenis",
+// e a resposta era sempre uma fracao de si mesma.
+function aggregateCategoria(cat){
+  const porCliente = {};
+  DATA.forEach(d=>{
+    const k = cliKey(d);
+    if(!porCliente[k]) porCliente[k] = {
+      cod:d.cod, cli:d.cli, vend:d.vend, canal:d.canal, abc:d.abc,
+      cidade:d.cidade, uf:d.uf,
+      h24:0, h25:0, s1:0, s2:0, sev:-2, req:'',
+      c24:new Set(), c25:new Set(), c1:new Set(), c2:new Set()
+    };
+    const o = porCliente[k];
+    // A recencia e do cliente, nao da categoria: vale a pior entre todas,
+    // igual ao aggregateTodos().
+    const sv = rec(d.req).sev; if(sv > o.sev){ o.sev = sv; o.req = d.req; }
+    if(d.cat !== cat) return;
+    o.h24 += d.h24; o.h25 += d.h25; o.s1 += d.s1; o.s2 += d.s2;
+    if(d.h24>0) o.c24.add(d.cat);
+    if(d.h25>0) o.c25.add(d.cat);
+    if(d.s1>0)  o.c1.add(d.cat);
+    if(d.s2>0)  o.c2.add(d.cat);
+  });
+  return Object.values(porCliente).map(o=>{ o.size = o.h24+o.h25+o.s1+o.s2; return o; });
 }
 
 function aggregateTodos(){
@@ -1454,5 +1487,10 @@ function applyTheme(m){const dark=m==='dark';document.documentElement.setAttribu
   else { window.addEventListener('resize', set); window.addEventListener('load', set); }
 })();
 </script>
+<div style="position:fixed;left:0;right:0;bottom:0;z-index:99999;
+     background:#0f172a;color:#fff;font:600 12px system-ui,sans-serif;
+     padding:9px 14px;text-align:center;box-shadow:0 -4px 20px rgba(0,0,0,.35)">
+  PREVIA &middot; categoria calculada sobre o total de clientes
+</div>
 </body>
 </html>
