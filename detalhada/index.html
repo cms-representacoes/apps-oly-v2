@@ -1604,6 +1604,14 @@
       font-size: 13px;
     }
     .fp-busca input:focus { border-color: var(--primary); }
+    /* O X so aparece quando ha o que apagar — botao sempre visivel num campo
+       vazio vira ruido e nao tem funcao. Mesma regra do campo principal. */
+    .fp-busca { position: sticky; }
+    .fp-busca .search-clear { right: 12px; width: 26px; height: 26px; font-size: 12px; }
+    .fp-busca.has-value .search-clear { display: inline-flex; }
+    .fp-busca input { padding-right: 34px; }
+    .modal-busca .search-clear { right: 4px; width: 26px; height: 26px; font-size: 12px; }
+    .modal-busca.has-value .search-clear { display: inline-flex; }
     .fp-vazio { padding: 14px; font-size: 12px; color: var(--text-3); text-align: center; }
 
     /* Tela admin */
@@ -2024,6 +2032,9 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <div class="modal-busca">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
           <input type="search" id="md-busca" placeholder="Buscar cliente por nome ou código" autocomplete="off">
+          <button type="button" class="search-clear" id="md-limpar-busca" title="Limpar (ESC)" aria-label="Limpar a busca">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
       </div>
 
@@ -3715,12 +3726,30 @@ function abrirModalDestino(linhaIdx) {
     ? `${formatarNumero(pares)} pares de ${nomeOrigem} · o GCI inteiro vai junto`
     : `${cor} · Ref. ${referencia} · ${formatarNumero(pares)} pares de ${nomeOrigem}`;
   $('md-busca').value = '';
+  sincronizarBuscaModal();
   $('modal-destino').classList.add('show');
   renderModalDestino();
   if (window.innerWidth >= 700) $('md-busca').focus();
 
   // A base completa entra depois, sem travar a abertura do modal.
   carregarBaseClientes().then(() => { if (APP.md) renderModalDestino(); });
+}
+
+/** O X so aparece quando ha texto: num campo vazio ele nao faz nada e so
+ *  disputa espaco com o que se esta lendo. */
+function sincronizarBuscaModal() {
+  const inp = $('md-busca');
+  const caixa = inp && inp.closest('.modal-busca');
+  if (caixa) caixa.classList.toggle('has-value', !!inp.value);
+}
+
+function limparBuscaModal() {
+  const inp = $('md-busca');
+  if (!inp) return;
+  inp.value = '';
+  sincronizarBuscaModal();
+  if (APP.md) { APP.md.busca = ''; renderModalDestino(); }
+  inp.focus();   // limpar e para continuar digitando, nao para sair do campo
 }
 
 function fecharModalDestino() {
@@ -4266,13 +4295,20 @@ function ligarModalDestino() {
 
   let t;
   ligar('md-busca', 'input', (e) => {
+    sincronizarBuscaModal();
     clearTimeout(t);
     t = setTimeout(() => { APP.md.busca = e.target.value; renderModalDestino(); }, 180);
   });
   ligar('md-busca', 'keydown', (e) => {
+    if (e.key !== 'Escape') { e.stopPropagation(); return; }
+    // ESC com texto apaga o texto. Com o campo ja vazio, deixa o evento
+    // subir e fechar o modal — antes ele era engolido sempre, e quem
+    // estivesse com o cursor na busca nao tinha como sair pelo teclado.
+    if (!e.target.value) return;
     e.stopPropagation();
-    if (e.key === 'Escape') { e.target.value = ''; APP.md.busca = ''; renderModalDestino(); }
+    limparBuscaModal();
   });
+  ligar('md-limpar-busca', 'click', limparBuscaModal);
 
   ligar('md-caixa', 'click', (e) => {
     const b = e.target.closest('[data-caixa]');
@@ -5082,7 +5118,10 @@ function abrirPopoverFiltro(filtroId, btnEl) {
 
   pop.innerHTML =
     (ehOrdem ? '' : `<div class="fp-topo"><span class="fp-contador"></span><button class="fp-limpar">Limpar</button></div>`) +
-    (comBusca ? `<div class="fp-busca"><input type="search" placeholder="Filtrar…" autocomplete="off"></div>` : '') +
+    (comBusca
+      ? `<div class="fp-busca"><input type="search" placeholder="Filtrar…" autocomplete="off">` +
+        `<button type="button" class="search-clear" title="Limpar (ESC)" aria-label="Limpar o filtro"><i class="fa-solid fa-xmark"></i></button></div>`
+      : '') +
     `<div class="fp-lista"></div>`;
 
   document.body.appendChild(pop);
@@ -5134,11 +5173,20 @@ function abrirPopoverFiltro(filtroId, btnEl) {
   });
 
   if (comBusca) {
-    const inp = pop.querySelector('.fp-busca input');
-    inp.addEventListener('input', () => desenhar(inp.value));
+    const caixa = pop.querySelector('.fp-busca');
+    const inp = caixa.querySelector('input');
+    const sync = () => caixa.classList.toggle('has-value', !!inp.value);
+    inp.addEventListener('input', () => { sync(); desenhar(inp.value); });
     inp.addEventListener('keydown', (e) => {
       e.stopPropagation();
-      if (e.key === 'Escape') { if (inp.value) { inp.value = ''; desenhar(''); } else fecharTodosPopovers(); }
+      if (e.key !== 'Escape') return;
+      // Aqui ESC ja era escalonado: apaga o texto, e so fecha o popover
+      // quando nao ha mais nada para apagar.
+      if (inp.value) { inp.value = ''; sync(); desenhar(''); }
+      else fecharTodosPopovers();
+    });
+    caixa.querySelector('.search-clear').addEventListener('click', () => {
+      inp.value = ''; sync(); desenhar(''); inp.focus();
     });
     // No monitor, focar poupa um clique. No celular, o teclado subiria
     // tapando justamente a lista que a pessoa abriu para ler.
