@@ -3,6 +3,13 @@
  "trimestre": "3º Tri (Jul-Set)",
  "meta": 15,
  "resumo": "3 de 6 elegíveis · meta 15,0%",
+ "empresa": {
+  "nome": "CMS",
+  "ftw": 32435301,
+  "demais": 4900367,
+  "ratio": 15.1,
+  "elegivel": true
+ },
  "vendedores": [
   {
    "nome": "Leandro",
@@ -55,5 +62,5 @@
   "Rafael 9,8% ✗",
   "Mariana 6,7% ✗"
  ],
- "atualizado": "28/08 10:09"
+ "atualizado": "28/08 10:19"
 }
