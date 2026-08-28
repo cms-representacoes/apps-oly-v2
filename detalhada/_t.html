@@ -6044,5 +6044,68 @@ document.addEventListener('DOMContentLoaded', function(){
 }
 </style>
 
+
+<script>
+window.addEventListener('load', function(){
+  var exc=null; window.addEventListener('error',function(e){ exc=e.message; });
+  setTimeout(function(){
+    var log=[],erros=[]; function p(t){log.push(t);}
+    function ok(c,r,d){ p((c?'  ok     ':'  FALHOU ')+r+(d?'   '+d:'')); if(!c) erros.push(r); }
+    var vis=function(el){ return el && !el.hidden && el.offsetParent!==null &&
+                                 getComputedStyle(el).opacity !== '0'; };
+    function esperar(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+    (async function(){
+     try{
+      APP.sessao={nome:'C M S',papel:'admin'}; irParaProdutos();
+      var b=document.getElementById('btn-topo');
+      p('== APARECER / SUMIR ==');
+      p('  scroll    0 : visivel '+vis(b)+'  hidden='+b.hidden);
+      ok(!vis(b) && b.hidden,'escondido no topo');
+      window.scrollTo(0,300); await esperar(150);
+      p('  scroll  300 : visivel '+vis(b));
+      ok(!vis(b),'ainda escondido perto do topo');
+      window.scrollTo(0,2000); await esperar(250);
+      p('  scroll 2000 : visivel '+vis(b)+'  opacidade '+getComputedStyle(b).opacity);
+      ok(vis(b),'aparece depois de rolar');
+      window.scrollTo(0,100); await esperar(400);
+      p('  scroll  100 : visivel '+vis(b)+'  hidden='+b.hidden);
+      ok(!vis(b),'some ao voltar para perto do topo');
+
+      p(''); p('== O CLIQUE PEDE O TOPO ==');
+      window.scrollTo(0,3000); await esperar(250);
+      var pedido=null, real=window.scrollTo;
+      window.scrollTo=function(o){ if(o && typeof o==='object') pedido=o; return real.apply(window,arguments); };
+      b.click();
+      window.scrollTo=real;
+      p('  pediu: '+JSON.stringify(pedido));
+      ok(pedido && pedido.top===0,'pede o topo');
+      ok(pedido && pedido.behavior==='smooth','com rolagem suave');
+
+      // e com movimento reduzido?
+      var mm=window.matchMedia;
+      window.matchMedia=function(q){ return {matches:/reduced/.test(q)}; };
+      pedido=null;
+      window.scrollTo=function(o){ if(o&&typeof o==='object') pedido=o; return real.apply(window,arguments); };
+      b.click();
+      window.scrollTo=real; window.matchMedia=mm;
+      p('  com movimento reduzido: '+JSON.stringify(pedido));
+      ok(pedido && pedido.behavior==='auto','respeita quem pediu menos animacao');
+
+      p(''); p('== CHEGA AO TOPO DE FATO ==');
+      window.scrollTo(0,3000); await esperar(150);
+      window.scrollTo({top:0,behavior:'auto'}); await esperar(200);
+      p('  scrollY: '+Math.round(window.scrollY));
+      ok(window.scrollY<10,'a pagina rola ate 0');
+      ok(!exc,'sem excecao', exc||'');
+     }catch(e){ p('QUEBROU: '+(e&&e.stack||e)); erros.push(String(e)); }
+     p(''); p(erros.length?'FALHAS: '+erros.join(' | '):'TUDO OK');
+     var d=document.createElement('pre'); d.id='saida';
+     d.style.cssText='position:fixed;inset:0;z-index:999999;background:#fff;color:#000;font:11px monospace;padding:12px;overflow:auto';
+     d.textContent=log.join('\n'); document.body.appendChild(d);
+    })();
+  },5500);
+});
+</script>
+
 </body>
 </html>
