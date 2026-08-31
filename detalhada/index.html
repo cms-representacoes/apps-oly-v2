@@ -1735,6 +1735,13 @@
     .fp-busca input { padding-right: 34px; }
     .modal-busca .search-clear { right: 4px; width: 26px; height: 26px; font-size: 12px; }
     .modal-busca.has-value .search-clear { display: inline-flex; }
+    /* Realce do teclado: nao usa a cor de "marcado", senao ficaria igual a
+       um item ja escolhido — aqui e so onde a seta esta. */
+    .filter-option.teclado {
+      background: var(--bg-2);
+      box-shadow: inset 2px 0 0 var(--primary);
+    }
+    html.dark .filter-option.teclado { background: rgba(255,255,255,.06); }
     .fp-vazio { padding: 14px; font-size: 12px; color: var(--text-3); text-align: center; }
 
     /* Tela admin */
@@ -5763,9 +5770,13 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     </button>`;
   }).join('');
 
+  const casam = (termo) => {
+    const t = normalizar(String(termo || '').trim());
+    return t ? opcoes.filter(o => normalizar(o.label).includes(t)) : opcoes;
+  };
+
   const desenhar = (termo = '') => {
-    const t = normalizar(termo.trim());
-    const lista = t ? opcoes.filter(o => normalizar(o.label).includes(t)) : opcoes;
+    const lista = casam(termo);
     pop.querySelector('.fp-lista').innerHTML = lista.length
       ? opcoesHtml(lista)
       : `<p class="fp-vazio">Nada encontrado</p>`;
@@ -5790,6 +5801,56 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     APP.pagina = 1;
     APP.abertos.clear();
     render();
+  };
+
+  /* ── Digitou ate sobrar um: marca sozinho ────────────────────────────
+     Quando o texto cravou num unico cliente, obrigar o clique no quadradinho
+     e um passo a toa — ja se disse qual e. O que foi marcado assim fica
+     lembrado em `autoMarcado`: apagando letras ate sobrar outro (ou mais de
+     um), a marca automatica anterior sai sozinha. O que a pessoa marcou com
+     o dedo nunca e desfeito — por isso a marca manual zera `autoMarcado`. */
+  /* ── Setas para escolher entre os que sobraram ───────────────────────
+     Quando a busca deixa dois ou tres parecidos ("TALENTUS" e "TALENTUS
+     SEMPRE NA MODA"), digitar mais nao resolve — o certo e apontar. As
+     setas movem um realce pela lista e o Enter escolhe o realçado. Sem
+     realce, o Enter continua fazendo o de antes: marca o unico que sobrou
+     e fecha. */
+  let iAtivo = -1;
+  const visiveis = () => pop.querySelectorAll('.fp-lista .filter-option');
+  const pintarAtivo = () => {
+    const els = visiveis();
+    els.forEach((el, i) => el.classList.toggle('teclado', i === iAtivo));
+    if (iAtivo >= 0 && els[iAtivo]) els[iAtivo].scrollIntoView({ block: 'nearest' });
+  };
+  const mover = (passo) => {
+    const n = visiveis().length;
+    if (!n) { iAtivo = -1; return; }
+    // A primeira seta entra pela ponta correspondente; depois anda e para
+    // nas bordas, sem dar a volta — dar a volta faz perder o lugar.
+    iAtivo = iAtivo < 0 ? (passo > 0 ? 0 : n - 1)
+                        : Math.min(n - 1, Math.max(0, iAtivo + passo));
+    pintarAtivo();
+  };
+
+  const valorDaOpcao = (o) =>
+    (filtroId === 'mes' || filtroId.startsWith('rep')) ? o.id : Number(o.id);
+  let autoMarcado = null;
+
+  const ajustarAuto = (termo) => {
+    if (unico) return false;                       // escolha unica nao tem check
+    const t = String(termo || '').trim();
+    const lista = casam(t);
+    const alvo = (t && lista.length === 1) ? valorDaOpcao(lista[0]) : null;
+    let mudou = false;
+    if (autoMarcado !== null && autoMarcado !== alvo) {
+      sel.delete(autoMarcado); autoMarcado = null; mudou = true;
+    }
+    // Se o unico que sobrou ja estava marcado a mao, nao encosta: assim ele
+    // nao sai quando o texto mudar.
+    if (alvo !== null && autoMarcado === null && !sel.has(alvo)) {
+      sel.add(alvo); autoMarcado = alvo; mudou = true;
+    }
+    return mudou;
   };
 
   pop.addEventListener('click', (e) => {
@@ -5825,6 +5886,7 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     // nos de produto é o índice no dicionário.
     const valor = (filtroId === 'mes' || filtroId.startsWith('rep')) ? bruto : Number(bruto);
     if (sel.has(valor)) sel.delete(valor); else sel.add(valor);
+    autoMarcado = null;   // a partir daqui a escolha e dela, nao minha
     desenhar(pop.querySelector('.fp-busca input')?.value || '');
     reaplicar();
   });
@@ -5833,9 +5895,35 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     const caixa = pop.querySelector('.fp-busca');
     const inp = caixa.querySelector('input');
     const sync = () => caixa.classList.toggle('has-value', !!inp.value);
-    inp.addEventListener('input', () => { sync(); desenhar(inp.value); });
+    inp.addEventListener('input', () => {
+      sync();
+      const mudou = ajustarAuto(inp.value);
+      iAtivo = -1;               // a lista mudou; o realce anterior nao vale
+      desenhar(inp.value);
+      if (mudou) reaplicar();
+    });
     inp.addEventListener('keydown', (e) => {
       e.stopPropagation();
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();      // senao o cursor pula para as pontas do texto
+        mover(e.key === 'ArrowDown' ? 1 : -1);
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const els = visiveis();
+        if (iAtivo >= 0 && els[iAtivo]) {
+          // Passa pelo clique de sempre: e ele que marca, redesenha e
+          // reaplica o filtro. Duplicar isso aqui seria duas verdades.
+          els[iAtivo].click();
+          fecharTodosPopovers();
+          return;
+        }
+        // Sem realce, o de antes: marca o unico que sobrou e fecha.
+        if (ajustarAuto(inp.value)) reaplicar();
+        fecharTodosPopovers();
+        return;
+      }
       if (e.key !== 'Escape') return;
       // Aqui ESC ja era escalonado: apaga o texto, e so fecha o popover
       // quando nao ha mais nada para apagar.
