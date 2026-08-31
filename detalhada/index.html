@@ -1037,13 +1037,6 @@
     }
     .gci-meta { font-size: 11px; color: var(--text-2); margin: 2px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
     .gci-meta .sep { color: var(--text-3); }
-    /* Marca e fábrica/filial só no monitor. No celular a linha do cliente
-       fica com GCI, OC e NF, que é o que se usa para achar a encomenda;
-       o resto empurrava o nome do cliente para uma segunda linha. */
-    .gci-meta .meta-mais { display: contents; }
-    @media (max-width: 700px) {
-      .gci-meta .meta-mais { display: none; }
-    }
     .gci-num { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--text); }
 
     /* Botão de copiar ao lado do GCI */
@@ -1242,8 +1235,20 @@
       display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
     }
     .marca-card .marca-acoes .acao-pills { flex-wrap: wrap; }
-    .marca-card.aberta .marca-detalhe .marca-sub { margin-top: 6px; }
     @media (prefers-reduced-motion: reduce) { .marca-seta { transition: none; } }
+
+    /* A grade dentro do cartao de transferencia: mesma peca da linha do
+       cliente, so que com rotulo e total, porque aqui ela aparece sozinha e
+       precisa se explicar. */
+    .marca-grade {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+      margin: 8px 0 0; font-size: 11px; color: var(--text-2);
+    }
+    .mg-rot {
+      font-size: 9px; font-weight: 800; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--text-3);
+    }
+    .mg-total { font-weight: 700; color: var(--text-2); }
 
     .marca-cancel {
       display: block;
@@ -1360,7 +1365,10 @@
        embaixo, como na planilha. Fica dentro da linha de meta, que ja e flex
        com quebra — assim ela senta ao lado das informacoes quando cabe e
        desce para a linha seguinte quando nao cabe, sem regra nenhuma. */
-    .gci-grade { display: inline-flex; align-items: center; gap: 6px; }
+    /* Um respiro antes da grade: sem ele os quadradinhos encostam na OC e a
+       linha vira um bloco só. É margem, e não gap da linha, para separar só
+       aqui — os demais campos continuam com o espaçamento de sempre. */
+    .gci-grade { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
     .gr-lista { display: inline-flex; flex-wrap: wrap; gap: 3px; }
     .gr-tam {
       display: inline-flex; flex-direction: column; align-items: center;
@@ -3215,7 +3223,7 @@ function cardMarca(e) {
   const nomeProduto = i => (APP.dic.ref[APP.L[i][C.REF]][1] || APP.dic.ref[APP.L[i][C.REF]][0]) + ' · ' + APP.dic.cor[APP.L[i][C.COR]];
   const produtos = e.linhas.length
     ? e.linhas.slice(0, 3).map(nomeProduto)
-    : [e.repasse ? `${e.repasse.ref} · ${e.repasse.cor}` : '—'];
+    : [(e.repasse && e.repasse.ref) ? `${e.repasse.ref} · ${e.repasse.cor || ''}` : '—'];
   const titulo = e.linhas.length > 1 ? `GCI ${e.gci} · ${e.linhas.length} itens` : produtos[0];
 
   const linhaIdx = e.linhas.length ? e.linhas[0] : null;
@@ -3256,6 +3264,16 @@ function cardMarca(e) {
       </div>
       <div class="marca-detalhe">
         <p class="marca-sub"><span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· ${e.acao === 'OFERTA' ? 'em repasse' : 'transferido'} ${escHtml(quando)}</span>` : ''}</p>
+        ${(() => {
+          const g = gradeDaMarca(e);
+          if (!g) return '';
+          const daCopia = !(e.linhas && e.linhas.length && gradeDaLinha(APP.L[e.linhas[0]]));
+          return `<p class="marca-grade">
+            <span class="mg-rot">Grade</span>
+            <span class="gr-lista">${chipsGrade(g)}</span>
+            <span class="mg-total">${formatarNumero(g.total)} pares${daCopia ? ' · como estava ao marcar' : ''}</span>
+          </p>`;
+        })()}
         ${e.linhas.length > 1 ? `<p class="marca-itens">${produtos.map(escHtml).join(' · ')}${e.linhas.length > 3 ? ' · +' + (e.linhas.length - 3) : ''}</p>` : ''}
       </div>
       ${urgente ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${dias < 0 ? 'o faturamento já passou' : dias === 0 ? 'fatura hoje' : 'faltam ' + dias + ' dias para faturar'} — decida o destino</p>` : ''}
@@ -3335,10 +3353,15 @@ function render() {
        <span class="lh-img"><i class="fa-regular fa-image" aria-hidden="true"></i></span><span class="d-lab">Produto</span>
        <span class="d-lab" style="text-align:right">Clientes</span>
        <span class="d-lab" style="text-align:right">Carteira</span>
-       <span class="d-lab" style="text-align:right">Faturado</span><span></span>
+       <span class="d-lab" style="text-align:right">Faturado</span>
+       <button type="button" class="btn-recolher" id="btn-recolher" hidden
+               title="Recolher os produtos abertos" aria-label="Recolher os produtos abertos">
+         <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+       </button>
      </div>` +
     grupos.slice(0, ate).map((g, i) => cardProduto(g, i)).join('');
   pintarParciais();
+  atualizarBotaoRecolher();
 
   $('rodape').innerHTML = ate < grupos.length
     ? `<button class="gci-mais" id="btn-mais">Carregar mais · ${formatarNumero(grupos.length - ate)} produtos restantes</button>`
@@ -3423,8 +3446,6 @@ function linhasDoGrupo(g, chave) {
         ? `<span class="gci-num"><button class="copiar-btn" data-copiar="${escAttr(r[C.GCI])}" title="Copiar GCI ${r[C.GCI]}"><i class="fa-solid fa-copy"></i></button>${botaoPdfHTML(r)} GCI ${r[C.GCI]}</span>`
         : `<span><i class="fa-solid fa-receipt"></i> GCI —</span>`,
       r[C.OC] >= 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span>` : '',
-      `<span class="meta-mais"><span class="sep">·</span><span>${escHtml(APP.dic.marca[r[C.MARCA]])}</span></span>`,
-      `<span class="meta-mais"><span class="sep">·</span><span>${escHtml(APP.dic.fab[r[C.FAB]])}/${escHtml(APP.dic.fil[r[C.FIL]])}</span></span>`,
       APP.veTudo ? `<span class="meta-prep"><span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span></span>` : '',
       !emCarteira && r[C.NF] ? `<span class="sep">·</span><span>NF ${r[C.NF]}</span>` : '',
     ].filter(Boolean).join(' ');
@@ -3490,12 +3511,27 @@ function acaoDaLinha(r) {
  *  linha do codigo e do GCI (a linha e flex e quebra sozinha quando falta
  *  espaco); no celular e no tablet ela recolhe atras de um botao — sao 5 a
  *  11 tamanhos, e ali eles empurrariam o resto da linha para fora. */
+function chipsGrade(g) {
+  if (!g || !g.tam) return '';
+  return Object.keys(g.tam).sort((a, b) => Number(a) - Number(b)).map(t =>
+    `<span class="gr-tam"><b>${escHtml(t)}</b><i>${formatarNumero(g.tam[t])}</i></span>`).join('');
+}
+
+/** A grade de uma marcacao: a de hoje quando a linha ainda esta na carteira;
+ *  a copia gravada no registro quando ela ja saiu. */
+function gradeDaMarca(e) {
+  if (e.linhas && e.linhas.length) {
+    const g = gradeDaLinha(APP.L[e.linhas[0]]);
+    if (g) return g;
+  }
+  return (e.repasse && e.repasse.grade) || null;
+}
+
 function gradeHTML(r) {
   const g = gradeDaLinha(r);
   if (!g) return '';
-  const tams = Object.keys(g.tam).sort((a, b) => Number(a) - Number(b));
-  const chips = tams.map(t =>
-    `<span class="gr-tam"><b>${escHtml(t)}</b><i>${formatarNumero(g.tam[t])}</i></span>`).join('');
+  const tams = Object.keys(g.tam);
+  const chips = chipsGrade(g);
   return `<span class="gci-grade">` +
     `<button type="button" class="gr-botao" data-grade="1" title="Ver a grade">` +
       `<i class="fa-solid fa-table-cells"></i> Grade` +
@@ -3545,8 +3581,24 @@ function definirAcaoGci(r, acao, repasse = null) {
   for (const i of alvos) {
     const key = keyLinha(APP.L[i]);
     chaves.push(key);
-    if (acao === ACAO_PADRAO) delete APP.acoes[key];
-    else APP.acoes[key] = { acao, repasse, visto: 'ABERTO' };
+    if (acao === ACAO_PADRAO) { delete APP.acoes[key]; continue; }
+
+    // A grade vai gravada dentro do registro, e nao so consultada na tela.
+    // Duas razoes: o escritorio precisa saber QUAIS tamanhos foram
+    // oferecidos, e nao apenas quantos pares; e a linha some da carteira
+    // quando fatura — sem a copia aqui, o repasse ficaria sem grade
+    // justamente quando alguem for atende-lo.
+    //
+    // Por linha, e nao por GCI: um mesmo GCI pode ter varios produtos, cada
+    // um com a sua grade. Gravar uma so daria a grade de um produto a todos.
+    const g = gradeDaLinha(APP.L[i]);
+    const rep = { ...(repasse || {}) };
+    if (g) rep.grade = { tam: g.tam, total: g.total };
+    APP.acoes[key] = {
+      acao,
+      repasse: Object.keys(rep).length ? rep : null,
+      visto: 'ABERTO',
+    };
   }
   salvarAcoes();
   agendarEnvio(chaves);
@@ -5265,6 +5317,36 @@ function configurarCopiaAoSelecionar() {
 // A faixa de filtros e congelada e tem altura variavel (muda com a largura
 // da tela). A linha do produto aberto gruda logo abaixo dela, entao precisa
 // saber essa altura — dai guardarmos em uma variavel de CSS.
+/** Recolhe tudo que estiver aberto de uma vez.
+ *  Fecha em vez de redesenhar a lista: redesenhar reconstruiria 120 cartoes
+ *  e jogaria a pagina para outro ponto da rolagem — quem clica aqui quer se
+ *  reencontrar, nao mudar de lugar. */
+function recolherTudo() {
+  if (!APP.abertos.size) return;
+  document.querySelectorAll('#lista .product-card.expanded').forEach(card => {
+    const det = card.querySelector('.product-details');
+    if (det) fecharDetalhes(det);
+    card.classList.remove('expanded');
+    const dentro = card.querySelector('.product-details-inner');
+    if (dentro) dentro.innerHTML = '';
+  });
+  APP.abertos.clear();
+  APP.verTudo.clear();
+  atualizarBotaoRecolher();
+}
+
+/** O botao so existe quando ha o que recolher: num cabecalho de tabela, um
+ *  botao permanente que quase sempre nao faz nada vira ruido. */
+function atualizarBotaoRecolher() {
+  const b = $('btn-recolher');
+  if (!b) return;
+  const n = APP.abertos.size;
+  b.hidden = !n;
+  const texto = n > 1 ? `Recolher os ${n} produtos abertos` : 'Recolher o produto aberto';
+  b.title = texto;
+  b.setAttribute('aria-label', texto);
+}
+
 function medirTopoCongelado() {
   const fh = $('frozen-header');
   if (!fh) return;
@@ -5400,6 +5482,10 @@ function ligarLista() {
 
     // Só a faixa de cima abre e fecha. Dentro dos detalhes o clique é livre,
     // senão não dá pra selecionar texto sem o card fechar na cara do usuário.
+    // Recolher tudo vem antes do guarda abaixo: o botao vive no cabecalho
+    // da tabela, fora de qualquer linha de produto, e o guarda o descartaria.
+    if (e.target.closest('#btn-recolher')) { recolherTudo(); return; }
+
     if (!e.target.closest('.product-main')) return;
 
     // Arrastar para selecionar termina em clique: não deixa isso fechar o card.
@@ -5416,6 +5502,7 @@ function ligarLista() {
       fecharDetalhes(det);
       card.classList.remove('expanded');
       card.querySelector('.product-details-inner').innerHTML = '';
+      atualizarBotaoRecolher();
     } else {
       APP.abertos.add(chave);
       const g = APP.grupos.find(x => chaveGrupo(x) === chave);
@@ -5424,6 +5511,7 @@ function ligarLista() {
         card.classList.add('expanded');
         medirTopoCongelado();
         abrirDetalhes(det);
+        atualizarBotaoRecolher();
       }
     }
   });
@@ -6314,6 +6402,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 .num-linha.zerada{ opacity:.3; }
 .num-linha.col-fat.zerada .n.fat{ background:transparent; color:var(--d-faint) !important; }
 .expand-icon{ color:var(--d-faint); justify-self:end; }
+
+/* Recolher tudo: mora na mesma coluna das setas dos produtos, para o gesto
+   ficar na vertical de onde ele age. Como o cabecalho gruda no alto, o botao
+   esta sempre ao alcance, que e o ponto — ele serve para quem abriu varios e
+   se perdeu. */
+.btn-recolher{
+  justify-self:end; display:flex; align-items:center; justify-content:center;
+  width:22px; height:22px; padding:0;
+  border:1px solid var(--d-line); border-radius:6px;
+  background:var(--d-surface); color:var(--d-muted);
+  font-size:10px; cursor:pointer;
+  transition:border-color .14s, color .14s;
+}
+.btn-recolher:hover{ border-color:var(--d-ink); color:var(--d-ink); }
+.btn-recolher:focus-visible{ outline:2px solid var(--d-ink); outline-offset:2px; }
+/* Sem isto o `hidden` nao esconde: o display acima vence a regra do
+   navegador, e o botao continuaria clicavel e alcancavel pelo teclado. */
+.btn-recolher[hidden]{ display:none; }
 
 /* estreito: some a coluna de clientes e o grid encolhe */
 @media (max-width:700px){
