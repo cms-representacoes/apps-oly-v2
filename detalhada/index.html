@@ -1369,7 +1369,15 @@
        linha vira um bloco só. É margem, e não gap da linha, para separar só
        aqui — os demais campos continuam com o espaçamento de sempre. */
     .gci-grade { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
-    .gr-lista { display: inline-flex; flex-wrap: wrap; gap: 3px; }
+    .gr-lista { display: inline-flex; flex-wrap: wrap; gap: 3px 8px; align-items: center; }
+    /* Cada caixa é um bloco: os tamanhos e, colado neles, quantas caixas. */
+    .gr-caixa { display: inline-flex; align-items: center; gap: 3px; }
+    .gr-cx {
+      font-size: 10px; font-weight: 800; color: var(--primary-2);
+      background: var(--primary-bg); border-radius: 5px; padding: 2px 6px;
+      white-space: nowrap;
+    }
+    html.dark .gr-cx { background: rgba(20,184,166,.14); color: #5EEAD4; }
     .gr-tam {
       display: inline-flex; flex-direction: column; align-items: center;
       min-width: 26px; padding: 2px 4px;
@@ -2687,8 +2695,41 @@ async function carregarBase({ silencioso = false } = {}) {
 const GRADE_COL = {
   PREPOSTO: 'Preposto', CLIENTE: 'Cliente', EBM: 'Enc.EBM', GCI: 'Enc.GCI',
   ARTIGO: 'Artigo', DESCRICAO: 'descrição', COR: 'Cor', PREV: 'Prev.fat.',
-  TOTAL: 'Total de pares',
+  GRADE: 'grade', FAIXA: 'Faixa', TOTAL: 'Total de pares',
 };
+
+/** A grade de UMA caixa, a partir das colunas `grade` e `Faixa`.
+ *
+ *  A planilha traz a caixa como uma sequência de dígitos ("1221") e a faixa
+ *  de tamanhos ("35–38"): um dígito por tamanho. É essa composição que
+ *  interessa a quem vai escolher destino — somar tudo dá o montante do
+ *  pedido, que não diz como ele se divide em caixas.
+ *
+ *  Devolve null quando o par não fecha; quem chama cai no montante, que é
+ *  pior mas verdadeiro. Conferido na planilha de 31/08: 2.057 de 2.065
+ *  linhas fecham, e as 8 que não são a fábrica preenchendo a string com
+ *  zeros à direita — por isso o corte em `n` dígitos. */
+function caixaDaGrade(bruto, faixa, total) {
+  const dig = String(bruto == null ? '' : bruto).trim();
+  const m = /^(\d+)\D+(\d+)$/.exec(String(faixa == null ? '' : faixa).trim());
+  if (!/^\d+$/.test(dig) || !m) return null;
+
+  const ini = Number(m[1]), fim = Number(m[2]);
+  const n = fim - ini + 1;
+  if (n < 1 || dig.length < n) return null;
+  if (dig.length > n && /[^0]/.test(dig.slice(n))) return null;   // sobra tem de ser só zero
+
+  const usados = dig.slice(0, n);
+  const tam = {};
+  let pares = 0;
+  for (let k = 0; k < n; k++) {
+    const q = Number(usados[k]);
+    if (q) { tam[String(ini + k)] = q; pares += q; }
+  }
+  const t = Number(total) || 0;
+  if (!pares || !t || t % pares) return null;   // não divide: não é caixa inteira
+  return { faixa: `${ini}-${fim}`, grade: usados, tam, pares, caixas: t / pares };
+}
 
 // Os tamanhos sao as colunas cujo nome e so numero.
 function colunasDeTamanho(cab) {
@@ -2709,6 +2750,9 @@ function indiceGrade() {
   const iArt = g.cab.indexOf(GRADE_COL.ARTIGO);
   const iCor = g.cab.indexOf(GRADE_COL.COR);
   if (iGci < 0 || iArt < 0 || iCor < 0) return _gradeIdx;
+  const iGrade = g.cab.indexOf(GRADE_COL.GRADE);
+  const iFaixa = g.cab.indexOf(GRADE_COL.FAIXA);
+  const iTotal = g.cab.indexOf(GRADE_COL.TOTAL);
   const tams = colunasDeTamanho(g.cab);
 
   for (const linha of g.l) {
@@ -2716,11 +2760,34 @@ function indiceGrade() {
       .map(x => String(x || '').trim()).join('|');
     if (chave.startsWith('|')) continue;
     let reg = _gradeIdx.get(chave);
-    if (!reg) { reg = { tam: {}, total: 0, linhas: 0 }; _gradeIdx.set(chave, reg); }
+    if (!reg) { reg = { tam: {}, total: 0, linhas: 0, caixas: [] }; _gradeIdx.set(chave, reg); }
     reg.linhas++;
+
+    // O montante continua sendo somado: é o que responde "quantos pares".
     for (const [nome, i] of tams) {
       const q = Number(linha[i]);
       if (q) { reg.tam[nome] = (reg.tam[nome] || 0) + q; reg.total += q; }
+    }
+
+    // E a composição da caixa, que é o que se mostra.
+    const cx = iGrade >= 0 && iFaixa >= 0
+      ? caixaDaGrade(linha[iGrade], linha[iFaixa], linha[iTotal])
+      : null;
+    if (cx) {
+      // Um pedido partido em duas faixas (35-38 e 34-39) tem dois tipos de
+      // caixa; se repetir o mesmo tipo, só somam as caixas.
+      const igual = reg.caixas.find(c => c.grade === cx.grade && c.faixa === cx.faixa);
+      if (igual) igual.caixas += cx.caixas; else reg.caixas.push(cx);
+    } else {
+      // Sem caixa legível, o montante da própria linha entra como um bloco
+      // só — marcado, para a tela poder dizer que ali não é caixa.
+      const tam = {};
+      let pares = 0;
+      for (const [nome, i] of tams) {
+        const q = Number(linha[i]);
+        if (q) { tam[nome] = q; pares += q; }
+      }
+      if (pares) reg.caixas.push({ faixa: '', grade: '', tam, pares, caixas: 1, solto: true });
     }
   }
   return _gradeIdx;
@@ -3521,10 +3588,29 @@ function acaoDaLinha(r) {
  *  linha do codigo e do GCI (a linha e flex e quebra sozinha quando falta
  *  espaco); no celular e no tablet ela recolhe atras de um botao — sao 5 a
  *  11 tamanhos, e ali eles empurrariam o resto da linha para fora. */
+function chipsDeTamanhos(tam) {
+  return Object.keys(tam || {}).sort((a, b) => Number(a) - Number(b)).map(t =>
+    `<span class="gr-tam"><b>${escHtml(t)}</b><i>${formatarNumero(tam[t])}</i></span>`).join('');
+}
+
+/** A grade como ela vem na caixa, e quantas caixas são.
+ *
+ *  Mostrar o montante somado (35:3, 36:6…) diz quantos pares há, mas não
+ *  como eles se dividem — e é a divisão que decide o destino. Registros
+ *  gravados antes disto só têm o montante; para eles, o montante mesmo. */
 function chipsGrade(g) {
-  if (!g || !g.tam) return '';
-  return Object.keys(g.tam).sort((a, b) => Number(a) - Number(b)).map(t =>
-    `<span class="gr-tam"><b>${escHtml(t)}</b><i>${formatarNumero(g.tam[t])}</i></span>`).join('');
+  if (!g) return '';
+  const caixas = Array.isArray(g.caixas) ? g.caixas : null;
+  if (!caixas || !caixas.length) return chipsDeTamanhos(g.tam);
+
+  return caixas.map(c => {
+    const n = Number(c.caixas) || 1;
+    const rotulo = c.solto
+      ? `${formatarNumero(c.pares)} pares`
+      : `${n} cx${n > 1 ? '' : ''}`;
+    return `<span class="gr-caixa">${chipsDeTamanhos(c.tam)}` +
+           `<span class="gr-cx">${escHtml(rotulo)}</span></span>`;
+  }).join('');
 }
 
 /** A grade de uma marcacao: a de hoje quando a linha ainda esta na carteira;
@@ -3540,7 +3626,8 @@ function gradeDaMarca(e) {
 function gradeHTML(r) {
   const g = gradeDaLinha(r);
   if (!g) return '';
-  const tams = Object.keys(g.tam);
+  const primeira = (Array.isArray(g.caixas) && g.caixas[0]) || null;
+  const tams = Object.keys((primeira && primeira.tam) || g.tam);
   const chips = chipsGrade(g);
   return `<span class="gci-grade">` +
     `<button type="button" class="gr-botao" data-grade="1" title="Ver a grade">` +
@@ -3603,7 +3690,10 @@ function definirAcaoGci(r, acao, repasse = null) {
     // um com a sua grade. Gravar uma so daria a grade de um produto a todos.
     const g = gradeDaLinha(APP.L[i]);
     const rep = { ...(repasse || {}) };
-    if (g) rep.grade = { tam: g.tam, total: g.total };
+    // Vai a composição das caixas junto do montante: é o que o escritório
+    // precisa para dividir o pedido entre destinos. O montante continua
+    // porque responde "quantos pares" sem precisar somar caixa a caixa.
+    if (g) rep.grade = { tam: g.tam, total: g.total, caixas: g.caixas || [] };
     APP.acoes[key] = {
       acao,
       repasse: Object.keys(rep).length ? rep : null,
