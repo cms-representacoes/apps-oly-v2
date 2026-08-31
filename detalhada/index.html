@@ -1355,6 +1355,40 @@
     }
     html.dark .btn-destino.definido { color: var(--primary); }
     .btn-destino.definido:hover { background: var(--primary); color: #fff; }
+    /* ── GRADE ───────────────────────────────────────────────────────────
+       Cada tamanho num quadradinho: o numero pequeno em cima e a quantidade
+       embaixo, como na planilha. Fica dentro da linha de meta, que ja e flex
+       com quebra — assim ela senta ao lado das informacoes quando cabe e
+       desce para a linha seguinte quando nao cabe, sem regra nenhuma. */
+    .gci-grade { display: inline-flex; align-items: center; gap: 6px; }
+    .gr-lista { display: inline-flex; flex-wrap: wrap; gap: 3px; }
+    .gr-tam {
+      display: inline-flex; flex-direction: column; align-items: center;
+      min-width: 26px; padding: 2px 4px;
+      border: 1px solid var(--primary-soft, #CCFBF1); border-radius: 5px;
+      background: var(--primary-bg); line-height: 1.1;
+    }
+    .gr-tam b { font-size: 8.5px; font-weight: 700; color: var(--text-3); }
+    .gr-tam i { font-size: 11px; font-style: normal; font-weight: 800; color: var(--primary-2); }
+    html.dark .gr-tam { background: rgba(20,184,166,.10); border-color: rgba(20,184,166,.28); }
+    html.dark .gr-tam i { color: #5EEAD4; }
+
+    /* O botao so existe onde a grade recolhe. */
+    .gr-botao { display: none; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--card-bg); color: var(--text-2);
+      cursor: pointer; }
+    .gr-botao:hover { border-color: var(--primary); color: var(--primary-2); }
+    .gr-botao i { font-size: 9px; }
+    .gr-n { font-weight: 800; color: var(--text-3); }
+
+    @media (max-width: 1024px) {
+      .gr-botao { display: inline-flex; }
+      .gci-item:not(.grade-aberta) .gr-lista { display: none; }
+      .gci-item.grade-aberta .gr-lista { width: 100%; margin-top: 4px; }
+      .gci-item.grade-aberta .gr-botao { border-color: var(--primary); color: var(--primary-2); }
+    }
+
     .gci-destinos {
       flex: 1 1 100%; order: 2;
       font-size: 11px; color: var(--primary-2);
@@ -2071,6 +2105,29 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <div id="admin-resultado"></div>
       </div>
 
+      <div class="admin-card">
+        <h3>Grade da carteira CORRE</h3>
+        <p class="sub">Arquivo <strong>CARTEIRA CORRE GERAL</strong>, com a aba
+          <code>OLY FTW EM ABERTO</code>. Não é diário — importe quando quiser
+          atualizar as grades. Guarda a planilha inteira; a tela do vendedor
+          usa só a grade.</p>
+
+        <label class="admin-drop" id="grade-drop" for="file-grade">
+          <i class="fa-solid fa-table-cells"></i>
+          <strong>Escolher arquivo</strong>
+          <span>ou arraste o .xlsx aqui</span>
+        </label>
+        <input type="file" id="file-grade" class="file-input" accept=".xlsx,.xls">
+
+        <div class="barra-progresso" id="grade-barra"><i></i></div>
+        <div id="grade-resultado"></div>
+
+        <button class="btn-baixar" id="btn-publicar-grade" style="display:none;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Publicar a grade
+        </button>
+        <p class="sub" id="grade-estado" style="margin-top:10px;"></p>
+      </div>
+
       <div class="admin-card" id="admin-card-publicar" style="display:none;">
         <h3>2 · Publicar para a equipe</h3>
         <p class="sub">Já está valendo <strong>neste aparelho</strong>. Publicar manda para todos os vendedores — eles veem ao abrir ou atualizar o app.</p>
@@ -2304,6 +2361,7 @@ const APP = {
   filtros: { cliente: new Set(), preposto: new Set(), faixa: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
              // usados só na revisão de repasses
              repOrigem: new Set(), repDestino: new Set(), repEstado: new Set(), repAcao: new Set() },
+  grade: null,         // planilha da carteira CORRE, quando importada
   repQuando: 'tudo',   // tudo | hoje | 7 | 30
   // Atalho para a fila de trabalho: só o que ainda depende de uma decisão
   // do vendedor — transferência sem destino e cancelamento não pedido.
@@ -2593,6 +2651,94 @@ async function carregarBase({ silencioso = false } = {}) {
     console.warn('Falha ao buscar a base publicada', e);
   }
   syncHide();
+  return 'falhou';
+}
+
+/* ============================================================
+   GRADE DA CARTEIRA CORRE
+   ============================================================
+   Vem de uma planilha propria ("CARTEIRA CORRE GERAL"), importada pela tela
+   de admin quando a CMS quer — nao e diaria como a base. Guardamos a
+   planilha INTEIRA (63 colunas: endereco, campanha, condicao de pagamento,
+   preco), porque o envio a fabrica vai precisar disso; a tela do vendedor
+   usa so a grade.
+
+   O cruzamento e por GCI + artigo + cor, nao so por GCI: um mesmo GCI pode
+   ter varios produtos (37 casos na planilha de 31/08, um deles com 13
+   linhas). E o mesmo trio ainda pode repetir, porque um pedido as vezes vem
+   partido em faixas de grade (35-38 e 34-39, mesmo EBM e mesma previsao) —
+   essas linhas SOMAM: o cliente recebe a soma dos pares por tamanho. */
+
+const GRADE_COL = {
+  PREPOSTO: 'Preposto', CLIENTE: 'Cliente', EBM: 'Enc.EBM', GCI: 'Enc.GCI',
+  ARTIGO: 'Artigo', DESCRICAO: 'descrição', COR: 'Cor', PREV: 'Prev.fat.',
+  TOTAL: 'Total de pares',
+};
+
+// Os tamanhos sao as colunas cujo nome e so numero.
+function colunasDeTamanho(cab) {
+  return cab.map((n, i) => [String(n).trim(), i]).filter(([n]) => /^\d{2}$/.test(n));
+}
+
+let _gradeIdx = null;
+
+/** Indice GCI|ARTIGO|COR -> { tam: {35:3,...}, total, linhas }.
+ *  Montado uma vez e guardado; render() e chamado a cada filtro. */
+function indiceGrade() {
+  if (_gradeIdx) return _gradeIdx;
+  _gradeIdx = new Map();
+  const g = APP.grade;
+  if (!g || !Array.isArray(g.l) || !g.cab) return _gradeIdx;
+
+  const iGci = g.cab.indexOf(GRADE_COL.GCI);
+  const iArt = g.cab.indexOf(GRADE_COL.ARTIGO);
+  const iCor = g.cab.indexOf(GRADE_COL.COR);
+  if (iGci < 0 || iArt < 0 || iCor < 0) return _gradeIdx;
+  const tams = colunasDeTamanho(g.cab);
+
+  for (const linha of g.l) {
+    const chave = [linha[iGci], linha[iArt], String(linha[iCor] || '').toUpperCase()]
+      .map(x => String(x || '').trim()).join('|');
+    if (chave.startsWith('|')) continue;
+    let reg = _gradeIdx.get(chave);
+    if (!reg) { reg = { tam: {}, total: 0, linhas: 0 }; _gradeIdx.set(chave, reg); }
+    reg.linhas++;
+    for (const [nome, i] of tams) {
+      const q = Number(linha[i]);
+      if (q) { reg.tam[nome] = (reg.tam[nome] || 0) + q; reg.total += q; }
+    }
+  }
+  return _gradeIdx;
+}
+
+/** A grade de uma linha da base, ou null. */
+function gradeDaLinha(r) {
+  if (!APP.grade || !r[C.GCI]) return null;
+  const chave = [r[C.GCI], APP.dic.ref[r[C.REF]][0], String(APP.dic.cor[r[C.COR]] || '').toUpperCase()].join('|');
+  const g = indiceGrade().get(chave);
+  return (g && g.total) ? g : null;
+}
+
+function instalarGrade(g) {
+  APP.grade = g || null;
+  _gradeIdx = null;
+}
+
+async function carregarGradeCorre() {
+  try {
+    const info = await chamarWorker('getGradeCorreInfo', {}, 8000);
+    const atual = APP.grade && APP.grade.gerado;
+    if (info && info.gerado && info.gerado === atual) return 'igual';
+    const nova = await chamarWorker('getGradeCorre', {}, 45000);
+    if (nova && Array.isArray(nova.l) && nova.l.length) {
+      instalarGrade(nova);
+      cacheSalvar(nova, 'gradeCorre');
+      return 'nova';
+    }
+  } catch (e) {
+    // Sem grade o app funciona igual — a coluna simplesmente nao aparece.
+    console.warn('grade CORRE: nao consegui buscar', e);
+  }
   return 'falhou';
 }
 
@@ -3297,7 +3443,7 @@ function linhasDoGrupo(g, chave) {
         ${caixaDaLinha(i, r)}
         <div class="gci-info">
           <p class="gci-cli">${escHtml(fantasia)}</p>
-          <p class="gci-meta"><span class="gci-cod">${escHtml(codigo)}</span> ${meta}</p>
+          <p class="gci-meta"><span class="gci-cod">${escHtml(codigo)}</span> ${meta}${gradeHTML(r)}</p>
         </div>
         ${emCarteira ? pillsDeAcao(r, i) : ''}
         <div class="gci-dir">
@@ -3340,6 +3486,25 @@ function acaoDaLinha(r) {
   const reg = registroDaLinha(r);
   return (reg && reg.acao) || ACAO_PADRAO;
 }
+/** A grade ao lado das informacoes do cliente. Na tela larga fica na mesma
+ *  linha do codigo e do GCI (a linha e flex e quebra sozinha quando falta
+ *  espaco); no celular e no tablet ela recolhe atras de um botao — sao 5 a
+ *  11 tamanhos, e ali eles empurrariam o resto da linha para fora. */
+function gradeHTML(r) {
+  const g = gradeDaLinha(r);
+  if (!g) return '';
+  const tams = Object.keys(g.tam).sort((a, b) => Number(a) - Number(b));
+  const chips = tams.map(t =>
+    `<span class="gr-tam"><b>${escHtml(t)}</b><i>${formatarNumero(g.tam[t])}</i></span>`).join('');
+  return `<span class="gci-grade">` +
+    `<button type="button" class="gr-botao" data-grade="1" title="Ver a grade">` +
+      `<i class="fa-solid fa-table-cells"></i> Grade` +
+      `<span class="gr-n">${tams.length}</span>` +
+    `</button>` +
+    `<span class="gr-lista">${chips}</span>` +
+  `</span>`;
+}
+
 function repasseDaLinha(r) {
   const reg = registroDaLinha(r);
   return (reg && reg.repasse) || null;
@@ -4825,6 +4990,122 @@ function fecharTarjaPdf(atraso = 0) {
 }
 
 /** Manda a base para o worker. Daí em diante todo mundo vê. */
+/* ---------- importar a planilha da grade CORRE ---------- */
+
+function celulaGrade(v) {
+  if (v == null) return '';
+  if (v instanceof Date) {
+    return `${String(v.getDate()).padStart(2,'0')}/${String(v.getMonth()+1).padStart(2,'0')}/${v.getFullYear()}`;
+  }
+  return typeof v === 'number' ? v : String(v).trim();
+}
+
+async function importarGradeCorre(file) {
+  if (typeof XLSX === 'undefined') {
+    toast('Biblioteca de planilha não carregou (xlsx.full.min.js).');
+    return;
+  }
+  $('grade-barra').classList.add('show');
+  $('grade-resultado').innerHTML = '';
+  $('grade-estado').textContent = '';
+  $('btn-publicar-grade').style.display = 'none';
+
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const nomeAba = wb.SheetNames.find(n => /FTW|CORRE/i.test(n)) || wb.SheetNames[0];
+    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, defval: null, blankrows: false });
+    if (!linhas.length) throw new Error('A aba está vazia');
+
+    const cab = (linhas[0] || []).map(x => String(x == null ? '' : x).trim());
+    const iGci = cab.indexOf(GRADE_COL.GCI);
+    if (iGci < 0) {
+      throw new Error(`Não achei a coluna "${GRADE_COL.GCI}" no cabeçalho — é a planilha certa?`);
+    }
+    const tams = colunasDeTamanho(cab);
+    if (!tams.length) throw new Error('Nenhuma coluna de tamanho no cabeçalho');
+
+    // Toda linha vai com a largura do cabeçalho: o worker recusa o contrário,
+    // e ler por índice numa linha curta traria o campo errado, calado.
+    const l = [];
+    for (let i = 1; i < linhas.length; i++) {
+      const bruta = linhas[i] || [];
+      if (!String(bruta[iGci] || '').trim()) continue;
+      const linha = new Array(cab.length);
+      for (let c = 0; c < cab.length; c++) linha[c] = celulaGrade(bruta[c]);
+      l.push(linha);
+    }
+    if (!l.length) throw new Error('Nenhuma linha com GCI');
+
+    const grade = { cab, l, gerado: new Date().toISOString(), origem: file.name, aba: nomeAba };
+
+    APP.gradeNova = grade;
+    instalarGrade(grade);
+    cacheSalvar(grade, 'gradeCorre');
+
+    // Quanto disso a base de hoje realmente usa — é o número que diz se a
+    // importação valeu, e não o total de linhas da planilha.
+    const idx = indiceGrade();
+    let naCarteira = 0, comGrade = 0;
+    if (APP.base) {
+      const faixaCorre = (APP.dic.faixa || []).findIndex(f => String(f).toUpperCase() === 'CORRE');
+      for (const r of APP.L) {
+        if (!r[C.CART] || r[C.FAIXA] !== faixaCorre) continue;
+        naCarteira++;
+        if (gradeDaLinha(r)) comGrade++;
+      }
+    }
+    const pares = l.reduce((soma, linha) => soma + tams.reduce((s, [, c]) => s + (Number(linha[c]) || 0), 0), 0);
+
+    $('grade-resultado').innerHTML = `
+      <div class="admin-resumo" style="margin-top:18px;">
+        <div class="ar-item"><div class="v">${formatarNumero(l.length)}</div><div class="l">linhas</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(idx.size)}</div><div class="l">produtos</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(pares)}</div><div class="l">pares</div></div>
+        <div class="ar-item"><div class="v">${tams.length}</div><div class="l">tamanhos</div></div>
+      </div>
+      <p class="sub" style="margin-top:12px;">
+        Aba <strong>${escHtml(nomeAba)}</strong> · ${cab.length} colunas guardadas.
+        ${naCarteira ? `Na carteira CORRE de hoje, <strong>${formatarNumero(comGrade)} de ${formatarNumero(naCarteira)}</strong>
+          encomendas acharam grade${comGrade < naCarteira ? ` — ${formatarNumero(naCarteira - comGrade)} sem` : ''}.` : ''}
+      </p>`;
+    $('btn-publicar-grade').style.display = '';
+    $('btn-publicar-grade').disabled = false;
+    $('btn-publicar-grade').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar a grade';
+    if (APP.base) render();
+    toast(`Grade lida · ${formatarNumero(l.length)} linhas`);
+  } catch (e) {
+    $('grade-resultado').innerHTML =
+      `<p class="sub" style="color:var(--acao-cancelar);margin-top:14px;"><strong>Não deu para ler:</strong> ${escHtml(e.message || e)}</p>`;
+  } finally {
+    $('grade-barra').classList.remove('show');
+  }
+}
+
+async function publicarGradeCorre() {
+  if (!APP.gradeNova) return;
+  const btn = $('btn-publicar-grade');
+  const estado = $('grade-estado');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Publicando…';
+  estado.textContent = `${formatarNumero(APP.gradeNova.l.length)} linhas a caminho…`;
+  try {
+    const r = await chamarWorker('saveGradeCorre', {
+      data: APP.gradeNova,
+      por: APP.sessao ? APP.sessao.nome : '',
+    }, 60000);
+    if (!r || !r.success) throw new Error((r && r.error) || 'o worker recusou');
+    estado.innerHTML = `<strong style="color:var(--acao-manter)">Publicada.</strong> ` +
+      `${formatarNumero(r.linhas)} linhas · a equipe vê ao abrir ou atualizar o app.`;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Publicada';
+    toast('Grade publicada para a equipe');
+  } catch (e) {
+    estado.innerHTML = `<strong style="color:var(--acao-cancelar)">Não publicou:</strong> ${escHtml(e.message || e)}`;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Tentar de novo';
+  }
+}
+
 async function publicarBase() {
   if (!APP.baseNova) return;
   const btn = $('btn-publicar');
@@ -5026,6 +5307,14 @@ function ligarLista() {
     if (zoom) {
       e.stopPropagation();
       abrirZoom(Number(zoom.dataset.zoom));
+      return;
+    }
+
+    const btnGrade = e.target.closest('[data-grade]');
+    if (btnGrade) {
+      e.stopPropagation();
+      const item = btnGrade.closest('.gci-item');
+      if (item) item.classList.toggle('grade-aberta');
       return;
     }
 
@@ -5896,6 +6185,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   ligar('btn-baixar', 'click', baixarBase);
   ligar('btn-publicar', 'click', publicarBase);
+  ligar('btn-publicar-grade', 'click', publicarGradeCorre);
+  ligar('file-grade', 'change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) importarGradeCorre(f);
+    e.target.value = '';
+  });
 
   ligar('btn-atualizar', 'click', async (e) => {
     const btn = e.currentTarget;
@@ -5926,6 +6221,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1) cache local pra abrir rápido  2) base publicada por cima
   const cache = await cacheLer();
   if (cache && cache.v === VERSAO_BASE) instalarBase(cache);
+
+  // A grade entra do cache na hora e se atualiza depois, em segundo plano:
+  // ela e complemento, e esperar por ela atrasaria a lista de produtos.
+  cacheLer('gradeCorre').then(g => {
+    if (g && Array.isArray(g.l) && g.l.length && !APP.grade) { instalarGrade(g); if (APP.base) render(); }
+    carregarGradeCorre().then(r => { if (r === 'nova' && APP.base) render(); });
+  });
 
   const ses = localStorage.getItem(STORAGE.sessao);
   if (ses) { try { APP.sessao = JSON.parse(ses); } catch {} }
