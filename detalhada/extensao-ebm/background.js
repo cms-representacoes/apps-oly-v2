@@ -249,7 +249,8 @@ function comandoPara(msg, sender) {
         job.pediuPedidoEm = Date.now();
         avisar('progresso', 'Abrindo o pedido…');
         anotar(`passo RESULTADO (volta ${job.voltasResultado})`);
-        return marcar({ acao: 'resultado' });
+        // Os GCIs vao junto so para o log conseguir dizer "trouxe 1 de 3".
+        return marcar({ acao: 'resultado', gcis: job.gcis });
       }
       return { acao: 'nada' };
 

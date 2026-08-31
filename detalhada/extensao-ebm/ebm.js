@@ -407,6 +407,27 @@
       await preencherColuna(linha, COL.VALOR1, valor, 'Valor',
         (v, t) => v === valor || t.includes(cmd.gcis[0]));
 
+      // Conferir GCI a GCI, e nao so o primeiro.
+      //
+      // A conferencia acima aceita quando o texto contem o primeiro GCI. Se o
+      // campo do EBM tiver limite de caracteres e cortar a lista, ela passa e a
+      // consulta sai com menos encomendas do que se pediu — o PDF chega
+      // parecendo completo, com um pedido so, e nada avisa. Um PDF errado que
+      // se toma por certo e pior que nenhum: aqui a falta vira erro.
+      if (!umSo) {
+        const { valor: v2, texto: t2 } = valorDaCelula(linha, COL.VALOR1);
+        const gravado = String(v2 || t2 || '');
+        const faltando = cmd.gcis.filter(g => !gravado.includes(g));
+        if (faltando.length) {
+          relatar({ aviso: `campo do EBM guardou ${gravado.length} de ${valor.length} caracteres` });
+          throw new Error(
+            `o campo do EBM ficou com ${cmd.gcis.length - faltando.length} de ` +
+            `${cmd.gcis.length} GCIs (faltou ${faltando.slice(0, 3).join(', ')}` +
+            `${faltando.length > 3 ? '…' : ''}) — parece limite de tamanho do campo`);
+        }
+        relatar({ aviso: `os ${cmd.gcis.length} GCIs entraram no campo` });
+      }
+
       // O campo de valor é texto, e num <input> da grade é o `hideEdit`
       // que grava o que foi digitado. Consultar com ele aberto correria o
       // risco de buscar sem o GCI.
@@ -431,12 +452,17 @@
      *  versão anterior eu marcava e devolvia o passo, esperando um
      *  recarregamento que nunca vinha, e a lista ficava pronta na tela
      *  aguardando um clique que não vinha junto. */
-    async resultado() {
+    async resultado(cmd) {
       const caixas = () => [...document.querySelectorAll('input[type=checkbox][id*=":grdGrid:"]')]
         .filter(c => !c.disabled && /:row\d+:/.test(c.id));
 
       const cbs = await ate(() => { const c = caixas(); return c.length ? c : null; }, 10000) || [];
       if (!cbs.length) throw new Error('a consulta não trouxe encomendas para esses GCIs');
+      // Quantas a consulta trouxe, contra quantas foram pedidas: e a linha do
+      // log que separa "o EBM nao achou" de "o roteiro nao marcou".
+      const pedidos = (cmd && Array.isArray(cmd.gcis)) ? cmd.gcis.length : null;
+      relatar({ aviso: `a consulta trouxe ${cbs.length} encomenda(s)` +
+        (pedidos ? ` para ${pedidos} GCI(s) pedidos` : '') });
 
       const faltam = cbs.filter(c => !c.checked);
       if (faltam.length) {

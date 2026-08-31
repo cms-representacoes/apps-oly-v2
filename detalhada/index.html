@@ -4886,13 +4886,18 @@ function marcarTudoFiltrado() {
 
 /** Quebra a seleção como o EBM exige: um grupo por cliente e status.
  *
- *  E parte grupos grandes em pedaços. Os GCIs vão todos num campo de
- *  texto só, separados por vírgula — um cliente com o semestre inteiro
- *  marcado gerava uma linha de milhares de caracteres, e campo de tela
- *  antiga costuma ter limite. Quebrar sai mais barato que descobrir o
- *  limite na hora errada; os arquivos repetidos ganham (1), (2) no nome.
+ *  Um cliente = um arquivo, com quantos GCIs tiver. Havia aqui um corte a
+ *  cada 50 GCIs, por precaução: eles viajam todos num campo de texto só,
+ *  separados por vírgula, e campo de tela antiga costuma ter limite. O
+ *  corte saiu porque partia o pedido de um cliente em vários arquivos —
+ *  exatamente o que não se quer — e porque a extensão passou a conferir,
+ *  GCI a GCI, se todos entraram no campo: se o EBM cortar, agora dá erro
+ *  dizendo quantos faltaram, em vez de gerar um PDF pela metade.
+ *
+ *  O status continua separando: no EBM ele é um combo da tela de consulta
+ *  (`cmbEncomendaStatus`), escolhido antes dos critérios. Carteira e
+ *  faturado são duas consultas, não uma.
  */
-const GCIS_POR_CONSULTA = 50;
 
 function gruposDaSelecao() {
   const mapa = new Map();
@@ -4906,14 +4911,7 @@ function gruposDaSelecao() {
     mapa.get(chave).gcis.add(String(r[C.GCI]));
   }
 
-  const saida = [];
-  for (const g of mapa.values()) {
-    const todos = [...g.gcis];
-    for (let i = 0; i < todos.length; i += GCIS_POR_CONSULTA) {
-      saida.push({ ...g, gcis: todos.slice(i, i + GCIS_POR_CONSULTA) });
-    }
-  }
-  return saida;
+  return [...mapa.values()].map(g => ({ ...g, gcis: [...g.gcis] }));
 }
 
 function renderBarraSelecao() {
@@ -5027,7 +5025,9 @@ function pedirPdf(gcis, nomeCliente, status) {
   _pdfEmCurso = { gcis, nomeCliente };
   const f = APP.fila;
   mostrarTarjaPdf(
-    f ? `PDF ${f.atual + 1} de ${f.grupos.length} · ${nomeCliente}` : `Gerando o PDF de ${nomeCliente}…`,
+    (f && f.grupos.length > 1)
+      ? `PDF ${f.atual + 1} de ${f.grupos.length} · ${nomeCliente}`
+      : `Gerando o PDF de ${nomeCliente}…`,
     'Abrindo o EBM');
   renderBarraSelecao();
 
@@ -5209,8 +5209,22 @@ function ligarRespostaPdf() {
       $('tarja-pdf-titulo').textContent = 'PDF pronto';
       $('tarja-pdf-detalhe').textContent = d.texto || nome;
       renderBarraSelecao();
+
+      // Antes de avançar, porque avancarFila() mexe no contador: "indo para o
+      // próximo" só pode aparecer quando existe um próximo de verdade. Ele
+      // aparecia em todo arquivo, inclusive no único, e dava a entender que o
+      // resto da seleção ainda viria em separado.
+      const f = APP.fila;
+      const faltam = f ? f.grupos.length - f.atual - 1 : 0;
+
       if (avancarFila(true)) {
-        $('tarja-pdf-detalhe').textContent = 'Indo para o próximo…';
+        if (faltam > 0) {
+          $('tarja-pdf-detalhe').textContent =
+            `Indo para o próximo · falta${faltam > 1 ? 'm' : ''} ${faltam}`;
+          return;
+        }
+        // Era o último: quem avisa o total é proximoDaFila().
+        fecharTarjaPdf(2500);
         return;
       }
       fecharTarjaPdf(2500);
