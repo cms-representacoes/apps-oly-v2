@@ -3012,7 +3012,10 @@ function enviarAoAdmin(e) {
   for (const key of e.keys) {
     const reg = APP.acoes[key];
     if (!reg) continue;
-    reg.repasse = { ...(reg.repasse || {}), enviadoAdmin: marca, app: APP_ORIGEM };
+    // `atualizadoEm` não é enfeite: a fusão com o servidor compara datas, e
+    // sem ela a versão de lá — que ainda não tem o pedido — poderia vencer.
+    reg.repasse = { ...(reg.repasse || {}), enviadoAdmin: marca,
+                    atualizadoEm: Date.now(), app: APP_ORIGEM };
     mexidas.push(key);
   }
   if (!mexidas.length) return false;
@@ -5469,7 +5472,14 @@ function ligarLista() {
 
       // Sair de REPASSAR joga fora os destinos; voltar a ele preserva o que já
       // tinha sido escolhido, para não perder trabalho num clique errado.
-      const alvos = definirAcaoGci(r, acao, acao === 'REPASSAR' ? anterior : null);
+      //
+      // Reclicar a MESMA ação também preserva. Sem isto, quem já tinha
+      // enviado um cancelamento ao escritório e tocasse de novo em "Cancelar"
+      // perdia o `enviadoAdmin` — o cartão continuava dizendo "Pedido
+      // enviado" até recarregar, e o pedido sumia do painel do admin. O
+      // clique não mudou nada; não pode desfazer nada.
+      const manter = acao === 'REPASSAR' || acao === anteriorAcao;
+      const alvos = definirAcaoGci(r, acao, manter ? anterior : null);
       // Repintar a linha bastava enquanto marcar não mudava quem está na
       // lista. Agora uma ação que tira a encomenda de vista exige montar a
       // lista de novo — senão o card marcado fica na tela até o próximo

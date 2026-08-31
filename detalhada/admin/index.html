@@ -103,6 +103,29 @@ tbody tr.arquivada td:not(.col-chk){opacity:.5;font-style:italic}
 .acao.repassar{color:#b45309}
 .acao.cancelar{color:#dc2626}
 
+/* A grade fica recolhida: ela é conferência, não identificação. Quem
+   trabalha a fila lê vendedor, cliente e pares; os tamanhos só importam
+   na hora de passar adiante. */
+.ver-grade{
+  margin-left:6px;padding:1px 7px;border-radius:999px;
+  border:1px solid var(--linha);background:transparent;color:var(--fraco);
+  font-size:10px;font-weight:700;cursor:pointer;
+}
+.ver-grade:hover{border-color:var(--brand);color:var(--brand)}
+.ver-grade.aberto{border-color:var(--brand);color:var(--brand)}
+tr.linha-grade.escondido{display:none}
+tr.linha-grade td{padding:6px 10px 10px;background:var(--fundo-2,rgba(0,0,0,.02))}
+.gr-rot{font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--fraco);margin-right:8px;vertical-align:middle}
+.gr-tam{
+  display:inline-flex;flex-direction:column;align-items:center;
+  min-width:28px;padding:2px 5px;margin-right:3px;
+  border:1px solid var(--linha);border-radius:5px;line-height:1.1;vertical-align:middle;
+}
+.gr-tam b{font-size:8.5px;font-weight:700;color:var(--fraco)}
+.gr-tam i{font-size:11px;font-style:normal;font-weight:800;color:var(--texto)}
+.gr-total{margin-left:8px;font-size:11px;font-weight:700;color:var(--fraco)}
+
 .barra-sel{
   display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
   padding:11px 16px;margin-bottom:14px;border-radius:999px;
@@ -614,7 +637,13 @@ function desenhar() {
       })()}</td>
       <td class="forte">${esc(l.vendedor || '—')}</td>
       <td><div class="forte">${esc(l.nomeOrigem)}</div><div class="fraco">${esc(l.codOrigem)}</div></td>
-      <td><div>${esc(l.produto || '—')}</div><div class="fraco">GCI ${esc(l.gci)}</div></td>
+      <td>
+        <div>${esc(l.produto || '—')}</div>
+        <div class="fraco">GCI ${esc(l.gci)}${l.grade
+          ? ` <button class="ver-grade" data-grade="${esc(l.id)}" title="Ver a grade">
+                <i class="fa-solid fa-table-cells"></i> grade
+              </button>` : ''}</div>
+      </td>
       <td class="num"><div class="forte">${numero(l.pares)}</div>${l.caixas ? `<div class="fraco">${l.caixas} cx</div>` : ''}</td>
       <td>${l.codDest
         ? `<div class="seta">→ ${esc(l.nomeDest)}</div><div class="fraco">${esc(l.codDest)}</div>`
@@ -625,7 +654,16 @@ function desenhar() {
       <td>${chip}${l.gciNovo ? `<div class="fraco">GCI ${esc(l.gciNovo)}</div>` : ''}</td>
       <td class="fraco">${esc(quandoTexto(l.em))}${l.finalizadoEm
         ? `<div class="fraco">enviado ${esc(quandoTexto(l.finalizadoEm))}</div>` : ''}</td>
-    </tr>`;
+    </tr>` + (l.grade ? `
+    <tr class="linha-grade escondido" data-grade-de="${esc(l.id)}">
+      <td></td>
+      <td colspan="11">
+        <span class="gr-rot">Grade</span>
+        ${Object.keys(l.grade.tam || {}).sort((a, b) => Number(a) - Number(b)).map(t =>
+          `<span class="gr-tam"><b>${esc(t)}</b><i>${numero(l.grade.tam[t])}</i></span>`).join('')}
+        <span class="gr-total">${numero(l.grade.total)} pares</span>
+      </td>
+    </tr>` : '');
   }).join('');
 
   const pares = lista.reduce((s, l) => s + l.pares, 0);
@@ -965,6 +1003,18 @@ async function atualizar() {
   $('f-acao').addEventListener('change', desenhar);
   $('f-envio').addEventListener('change', desenhar);
   $('f-arquivo').addEventListener('change', desenhar);
+
+  // Abrir e fechar a grade. Delegado no corpo da tabela porque as linhas
+  // sao redesenhadas a cada filtro.
+  $('corpo').addEventListener('click', (e) => {
+    const b = e.target.closest('.ver-grade');
+    if (!b) return;
+    const linha = $('corpo').querySelector(`tr[data-grade-de="${CSS.escape(b.dataset.grade)}"]`);
+    if (!linha) return;
+    const abrindo = linha.classList.contains('escondido');
+    linha.classList.toggle('escondido', !abrindo);
+    b.classList.toggle('aberto', abrindo);
+  });
 
   $('corpo').addEventListener('change', (e) => {
     const chk = e.target.closest('input[data-id]');
