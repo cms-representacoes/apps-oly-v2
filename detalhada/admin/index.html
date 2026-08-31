@@ -103,28 +103,65 @@ tbody tr.arquivada td:not(.col-chk){opacity:.5;font-style:italic}
 .acao.repassar{color:#b45309}
 .acao.cancelar{color:#dc2626}
 
+/* ---- modal ---- */
+.modal-fundo{
+  position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(15,23,42,.45);backdrop-filter:blur(2px);
+}
+.modal-fundo.escondido{display:none}
+.modal-card{
+  width:100%;max-width:430px;background:var(--card);color:var(--text);
+  border-radius:18px;box-shadow:var(--shadow);padding:24px;
+  animation:sobe .16s ease-out;
+}
+@keyframes sobe{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.modal-card{animation:none}}
+.modal-icone{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:var(--danger-soft);color:var(--danger);font-size:17px;margin-bottom:14px;
+}
+.modal-card h2{margin:0 0 8px;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.modal-corpo{
+  margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--muted-soft);
+  font-size:12.5px;line-height:1.7;max-height:210px;overflow:auto;
+}
+.modal-corpo .item{display:flex;gap:8px;align-items:baseline}
+.modal-corpo .item .cli{font-weight:700}
+.modal-corpo .item .gci{color:var(--muted);font-size:11.5px}
+.modal-corpo .mais{color:var(--muted);font-size:11.5px;margin-top:4px}
+.modal-aviso{margin:0 0 18px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.modal-botoes{display:flex;justify-content:flex-end;gap:8px}
+.mb-btn{
+  padding:9px 18px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;
+  border:1px solid var(--line);background:var(--card);color:var(--text);
+}
+.mb-btn:hover{background:var(--muted-soft)}
+.mb-btn.perigo{background:var(--danger);border-color:var(--danger);color:#fff}
+.mb-btn.perigo:hover{filter:brightness(1.08)}
+.mb-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
 /* A grade fica recolhida: ela é conferência, não identificação. Quem
    trabalha a fila lê vendedor, cliente e pares; os tamanhos só importam
    na hora de passar adiante. */
 .ver-grade{
   margin-left:6px;padding:1px 7px;border-radius:999px;
-  border:1px solid var(--linha);background:transparent;color:var(--fraco);
+  border:1px solid var(--line);background:transparent;color:var(--muted);
   font-size:10px;font-weight:700;cursor:pointer;
 }
 .ver-grade:hover{border-color:var(--brand);color:var(--brand)}
 .ver-grade.aberto{border-color:var(--brand);color:var(--brand)}
 tr.linha-grade.escondido{display:none}
-tr.linha-grade td{padding:6px 10px 10px;background:var(--fundo-2,rgba(0,0,0,.02))}
+tr.linha-grade td{padding:6px 10px 10px;background:var(--muted-soft)}
 .gr-rot{font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
-  color:var(--fraco);margin-right:8px;vertical-align:middle}
+  color:var(--muted);margin-right:8px;vertical-align:middle}
 .gr-tam{
   display:inline-flex;flex-direction:column;align-items:center;
   min-width:28px;padding:2px 5px;margin-right:3px;
-  border:1px solid var(--linha);border-radius:5px;line-height:1.1;vertical-align:middle;
+  border:1px solid var(--line);border-radius:5px;line-height:1.1;vertical-align:middle;
 }
-.gr-tam b{font-size:8.5px;font-weight:700;color:var(--fraco)}
-.gr-tam i{font-size:11px;font-style:normal;font-weight:800;color:var(--texto)}
-.gr-total{margin-left:8px;font-size:11px;font-weight:700;color:var(--fraco)}
+.gr-tam b{font-size:8.5px;font-weight:700;color:var(--muted)}
+.gr-tam i{font-size:11px;font-style:normal;font-weight:800;color:var(--text)}
+.gr-total{margin-left:8px;font-size:11px;font-weight:700;color:var(--muted)}
 
 .barra-sel{
   display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
@@ -294,6 +331,19 @@ tbody tr:hover{background:var(--muted-soft)}
     <p class="rodape" id="rodape"></p>
   </section>
 </main>
+
+<div class="modal-fundo escondido" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+  <div class="modal-card">
+    <div class="modal-icone" id="modal-icone"><i class="fa-solid fa-trash-can"></i></div>
+    <h2 id="modal-titulo">—</h2>
+    <div class="modal-corpo" id="modal-corpo"></div>
+    <p class="modal-aviso" id="modal-aviso"></p>
+    <div class="modal-botoes">
+      <button class="mb-btn" id="modal-cancelar">Cancelar</button>
+      <button class="mb-btn perigo" id="modal-ok">Excluir</button>
+    </div>
+  </div>
+</div>
 
 <script src="../xlsx.full.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
 <script>
@@ -820,6 +870,45 @@ async function marcarEnvio(linhas, finalizar) {
    tabela é um DESTINO, e o registro no arquivo é do GCI. Apagar "meio
    GCI" não existe. */
 
+/** Pergunta numa janela nossa em vez do confirm do navegador. Devolve uma
+ *  promessa: quem chama espera a resposta como esperaria o confirm.
+ *
+ *  O foco ao abrir vai para CANCELAR, nao para o botao de confirmar: quem
+ *  aperta Enter por reflexo nao pode apagar nada sem ter lido. */
+function perguntar({ titulo, itens = [], aviso, confirmar = 'Confirmar' }) {
+  return new Promise((resolve) => {
+    const fundo = $('modal');
+    $('modal-titulo').textContent = titulo;
+    $('modal-corpo').innerHTML = itens.slice(0, 8).map(i =>
+        `<div class="item"><span class="cli">${esc(i.cli)}</span>` +
+        `<span class="gci">GCI ${esc(i.gci)}</span></div>`).join('') +
+      (itens.length > 8 ? `<div class="mais">e mais ${itens.length - 8}</div>` : '');
+    $('modal-corpo').style.display = itens.length ? '' : 'none';
+    $('modal-aviso').textContent = aviso || '';
+    $('modal-ok').textContent = confirmar;
+    fundo.classList.remove('escondido');
+    $('modal-cancelar').focus();
+
+    const fechar = (resposta) => {
+      fundo.classList.add('escondido');
+      $('modal-ok').removeEventListener('click', sim);
+      $('modal-cancelar').removeEventListener('click', nao);
+      fundo.removeEventListener('click', fora);
+      document.removeEventListener('keydown', tecla);
+      resolve(resposta);
+    };
+    const sim = () => fechar(true);
+    const nao = () => fechar(false);
+    const fora = (e) => { if (e.target === fundo) fechar(false); };
+    const tecla = (e) => { if (e.key === 'Escape') fechar(false); };
+
+    $('modal-ok').addEventListener('click', sim);
+    $('modal-cancelar').addEventListener('click', nao);
+    fundo.addEventListener('click', fora);
+    document.addEventListener('keydown', tecla);
+  });
+}
+
 /** Manda itens crus para o worker — o mesmo endereço que o vendedor usa. */
 async function gravarItens(itens) {
   if (!itens.length) return 0;
@@ -878,13 +967,13 @@ async function excluirSelecao() {
   const porGci = gcisSelecionados();
   if (!porGci.size) return;
 
-  const quais = [...porGci.values()].slice(0, 4)
-    .map(l => `· ${l.nomeOrigem} — GCI ${l.gci}`).join('\n');
-  const ok = confirm(
-    `Excluir ${porGci.size} repasse(s)?\n\n${quais}` +
-    (porGci.size > 4 ? `\n· e mais ${porGci.size - 4}` : '') +
-    '\n\nO registro é apagado e a encomenda volta para a lista de produtos ' +
-    'do vendedor. Não tem desfazer.');
+  const ok = await perguntar({
+    titulo: porGci.size === 1 ? 'Excluir este repasse?' : `Excluir ${porGci.size} repasses?`,
+    itens: [...porGci.values()].map(l => ({ cli: l.nomeOrigem, gci: l.gci })),
+    aviso: 'O registro é apagado e a encomenda volta para a lista de produtos ' +
+           'do vendedor. Não tem desfazer.',
+    confirmar: 'Excluir',
+  });
   if (!ok) return;
 
   // MANTER com repasse nulo é como o app apaga uma marcação: o vendedor
