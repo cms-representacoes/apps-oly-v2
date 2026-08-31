@@ -111,6 +111,10 @@ tbody tr.arquivada td:not(.col-chk){opacity:.5;font-style:italic}
 .bs-btn.primario{background:#fff;color:var(--brand);border-color:#fff}
 .bs-btn.primario:hover{background:#eef0ff}
 .bs-btn:disabled{opacity:.45;cursor:not-allowed}
+/* Excluir apaga o repasse do vendedor: fica visualmente separado dos outros,
+   que sao reversiveis. */
+.bs-btn.perigo{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.45)}
+.bs-btn.perigo:hover{background:#fff;color:#b91c1c;border-color:#fff}
 
 /* ---- filtros ---- */
 .filtros{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px;margin-bottom:16px;align-items:center}
@@ -230,6 +234,8 @@ tbody tr:hover{background:var(--muted-soft)}
       <span id="sel-conta">—</span>
       <div class="barra-sel-botoes">
         <button class="bs-btn" id="btn-reabrir"><i class="fa-solid fa-rotate-left"></i> Reabrir</button>
+        <button class="bs-btn" id="btn-arquivar"><i class="fa-solid fa-box-archive"></i> Arquivar</button>
+        <button class="bs-btn perigo" id="btn-excluir"><i class="fa-solid fa-trash-can"></i> Excluir</button>
         <button class="bs-btn primario" id="btn-exportar"><i class="fa-solid fa-file-arrow-down"></i> Exportar e finalizar</button>
         <button class="bs-btn" id="btn-nada">Limpar</button>
       </div>
@@ -589,6 +595,13 @@ function atualizarSelecao() {
       `${n} selecionado${n > 1 ? 's' : ''} · ${numero(pares)} pares` +
       (jaEnviados ? ` · ${jaEnviados} já finalizado${jaEnviados > 1 ? 's' : ''}` : '');
     $('btn-reabrir').disabled = jaEnviados === 0;
+    // Se tudo que esta marcado ja esta arquivado, o botao vira Desarquivar:
+    // um botao so, dizendo o que vai fazer com o que esta na mao.
+    const todosArquivados = marcadas.every(l => l.arquivado);
+    $('btn-arquivar').innerHTML = todosArquivados
+      ? '<i class="fa-solid fa-box-open"></i> Desarquivar'
+      : '<i class="fa-solid fa-box-archive"></i> Arquivar';
+    $('btn-arquivar').dataset.desarquivar = todosArquivados ? '1' : '';
   }
   const visiveis = VISIVEIS.length;
   const todas = visiveis > 0 && VISIVEIS.every(l => SELECAO.has(l.id));
@@ -657,6 +670,114 @@ async function marcarEnvio(linhas, finalizar) {
     for (const { l, em, por } of antes) { l.finalizadoEm = em; l.finalizadoPor = por; }
     desenhar();
     alert('Não consegui gravar no servidor. Nada foi alterado.\n\n' + (e.message || e));
+  }
+}
+
+/* ============================================================
+   ARQUIVAR E EXCLUIR
+   ============================================================
+   Duas coisas diferentes, e a diferença importa:
+
+   · ARQUIVAR tira da tela e não mexe no repasse. O registro continua
+     existindo para o vendedor e para cá — o filtro "Com os arquivados"
+     traz de volta. Serve para os finalizados pararem de ocupar espaço.
+
+   · EXCLUIR apaga o registro. A encomenda VOLTA para a lista de produtos
+     do vendedor, porque é a marcação que a escondia de lá. Não tem
+     desfazer: o mesmo caminho que o app usa para reverter uma marcação é
+     gravar MANTER com repasse nulo, e é isso que sai daqui.
+
+   As duas agem sobre o GCI inteiro, não sobre a linha: cada linha da
+   tabela é um DESTINO, e o registro no arquivo é do GCI. Apagar "meio
+   GCI" não existe. */
+
+/** Manda itens crus para o worker — o mesmo endereço que o vendedor usa. */
+async function gravarItens(itens) {
+  if (!itens.length) return 0;
+  const res = await fetch(WORKER_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'saveAcaoCarteira', itens, por: 'CMS' }),
+  });
+  if (!res.ok) throw new Error('o worker respondeu ' + res.status);
+  return itens.length;
+}
+
+/** Os GCIs por trás das linhas marcadas, sem repetir. */
+function gcisSelecionados() {
+  const porGci = new Map();
+  for (const l of LINHAS) {
+    if (!SELECAO.has(l.id) || porGci.has(l.gk)) continue;
+    porGci.set(l.gk, l);
+  }
+  return porGci;
+}
+
+async function arquivarSelecao(arquivar) {
+  const porGci = gcisSelecionados();
+  if (!porGci.size) return;
+
+  const itens = [];
+  for (const [, l] of porGci) {
+    const base = ACOES[l.chaves[0]];
+    if (!base || !base.repasse) continue;
+    const rep = { ...base.repasse, arquivado: !!arquivar, atualizadoEm: Date.now() };
+    for (const key of l.chaves) {
+      ACOES[key] = { ...ACOES[key], repasse: rep };
+      itens.push({ key, acao: ACOES[key].acao || 'REPASSAR', repasse: rep });
+    }
+  }
+  if (!itens.length) return;
+
+  // Pinta primeiro; a rede vem atrás.
+  const antes = LINHAS.filter(l => porGci.has(l.gk)).map(l => ({ l, arq: l.arquivado }));
+  for (const { l } of antes) l.arquivado = !!arquivar;
+  desenhar();
+
+  try {
+    await gravarItens(itens);
+    $('sub-topo').textContent =
+      `${porGci.size} ${arquivar ? 'arquivado' : 'desarquivado'}(s)`;
+  } catch (e) {
+    for (const { l, arq } of antes) l.arquivado = arq;
+    desenhar();
+    alert('Não consegui gravar no servidor. Nada foi alterado.\n\n' + (e.message || e));
+  }
+}
+
+async function excluirSelecao() {
+  const porGci = gcisSelecionados();
+  if (!porGci.size) return;
+
+  const quais = [...porGci.values()].slice(0, 4)
+    .map(l => `· ${l.nomeOrigem} — GCI ${l.gci}`).join('\n');
+  const ok = confirm(
+    `Excluir ${porGci.size} repasse(s)?\n\n${quais}` +
+    (porGci.size > 4 ? `\n· e mais ${porGci.size - 4}` : '') +
+    '\n\nO registro é apagado e a encomenda volta para a lista de produtos ' +
+    'do vendedor. Não tem desfazer.');
+  if (!ok) return;
+
+  // MANTER com repasse nulo é como o app apaga uma marcação: o vendedor
+  // recebe a reversão na próxima sincronização.
+  const itens = [];
+  for (const [, l] of porGci) {
+    for (const key of l.chaves) itens.push({ key, acao: 'MANTER', repasse: null });
+  }
+
+  const antes = LINHAS.slice();
+  LINHAS = LINHAS.filter(l => !porGci.has(l.gk));
+  for (const [, l] of porGci) for (const k of l.chaves) delete ACOES[k];
+  SELECAO.clear();
+  desenhar();
+
+  try {
+    await gravarItens(itens);
+    $('sub-topo').textContent = `${porGci.size} repasse(s) excluído(s)`;
+  } catch (e) {
+    LINHAS = antes;
+    desenhar();
+    alert('Não consegui gravar no servidor. Nada foi excluído.\n\n' + (e.message || e));
   }
 }
 
@@ -771,6 +892,9 @@ async function atualizar() {
   });
 
   $('btn-nada').addEventListener('click', () => { SELECAO.clear(); desenhar(); });
+  $('btn-arquivar').addEventListener('click', () =>
+    arquivarSelecao(!$('btn-arquivar').dataset.desarquivar));
+  $('btn-excluir').addEventListener('click', excluirSelecao);
   $('btn-exportar').addEventListener('click', exportarEFinalizar);
   $('btn-reabrir').addEventListener('click', () => {
     const alvo = LINHAS.filter(l => SELECAO.has(l.id) && l.finalizadoEm);
