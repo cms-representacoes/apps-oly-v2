@@ -6211,7 +6211,9 @@ function montarBase(rows, nomeArquivo) {
   for (const nome of COLUNAS_XLSX) K[nome] = acharColuna(rows[0] || {}, nome);
   const faltando = COLUNAS_XLSX.filter(n => !K[n] && n !== 'PORTA' && n !== 'FAIXA');
 
-  const linhas = [];
+  // `let` porque a trava de duplicatas, mais abaixo, troca a lista pela
+  // versão sem as repetidas.
+  let linhas = [];
   const avisos = [];
   const prepostosDesconhecidos = new Set();
   let descartadas = 0, semData = 0;
@@ -6263,6 +6265,53 @@ function montarBase(rows, nomeArquivo) {
       (() => { const fx = String(row[K['FAIXA']] ?? '').trim();
                return fx ? idxSimples(iFaixa, dicFaixa, fx) : -1; })(),
     ]);
+  }
+
+  /* ── Trava: GCI + REFERÊNCIA + COR não pode repetir ──────────────────
+     Essa trinca é o que identifica um item dentro de uma encomenda, e é
+     parte da chave com que o app grava marcações. Repetida, a mesma
+     encomenda entra duas vezes: os pares somam em dobro nos totais e as
+     duas linhas disputam o mesmo registro de marcação.
+
+     Some a repetida e fica só a primeira. Mas remover calado seria
+     esconder um defeito da origem — então cada caso vai para o log, e
+     quando as linhas repetidas DIFEREM entre si (uma com pares diferentes
+     da outra, por exemplo) o aviso sobe para erro: aí não é cópia, é
+     conflito, e alguém precisa olhar antes de publicar. */
+  const vistas = new Map();
+  const repetidas = [];
+  const conflitos = [];
+  const restantes = [];
+  for (const l of linhas) {
+    if (!l[C.GCI]) { restantes.push(l); continue; }
+    const chave = [l[C.GCI], dicRef[l[C.REF]][0], dicCor[l[C.COR]]].join('|');
+    const antes = vistas.get(chave);
+    if (antes === undefined) { vistas.set(chave, l); restantes.push(l); continue; }
+
+    // Compara o que muda o significado da linha. Preposto e cliente ficam
+    // de fora: um GCI é de um cliente só, e divergência ali é outro
+    // problema, que este aviso não saberia explicar.
+    const relevante = (x) => [x[C.CART], x[C.FAT], x[C.NF], x[C.PREV], x[C.DFAT],
+                              x[C.OC], x[C.FAB], x[C.FIL]].join(',');
+    const conflito = relevante(antes) !== relevante(l);
+    const ondeFica = `GCI ${l[C.GCI]} · ${dicRef[l[C.REF]][0]} · ${dicCor[l[C.COR]]}`;
+    (conflito ? conflitos : repetidas).push(ondeFica);
+  }
+  linhas = restantes;
+
+  if (repetidas.length) {
+    const lista = [...new Set(repetidas)];
+    avisos.push({ tipo: 'aviso', texto:
+      `${formatarNumero(repetidas.length)} linha(s) repetida(s) removida(s) — mesma trinca ` +
+      `GCI + referência + cor, com os mesmos dados: ${lista.slice(0, 6).join(' | ')}` +
+      `${lista.length > 6 ? ` e mais ${lista.length - 6}` : ''}.` });
+  }
+  if (conflitos.length) {
+    const lista = [...new Set(conflitos)];
+    avisos.push({ tipo: 'erro', texto:
+      `${formatarNumero(conflitos.length)} linha(s) repetida(s) com dados DIFERENTES entre si. ` +
+      `Ficou a primeira de cada, mas confira a origem antes de publicar: ` +
+      `${lista.slice(0, 6).join(' | ')}${lista.length > 6 ? ` e mais ${lista.length - 6}` : ''}.` });
   }
 
   if (faltando.length) avisos.push({ tipo: 'erro', texto: `Coluna não encontrada: ${faltando.join(', ')}` });
