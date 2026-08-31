@@ -4920,6 +4920,12 @@ function copiarGcisSelecionados() {
   // Sem espaco depois da virgula: e para colar em campo de consulta, e ha
   // filtro por ai que nao apara espaco e nao acha o segundo numero.
   copiarTexto(gcis.join(','), `${gcis.length} GCI${gcis.length > 1 ? 's' : ''} copiado${gcis.length > 1 ? 's' : ''}`);
+
+  // Copiar encerra a tarefa: sai do modo de selecao, some a barra e as
+  // marcacoes. Ler a lista na primeira vez e ir colar; voltar e encontrar
+  // tudo ainda marcado so gera duvida sobre o que ja foi copiado.
+  // Depois do copiarTexto de proposito — ele le a selecao.
+  if (APP.modoSelecao) alternarModoSelecao();
 }
 
 function copiarTexto(texto, mensagem) {
