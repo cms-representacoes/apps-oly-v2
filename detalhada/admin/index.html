@@ -94,6 +94,14 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand);cursor:poi
 tbody tr.marcada{background:var(--brand-soft)}
 tbody tr.finalizada td:not(.col-chk){opacity:.62}
 tbody tr.arquivada td:not(.col-chk){opacity:.5;font-style:italic}
+.acao{
+  display:inline-block;padding:3px 9px;border-radius:999px;
+  font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  border:1px solid currentColor;white-space:nowrap;
+}
+.acao.transferir{color:#2563eb}
+.acao.repassar{color:#b45309}
+.acao.cancelar{color:#dc2626}
 
 .barra-sel{
   display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
@@ -215,6 +223,12 @@ tbody tr:hover{background:var(--muted-soft)}
         <option value="7">Últimos 7 dias</option>
         <option value="30">Últimos 30 dias</option>
       </select>
+      <select id="f-acao">
+        <option value="">Todas as ações</option>
+        <option value="REPASSAR">Transferir</option>
+        <option value="OFERTA">Repassar</option>
+        <option value="CANCELAR">Cancelar</option>
+      </select>
       <select id="f-situacao"><option value="">Todas as situações</option></select>
       <select id="f-arquivo">
         <option value="ativos">Sem os arquivados</option>
@@ -245,7 +259,7 @@ tbody tr:hover{background:var(--muted-soft)}
       <table id="tabela">
         <thead><tr>
           <th class="col-chk"><input type="checkbox" id="chk-todos" title="Marcar todos os visíveis"></th>
-          <th>Vendedor</th><th>Cliente de origem</th><th>Produto · GCI</th>
+          <th>Ação</th><th>Vendedor</th><th>Cliente de origem</th><th>Produto · GCI</th>
           <th class="num">Pares</th><th>Destino</th><th>Prazo</th><th>Campanha</th>
           <th>Prev.</th><th>Situação</th><th>Quando</th>
         </tr></thead>
@@ -274,6 +288,15 @@ tbody tr:hover{background:var(--muted-soft)}
 
 const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
 const APP_ORIGEM = 'detalhada';
+
+/* O selo diz o que o escritório precisa fazer com a linha — é a primeira
+   coluna de propósito: transferir, repassar e cancelar são três trabalhos
+   diferentes, e antes disso a tabela só tinha um. */
+const SELO = {
+  REPASSAR: { rotulo: 'Transferir', cls: 'transferir' },
+  OFERTA:   { rotulo: 'Repassar',   cls: 'repassar' },
+  CANCELAR: { rotulo: 'Cancelar',   cls: 'cancelar' },
+};
 
 const ESTADOS = {
   ABERTO:     { rotulo: 'Aguardando',  cls: 'aguardando' },
@@ -403,7 +426,18 @@ function montarLinhas(acoes) {
   for (const [key, reg] of Object.entries(acoes)) {
     const rep = reg && reg.repasse;
     if (!rep || rep.app !== APP_ORIGEM) continue;
-    if (!Array.isArray(rep.destinos) || !rep.destinos.length) continue;
+
+    // Três coisas chegam aqui, e cada uma tem o seu momento de aparecer:
+    //
+    // · TRANSFERIR (REPASSAR): quando o vendedor já escolheu o destino.
+    //   Sem destino não há o que o escritório faça.
+    // · REPASSAR (OFERTA) e CANCELAR: quando o vendedor clicou em
+    //   "Enviar ao admin". Antes disso ele ainda está decidendo, e o
+    //   escritório veria pedido que ninguém fez.
+    const acao = reg.acao || 'REPASSAR';
+    const temDestino = Array.isArray(rep.destinos) && rep.destinos.length;
+    const pedido = !!rep.enviadoAdmin;
+    if (acao === 'REPASSAR' ? !temDestino : !pedido) continue;
 
     const partes = key.split('|');
     const gk = partes[0] + '|' + partes[1];
@@ -411,39 +445,64 @@ function montarLinhas(acoes) {
     // Um GCI pode ter vários itens: as chaves se repetem com o mesmo
     // repasse. Guardamos todas para consultar a base depois.
     if (ja) { ja.chaves.push(key); continue; }
-    porGci.set(gk, { codOrigem: partes[0], gci: partes[1], rep, chaves: [key] });
+    porGci.set(gk, { codOrigem: partes[0], gci: partes[1], rep, acao, chaves: [key] });
   }
 
   const linhas = [];
-  for (const [gk, { codOrigem, gci, rep, chaves }] of porGci.entries()) {
+  for (const [gk, { codOrigem, gci, rep, acao, chaves }] of porGci.entries()) {
     const sit = situacaoDe(chaves);
+    const comum = {
+      gk, chaves, acao,
+      vendedor: rep.por || '',
+      codOrigem, nomeOrigem: rep.origemNome || codOrigem,
+      gci,
+      produto: sit.produto || [rep.ref, rep.cor].filter(Boolean).join(' · '),
+      prev: diaParaBR(sit.prev),
+      arquivado: !!rep.arquivado,
+      em: Number(rep.em) || 0,
+      grade: rep.grade || null,
+    };
+
+    // Repasse e cancelamento não têm destino: uma linha por GCI, e o
+    // "finalizado" mora na raiz do repasse, não dentro de um destino.
+    if (acao !== 'REPASSAR') {
+      const of = rep.oferta || null;
+      linhas.push({
+        ...comum,
+        id: gk,
+        finalizadoEm: Number(rep.finalizadoEm) || 0,
+        finalizadoPor: rep.finalizadoPor || '',
+        pares: of ? Number(of.pares) || 0 : (sit.pares || 0),
+        caixas: 0,
+        codDest: '', nomeDest: '', prazo: '', campanha: '',
+        estado: sit.estado,
+        gciNovo: '',
+        pedidoEm: Number((rep.enviadoAdmin || {}).em) || 0,
+      });
+      continue;
+    }
+
     for (const d of rep.destinos) {
       // A confirmação é POR DESTINO: numa divisão em duas lojas, uma pode
       // já ter recebido e a outra não.
       const gciNovo = sit.estado === 'SUMIU' ? chegouNoDestino(rep, d) : null;
       linhas.push({
+        ...comum,
         // Identidade da linha: o destino DENTRO do GCI. Finalizar é por
         // destino, não pelo GCI todo — exportando um filtro que pegou só
         // uma loja, só ela pode ficar marcada como enviada.
         id: gk + '|' + (d.codigo || ''),
-        gk, chaves,
         finalizadoEm: Number(d.finalizadoEm) || 0,
         finalizadoPor: d.finalizadoPor || '',
-        vendedor:  rep.por || '',
-        codOrigem, nomeOrigem: rep.origemNome || codOrigem,
-        gci,
-        produto:   sit.produto || [rep.ref, rep.cor].filter(Boolean).join(' · '),
         pares:     Number(d.pares) || 0,
         caixas:    Number(d.caixas) || 0,
         codDest:   d.codigo || '',
         nomeDest:  d.nome || d.codigo || '',
         prazo:     d.prazo || '',
         campanha:  d.campanha || '',
-        prev:      diaParaBR(sit.prev),
         estado:    gciNovo ? 'CONFIRMADO' : sit.estado,
         gciNovo:   gciNovo || '',
-        arquivado: !!rep.arquivado,
-        em:        Number(rep.em) || 0,
+        pedidoEm:  0,
       });
     }
   }
@@ -466,6 +525,7 @@ function filtrar() {
     .filter(Boolean);
 
   return LINHAS.filter(l => {
+    if ($('f-acao').value && l.acao !== $('f-acao').value) return false;
     if ($('f-vendedor').value && l.vendedor !== $('f-vendedor').value) return false;
     if ($('f-origem').value   && l.codOrigem !== $('f-origem').value) return false;
     if ($('f-destino').value  && l.codDest !== $('f-destino').value) return false;
@@ -548,11 +608,17 @@ function desenhar() {
       : `<span class="chip ${est.cls}"><span class="ponto"></span>${esc(est.rotulo)}</span>`;
     return `<tr class="${marcada ? 'marcada' : ''} ${l.finalizadoEm ? 'finalizada' : ''} ${l.arquivado ? 'arquivada' : ''}">
       <td class="col-chk"><input type="checkbox" data-id="${esc(l.id)}" ${marcada ? 'checked' : ''}></td>
+      <td>${(() => {
+        const a = SELO[l.acao] || { rotulo: l.acao, cls: '' };
+        return `<span class="acao ${a.cls}">${esc(a.rotulo)}</span>`;
+      })()}</td>
       <td class="forte">${esc(l.vendedor || '—')}</td>
       <td><div class="forte">${esc(l.nomeOrigem)}</div><div class="fraco">${esc(l.codOrigem)}</div></td>
       <td><div>${esc(l.produto || '—')}</div><div class="fraco">GCI ${esc(l.gci)}</div></td>
       <td class="num"><div class="forte">${numero(l.pares)}</div>${l.caixas ? `<div class="fraco">${l.caixas} cx</div>` : ''}</td>
-      <td><div class="seta">→ ${esc(l.nomeDest)}</div><div class="fraco">${esc(l.codDest)}</div></td>
+      <td>${l.codDest
+        ? `<div class="seta">→ ${esc(l.nomeDest)}</div><div class="fraco">${esc(l.codDest)}</div>`
+        : `<span class="fraco">${l.acao === 'CANCELAR' ? 'cancelamento' : 'para a equipe'}</span>`}</td>
       <td>${l.prazo ? `<span class="marca">${esc(String(l.prazo).split(' ')[0])}</span><div class="fraco">${esc(String(l.prazo).replace(/^\S+\s*-?\s*/, ''))}</div>` : '<span class="fraco">—</span>'}</td>
       <td>${l.campanha ? `<span class="marca">${esc(String(l.campanha).split(' ')[0])}</span>` : '<span class="fraco">—</span>'}</td>
       <td class="fraco">${esc(l.prev || '—')}</td>
@@ -647,6 +713,24 @@ async function gravarDestinos(linhas, alterar) {
   return itens.length;
 }
 
+/** Grava alterações na raiz do repasse — para o que não tem destino. */
+async function gravarRaiz(linhas, alterar) {
+  const porGci = new Map();
+  for (const l of linhas) if (!porGci.has(l.gk)) porGci.set(l.gk, l.chaves);
+  const itens = [];
+  for (const [, chaves] of porGci.entries()) {
+    const base = ACOES[chaves[0]];
+    if (!base || !base.repasse) continue;
+    const rep = alterar(JSON.parse(JSON.stringify(base.repasse)));
+    rep.atualizadoEm = Date.now();
+    for (const key of chaves) {
+      ACOES[key] = { ...ACOES[key], repasse: rep };
+      itens.push({ key, acao: ACOES[key].acao || 'REPASSAR', repasse: rep });
+    }
+  }
+  return gravarItens(itens);
+}
+
 async function marcarEnvio(linhas, finalizar) {
   if (!linhas.length) return;
   const antes = linhas.map(l => ({ l, em: l.finalizadoEm, por: l.finalizadoPor }));
@@ -657,7 +741,14 @@ async function marcarEnvio(linhas, finalizar) {
   desenhar();
 
   try {
-    await gravarDestinos(linhas, (d) => {
+    // Transferência carimba o destino; repasse e cancelamento não têm
+    // destino, então o carimbo vai na raiz do repasse.
+    await gravarRaiz(linhas.filter(l => !l.codDest), (rep) => {
+      if (finalizar) { rep.finalizadoEm = agora; rep.finalizadoPor = 'CMS'; }
+      else { delete rep.finalizadoEm; delete rep.finalizadoPor; }
+      return rep;
+    });
+    await gravarDestinos(linhas.filter(l => l.codDest), (d) => {
       if (finalizar) { d.finalizadoEm = agora; d.finalizadoPor = 'CMS'; }
       else { delete d.finalizadoEm; delete d.finalizadoPor; }
       return d;
@@ -864,13 +955,14 @@ async function atualizar() {
   let t;
   $('busca').addEventListener('input', () => { clearTimeout(t); t = setTimeout(desenhar, 200); });
   $('btn-limpar').addEventListener('click', () => {
-    for (const id of ['f-vendedor', 'f-origem', 'f-destino', 'f-situacao', 'f-envio']) $(id).value = '';
+    for (const id of ['f-acao', 'f-vendedor', 'f-origem', 'f-destino', 'f-situacao', 'f-envio']) $(id).value = '';
     $('f-quando').value = 'tudo';
     $('f-arquivo').value = 'ativos';
     $('busca').value = '';
     desenhar();
   });
   $('btn-atualizar').addEventListener('click', atualizar);
+  $('f-acao').addEventListener('change', desenhar);
   $('f-envio').addEventListener('change', desenhar);
   $('f-arquivo').addEventListener('change', desenhar);
 
