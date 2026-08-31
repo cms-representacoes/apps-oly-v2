@@ -1193,6 +1193,94 @@
     }
     .btn-destino:hover { background: var(--acao-repassar); color: #fff; border-style: solid; }
 
+    /* Selo da ação no cartão da lista de transferências: bate o olho e sabe
+       do que se trata sem ler o resto. */
+    .selo-acao {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 9.5px; font-weight: 800; letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: 2px 7px; border-radius: 999px;
+      vertical-align: 2px; margin-right: 2px;
+      border: 1px solid currentColor;
+    }
+    .selo-acao i { font-size: 8px; }
+    .selo-acao.transferir { color: var(--acao-transferir); }
+    .selo-acao.repassar   { color: var(--acao-repassar); }
+    .selo-acao.cancelar   { color: var(--acao-cancelar); }
+
+    /* ── CARTAO RESUMIDO ─────────────────────────────────────────────────
+       O cabecalho carrega o que identifica o lancamento: a acao, o produto
+       e o cliente de origem, lado a lado. Codigo, GCI, pares e datas sao
+       conferencia, nao identificacao — descem para o detalhe, que abre no
+       clique. Os botoes ficam sempre a vista: sao o que se veio fazer. */
+    .marca-topo { cursor: pointer; align-items: flex-start; }
+    .marca-titulo {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      min-width: 0;
+    }
+    .marca-titulo .m-prod { font-weight: 700; }
+    /* Um tracinho separa produto de cliente sem virar mais uma palavra. */
+    .marca-titulo .m-para {
+      position: relative; padding-left: 13px;
+      color: var(--text-2); font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      max-width: 100%;
+    }
+    .marca-titulo .m-para::before {
+      content: ''; position: absolute; left: 0; top: 50%;
+      width: 7px; height: 1px; background: var(--border-2);
+    }
+    .marca-seta {
+      font-size: 11px; color: var(--text-3); flex-shrink: 0;
+      align-self: center; margin-left: 2px;
+      transition: transform .18s ease;
+    }
+    .marca-card.aberta .marca-seta { transform: rotate(180deg); }
+    /* Escrito como "no cartao fechado, esconda" e nao como "esconda, e no
+       aberto mostre": o .marca-cancel tambem e um detalhe e traz display
+       proprio, que por vir depois no arquivo vencia um seletor de mesma
+       forca. Assim quem manda e o estado do cartao, sem !important. */
+    .marca-card:not(.aberta) .marca-detalhe { display: none; }
+
+    /* Os botoes numa fileira so. .marca-acoes era `block`, entao cada grupo
+       (as pilulas, o destino, o pedido ao admin) comecava uma linha nova e o
+       cartao crescia 30px por grupo. */
+    .marca-card .marca-acoes {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    }
+    .marca-card .marca-acoes .acao-pills { flex-wrap: wrap; }
+    .marca-card.aberta .marca-detalhe .marca-sub { margin-top: 6px; }
+    @media (prefers-reduced-motion: reduce) { .marca-seta { transition: none; } }
+
+    .marca-cancel {
+      display: block;
+      margin: 8px 0 0; padding-top: 8px;
+      border-top: 1px dashed var(--border);
+      font-size: 11.5px; color: var(--text-2); line-height: 1.4;
+    }
+    .marca-cancel i { color: var(--acao-cancelar); }
+    .marca-cancel.repassar i { color: var(--acao-repassar); }
+    .marca-cancel.enviado { color: var(--text-3); }
+    .marca-cancel.enviado i { color: var(--acao-manter); }
+    .btn-admin {
+      margin-left: 4px; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700;
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--acao-cancelar);
+      background: transparent; color: var(--acao-cancelar);
+      cursor: pointer;
+    }
+    .btn-admin:hover { background: var(--acao-cancelar); color: #fff; }
+    .btn-admin:focus-visible { outline: 3px solid rgba(220, 38, 38, .35); outline-offset: 2px; }
+    .btn-admin.repassar { border-color: var(--acao-repassar); color: var(--acao-repassar); }
+    .btn-admin.repassar:hover { background: var(--acao-repassar); color: #fff; }
+    .btn-admin.repassar:focus-visible { outline-color: rgba(245, 158, 11, .4); }
+    .summary-chip.alerta { color: var(--acao-cancelar); font-weight: 700; }
+    @media (max-width: 700px) {
+      .btn-admin { margin-left: 0; }
+    }
+
     /* ── VOLTAR AO TOPO ──────────────────────────────────────────────────
        Com o rótulo escrito, e não só a seta: uma seta sozinha obriga a
        adivinhar, e aqui há quem precise ler para saber o que o botão faz.
@@ -1820,6 +1908,17 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
       <div class="filtros-caixa" id="caixa-rep" style="display:none;">
       <div class="filter-row" id="filter-row-rep">
         <div style="position:relative;">
+          <button class="filter-chip" data-filter="repAcao">
+            <i class="fa-solid fa-tag"></i>
+            <span>Ação</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+        <button class="filter-chip" id="chip-pendentes" title="Só o que ainda depende de você">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>Pendentes</span>
+        </button>
+        <div style="position:relative;">
           <button class="filter-chip" data-filter="repOrigem">
             <i class="fa-solid fa-store"></i>
             <span>Cliente</span>
@@ -2209,8 +2308,11 @@ const APP = {
   // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
   filtros: { cliente: new Set(), preposto: new Set(), faixa: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
              // usados só na revisão de repasses
-             repOrigem: new Set(), repDestino: new Set(), repEstado: new Set() },
+             repOrigem: new Set(), repDestino: new Set(), repEstado: new Set(), repAcao: new Set() },
   repQuando: 'tudo',   // tudo | hoje | 7 | 30
+  // Atalho para a fila de trabalho: só o que ainda depende de uma decisão
+  // do vendedor — transferência sem destino e cancelamento não pedido.
+  repPendentes: false,
   popoverAberto: null,
   ordem: 'mes_proximo',
   grupos: [],
@@ -2287,6 +2389,16 @@ function diaParaMes(d) {
   return m;
 }
 function mesOrdenavel(mes) { return mes ? mes.slice(3) + mes.slice(0, 2) : '999999'; }
+
+/** "09/2026" -> "Set/26". So para mostrar na tela: a chave do filtro, da
+ *  ordenacao e da base continua sendo "09/2026", que e o que diaParaMes
+ *  devolve. Mudar aquela funcao quebraria o filtro de Mes. */
+function mesCurtoRotulo(mes) {
+  const m = /^(\d{2})\/(\d{4})$/.exec(mes || '');
+  if (!m) return mes || '';
+  const nome = MESES_CURTOS[Number(m[1]) - 1] || '';
+  return nome.charAt(0).toUpperCase() + nome.slice(1) + '/' + m[2].slice(2);
+}
 
 // "05/2026" continua sendo a chave em todo canto — é o que a base gera e o
 // que o filtro guarda. Só a leitura muda: número de mês ninguém decora.
@@ -2586,7 +2698,7 @@ function avisarNovidadesDeRepasse() {
   const partes = [];
   if (saiu) partes.push(`${saiu} saíram da carteira`);
   if (fat) partes.push(`${fat} faturaram no origem`);
-  toast(partes.join(' · ') + ' — veja em Transferidos', 5000);
+  toast(partes.join(' · ') + ' — veja em Transferências', 5000);
 }
 
 /* ============================================================
@@ -2692,20 +2804,67 @@ function ordenarGrupos(g) {
    RENDER
    ============================================================ */
 // Separa as marcações de repasse: sem destino (a destinar) e com destino.
+function temDestino(e) {
+  return !!(e.repasse && e.repasse.destinos && e.repasse.destinos.length);
+}
+
+/** A situacao de uma marcacao, ja misturando as tres acoes numa escala so.
+ *  E ela que o filtro de Situacao usa e que o cartao mostra. */
+function foiAoAdmin(e) {
+  return !!(e.repasse && e.repasse.enviadoAdmin);
+}
+
+function situacaoDaMarca(e) {
+  // Cancelar e Repassar terminam do mesmo jeito: o vendedor decide, mas
+  // quem executa e o escritorio. Ate o pedido sair, os dois estao parados.
+  if (e.acao === 'CANCELAR') return foiAoAdmin(e) ? 'ENVIADO_ADMIN' : 'A_ENVIAR';
+  if (e.acao === 'OFERTA')   return foiAoAdmin(e) ? 'EM_REPASSE' : 'REPASSE_A_ENVIAR';
+  if (e.enviados) return 'ENVIADO';
+  if (!temDestino(e)) return 'A_DESTINAR';
+  return e.estado;
+}
+
 function marcasDeRepasse() {
   const vivas = marcasConciliadas().filter(e => !(e.repasse && e.repasse.arquivado));
   const transf = vivas.filter(e => e.acao === 'REPASSAR');
-  const temDest = e => !!(e.repasse && e.repasse.destinos && e.repasse.destinos.length);
   return {
-    pend: transf.filter(e => !temDest(e)),
-    feitos: transf.filter(temDest),
+    todas: vivas,
+    pend: transf.filter(e => !temDestino(e)),
+    feitos: transf.filter(temDestino),
     ofertas: vivas.filter(e => e.acao === 'OFERTA'),
+    cancelar: vivas.filter(e => e.acao === 'CANCELAR'),
   };
+}
+
+/** Manda o pedido ao escritorio — serve para cancelamento e para repasse.
+ *  Nao muda a acao: ela continua CANCELAR ou OFERTA. O que se registra e
+ *  que o pedido saiu, com quem e quando.
+ *
+ *  Um campo so para os dois de proposito: para o escritorio a pergunta e
+ *  sempre a mesma ("o vendedor ja pediu?"), e o que ele deve fazer ja esta
+ *  em `acao`. Dois campos com o mesmo significado sao duas chances de o
+ *  painel do admin esquecer de olhar um deles.
+ *
+ *  Vai dentro de `repasse` porque e o unico campo que o worker guarda
+ *  inteiro; solto no topo do registro seria descartado na gravacao. */
+function enviarAoAdmin(e) {
+  const marca = { em: Date.now(), por: APP.sessao ? APP.sessao.nome : '' };
+  const mexidas = [];
+  for (const key of e.keys) {
+    const reg = APP.acoes[key];
+    if (!reg) continue;
+    reg.repasse = { ...(reg.repasse || {}), enviadoAdmin: marca, app: APP_ORIGEM };
+    mexidas.push(key);
+  }
+  if (!mexidas.length) return false;
+  salvarAcoes();
+  agendarEnvio(mexidas);
+  return true;
 }
 
 // Ações que tiram a encomenda da lista principal: ela já tem aba própria,
 // e continuar nas duas fazia o vendedor decidir de novo o que já decidiu.
-const ACOES_QUE_SAEM = new Set(['REPASSAR', 'OFERTA']);
+const ACOES_QUE_SAEM = new Set(['REPASSAR', 'OFERTA', 'CANCELAR']);
 
 function indicesMarcados() {
   const fora = new Set();
@@ -2737,18 +2896,24 @@ function atualizarVeuRolagem() {
 }
 
 function renderStatusChips() {
-  const { pend, feitos, ofertas } = APP.base ? marcasDeRepasse() : { pend: [], feitos: [], ofertas: [] };
-  const urgentes = pend.filter(e => e.estado === 'ABERTO' && diasAte(e.prev) <= DIAS_ALERTA).length;
+  const { todas, pend, feitos, cancelar } = APP.base
+    ? marcasDeRepasse()
+    : { todas: [], pend: [], feitos: [], cancelar: [] };
+  // Vermelho pede acao: transferencia sem destino perto do faturamento, e
+  // cancelamento que ainda nao foi pedido ao escritorio.
+  const urgentes = pend.filter(e => e.estado === 'ABERTO' && diasAte(e.prev) <= DIAS_ALERTA).length
+    + todas.filter(e => e.acao !== 'REPASSAR' && !foiAoAdmin(e)).length;
   const novidades = feitos.filter(e => e.novidade).length;
 
   const opcoes = [
     { id: 'TUDO', label: 'Tudo', icone: 'fa-layer-group' },
     { id: 'CART', label: 'Carteira', icone: 'fa-hourglass-half' },
     { id: 'FAT',  label: 'Faturado', icone: 'fa-circle-check' },
-    { id: 'PEND', label: 'A destinar', icone: 'fa-arrow-right-long', n: pend.length, alerta: urgentes, vermelho: true },
-    // Rótulo acompanha a ação: o que tem destino escolhido foi transferido.
-    { id: 'REPASSADO', label: 'Transferidos', icone: 'fa-truck-fast', n: feitos.length, ponto: novidades },
-    { id: 'OFERTA', label: 'Em repasse', icone: 'fa-share-nodes', n: ofertas.length },
+    // As tres acoes marcadas vivem numa tela so, separadas por filtro e nao
+    // por aba: quem trabalha essa fila trata as tres na mesma passada, e
+    // tres abas obrigavam a procurar em qual delas estava o lancamento.
+    { id: 'MARCADAS', label: 'Transferências', icone: 'fa-right-left',
+      n: todas.length, alerta: urgentes, vermelho: !!urgentes, ponto: novidades },
   ];
 
   $('status-chips').innerHTML = opcoes.map(o => {
@@ -2789,24 +2954,24 @@ function dentroDoPeriodo(e) {
   return dias <= Number(APP.repQuando);
 }
 
-function renderMarcas(tipo) {
-  const { pend, feitos, ofertas } = marcasDeRepasse();
-  let lista = tipo === 'PEND' ? pend : tipo === 'OFERTA' ? ofertas : feitos;
+function renderMarcas() {
+  const { todas } = marcasDeRepasse();
+  const f = APP.filtros;
 
-  // Filtros da revisão. Só valem nos repassados: em "A destinar" ainda não
-  // há destino nem data para filtrar.
-  if (tipo === 'REPASSADO') {
-    const f = APP.filtros;
-    lista = lista.filter(e => {
-      if (f.repEstado.size && !f.repEstado.has(e.enviados ? 'ENVIADO' : e.estado)) return false;
-      if (f.repOrigem.size && !f.repOrigem.has(e.codCliente)) return false;
-      if (f.repDestino.size) {
-        const destinos = (e.repasse && e.repasse.destinos) || [];
-        if (!destinos.some(d => f.repDestino.has(d.codigo))) return false;
-      }
-      return dentroDoPeriodo(e);
-    });
-  }
+  let lista = todas.filter(e => {
+    if (APP.repPendentes) {
+      const sit = situacaoDaMarca(e);
+      if (sit !== 'A_DESTINAR' && sit !== 'A_ENVIAR' && sit !== 'REPASSE_A_ENVIAR') return false;
+    }
+    if (f.repAcao.size && !f.repAcao.has(e.acao)) return false;
+    if (f.repEstado.size && !f.repEstado.has(situacaoDaMarca(e))) return false;
+    if (f.repOrigem.size && !f.repOrigem.has(e.codCliente)) return false;
+    if (f.repDestino.size) {
+      const destinos = (e.repasse && e.repasse.destinos) || [];
+      if (!destinos.some(d => f.repDestino.has(d.codigo))) return false;
+    }
+    return dentroDoPeriodo(e);
+  });
 
   const termos = (APP.busca || '').split(',').map(x => normalizar(x).trim()).filter(Boolean);
   if (termos.length) {
@@ -2825,42 +2990,43 @@ function renderMarcas(tipo) {
   lista.sort((a, b) => (b.novidade ? 1 : 0) - (a.novidade ? 1 : 0) || a.prev - b.prev);
 
   const totPares = lista.reduce((s, e) => s + e.pares, 0);
-  const lojas = new Set();
-  lista.forEach(e => ((e.repasse && e.repasse.destinos) || []).forEach(d => lojas.add(d.codigo)));
+  const porAcao = { REPASSAR: 0, OFERTA: 0, CANCELAR: 0 };
+  lista.forEach(e => { if (porAcao[e.acao] != null) porAcao[e.acao]++; });
+  const aEnviar = lista.filter(e => e.acao !== 'REPASSAR' && !foiAoAdmin(e)).length;
 
   $('summary').innerHTML = `
-    <div class="summary-chip"><strong class="c-cart">${formatarNumero(lista.length)}</strong> ${tipo === 'PEND' ? 'a destinar' : tipo === 'OFERTA' ? 'em repasse' : 'transferidos'}</div>
+    <div class="summary-chip"><strong class="c-cart">${formatarNumero(lista.length)}</strong> na lista</div>
     <div class="summary-chip"><strong>${formatarNumero(totPares)}</strong> pares</div>
-    ${tipo === 'REPASSADO' && lojas.size ? `<div class="summary-chip"><strong>${lojas.size}</strong> loja${lojas.size > 1 ? 's' : ''}</div>` : ''}
+    ${porAcao.REPASSAR ? `<div class="summary-chip"><strong>${porAcao.REPASSAR}</strong> transferir</div>` : ''}
+    ${porAcao.OFERTA ? `<div class="summary-chip"><strong>${porAcao.OFERTA}</strong> repassar</div>` : ''}
+    ${porAcao.CANCELAR ? `<div class="summary-chip"><strong>${porAcao.CANCELAR}</strong> cancelar</div>` : ''}
+    ${aEnviar ? `<div class="summary-chip alerta"><strong>${aEnviar}</strong> a enviar ao admin</div>` : ''}
   `;
   atualizarBotoesFiltros();
   atualizarVeuRolagem();
 
   if (!lista.length) {
+    const filtrando = f.repAcao.size || f.repEstado.size || f.repOrigem.size
+      || f.repDestino.size || APP.repQuando !== 'tudo' || APP.repPendentes
+      || (APP.busca || '').trim();
     $('lista').innerHTML = `
       <div class="empty-state">
-        <i class="fa-solid ${tipo === 'PEND' ? 'fa-arrow-right-long' : tipo === 'OFERTA' ? 'fa-share-nodes' : 'fa-truck-fast'}"></i>
-        <p>${tipo === 'PEND' ? 'Nada esperando destino'
-           : tipo === 'OFERTA' ? 'Nenhuma encomenda em repasse'
-           : 'Nenhuma transferência com destino ainda'}</p>
-        <p style="margin-top:8px;font-size:12px;">${tipo === 'PEND'
-          ? 'Marque um produto como Transferir na aba Carteira'
-          : tipo === 'OFERTA'
-          ? 'Use Repassar quando nenhum cliente seu absorver o produto'
-          : 'Escolha o destino de uma transferência pendente'}</p>
+        <i class="fa-solid ${filtrando ? 'fa-filter-circle-xmark' : 'fa-right-left'}"></i>
+        <p>${filtrando ? 'Nada com esses filtros' : 'Nenhuma marcação sua por aqui'}</p>
+        <p style="margin-top:8px;font-size:12px;">${filtrando
+          ? 'Limpe os filtros para ver a lista inteira'
+          : 'Marque um produto como Transferir, Repassar ou Cancelar na aba Carteira'}</p>
       </div>`;
     $('rodape').innerHTML = '';
     return;
   }
 
-  $('lista').innerHTML = lista.map(e => cardMarca(e, tipo)).join('');
+  $('lista').innerHTML = lista.map(e => cardMarca(e)).join('');
 
   const concluidos = lista.filter(e => e.estado === 'SUMIU' || e.estado === 'CONFIRMADO');
-  $('rodape').innerHTML = (tipo === 'REPASSADO' && concluidos.length)
+  $('rodape').innerHTML = concluidos.length
     ? `<button class="gci-mais" id="btn-limpar-concluidos" title="Sai da sua lista, mas continua no painel do escritório">Tirar da lista os ${concluidos.length} que já saíram da carteira</button>`
-    : `Fim da lista · ${formatarNumero(lista.length)} ${tipo === 'OFERTA'
-        ? 'em repasse'
-        : 'transferência' + (lista.length > 1 ? 's' : '')}`;
+    : `Fim da lista · ${formatarNumero(lista.length)} marca${lista.length > 1 ? 'ções' : 'ção'}`;
 
   const btn = $('btn-limpar-concluidos');
   if (btn) btn.addEventListener('click', () => {
@@ -2887,7 +3053,13 @@ function renderMarcas(tipo) {
   renderStatusChips();
 }
 
-function cardMarca(e, tipo) {
+const SELO_ACAO = {
+  REPASSAR: { rotulo: 'Transferir', cls: 'transferir', icone: 'fa-right-left' },
+  OFERTA:   { rotulo: 'Repassar',   cls: 'repassar',   icone: 'fa-share-nodes' },
+  CANCELAR: { rotulo: 'Cancelar',   cls: 'cancelar',   icone: 'fa-ban' },
+};
+
+function cardMarca(e) {
   const est = ESTADOS[e.estado];
   const dias = diasAte(e.prev);
   const temDestino = !!((e.repasse && e.repasse.destinos) || []).length;
@@ -2905,6 +3077,14 @@ function cardMarca(e, tipo) {
   const linhaIdx = e.linhas.length ? e.linhas[0] : null;
   const acoes = linhaIdx != null ? pillsDeAcao(APP.L[linhaIdx], linhaIdx) : '';
 
+  // O pedido ao escritorio e um botao como os outros, na mesma fileira.
+  const precisaAdmin = (e.acao === 'CANCELAR' || e.acao === 'OFERTA') && !foiAoAdmin(e);
+  const botaoAdmin = precisaAdmin
+    ? `<button class="btn-admin ${e.acao === 'CANCELAR' ? 'cancelar' : 'repassar'}" data-admin="${escAttr(e.keys[0])}">
+         <i class="fa-solid fa-paper-plane"></i> Enviar ao admin
+       </button>`
+    : '';
+
   const destinos = ((e.repasse && e.repasse.destinos) || []).map(d =>
     `<span class="gd ${d.finalizadoEm ? 'enviado' : ''}">${d.finalizadoEm ? '<i class="fa-solid fa-paper-plane" title="o escritório já enviou este"></i>' : '<i class="fa-solid fa-arrow-right-long"></i>'} ${escHtml(d.nome)}<small>${d.caixas ? d.caixas + ' cx · ' : ''}${formatarNumero(d.pares)} pares${condicaoTexto(d)}</small></span>`
   ).join('');
@@ -2913,23 +3093,50 @@ function cardMarca(e, tipo) {
     <div class="marca-card estado-${est.cls} ${e.novidade ? 'novidade' : ''}">
       <div class="marca-topo">
         <div class="marca-info">
-          <p class="marca-titulo">${escHtml(titulo)}</p>
-          <p class="marca-sub">${escHtml(e.nomeCliente)} <span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· ${e.acao === 'OFERTA' ? 'em repasse' : 'transferido'} ${escHtml(quando)}</span>` : ''}</p>
-          ${e.linhas.length > 1 ? `<p class="marca-itens">${produtos.map(escHtml).join(' · ')}${e.linhas.length > 3 ? ' · +' + (e.linhas.length - 3) : ''}</p>` : ''}
+          <p class="marca-titulo">${(() => {
+            const a = SELO_ACAO[e.acao];
+            return a ? `<span class="selo-acao ${a.cls}"><i class="fa-solid ${a.icone}"></i> ${a.rotulo}</span>` : '';
+          })()}<span class="m-prod">${escHtml(titulo)}</span><span class="m-para">${escHtml(e.nomeCliente)}</span></p>
         </div>
-        ${e.enviados ? `<span class="estado-badge finalizado" title="${e.enviados} de ${e.totalDestinos} destino(s) já enviado(s) pelo escritório · situação na carteira: ${escHtml(est.rotulo)}">
+        ${(e.acao === 'CANCELAR' || e.acao === 'OFERTA') ? `<span class="estado-badge ${foiAoAdmin(e) ? 'finalizado' : 'aguardando'}">
+          <i class="fa-solid ${foiAoAdmin(e) ? 'fa-paper-plane' : 'fa-hourglass-half'}"></i>
+          ${foiAoAdmin(e) ? 'Pedido enviado' : 'A enviar'}
+        </span>` : e.enviados ? `<span class="estado-badge finalizado" title="${e.enviados} de ${e.totalDestinos} destino(s) já enviado(s) pelo escritório · situação na carteira: ${escHtml(est.rotulo)}">
           <i class="fa-solid fa-paper-plane"></i>
           ${e.enviados === e.totalDestinos ? 'Enviado' : `Enviado ${e.enviados}/${e.totalDestinos}`}
         </span>` : `<span class="estado-badge ${est.cls}">
           <i class="fa-solid ${est.icone}"></i>
           ${e.estado === 'CONFIRMADO' ? 'Confirmado em ' + escHtml(e.confirmadoEm) : est.rotulo}
         </span>`}
+        <i class="fa-solid fa-chevron-down marca-seta" aria-hidden="true"></i>
+      </div>
+      <div class="marca-detalhe">
+        <p class="marca-sub"><span class="cinza">${escHtml(e.codCliente)}</span> · GCI ${escHtml(e.gci)} · ${formatarNumero(e.pares)} pares${e.prev >= 0 ? ' · prev. ' + diaParaBR(e.prev) : ''}${quando ? ` <span class="cinza">· ${e.acao === 'OFERTA' ? 'em repasse' : 'transferido'} ${escHtml(quando)}</span>` : ''}</p>
+        ${e.linhas.length > 1 ? `<p class="marca-itens">${produtos.map(escHtml).join(' · ')}${e.linhas.length > 3 ? ' · +' + (e.linhas.length - 3) : ''}</p>` : ''}
       </div>
       ${urgente ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> ${dias < 0 ? 'o faturamento já passou' : dias === 0 ? 'fatura hoje' : 'faltam ' + dias + ' dias para faturar'} — decida o destino</p>` : ''}
       ${e.estado === 'FATUROU' ? `<p class="marca-alerta"><i class="fa-solid fa-triangle-exclamation"></i> Faturou no cliente de origem — o repasse não saiu a tempo</p>` : ''}
-      ${destinos || acoes ? `<div class="marca-rodape">
+      ${(() => {
+        // Cancelar e Repassar dependem do escritorio; Transferir o vendedor
+        // resolve sozinho, escolhendo o destino. Por isso so os dois
+        // primeiros ganham o pedido. So o texto fica aqui, recolhido — o
+        // botao desce para a fileira dos outros, senao ele sozinho custava
+        // uma faixa inteira e o cartao ficava 50px mais alto que os demais.
+        if (e.acao !== 'CANCELAR' && e.acao !== 'OFERTA') return '';
+        const env = e.repasse && e.repasse.enviadoAdmin;
+        const cancel = e.acao === 'CANCELAR';
+        if (env) {
+          return `<p class="marca-cancel enviado marca-detalhe"><i class="fa-solid fa-paper-plane"></i>
+            ${cancel ? 'Cancelamento' : 'Repasse'} pedido ao escritório ${escHtml(quandoTexto(env.em, env.por))}</p>`;
+        }
+        return `<p class="marca-cancel ${cancel ? 'cancelar' : 'repassar'} marca-detalhe">
+          <i class="fa-solid fa-circle-info"></i> ${cancel
+            ? 'O cancelamento é solicitado pelo escritório — avise para que eles peçam.'
+            : 'O escritório publica o produto no app de repasses — avise para a equipe procurar cliente.'}</p>`;
+      })()}
+      ${(destinos || acoes || botaoAdmin) ? `<div class="marca-rodape">
         ${destinos ? `<div class="gci-destinos">${destinos}</div>` : ''}
-        ${acoes ? `<div class="marca-acoes">${acoes}</div>` : ''}
+        ${acoes || botaoAdmin ? `<div class="marca-acoes">${acoes}${botaoAdmin}</div>` : ''}
       </div>` : ''}
     </div>`;
 }
@@ -2947,8 +3154,8 @@ function render() {
     return;
   }
 
-  if (APP.status === 'PEND' || APP.status === 'REPASSADO' || APP.status === 'OFERTA') {
-    renderMarcas(APP.status);
+  if (APP.status === 'MARCADAS') {
+    renderMarcas();
     return;
   }
 
@@ -3022,7 +3229,7 @@ function cardProduto(g, idx) {
         </div>
         <div class="product-info">
           <p class="product-name">${escHtml(descricao || referencia)}</p>
-          <p class="product-meta">${escHtml(cor)} · <span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` · <span class="p-mes">${mesProx}</span>` : ''}</p>
+          <p class="product-meta">${escHtml(cor)} · <span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` · <span class="p-mes"><i class="fa-solid fa-calendar-day"></i> ${escHtml(mesCurtoRotulo(mesProx))}</span>` : ''}</p>
         </div>
         <div class="product-tags col-cli">
           <span class="tag tag-clientes d-num">${g.clientes.size}</span>
@@ -3098,7 +3305,6 @@ function linhasDoGrupo(g, chave) {
         <div class="gci-dir">
           <p class="gci-pares ${emCarteira ? 'cart' : 'fat'}">${formatarNumero(pares)} pares</p>
           <p class="gci-quando">
-            <span class="q-longo">${emCarteira ? 'prev. ' + diaParaBR(r[C.PREV]) : 'fat. ' + diaParaBR(r[C.DFAT])}</span>
             <span class="q-curto"><i class="fa-solid ${emCarteira ? 'fa-calendar-day' : 'fa-circle-check'}"></i> ${emCarteira ? diaParaCurto(r[C.PREV]) : diaParaCurto(r[C.DFAT])}</span>
           </p>
         </div>
@@ -3424,10 +3630,20 @@ function podeVer(key) {
   return dono !== null && dono === APP.sessao.nome;
 }
 
+/** Na tela de transferencias cada um ve so o que e seu — a CMS tambem.
+ *  `podeVer` libera tudo para o admin, e isso esta certo na lista de
+ *  produtos, onde ele confere a carteira dos outros. Aqui a lista e a fila
+ *  de trabalho de uma pessoa: ver a fila alheia nao ajuda ninguem e expoe
+ *  decisao que ainda nao foi tomada. */
+function ehMeu(key) {
+  if (!APP.sessao) return false;
+  return donoDaKey(key) === APP.sessao.nome;
+}
+
 function marcasConciliadas() {
   const porGci = new Map();
   for (const [key, reg] of Object.entries(APP.acoes)) {
-    if (!podeVer(key)) continue;
+    if (!ehMeu(key)) continue;
     const p = key.split('|');
     const gk = p[0] + '|' + p[1];
     let e = porGci.get(gk);
@@ -4247,7 +4463,7 @@ function repintarLinha(linhaIdx) {
 
 // Nas abas de repasse a marcação muda a própria composição da lista.
 function naListaDeRepasses() {
-  return APP.status === 'PEND' || APP.status === 'REPASSADO' || APP.status === 'OFERTA';
+  return APP.status === 'MARCADAS';
 }
 
 function ligarModalDestino() {
@@ -4785,6 +5001,19 @@ function ligarLista() {
       return;
     }
 
+    const btnAdmin = e.target.closest('[data-admin]');
+    if (btnAdmin) {
+      e.stopPropagation();
+      const chave = btnAdmin.dataset.admin;
+      const alvo = marcasDeRepasse().todas.find(x => x.keys.includes(chave));
+      if (alvo && enviarAoAdmin(alvo)) {
+        toast(`${alvo.acao === 'CANCELAR' ? 'Cancelamento' : 'Repasse'} do GCI ${alvo.gci} enviado ao escritório`, 3500);
+        renderStatusChips();
+        render();
+      }
+      return;
+    }
+
     const btnOferta = e.target.closest('[data-oferta]');
     if (btnOferta) {
       e.stopPropagation();
@@ -4909,24 +5138,42 @@ const OPCOES_QUANDO = [
   { id: '30',   label: 'Últimos 30 dias' },
 ];
 
-const OPCOES_ESTADO = [
-  { id: 'ENVIADO',    label: 'Já enviado pelo escritório' },
-  { id: 'ABERTO',     label: 'Ainda na carteira' },
-  { id: 'FATUROU',    label: 'Faturou na origem' },
-  { id: 'SUMIU',      label: 'Saiu da carteira' },
-  { id: 'CONFIRMADO', label: 'Confirmado no destino' },
+const OPCOES_ACAO = [
+  { id: 'REPASSAR', label: 'Transferir' },
+  { id: 'OFERTA',   label: 'Repassar' },
+  { id: 'CANCELAR', label: 'Cancelar' },
 ];
+
+// A escala de situacao cobre as tres acoes. As duas primeiras sao o que
+// espera decisao do vendedor; o resto e acompanhamento.
+const OPCOES_ESTADO = [
+  { id: 'A_DESTINAR',    label: 'Sem destino escolhido' },
+  { id: 'A_ENVIAR',         label: 'Cancelamento a enviar' },
+  { id: 'REPASSE_A_ENVIAR', label: 'Repasse a enviar' },
+  { id: 'ENVIADO_ADMIN',    label: 'Cancelamento enviado' },
+  { id: 'EM_REPASSE',       label: 'Em repasse no escritório' },
+  { id: 'ENVIADO',       label: 'Já enviado pelo escritório' },
+  { id: 'ABERTO',        label: 'Ainda na carteira' },
+  { id: 'FATUROU',       label: 'Faturou na origem' },
+  { id: 'SUMIU',         label: 'Saiu da carteira' },
+  { id: 'CONFIRMADO',    label: 'Confirmado no destino' },
+];
+const ROTULO_SITUACAO = Object.fromEntries(OPCOES_ESTADO.map(o => [o.id, o.label]));
 
 /** Opções dos filtros da revisão: saem dos próprios repasses, não da base.
  *  Contar em pares como nos outros filtros não ajudaria aqui — o que
  *  interessa é quantos repasses cada um tem. */
 function opcoesDosRepasses(filtroId) {
-  const { feitos } = marcasDeRepasse();
+  const feitos = marcasDeRepasse().todas;
   const vistos = new Map();
 
   for (const e of feitos) {
+    if (filtroId === 'repAcao') {
+      vistos.set(e.acao, (vistos.get(e.acao) || 0) + 1);
+      continue;
+    }
     if (filtroId === 'repEstado') {
-      const id = e.enviados ? 'ENVIADO' : e.estado;
+      const id = situacaoDaMarca(e);
       vistos.set(id, (vistos.get(id) || 0) + 1);
       continue;
     }
@@ -4947,9 +5194,14 @@ function opcoesDosRepasses(filtroId) {
     return d ? `${d.nome} · ${cod}` : cod;
   };
 
+  const conta = (n) => n + (n > 1 ? ' marcações' : ' marcação');
+  if (filtroId === 'repAcao') {
+    return OPCOES_ACAO.filter(o => vistos.has(o.id))
+      .map(o => ({ ...o, extra: conta(vistos.get(o.id)) }));
+  }
   if (filtroId === 'repEstado') {
     return OPCOES_ESTADO.filter(o => vistos.has(o.id))
-      .map(o => ({ ...o, extra: vistos.get(o.id) + ' repasse' + (vistos.get(o.id) > 1 ? 's' : '') }));
+      .map(o => ({ ...o, extra: conta(vistos.get(o.id)) }));
   }
   return [...vistos.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -5053,7 +5305,7 @@ function campanhasDaLinha(r) {
 }
 
 const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', faixa: 'Faixa', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês',
-  repOrigem: 'Cliente', repDestino: 'Destino', repEstado: 'Situação' };
+  repOrigem: 'Cliente', repDestino: 'Destino', repEstado: 'Situação', repAcao: 'Ação' };
 
 // O popover é fixo e vive no <body>, para nunca ser cortado pela barra de filtros.
 function posicionarPopover(pop, btnEl) {
@@ -5203,11 +5455,11 @@ function fecharTodosPopovers() {
 /** A barra de filtros muda com a tela: os de produto não valem na revisão
  *  de repasses, e ficavam à mostra sem fazer nada. */
 function trocarBarraDeFiltros() {
-  const naRevisao = APP.status === 'REPASSADO';
+  const naRevisao = APP.status === 'MARCADAS';
   const rep = $('caixa-rep');
   if (rep) rep.style.display = naRevisao ? '' : 'none';
   const prod = $('caixa-prod');
-  if (prod) prod.style.display = (APP.status === 'PEND' || APP.status === 'OFERTA' || naRevisao) ? 'none' : '';
+  if (prod) prod.style.display = naRevisao ? 'none' : '';
 }
 
 function atualizarBotoesFiltros() {
@@ -5226,6 +5478,7 @@ function atualizarBotoesFiltros() {
     oc:       v => APP.dic.oc[v],
     mes:      v => mesPorExtenso(v),
     repEstado: v => (OPCOES_ESTADO.find(o => o.id === v) || {}).label || v,
+    repAcao:   v => (OPCOES_ACAO.find(o => o.id === v) || {}).label || v,
     repOrigem: v => nomeDeCliente(v),
     repDestino: v => nomeDeCliente(v),
   };
@@ -5249,6 +5502,10 @@ function atualizarBotoesFiltros() {
   if (rq) rq.textContent = (OPCOES_QUANDO.find(o => o.id === APP.repQuando) || {}).label || 'Quando';
   const chipQ = document.querySelector('.filter-chip[data-filter="repQuando"]');
   if (chipQ) chipQ.classList.toggle('active', APP.repQuando !== 'tudo');
+  const chipP = $('chip-pendentes');
+  if (chipP) chipP.classList.toggle('active', !!APP.repPendentes);
+  if (lr) lr.classList.toggle('show', algumRep || APP.repQuando !== 'tudo'
+    || !!APP.busca || !!APP.repPendentes);
 }
 
 /** Nome do cliente pelo código, venha da Detalhada ou de um repasse. */
@@ -5267,6 +5524,8 @@ function limparFiltrosRepasse() {
   APP.filtros.repOrigem.clear();
   APP.filtros.repDestino.clear();
   APP.filtros.repEstado.clear();
+  APP.filtros.repAcao.clear();
+  APP.repPendentes = false;
   APP.repQuando = 'tudo';
   APP.busca = '';
   const inp = $('busca');
@@ -5562,6 +5821,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   ligar('btn-limpar-filtros', 'click', limparFiltros);
   ligar('btn-limpar-rep', 'click', limparFiltrosRepasse);
+  ligar('chip-pendentes', 'click', () => {
+    APP.repPendentes = !APP.repPendentes;
+    render();
+  });
   ligar('filter-backdrop', 'click', fecharTodosPopovers);
   // O popover é fixo e ancorado no botão: rolar a página ou redimensionar o
   // desencaixa. Rolar a lista de opções dentro dele não conta.
@@ -5688,7 +5951,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .product-meta .p-ref{ color:var(--d-link); }      /* azul = clicável */
-.product-meta .p-mes{ color:var(--d-warn); }      /* âmbar = prazo */
+.product-meta .p-mes{ color:var(--d-warn); white-space:nowrap; }   /* âmbar = prazo */
+.product-meta .p-mes i{ font-size:9px; opacity:.85; margin-right:2px; }
 
 /* coluna clientes: contagem neutra, sem cor */
 .product-tags.col-cli{
@@ -5797,6 +6061,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   min-width:132px;
 }
 .acao-mais.aberto .acao-menu{ display:flex; }
+
+/* ── O MENU PRECISA SAIR DA LINHA ────────────────────────────────────────
+   Dois recortes o cortavam: o `overflow:clip` do cartao e o
+   `overflow:hidden` da area de encomendas — este ultimo existe para animar
+   a abertura, medindo a altura. Num produto com muitos clientes ninguem
+   percebia, porque sobrava area embaixo; com um cliente so, ou no celular,
+   o menu ficava pela metade.
+
+   Os dois so relaxam ENQUANTO ha um menu aberto. Fora disso o recorte
+   continua valendo, e a animacao de abrir o produto segue intacta — ela
+   nunca acontece com um menu aberto. */
+.product-card:has(.acao-mais.aberto){ overflow: visible; }
+.product-card:has(.acao-mais.aberto) .product-details{ overflow: visible; }
+
+/* Se nao couber para a esquerda, abre para a direita. O JS decide e marca,
+   porque so ele sabe onde o botao caiu na tela. */
+.acao-mais.aberto .acao-menu.p-direita{ right:auto; left:0; }
+/* Ultimo recurso em tela muito estreita: encolhe em vez de vazar. */
+.acao-menu{ max-width: calc(100vw - 24px); }
 .acao-menu .acao-pill{
   border:0; border-radius:var(--d-r-sm); text-align:left; padding:7px 10px;
 }
@@ -5947,8 +6230,36 @@ document.addEventListener('DOMContentLoaded', function(){
     document.querySelectorAll('.acao-mais.aberto').forEach(function(m){
       if(!btn || m !== btn.parentElement) m.classList.remove('aberto');
     });
-    if(btn){ e.stopPropagation(); btn.parentElement.classList.toggle('aberto'); }
+    if(btn){
+      e.stopPropagation();
+      var caixa = btn.parentElement;
+      var abriu = caixa.classList.toggle('aberto');
+      if(abriu) posicionarMenuAcao(caixa);
+    }
   }, true);
+
+  /* Alinhado a direita do botao por padrao, o menu cresce para a esquerda.
+     Numa linha estreita isso o joga para fora da tela — foi o que aconteceu
+     no celular. Aqui se mede depois de aberto e, se a borda esquerda tiver
+     saido da tela, troca o lado. */
+  /* Abre e fecha o detalhe do cartao. O clique nos botoes nao conta: eles
+     ficam no rodape, fora do cabecalho, e o que tem acao propria dentro do
+     cabecalho (nada hoje) seria ignorado pelo closest abaixo. */
+  document.addEventListener('click', function(e){
+    var topo = e.target.closest && e.target.closest('.marca-topo');
+    if(!topo) return;
+    if(e.target.closest('button, a, input, .acao-pill')) return;
+    var card = topo.closest('.marca-card');
+    if(card) card.classList.toggle('aberta');
+  });
+
+  function posicionarMenuAcao(caixa){
+    var menu = caixa.querySelector('.acao-menu');
+    if(!menu) return;
+    menu.classList.remove('p-direita');
+    var r = menu.getBoundingClientRect();
+    if(r.left < 8) menu.classList.add('p-direita');
+  }
 
   /* ── "Mais filtros" ──────────────────────────────────────────────────
      Cliente, Mês, Faixa e Marca ficam à vista; Filial, Fábrica, OC e a
@@ -6186,12 +6497,13 @@ document.addEventListener('DOMContentLoaded', function(){
    rotulo e o ano e vira icone + "20/ago" — a duvida de quem confere uma
    previsao e o mes, nao o ano. As duas formas ja vem no HTML e o CSS
    escolhe uma; assim girar o aparelho nao precisa refazer a lista. */
-.q-curto{ display:none; }
+/* Uma forma so de data, em qualquer largura: icone + "06/set". A versao
+   longa ("prev. 06/09/2026") saiu — o rotulo e o ano nao acrescentavam
+   nada que o icone e o mes ja nao dissessem. */
+.q-curto{ display:inline-flex; align-items:center; white-space:nowrap; }
 .q-curto i{ font-size:9px; opacity:.75; margin-right:3px; }
 @media (max-width:700px){
   .painel-detalhada .meta-prep{ display:none; }
-  .painel-detalhada .gci-quando .q-longo{ display:none; }
-  .painel-detalhada .gci-quando .q-curto{ display:inline-flex; align-items:center; white-space:nowrap; }
 }
 
 .painel-detalhada .lista-head .lh-img{
