@@ -3723,7 +3723,12 @@ async function baixarAcoes() {
     // nunca chegava aqui — o vendedor via "aguardando" para sempre.
     const quando = (r) => Math.max(Number(r && r.atualizadoEm) || 0, Number(r && r.em) || 0);
     if (quando(reg.repasse) > quando(local.repasse)) {
-      APP.acoes[key] = { ...reg, visto: local.visto };
+      // MANTER vindo de fora é uma exclusão: o escritório apagou a
+      // marcação. Some daqui em vez de virar um registro MANTER — assim a
+      // encomenda volta inteira para a lista de produtos, sem deixar
+      // rastro que a tela precise saber ignorar.
+      if (!reg.acao || reg.acao === ACAO_PADRAO) delete APP.acoes[key];
+      else APP.acoes[key] = { ...reg, visto: local.visto };
       novas++;
     }
   }

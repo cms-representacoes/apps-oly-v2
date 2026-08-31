@@ -889,9 +889,14 @@ async function excluirSelecao() {
 
   // MANTER com repasse nulo é como o app apaga uma marcação: o vendedor
   // recebe a reversão na próxima sincronização.
+  // A exclusão vai DATADA. O app do vendedor funde por data — com
+  // `repasse: null` a data lida é zero, nunca ganha da marcação local, e a
+  // exclusão chegava a ele sem efeito nenhum: o repasse continuava lá,
+  // "aguardando", enquanto já tinha sumido daqui.
+  const carimbo = { app: APP_ORIGEM, atualizadoEm: Date.now(), apagadoPor: 'CMS' };
   const itens = [];
   for (const [, l] of porGci) {
-    for (const key of l.chaves) itens.push({ key, acao: 'MANTER', repasse: null });
+    for (const key of l.chaves) itens.push({ key, acao: 'MANTER', repasse: carimbo });
   }
 
   const antes = LINHAS.slice();
