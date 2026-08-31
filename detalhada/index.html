@@ -1091,19 +1091,13 @@
       transform: translateX(-50%) translateY(160%);
       transition: transform .22s ease;
       display: flex; align-items: center; gap: 10px;
-      padding: 9px 10px 9px 18px;
+      padding: 9px 10px;   /* simetrico: nao ha mais texto a esquerda */
       background: var(--primary-2); border: 1px solid var(--primary-2);
       border-radius: 999px; box-shadow: var(--shadow-lift);
       max-width: calc(100vw - 20px);
     }
     html.dark .barra-selecao { background: var(--primary); border-color: var(--primary); }
     .barra-selecao.show { transform: translateX(-50%) translateY(0); }
-    .bs-txt { font-size: 12.5px; color: rgba(255,255,255,.9); white-space: nowrap; }
-    .bs-txt strong { font-weight: 800; color: #fff; }
-    .bs-txt small {
-      display: block; font-size: 10.5px; font-weight: 700;
-      color: rgba(255,255,255,.75); text-transform: uppercase; letter-spacing: .3px;
-    }
     .barra-selecao button {
       border-radius: 999px; font-size: 12.5px; font-weight: 700;
       padding: 9px 14px; white-space: nowrap;
@@ -1123,7 +1117,6 @@
     @media (max-width: 560px) {
       .barra-selecao { gap: 7px; padding-left: 12px; }
       .barra-selecao button { padding: 9px 11px; }
-      .bs-txt { white-space: normal; }
     }
 
     .tarja-pdf {
@@ -1954,7 +1947,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
 
       <div class="filtros-caixa" id="caixa-prod">
       <div class="filter-row" id="filter-row">
-        <button class="btn-icon btn-na-linha" id="btn-selecao" title="Selecionar encomendas para gerar PDF" style="display:none;">
+        <button class="btn-icon btn-na-linha" id="btn-selecao" title="Selecionar encomendas" style="display:none;">
           <i class="fa-solid fa-list-check"></i>
         </button>
         <div style="position:relative;">
@@ -2187,9 +2180,11 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
 
   <!-- Seleção de várias encomendas -->
   <div class="barra-selecao" id="barra-selecao">
-    <div class="bs-txt" id="bs-resumo">—</div>
     <button class="bs-secundario" id="bs-tudo">Marcar tudo</button>
     <button class="bs-secundario" id="bs-limpar">Limpar</button>
+    <button class="bs-secundario" id="bs-copiar" disabled title="Copiar os GCIs marcados, separados por vírgula">
+      <i class="fa-solid fa-copy"></i> <span id="bs-copiar-label">Copiar GCI</span>
+    </button>
     <button class="bs-gerar" id="bs-gerar" disabled>
       <i class="fa-solid fa-file-pdf"></i> <span id="bs-gerar-label">Gerar</span>
     </button>
@@ -2670,7 +2665,10 @@ function irParaProdutos() {
   $('topbar-user-2').textContent = APP.sessao.nome;
   $('btn-admin').style.display = papel === 'admin' ? '' : 'none';
   // sem extensão não há PDF, e sem PDF a seleção não serve para nada
-  $('btn-selecao').style.display = temExtensao() ? '' : 'none';
+  // A selecao nao serve mais so para PDF: copiar os GCIs funciona em
+  // qualquer navegador. Quem depende da extensao e o botao Gerar, la na
+  // barra — nao a selecao inteira.
+  $('btn-selecao').style.display = '';
   $('wrap-filtro-preposto').style.display = papel === 'admin' ? '' : 'none';
 
   // Vendedor só enxerga as próprias linhas. O direito de ver tudo vem do
@@ -4701,18 +4699,21 @@ function renderBarraSelecao() {
 
   const n = APP.selecao.size;
   const grupos = gruposDaSelecao();
-  const clientes = new Set(grupos.map(g => g.codigo)).size;
 
-  $('bs-resumo').innerHTML = n
-    ? `<strong>${formatarNumero(n)}</strong> encomenda${n > 1 ? 's' : ''} · ` +
-      `${clientes} cliente${clientes > 1 ? 's' : ''}` +
-      `<small>${grupos.length} arquivo${grupos.length > 1 ? 's' : ''} de PDF</small>`
-    : '<strong>Nenhuma marcada</strong>';
-
+  // Sem a extensao nao ha como gerar PDF; o botao sai em vez de ficar
+  // convidando para um erro. O de copiar continua, que e o motivo de a
+  // selecao existir mesmo sem extensao.
+  $('bs-gerar').style.display = temExtensao() ? '' : 'none';
   $('bs-gerar').disabled = !n || !!_pdfEmCurso;
   $('bs-gerar-label').textContent = n
     ? `Gerar ${grupos.length} PDF${grupos.length > 1 ? 's' : ''}`
     : 'Gerar';
+
+  const gcis = gcisDaSelecao();
+  $('bs-copiar').disabled = !gcis.length;
+  $('bs-copiar-label').textContent = gcis.length
+    ? `Copiar ${gcis.length} GCI${gcis.length > 1 ? 's' : ''}`
+    : 'Copiar GCI';
 }
 
 /* ---------- a fila ----------
@@ -4900,10 +4901,31 @@ function ligarRespostaPdf() {
 /* ============================================================
    COPIAR
    ============================================================ */
-function copiarTexto(texto) {
+/** GCIs marcados, sem repetir e na ordem da lista.
+ *  Sem repetir porque a selecao guarda LINHAS, e um GCI com varios itens
+ *  aparece uma vez por item — colado numa consulta, viraria o mesmo numero
+ *  tres ou quatro vezes. */
+function gcisDaSelecao() {
+  const vistos = new Set();
+  for (const i of [...APP.selecao].sort((a, b) => a - b)) {
+    const g = APP.L[i] && APP.L[i][C.GCI];
+    if (g) vistos.add(String(g));
+  }
+  return [...vistos];
+}
+
+function copiarGcisSelecionados() {
+  const gcis = gcisDaSelecao();
+  if (!gcis.length) return;
+  // Sem espaco depois da virgula: e para colar em campo de consulta, e ha
+  // filtro por ai que nao apara espaco e nao acha o segundo numero.
+  copiarTexto(gcis.join(','), `${gcis.length} GCI${gcis.length > 1 ? 's' : ''} copiado${gcis.length > 1 ? 's' : ''}`);
+}
+
+function copiarTexto(texto, mensagem) {
   const t = String(texto ?? '').trim();
   if (!t) return;
-  const aviso = () => toast('Copiado: ' + (t.length > 40 ? t.slice(0, 40) + '…' : t), 1500);
+  const aviso = () => toast(mensagem || ('Copiado: ' + (t.length > 40 ? t.slice(0, 40) + '…' : t)), 1500);
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(t).then(aviso).catch(() => copiarNaMarra(t, aviso));
@@ -5765,6 +5787,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligarRespostaPdf();
 
   ligar('btn-selecao', 'click', alternarModoSelecao);
+  ligar('bs-copiar', 'click', copiarGcisSelecionados);
   ligar('bs-tudo', 'click', marcarTudoFiltrado);
   ligar('bs-limpar', 'click', () => {
     APP.selecao.clear(); render(); renderBarraSelecao();
