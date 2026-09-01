@@ -99,28 +99,22 @@ details summary::-webkit-details-marker{display:none}
     </details>
   </div>
 
-  <!-- IMPORTAÇÃO -->
+  <!-- COMO OS NÚMEROS CHEGAM -->
   <div class="card">
-    <h2>📥 Importar a DETALHADA do dia</h2>
-    <div class="drop" id="drop">arraste o arquivo aqui ou <b>clique para escolher</b><br>
-      <span style="font-size:11px">DETALHADA_PREPOSTOS_*.xlsx · aba DETALHADA</span></div>
-    <input type="file" id="file" accept=".xlsx" hidden>
-  </div>
-
-  <!-- RESUMO -->
-  <div class="card" id="resumoCard" hidden>
-    <h2>🔎 Resumo do processamento</h2>
-    <div class="kpis" id="kpis"></div>
-    <div id="novBox" style="margin-top:14px"></div>
+    <h2>🔄 Os números chegam sozinhos</h2>
+    <p style="margin:0;font:500 13px 'Inter',sans-serif;color:var(--navy);line-height:1.7">
+      O <b>CMS_DETALHADA_GERAL</b> publica os dados da TV logo depois de publicar
+      a base dos vendedores — todo dia, sem ninguém importar arquivo. A TV
+      reconsulta a cada 10 minutos e pega sozinha.
+      <br><br>
+      Esta tela ficou com o que é dela: <b>tempo de cena e tema</b>.
+    </p>
   </div>
 
   <!-- AJUSTES DA TV -->
   <div class="card">
     <h2>🎛️ Ajustes da TV</h2>
     <div class="grid2">
-      <div><label>Data do relatório (detectada do nome do arquivo — ajuste se precisar)</label>
-        <input type="date" id="ajData" style="width:100%;border:1px solid var(--line);border-radius:9px;
-          padding:9px 12px;font:500 13px 'Inter',sans-serif;color:var(--navy);background:#FCFCFB"></div>
       <div><label>Tempo de cada cena do carrossel (segundos)</label>
         <input type="text" id="ajCena" value="10" inputmode="numeric"></div>
       <div><label>Tema da TV</label>
@@ -129,16 +123,10 @@ details summary::-webkit-details-marker{display:none}
           <option value="claro">Claro (padrão)</option>
           <option value="escuro">Escuro</option>
         </select></div>
-      <div><label>Rebatizar nesta publicação</label>
-        <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--navy);
-          border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#FCFCFB;cursor:pointer">
-          <input type="checkbox" id="ajRebat" style="width:16px;height:16px;accent-color:var(--ftw)">
-          zerar as novidades e registrar tudo do arquivo como conhecido
-        </label></div>
     </div>
     <div class="acts" style="margin-top:12px">
-      <button class="btn primary" id="ajustesBtn">Publicar só os ajustes</button>
-      <span class="hint">muda o tempo de cena e o tema na TV sem importar arquivo — os números publicados ficam como estão</span>
+      <button class="btn primary" id="ajustesBtn">Publicar os ajustes</button>
+      <span class="hint">muda o tempo de cena e o tema na TV — os números ficam como o script publicou</span>
     </div>
     <div class="acts" style="margin-top:6px">
       <button class="btn" id="zerarBtn" style="color:var(--err);border-color:#EAD5D5">🧨 Zerar tudo (apagar registro e dados publicados)</button>
@@ -155,12 +143,6 @@ details summary::-webkit-details-marker{display:none}
   </div>
 
   <!-- PUBLICAR -->
-  <div class="card" id="pubCard" hidden>
-    <h2>🚀 Publicar para a TV</h2>
-    <div class="acts">
-      <button class="btn primary" id="pubBtn">Publicar agora</button>
-      <span class="hint" id="pubHint">envia tv_data.json (para a TV) e tv_gci_registry.json (registro de encomendas conhecidas)</span>
-    </div>
   </div>
 
   <div class="card"><h2>📋 Log</h2><div id="log">aguardando arquivo…</div></div>
@@ -193,18 +175,10 @@ $('cfgSave').onclick = ()=>{
     token:$('cfgToken').value.trim(), repo:$('cfgRepo').value.trim(),
     branch:$('cfgBranch').value.trim()||'main', path:$('cfgPath').value.trim()||'data' }));
   aplicarCfg(); log('Conexão salva neste navegador.','ok');
-  if(LINHAS){ log('Reprocessando com a conexão nova…'); processar(LINHAS); }
 };
 aplicarCfg();
-// mudou o rebatismo ou o tempo de cena com arquivo já lido? reprocessa na hora
 document.addEventListener('DOMContentLoaded', ()=>{
-  const d = new Date();
-  $('ajData').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  $('ajRebat').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
-  $('ajCena').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
-  $('ajData').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
-  $('ajTema').addEventListener('change', ()=>{ if(LINHAS) processar(LINHAS); });
-  log('Admin v1.5 carregado.');
+  log('Admin v2.0 — os números vêm do script diário; aqui ficam o tema e o tempo de cena.');
 });
 
 /* ============================================================
@@ -241,268 +215,6 @@ const ym = d => d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') :
 function diasUteis(ini, fim){ let n=0;
   for(let d=new Date(ini); d<=fim; d.setDate(d.getDate()+1)){
     const w=d.getDay(); if(w>0&&w<6) n++; } return n; }
-
-/* ============================================================
-   LEITURA DO XLSX (mapeamento por NOME de coluna, nunca posição)
-   ============================================================ */
-let PROC = null;    // resultado do processamento, pronto para publicar
-let LINHAS = null;  // último arquivo lido (permite reprocessar ao mudar ajustes)
-
-$('drop').onclick = ()=>$('file').click();
-$('drop').ondragover = e=>{ e.preventDefault(); $('drop').classList.add('drag'); };
-$('drop').ondragleave = ()=>$('drop').classList.remove('drag');
-$('drop').ondrop = e=>{ e.preventDefault(); $('drop').classList.remove('drag');
-  if(e.dataTransfer.files[0]) lerArquivo(e.dataTransfer.files[0]); };
-$('file').onchange = e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]); };
-
-async function lerArquivo(file){
-  log('──────────────────────────────');
-  log('[1/4] Lendo '+file.name+' ('+Math.round(file.size/1024)+' KB)…');
-  // DETALHADA_PREPOSTOS_19-08-2026.xlsx -> 2026-08-19
-  const md = file.name.match(/(\d{2})-(\d{2})-(\d{4})/);
-  if(md){ $('ajData').value = md[3]+'-'+md[2]+'-'+md[1];
-    log('Data do relatório detectada pelo nome: '+md[1]+'/'+md[2]+'/'+md[3]+' (ajuste no campo se não for essa).'); }
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, {cellDates:true});
-  const ws = wb.Sheets['DETALHADA'] || wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
-
-  // acha a linha de cabeçalho pelo nome (a linha 1 do relatório traz totais soltos)
-  let hi = rows.findIndex(r => (r||[]).some(c => String(c||'').trim().toUpperCase()==='PREPOSTO'));
-  if(hi < 0){ log('Cabeçalho PREPOSTO não encontrado — arquivo inesperado.','err'); return; }
-  const head = rows[hi].map(c => String(c||'').trim().toUpperCase());
-  const col = nome => head.indexOf(nome);
-  const iPrep=col('PREPOSTO'), iCli=col('NOME FANTASIA'), iMarca=col('MARCA'),
-        iGci=col('GCI'), iRef=col('REFERENCIA'), iDesc=col('DESCRICAO'),
-        iPrev=col('PREV FAT'), iCart=col('CART'), iFat=col('FAT'), iDfat=col('DATA FAT');
-  for(const [n,i] of [['PREPOSTO',iPrep],['MARCA',iMarca],['GCI',iGci],['PREV FAT',iPrev],['CART',iCart],['FAT',iFat],['DATA FAT',iDfat]])
-    if(i<0){ log('Coluna obrigatória ausente: '+n,'err'); return; }
-
-  const linhas = [];
-  const marcasDesconhecidas = new Set();
-  for(let r=hi+1; r<rows.length; r++){
-    const row=rows[r]; if(!row || !row[iPrep]) continue;
-    const marca = String(row[iMarca]||'').trim().toUpperCase();
-    const cat = MAPA_MARCA[marca] ?? null;
-    if(marca && !cat) marcasDesconhecidas.add(marca);
-    linhas.push({
-      prep: normPrep(row[iPrep]),
-      cli: String(row[iCli]||'').trim(),
-      cat, gci: String(row[iGci]||'').trim(),
-      desc: String(row[iDesc]||row[iRef]||'').trim(),
-      prev: paraData(row[iPrev]), dfat: paraData(row[iDfat]),
-      cart: Number(row[iCart])||0, fat: Number(row[iFat])||0,
-    });
-  }
-  log(fmt(linhas.length)+' linhas válidas lidas.','ok');
-  if(marcasDesconhecidas.size)
-    log('Marcas sem categoria (ficam fora da matriz de novidades): '+[...marcasDesconhecidas].join(', '),'warn');
-
-  LINHAS = linhas;
-  await processar(linhas);
-}
-
-/* ============================================================
-   PROCESSAMENTO + DIFF DE GCIs
-   ============================================================ */
-async function processar(linhas){
-  try{ await processarCore(linhas); }
-  catch(e){
-    log('ERRO no processamento: '+e.message,'err');
-    log('O botão Publicar ficou bloqueado. Resolva o item acima e arraste o arquivo de novo.','warn');
-    $('pubCard').hidden = false;
-    $('pubBtn').disabled = true;
-    $('pubHint').textContent = 'processamento falhou — veja o log';
-  }
-}
-async function processarCore(linhas){
-  const cfg = lerCfg();
-  let hoje;
-  const vd = $('ajData').value;             // data do relatório escolhida no admin
-  if(vd && /^\d{4}-\d{2}-\d{2}$/.test(vd)){
-    const [Y,M,D] = vd.split('-').map(Number);
-    hoje = new Date(Y, M-1, D);
-  } else { hoje = new Date(); hoje.setHours(0,0,0,0); }
-  const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
-  log('[2/4] Processando com data de referência '+hojeStr.split('-').reverse().join('/')+'…');
-  const curYM = ym(hoje);
-  const mesNum = hoje.getMonth(), anoCur = hoje.getFullYear();
-
-  /* --- agregados gerais --- */
-  let carteiraTotal = 0;
-  const cartPorYM = {};
-  let faturadoMes = 0, faturadoAnt = 0;
-  const antD = new Date(anoCur, mesNum-1, 1), antYM = ym(antD);
-  for(const l of linhas){
-    carteiraTotal += l.cart;
-    const py = ym(l.prev);
-    if(py) cartPorYM[py] = (cartPorYM[py]||0) + l.cart;
-    const fy = ym(l.dfat);
-    if(fy===curYM) faturadoMes += l.fat;
-    if(fy===antYM) faturadoAnt += l.fat;
-  }
-  // meses da carteira: do mês corrente em diante (até 6 colunas)
-  const chaves = Object.keys(cartPorYM).filter(k=>k>=curYM).sort().slice(0,6);
-  const meses = chaves.map(k=>({ label: MESES_PT[+k.slice(5,7)-1], v: Math.round(cartPorYM[k]) }));
-  const falta = Math.round(cartPorYM[curYM]||0);
-
-  const fimMes = new Date(anoCur, mesNum+1, 0);
-  const uteisPassados = Math.max(1, diasUteis(new Date(anoCur,mesNum,1), hoje));
-  const amanha = new Date(hoje); amanha.setDate(amanha.getDate()+1);
-  const uteisRestantes = Math.max(1, diasUteis(amanha, fimMes));
-  const uteisTotais = diasUteis(new Date(anoCur,mesNum,1), fimMes);
-  const projecao = faturadoMes / uteisPassados * uteisTotais;
-  const escala = Math.max(faturadoMes + falta, faturadoAnt, 1);
-
-  /* --- registro de GCIs (baixa o publicado, compara, atualiza) --- */
-  log('[3/4] Consultando o registro de encomendas conhecidas (até 25s)…');
-  let reg = {seen:[], log:[]};
-  let regSha = null, dataSha = null;
-  if(cfg.token && cfg.repo){
-    let r1 = null;
-    try{ r1 = await ghGet(cfg, cfg.path+'/tv_gci_registry.json'); }catch(_){ r1 = null; }
-    const regOk = r1 && r1.json && Array.isArray(r1.json.seen);
-    regSha = (r1 && r1.sha) || await ghSha(cfg, cfg.path+'/tv_gci_registry.json');
-    if(regOk){
-      reg = {seen: r1.json.seen, log: Array.isArray(r1.json.log) ? r1.json.log : []};
-      log('Registro carregado: '+fmt(reg.seen.length)+' encomendas conhecidas.','ok');
-    } else if(regSha){
-      log('O registro existe mas não pôde ser lido. Com REBATIZAR marcado, publico por cima com segurança.','warn');
-    } else {
-      log('Registro ainda não existe — esta será a primeira publicação (batismo, sem novidades).','warn');
-    }
-    dataSha = await ghSha(cfg, cfg.path+'/tv_data.json');
-  } else {
-    log('Sem conexão configurada — dá para pré-visualizar, mas não publicar.','warn');
-  }
-
-  const rebatizar = $('ajRebat').checked;
-  if(rebatizar && reg.seen.length){
-    log('REBATISMO: o registro atual será descartado — novidades voltam ao zero.','warn');
-    reg = {seen:[], log:[]};
-  }
-  const vistos = new Set(reg.seen);
-  const batismo = vistos.size === 0;
-
-  // agrupa o arquivo por GCI
-  const porGci = new Map();
-  for(const l of linhas){
-    if(!l.gci) continue;
-    if(!porGci.has(l.gci)) porGci.set(l.gci, {prep:l.prep, cat:l.cat, cli:l.cli, desc:l.desc, q:0, prev:l.prev});
-    const g = porGci.get(l.gci); g.q += l.cart + l.fat;
-    if(!g.prev || (l.prev && l.prev < g.prev)) g.prev = l.prev;
-  }
-
-  const novosHoje = [];
-  for(const [gci, g] of porGci){
-    if(vistos.has(gci)) continue;
-    vistos.add(gci);
-    if(!batismo && g.cat){
-      const ent = {g:gci, d:hojeStr, p:g.prep, c:g.cat, q:Math.round(g.q)};
-      reg.log.push(ent); novosHoje.push({...ent, cli:g.cli, desc:g.desc});
-    }
-  }
-  reg.seen = [...vistos];
-  // poda o log: guarda só os últimos 3 meses
-  const corte = ym(new Date(anoCur, mesNum-2, 1));
-  reg.log = reg.log.filter(e => e.d.slice(0,7) >= corte);
-
-  /* --- matrizes de novidades (hoje e mês) --- */
-  function matriz(entradas){
-    const porPrep = {};
-    for(const e of entradas){
-      if(!porPrep[e.p]) porPrep[e.p] = [0,0,0,0,0];
-      const i = CATS.indexOf(e.c); if(i>=0) porPrep[e.p][i] += e.q;
-    }
-    const nomes = [...ORDEM_PREP.filter(p=>true), ...Object.keys(porPrep).filter(p=>!ORDEM_PREP.includes(p))];
-    const linhas = nomes.map(n => [n[0]+n.slice(1).toLowerCase(), porPrep[n]||[0,0,0,0,0]]);
-    const total = entradas.reduce((a,e)=>a+e.q,0);
-    return {total: Math.round(total), linhas};
-  }
-  const logHoje = reg.log.filter(e=>e.d===hojeStr);
-  const logMes = reg.log.filter(e=>e.d.slice(0,7)===curYM);
-  const novHoje = matriz(logHoje), novMes = matriz(logMes);
-
-  /* --- ticker --- */
-  const ticker = [];
-  ticker.push({c:'#F0A030', t:'faltam '+fmt(falta)+' pares para zerar a carteira de '+MESES_LONGO[mesNum].toLowerCase()});
-  if(novHoje.total) ticker.push({c:'#2BC48A', t:'+'+fmt(novHoje.total)+' pares novos entraram na carteira hoje'});
-  if(novMes.total) ticker.push({c:'#2BC48A', t:MESES_LONGO[mesNum].toLowerCase()+' acumula '+fmt(novMes.total)+' pares novos na carteira'});
-  ticker.push({c:'#9B6BF0', t:'carteira aberta do período: '+fmt(carteiraTotal)+' pares'});
-  if(meses.length){
-    const maior = meses.reduce((a,b)=>b.v>a.v?b:a);
-    ticker.push({c:'#9B6BF0', t:maior.label+' é o maior mês da carteira: '+fmt(maior.v)+' pares'});
-  }
-  // próximo grande faturamento: maior CART com PREV FAT nos próximos 45 dias
-  let melhor = null;
-  const lim = new Date(hoje); lim.setDate(lim.getDate()+45);
-  const porCliData = {};
-  for(const l of linhas){
-    if(!l.prev || l.prev<hoje || l.prev>lim || !l.cart) continue;
-    const k = l.cli+'|'+l.prev.toISOString().slice(0,10);
-    porCliData[k] = (porCliData[k]||0)+l.cart;
-  }
-  for(const [k,v] of Object.entries(porCliData))
-    if(!melhor || v>melhor.v){ const [cli,d]=k.split('|'); melhor={cli,d,v}; }
-  if(melhor){
-    const [Y,M,D] = melhor.d.split('-');
-    ticker.push({c:'#9B6BF0', t:'próximo grande faturamento: '+D+'/'+M+' · '+melhor.cli+' ('+fmt(melhor.v)+' pares)'});
-  }
-
-  /* --- payload da TV --- */
-  const cenaSeg = Math.min(120, Math.max(5, parseInt($('ajCena').value,10) || 10));
-  $('ajCena').value = cenaSeg;
-  const tvData = {
-    generatedAt: new Date().toISOString(),
-    config: { cenaSeg, tema: $('ajTema').value },
-    carteira: { total: Math.round(carteiraTotal), meses,
-      horizonte: meses.length ? 'até '+meses[meses.length-1].label.toLowerCase()+'/'+String(anoCur).slice(2) : '' },
-    mes: { label: MESES_LONGO[mesNum], dia: hoje.getDate(),
-      faturado: Math.round(faturadoMes), anterior: Math.round(faturadoAnt),
-      anteriorLabel: MESES_LONGO[(mesNum+11)%12].toLowerCase(),
-      falta, diasUteis: uteisRestantes,
-      paresDia: Math.round(falta/uteisRestantes), projecao: Math.round(projecao),
-      barW: Math.round(faturadoMes/escala*100), markW: Math.round(faturadoAnt/escala*100) },
-    novHoje, novMes, ticker,
-  };
-
-  PROC = {tvData, reg, regSha, dataSha, batismo: batismo || rebatizar};
-  log('[4/4] PRONTO PARA PUBLICAR ✓ — confira o resumo e clique em Publicar agora.','ok');
-  mostrarResumo(linhas.length, novosHoje);
-  $('pubCard').hidden = false;
-  $('pubBtn').disabled = !(cfg.token && cfg.repo);
-  $('pubBtn').textContent = 'Publicar agora';
-  $('pubHint').textContent = (cfg.token && cfg.repo)
-    ? 'envia tv_data.json (para a TV) e tv_gci_registry.json (registro de encomendas conhecidas)'
-    : 'configure a conexão com o GitHub para habilitar a publicação';
-}
-
-/* ============================================================
-   RESUMO NA TELA
-   ============================================================ */
-function mostrarResumo(nLinhas, novos){
-  const d = PROC.tvData;
-  $('resumoCard').hidden = false;
-  $('kpis').innerHTML = [
-    ['Linhas lidas', fmt(nLinhas), ''],
-    ['Carteira aberta', fmt(d.carteira.total)+' pares', ''],
-    ['Faturado no mês', fmt(d.mes.faturado), ''],
-    ['Falta faturar', fmt(d.mes.falta), ''],
-    ['Novidades hoje', PROC.batismo ? 'batismo' : '+'+fmt(d.novHoje.total), 'nv'],
-    ['Novidades no mês', '+'+fmt(d.novMes.total), 'nv'],
-  ].map(([l,v,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v ${c}">${v}</div></div>`).join('');
-
-  if(PROC.batismo){
-    $('novBox').innerHTML = '<div class="hint">Batismo: todas as encomendas deste arquivo serão registradas como conhecidas e as novidades zeram. A partir da próxima importação, tudo que entrar de novo aparece aqui e na TV.</div>';
-  } else if(novos.length){
-    const top = novos.sort((a,b)=>b.q-a.q).slice(0,8);
-    $('novBox').innerHTML = '<table><tr><th>Encomenda nova (GCI)</th><th>Preposto</th><th>Categoria</th><th>Cliente</th><th>Pares</th></tr>'+
-      top.map(n=>`<tr><td>${n.desc||n.g}</td><td>${n.p}</td><td>${n.c}</td><td>${n.cli}</td><td><span class="nv">+${fmt(n.q)}</span></td></tr>`).join('')+
-      '</table>' + (novos.length>8?`<div class="hint" style="margin-top:6px">…e mais ${novos.length-8} encomendas novas.</div>`:'');
-  } else {
-    $('novBox').innerHTML = '<div class="hint">Nenhuma encomenda nova em relação à última publicação.</div>';
-  }
-}
 
 /* ============================================================
    GITHUB CONTENTS API
@@ -582,10 +294,10 @@ $('ajustesBtn').onclick = async ()=>{
   $('ajustesBtn').disabled = true;
   try{
     log('──────────────────────────────');
-    log('Publicando só os ajustes (tempo de cena e tema)…');
+    log('Publicando os ajustes (tempo de cena e tema)…');
     const atual = await ghGet(cfg, cfg.path+'/tv_data.json');
     if(!atual || !atual.json || !atual.json.generatedAt){
-      log('Ainda não existe uma publicação para ajustar — importe uma DETALHADA e publique primeiro.','err');
+      log('Ainda não existe uma publicação para ajustar — o CMS_DETALHADA_GERAL publica na próxima execução.','err');
       $('ajustesBtn').disabled = false; return;
     }
     const dados = atual.json;
@@ -609,29 +321,10 @@ $('zerarBtn').onclick = async ()=>{
     log('Zerando: apagando os arquivos publicados…','warn');
     await ghDelete(cfg, cfg.path+'/tv_gci_registry.json');
     await ghDelete(cfg, cfg.path+'/tv_data.json');
-    log('ZERADO ✓ — agora arraste o DET de ontem (com a data de ontem) e publique: será o novo batismo.','ok');
-    PROC = null; $('pubCard').hidden = true; $('resumoCard').hidden = true;
-    if(LINHAS){ log('Reprocessando o arquivo já importado contra a base zerada…'); await processar(LINHAS); }
+    log('ZERADO ✓ — na próxima execução do CMS_DETALHADA_GERAL a TV é rebatizada: '
+      + 'todos os GCIs entram como conhecidos e nada aparece como novidade nesse dia.','ok');
   }catch(e){ log(e.message,'err'); }
   $('zerarBtn').disabled = false;
-};
-$('pubBtn').onclick = async ()=>{
-  if(!PROC) return;
-  const cfg = lerCfg();
-  $('pubBtn').disabled = true; $('pubBtn').textContent = 'Publicando…';
-  try{
-    const agora = new Date().toLocaleString('pt-BR').slice(0,16);
-    log('Publicando registro de encomendas…');
-    PROC.regSha = await ghPut(cfg, cfg.path+'/tv_gci_registry.json', PROC.reg, PROC.regSha, 'tv: registro '+agora);
-    log('Publicando dados da TV…');
-    PROC.dataSha = await ghPut(cfg, cfg.path+'/tv_data.json', PROC.tvData, PROC.dataSha, 'tv: dados '+agora);
-    log('Publicado! A TV atualiza no próximo ciclo (até 10 min) — ou recarregue-a para ver na hora.','ok');
-    $('pubBtn').textContent = '✓ Publicado';
-  }catch(e){
-    log(e.message,'err');
-    log('Nada foi perdido: corrija a conexão e publique de novo.','warn');
-    $('pubBtn').disabled = false; $('pubBtn').textContent = 'Publicar agora';
-  }
 };
 </script>
 </body>
