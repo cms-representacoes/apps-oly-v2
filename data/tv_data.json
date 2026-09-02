@@ -1,1 +1,200 @@
-{"generatedAt":"2026-09-01T11:23:39.036Z","config":{"cenaSeg":10,"tema":"claro"},"carteira":{"total":526002,"meses":[{"label":"SET","v":129169},{"label":"OUT","v":170138},{"label":"NOV","v":171534},{"label":"DEZ","v":49051}],"horizonte":"até dez/26"},"mes":{"label":"SETEMBRO","dia":1,"faturado":0,"anterior":122688,"anteriorLabel":"agosto","falta":129169,"diasUteis":21,"paresDia":6151,"projecao":0,"barW":0,"markW":95},"novHoje":{"total":8061,"linhas":[["Jorge",[828,135,0,0,0]],["Willame",[564,791,56,0,216]],["Leandro",[0,0,0,0,0]],["Rafael",[156,1182,136,0,0]],["Mariana",[1122,348,163,0,0]],["Cms",[2352,0,0,0,12]]]},"novMes":{"total":8061,"linhas":[["Jorge",[828,135,0,0,0]],["Willame",[564,791,56,0,216]],["Leandro",[0,0,0,0,0]],["Rafael",[156,1182,136,0,0]],["Mariana",[1122,348,163,0,0]],["Cms",[2352,0,0,0,12]]]},"ticker":[{"c":"#F0A030","t":"faltam 129.169 pares para zerar a carteira de setembro"},{"c":"#2BC48A","t":"+8.061 pares novos entraram na carteira hoje"},{"c":"#2BC48A","t":"setembro acumula 8.061 pares novos na carteira"},{"c":"#9B6BF0","t":"carteira aberta do período: 526.002 pares"},{"c":"#9B6BF0","t":"NOV é o maior mês da carteira: 171.534 pares"},{"c":"#9B6BF0","t":"próximo grande faturamento: 01/10 · CASA PIO (36.084 pares)"}]}
+{
+  "generatedAt": "2026-09-02T05:42:14.364661-03:00",
+  "config": {
+    "cenaSeg": 10,
+    "tema": "claro"
+  },
+  "carteira": {
+    "total": 521634,
+    "meses": [
+      {
+        "label": "SET",
+        "v": 125807
+      },
+      {
+        "label": "OUT",
+        "v": 170055
+      },
+      {
+        "label": "NOV",
+        "v": 171511
+      },
+      {
+        "label": "DEZ",
+        "v": 49051
+      }
+    ],
+    "horizonte": "ate dez/26"
+  },
+  "mes": {
+    "label": "SETEMBRO",
+    "dia": 1,
+    "faturado": 4429,
+    "anterior": 122688,
+    "anteriorLabel": "agosto",
+    "falta": 125807,
+    "diasUteis": 21,
+    "paresDia": 5991,
+    "projecao": 97438,
+    "barW": 3,
+    "markW": 94
+  },
+  "novHoje": {
+    "total": 15126,
+    "linhas": [
+      [
+        "Jorge",
+        [
+          864,
+          175,
+          0,
+          0,
+          0
+        ]
+      ],
+      [
+        "Willame",
+        [
+          564,
+          791,
+          56,
+          0,
+          216
+        ]
+      ],
+      [
+        "Leandro",
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      [
+        "Rafael",
+        [
+          156,
+          1182,
+          136,
+          0,
+          0
+        ]
+      ],
+      [
+        "Mariana",
+        [
+          1140,
+          996,
+          163,
+          0,
+          0
+        ]
+      ],
+      [
+        "Cms",
+        [
+          8555,
+          0,
+          0,
+          0,
+          132
+        ]
+      ]
+    ]
+  },
+  "novMes": {
+    "total": 15126,
+    "linhas": [
+      [
+        "Jorge",
+        [
+          864,
+          175,
+          0,
+          0,
+          0
+        ]
+      ],
+      [
+        "Willame",
+        [
+          564,
+          791,
+          56,
+          0,
+          216
+        ]
+      ],
+      [
+        "Leandro",
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      [
+        "Rafael",
+        [
+          156,
+          1182,
+          136,
+          0,
+          0
+        ]
+      ],
+      [
+        "Mariana",
+        [
+          1140,
+          996,
+          163,
+          0,
+          0
+        ]
+      ],
+      [
+        "Cms",
+        [
+          8555,
+          0,
+          0,
+          0,
+          132
+        ]
+      ]
+    ]
+  },
+  "ticker": [
+    {
+      "c": "#F0A030",
+      "t": "faltam 125.807 pares para zerar a carteira de setembro"
+    },
+    {
+      "c": "#2BC48A",
+      "t": "+15.126 pares novos entraram na carteira hoje"
+    },
+    {
+      "c": "#2BC48A",
+      "t": "setembro acumula 15.126 pares novos na carteira"
+    },
+    {
+      "c": "#9B6BF0",
+      "t": "carteira aberta do periodo: 521.634 pares"
+    },
+    {
+      "c": "#9B6BF0",
+      "t": "NOV e o maior mes da carteira: 171.511 pares"
+    },
+    {
+      "c": "#9B6BF0",
+      "t": "proximo grande faturamento: 01/10 - CASA PIO (36.084 pares)"
+    }
+  ],
+  "publicadoEm": "2026-09-02T08:42:15.119Z",
+  "por": "script diario"
+}
