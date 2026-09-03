@@ -5,9 +5,9 @@
  "resumo": "3 de 6 elegíveis · meta 15,0%",
  "empresa": {
   "nome": "CMS",
-  "ftw": 33184392,
-  "demais": 5016150,
-  "ratio": 15.1,
+  "ftw": 32900523,
+  "demais": 5003596,
+  "ratio": 15.2,
   "elegivel": true
  },
  "vendedores": [
@@ -20,35 +20,35 @@
   },
   {
    "nome": "Jorge",
-   "ftw": 3873481,
+   "ftw": 3969080,
    "demais": 663486,
-   "ratio": 17.1,
+   "ratio": 16.7,
    "elegivel": true
   },
   {
    "nome": "Núcleo",
-   "ftw": 10129671,
-   "demais": 1544742,
-   "ratio": 15.2,
+   "ftw": 9731278,
+   "demais": 1530519,
+   "ratio": 15.7,
    "elegivel": true
   },
   {
    "nome": "Willame",
-   "ftw": 6335595,
+   "ftw": 6342518,
    "demais": 752734,
    "ratio": 11.9,
    "elegivel": false
   },
   {
    "nome": "Rafael",
-   "ftw": 3727176,
-   "demais": 385592,
-   "ratio": 10.3,
+   "ftw": 3736367,
+   "demais": 387261,
+   "ratio": 10.4,
    "elegivel": false
   },
   {
    "nome": "Mariana",
-   "ftw": 2546333,
+   "ftw": 2549144,
    "demais": 173213,
    "ratio": 6.8,
    "elegivel": false
@@ -56,11 +56,11 @@
  ],
  "linhas": [
   "Leandro 22,8% ✓",
-  "Jorge 17,1% ✓",
-  "Núcleo 15,2% ✓",
+  "Jorge 16,7% ✓",
+  "Núcleo 15,7% ✓",
   "Willame 11,9% ✗",
-  "Rafael 10,3% ✗",
+  "Rafael 10,4% ✗",
   "Mariana 6,8% ✗"
  ],
- "atualizado": "02/09 09:19"
+ "atualizado": "03/09 15:31"
 }
