@@ -2129,7 +2129,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
       </div>
 
       <div class="admin-card">
-        <h3>Grade da carteira CORRE</h3>
+        <h3>Grade · faixa CORRE</h3>
         <p class="sub">Arquivo <strong>CARTEIRA CORRE GERAL</strong>, com a aba
           <code>OLY FTW EM ABERTO</code>. Não é diário — importe quando quiser
           atualizar as grades. Guarda a planilha inteira; a tela do vendedor
@@ -2149,6 +2149,29 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
           <i class="fa-solid fa-cloud-arrow-up"></i> Publicar a grade
         </button>
         <p class="sub" id="grade-estado" style="margin-top:10px;"></p>
+      </div>
+
+      <div class="admin-card">
+        <h3>Grade · demais faixas</h3>
+        <p class="sub">Arquivo <strong>GRADE GERAL CALÇADOS</strong> — tênis e
+          chinelo, Olympikus e Under Armour. Lê <strong>todas as abas</strong>
+          de uma vez. É uma importação à parte: publicar aqui não mexe na
+          grade da CORRE, e vice-versa.</p>
+
+        <label class="admin-drop" id="gradeg-drop" for="file-gradeg">
+          <i class="fa-solid fa-table-cells-large"></i>
+          <strong>Escolher arquivo</strong>
+          <span>ou arraste o .xlsx aqui</span>
+        </label>
+        <input type="file" id="file-gradeg" class="file-input" accept=".xlsx,.xls">
+
+        <div class="barra-progresso" id="gradeg-barra"><i></i></div>
+        <div id="gradeg-resultado"></div>
+
+        <button class="btn-baixar" id="btn-publicar-gradeg" style="display:none;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Publicar a grade
+        </button>
+        <p class="sub" id="gradeg-estado" style="margin-top:10px;"></p>
       </div>
 
       <div class="admin-card" id="admin-card-publicar" style="display:none;">
@@ -2384,7 +2407,10 @@ const APP = {
   filtros: { cliente: new Set(), preposto: new Set(), faixa: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
              // usados só na revisão de repasses
              repOrigem: new Set(), repDestino: new Set(), repEstado: new Set(), repAcao: new Set() },
-  grade: null,         // planilha da carteira CORRE, quando importada
+  // Duas famílias de grade, importadas e publicadas separadas: CORRE e
+  // GERAL (todo o resto — tênis e chinelo, Oly e UA). Separar é o que
+  // permite reimportar uma sem derrubar a outra.
+  grades: { corre: null, geral: null },
   repQuando: 'tudo',   // tudo | hoje | 7 | 30
   // Atalho para a fila de trabalho: só o que ainda depende de uma decisão
   // do vendedor — transferência sem destino e cancelamento não pedido.
@@ -2396,6 +2422,7 @@ const APP = {
   abertos: new Set(),
   verTudo: new Set(),  // grupos com todas as linhas expandidas
   baseNova: null,      // resultado do admin, aguardando download
+  gradeNova: { corre: null, geral: null },  // grade lida, aguardando publicação
   acoes: {},           // chave da linha -> REPASSAR | CANCELAR (MANTER não entra)
   modoSelecao: false,  // checkboxes à mostra
   selecao: new Set(),  // índices de linha marcados para virar PDF
@@ -2698,96 +2725,158 @@ const GRADE_COL = {
   GRADE: 'grade', FAIXA: 'Faixa', TOTAL: 'Total de pares',
 };
 
+/* Tamanhos pareados do chinelo. Vêm nesta ordem na planilha, e é a ordem que
+   os dígitos da grade percorrem — por isso a lista é fixa e não deduzida. */
+const TAM_PAREADOS = ['33/34', '35/36', '37/38', '39/40', '41/42', '43/44', '45/46', '47/48'];
+const ehPareado = n => /^\d{2}\/\d{2}$/.test(String(n || '').trim());
+
 /** A grade de UMA caixa, a partir das colunas `grade` e `Faixa`.
  *
- *  A planilha traz a caixa como uma sequência de dígitos ("1221") e a faixa
- *  de tamanhos ("35–38"): um dígito por tamanho. É essa composição que
- *  interessa a quem vai escolher destino — somar tudo dá o montante do
- *  pedido, que não diz como ele se divide em caixas.
+ *  A planilha traz a caixa como uma sequência de dígitos ("1221") e o ponto de
+ *  partida na coluna `Faixa`: um dígito por tamanho, a partir dali. É essa
+ *  composição que interessa a quem vai escolher destino — somar tudo dá o
+ *  montante do pedido, que não diz como ele se divide em caixas.
  *
- *  Devolve null quando o par não fecha; quem chama cai no montante, que é
- *  pior mas verdadeiro. Conferido na planilha de 31/08: 2.057 de 2.065
- *  linhas fecham, e as 8 que não são a fábrica preenchendo a string com
- *  zeros à direita — por isso o corte em `n` dígitos. */
+ *  Os dois calçados escrevem a `Faixa` de jeitos diferentes, e os dois estão
+ *  certos: o tênis dá o intervalo ("35–38") e o chinelo dá só o primeiro par
+ *  ("35/36"), porque ali o tamanho seguinte não é +1, é a próxima posição da
+ *  lista. Um caso só, com dois alfabetos.
+ *
+ *      grade 13431 · Faixa 35/36 · total 120
+ *        35/36=1 37/38=3 39/40=4 41/42=3 43/44=1 → 12 pares = 1 caixa → 10 caixas
+ *
+ *  Devolve null quando não fecha; quem chama cai no montante, que é pior mas
+ *  verdadeiro. Conferido na planilha de 31/08: 2.057 de 2.065 linhas fecham, e
+ *  as 8 que não são a fábrica preenchendo a string com zeros à direita — por
+ *  isso o corte em `n` dígitos. */
 function caixaDaGrade(bruto, faixa, total) {
   const dig = String(bruto == null ? '' : bruto).trim();
-  const m = /^(\d+)\D+(\d+)$/.exec(String(faixa == null ? '' : faixa).trim());
-  if (!/^\d+$/.test(dig) || !m) return null;
+  if (!/^\d+$/.test(dig)) return null;
+  const f = String(faixa == null ? '' : faixa).trim();
 
-  const ini = Number(m[1]), fim = Number(m[2]);
-  const n = fim - ini + 1;
-  if (n < 1 || dig.length < n) return null;
-  if (dig.length > n && /[^0]/.test(dig.slice(n))) return null;   // sobra tem de ser só zero
+  // A escala de tamanhos e onde a caixa começa nela.
+  let escala, de;
+  if (ehPareado(f)) {
+    escala = TAM_PAREADOS;
+    de = TAM_PAREADOS.indexOf(f);
+    if (de < 0) return null;
+  } else {
+    const m = /^(\d+)\D+(\d+)$/.exec(f);
+    if (!m) return null;
+    const ini = Number(m[1]), fim = Number(m[2]);
+    if (fim < ini) return null;
+    escala = [];
+    for (let t = ini; t <= fim; t++) escala.push(String(t));
+    de = 0;
+  }
 
-  const usados = dig.slice(0, n);
+  const n = escala.length - de;
+  if (n < 1 || dig.length < 1) return null;
+  const usados = dig.slice(0, Math.min(dig.length, n));
+  // A sobra tem de ser só zero: dígito de verdade fora da escala quer dizer
+  // que a faixa e a grade não são da mesma linha.
+  if (dig.length > usados.length && /[^0]/.test(dig.slice(usados.length))) return null;
+
   const tam = {};
   let pares = 0;
-  for (let k = 0; k < n; k++) {
+  for (let k = 0; k < usados.length; k++) {
     const q = Number(usados[k]);
-    if (q) { tam[String(ini + k)] = q; pares += q; }
+    if (q) { tam[escala[de + k]] = q; pares += q; }
   }
   const t = Number(total) || 0;
   if (!pares || !t || t % pares) return null;   // não divide: não é caixa inteira
-  return { faixa: `${ini}-${fim}`, grade: usados, tam, pares, caixas: t / pares };
+  return { faixa: f, grade: usados, tam, pares, caixas: t / pares };
 }
 
-// Os tamanhos sao as colunas cujo nome e so numero.
+// Colunas de tamanho: "35" no tênis, "35/36" no chinelo.
 function colunasDeTamanho(cab) {
-  return cab.map((n, i) => [String(n).trim(), i]).filter(([n]) => /^\d{2}$/.test(n));
+  return cab.map((n, i) => [String(n).trim(), i])
+            .filter(([n]) => /^\d{2}$/.test(n) || ehPareado(n));
 }
+
+/* As duas famílias, na ordem em que o índice as lê. A CORRE vem primeiro
+   porque é a que o vendedor confere todo dia: se um trio aparecer nas duas
+   planilhas, vale a dela. */
+const FAMILIAS = {
+  corre: { rot: 'CORRE', cache: 'gradeCorre' },
+  geral: { rot: 'GERAL', cache: 'gradeGeral' },
+};
+const NOMES_FAM = Object.keys(FAMILIAS);
+
+/** As abas de uma grade, num formato só.
+ *
+ *  A CORRE foi publicada como { cab, l } — uma aba — antes de existir a
+ *  segunda família; a GERAL vem com { blocos }, porque a planilha traz tênis
+ *  e chinelo em abas separadas, com cabeçalhos de larguras diferentes. Ler
+ *  os dois aqui evita espalhar o "se for o formato antigo" pelo app. */
+function blocosDe(g) {
+  if (!g) return [];
+  if (Array.isArray(g.blocos)) return g.blocos.filter(b => b && Array.isArray(b.cab) && Array.isArray(b.l));
+  if (Array.isArray(g.cab) && Array.isArray(g.l)) return [{ aba: g.aba || '', cab: g.cab, l: g.l }];
+  return [];
+}
+const linhasDe = g => blocosDe(g).reduce((n, b) => n + b.l.length, 0);
+const temAlgumaGrade = () => NOMES_FAM.some(f => blocosDe(APP.grades[f]).length);
 
 let _gradeIdx = null;
 
 /** Indice GCI|ARTIGO|COR -> { tam: {35:3,...}, total, linhas }.
- *  Montado uma vez e guardado; render() e chamado a cada filtro. */
+ *  Montado uma vez e guardado; render() e chamado a cada filtro.
+ *  Percorre as duas famílias e todas as abas de cada uma. */
 function indiceGrade() {
   if (_gradeIdx) return _gradeIdx;
   _gradeIdx = new Map();
-  const g = APP.grade;
-  if (!g || !Array.isArray(g.l) || !g.cab) return _gradeIdx;
 
-  const iGci = g.cab.indexOf(GRADE_COL.GCI);
-  const iArt = g.cab.indexOf(GRADE_COL.ARTIGO);
-  const iCor = g.cab.indexOf(GRADE_COL.COR);
-  if (iGci < 0 || iArt < 0 || iCor < 0) return _gradeIdx;
-  const iGrade = g.cab.indexOf(GRADE_COL.GRADE);
-  const iFaixa = g.cab.indexOf(GRADE_COL.FAIXA);
-  const iTotal = g.cab.indexOf(GRADE_COL.TOTAL);
-  const tams = colunasDeTamanho(g.cab);
+  for (const fam of NOMES_FAM) {
+    for (const bloco of blocosDe(APP.grades[fam])) {
+      const cab = bloco.cab;
+      const iGci = cab.indexOf(GRADE_COL.GCI);
+      const iArt = cab.indexOf(GRADE_COL.ARTIGO);
+      const iCor = cab.indexOf(GRADE_COL.COR);
+      if (iGci < 0 || iArt < 0 || iCor < 0) continue;
+      const iGrade = cab.indexOf(GRADE_COL.GRADE);
+      const iFaixa = cab.indexOf(GRADE_COL.FAIXA);
+      const iTotal = cab.indexOf(GRADE_COL.TOTAL);
+      const tams = colunasDeTamanho(cab);
 
-  for (const linha of g.l) {
-    const chave = [linha[iGci], linha[iArt], String(linha[iCor] || '').toUpperCase()]
-      .map(x => String(x || '').trim()).join('|');
-    if (chave.startsWith('|')) continue;
-    let reg = _gradeIdx.get(chave);
-    if (!reg) { reg = { tam: {}, total: 0, linhas: 0, caixas: [] }; _gradeIdx.set(chave, reg); }
-    reg.linhas++;
+      for (const linha of bloco.l) {
+        const chave = [linha[iGci], linha[iArt], String(linha[iCor] || '').toUpperCase()]
+          .map(x => String(x || '').trim()).join('|');
+        if (chave.startsWith('|')) continue;
+        let reg = _gradeIdx.get(chave);
+        if (!reg) { reg = { tam: {}, total: 0, linhas: 0, caixas: [], fam }; _gradeIdx.set(chave, reg); }
+        // Linhas da mesma família somam; de famílias diferentes, não — seriam
+        // duas fotos do mesmo pedido, e o par sairia dobrado.
+        if (reg.fam !== fam) continue;
+        reg.linhas++;
 
-    // O montante continua sendo somado: é o que responde "quantos pares".
-    for (const [nome, i] of tams) {
-      const q = Number(linha[i]);
-      if (q) { reg.tam[nome] = (reg.tam[nome] || 0) + q; reg.total += q; }
-    }
+        // O montante continua sendo somado: é o que responde "quantos pares".
+        for (const [nome, i] of tams) {
+          const q = Number(linha[i]);
+          if (q) { reg.tam[nome] = (reg.tam[nome] || 0) + q; reg.total += q; }
+        }
 
-    // E a composição da caixa, que é o que se mostra.
-    const cx = iGrade >= 0 && iFaixa >= 0
-      ? caixaDaGrade(linha[iGrade], linha[iFaixa], linha[iTotal])
-      : null;
-    if (cx) {
-      // Um pedido partido em duas faixas (35-38 e 34-39) tem dois tipos de
-      // caixa; se repetir o mesmo tipo, só somam as caixas.
-      const igual = reg.caixas.find(c => c.grade === cx.grade && c.faixa === cx.faixa);
-      if (igual) igual.caixas += cx.caixas; else reg.caixas.push(cx);
-    } else {
-      // Sem caixa legível, o montante da própria linha entra como um bloco
-      // só — marcado, para a tela poder dizer que ali não é caixa.
-      const tam = {};
-      let pares = 0;
-      for (const [nome, i] of tams) {
-        const q = Number(linha[i]);
-        if (q) { tam[nome] = q; pares += q; }
+        // E a composição da caixa, que é o que se mostra.
+        const cx = iGrade >= 0 && iFaixa >= 0
+          ? caixaDaGrade(linha[iGrade], linha[iFaixa], linha[iTotal])
+          : null;
+        if (cx) {
+          // Um pedido partido em duas faixas (35-38 e 34-39) tem dois tipos de
+          // caixa; se repetir o mesmo tipo, só somam as caixas.
+          const igual = reg.caixas.find(c => c.grade === cx.grade && c.faixa === cx.faixa);
+          if (igual) igual.caixas += cx.caixas; else reg.caixas.push(cx);
+        } else {
+          // Sem caixa legível, o montante da própria linha entra como um bloco
+          // só — marcado, para a tela poder dizer que ali não é caixa.
+          const tam = {};
+          let pares = 0;
+          for (const [nome, i] of tams) {
+            const q = Number(linha[i]);
+            if (q) { tam[nome] = q; pares += q; }
+          }
+          if (pares) reg.caixas.push({ faixa: '', grade: '', tam, pares, caixas: 1, solto: true });
+        }
       }
-      if (pares) reg.caixas.push({ faixa: '', grade: '', tam, pares, caixas: 1, solto: true });
     }
   }
   return _gradeIdx;
@@ -2795,31 +2884,41 @@ function indiceGrade() {
 
 /** A grade de uma linha da base, ou null. */
 function gradeDaLinha(r) {
-  if (!APP.grade || !r[C.GCI]) return null;
+  if (!temAlgumaGrade() || !r[C.GCI]) return null;
   const chave = [r[C.GCI], APP.dic.ref[r[C.REF]][0], String(APP.dic.cor[r[C.COR]] || '').toUpperCase()].join('|');
   const g = indiceGrade().get(chave);
   return (g && g.total) ? g : null;
 }
 
-function instalarGrade(g) {
-  APP.grade = g || null;
+function instalarGrade(g, fam = 'corre') {
+  APP.grades[fam] = g || null;
   _gradeIdx = null;
 }
 
-async function carregarGradeCorre() {
+/* A CORRE continua falando com as ações antigas do worker: a versão
+   publicada do app ainda as usa, e trocar aqui derrubaria a grade de quem
+   não recarregou. A GERAL usa as novas, que recebem a família. */
+function acoesDaFamilia(fam) {
+  return fam === 'corre'
+    ? { info: 'getGradeCorreInfo', dado: 'getGradeCorre', salvar: 'saveGradeCorre', arg: {} }
+    : { info: 'getGradeInfo', dado: 'getGrade', salvar: 'saveGrade', arg: { familia: fam } };
+}
+
+async function carregarGrade(fam) {
+  const a = acoesDaFamilia(fam);
   try {
-    const info = await chamarWorker('getGradeCorreInfo', {}, 8000);
-    const atual = APP.grade && APP.grade.gerado;
+    const info = await chamarWorker(a.info, a.arg, 8000);
+    const atual = APP.grades[fam] && APP.grades[fam].gerado;
     if (info && info.gerado && info.gerado === atual) return 'igual';
-    const nova = await chamarWorker('getGradeCorre', {}, 45000);
-    if (nova && Array.isArray(nova.l) && nova.l.length) {
-      instalarGrade(nova);
-      cacheSalvar(nova, 'gradeCorre');
+    const nova = await chamarWorker(a.dado, a.arg, 45000);
+    if (nova && linhasDe(nova)) {
+      instalarGrade(nova, fam);
+      cacheSalvar(nova, FAMILIAS[fam].cache);
       return 'nova';
     }
   } catch (e) {
     // Sem grade o app funciona igual — a coluna simplesmente nao aparece.
-    console.warn('grade CORRE: nao consegui buscar', e);
+    console.warn(`grade ${FAMILIAS[fam].rot}: nao consegui buscar`, e);
   }
   return 'falhou';
 }
@@ -3589,7 +3688,9 @@ function acaoDaLinha(r) {
  *  espaco); no celular e no tablet ela recolhe atras de um botao — sao 5 a
  *  11 tamanhos, e ali eles empurrariam o resto da linha para fora. */
 function chipsDeTamanhos(tam) {
-  return Object.keys(tam || {}).sort((a, b) => Number(a) - Number(b)).map(t =>
+  // Ordena pelo primeiro número: "35" e "35/36" cabem na mesma régua.
+  const ord = t => parseInt(String(t), 10) || 0;
+  return Object.keys(tam || {}).sort((a, b) => ord(a) - ord(b)).map(t =>
     `<span class="gr-tam"><b>${escHtml(t)}</b><i>${formatarNumero(tam[t])}</i></span>`).join('');
 }
 
@@ -5157,30 +5258,31 @@ function celulaGrade(v) {
   return typeof v === 'number' ? v : String(v).trim();
 }
 
-async function importarGradeCorre(file) {
-  if (typeof XLSX === 'undefined') {
-    toast('Biblioteca de planilha não carregou (xlsx.full.min.js).');
-    return;
-  }
-  $('grade-barra').classList.add('show');
-  $('grade-resultado').innerHTML = '';
-  $('grade-estado').textContent = '';
-  $('btn-publicar-grade').style.display = 'none';
+/* Cada família tem seu cartão no admin, com os mesmos quatro elementos. */
+const FAM_UI = {
+  corre: { barra: 'grade-barra',  res: 'grade-resultado',  est: 'grade-estado',  pub: 'btn-publicar-grade' },
+  geral: { barra: 'gradeg-barra', res: 'gradeg-resultado', est: 'gradeg-estado', pub: 'btn-publicar-gradeg' },
+};
 
-  try {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-    const nomeAba = wb.SheetNames.find(n => /FTW|CORRE/i.test(n)) || wb.SheetNames[0];
-    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, defval: null, blankrows: false });
-    if (!linhas.length) throw new Error('A aba está vazia');
+/** Lê a planilha aba por aba e devolve um bloco por aba aproveitável.
+ *
+ *  A GERAL vem com quatro (tênis e chinelo, Oly e UA) e larguras diferentes
+ *  — 63 colunas no tênis, 50 no chinelo —, por isso cada aba guarda o
+ *  próprio cabeçalho. As que não têm GCI ou tamanho são recusadas com o
+ *  motivo à mostra: aba ignorada em silêncio é grade que some sem aviso. */
+function blocosDaPlanilha(wb, abas) {
+  const blocos = [], recusadas = [];
+  for (const aba of (abas || wb.SheetNames)) {
+    const ws = wb.Sheets[aba];
+    if (!ws) { recusadas.push(`${aba} (não achei a aba)`); continue; }
+    const linhas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, blankrows: false });
+    if (!linhas.length) { recusadas.push(`${aba} (vazia)`); continue; }
 
     const cab = (linhas[0] || []).map(x => String(x == null ? '' : x).trim());
     const iGci = cab.indexOf(GRADE_COL.GCI);
-    if (iGci < 0) {
-      throw new Error(`Não achei a coluna "${GRADE_COL.GCI}" no cabeçalho — é a planilha certa?`);
-    }
+    if (iGci < 0) { recusadas.push(`${aba} (sem a coluna "${GRADE_COL.GCI}")`); continue; }
     const tams = colunasDeTamanho(cab);
-    if (!tams.length) throw new Error('Nenhuma coluna de tamanho no cabeçalho');
+    if (!tams.length) { recusadas.push(`${aba} (sem coluna de tamanho)`); continue; }
 
     // Toda linha vai com a largura do cabeçalho: o worker recusa o contrário,
     // e ler por índice numa linha curta traria o campo errado, calado.
@@ -5192,70 +5294,119 @@ async function importarGradeCorre(file) {
       for (let c = 0; c < cab.length; c++) linha[c] = celulaGrade(bruta[c]);
       l.push(linha);
     }
-    if (!l.length) throw new Error('Nenhuma linha com GCI');
+    if (!l.length) { recusadas.push(`${aba} (nenhuma linha com GCI)`); continue; }
+    blocos.push({ aba, cab, l });
+  }
+  return { blocos, recusadas };
+}
 
-    const grade = { cab, l, gerado: new Date().toISOString(), origem: file.name, aba: nomeAba };
+async function importarGrade(file, fam) {
+  const ui = FAM_UI[fam];
+  if (typeof XLSX === 'undefined') {
+    toast('Biblioteca de planilha não carregou (xlsx.full.min.js).');
+    return;
+  }
+  $(ui.barra).classList.add('show');
+  $(ui.res).innerHTML = '';
+  $(ui.est).textContent = '';
+  $(ui.pub).style.display = 'none';
 
-    APP.gradeNova = grade;
-    instalarGrade(grade);
-    cacheSalvar(grade, 'gradeCorre');
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+
+    // A CORRE é uma aba só, como sempre foi; a GERAL leva a planilha inteira.
+    const abas = fam === 'corre'
+      ? [wb.SheetNames.find(n => /FTW|CORRE/i.test(n)) || wb.SheetNames[0]]
+      : null;
+    const { blocos, recusadas } = blocosDaPlanilha(wb, abas);
+    if (!blocos.length) {
+      throw new Error(recusadas.length
+        ? `Nenhuma aba serviu — ${recusadas.join('; ')}`
+        : 'A planilha está vazia');
+    }
+
+    const comum = { gerado: new Date().toISOString(), origem: file.name, familia: fam };
+    // A CORRE continua no formato { cab, l }: é o que a ação antiga do worker
+    // valida, e o que a versão publicada do app sabe ler.
+    const grade = fam === 'corre'
+      ? { ...comum, cab: blocos[0].cab, l: blocos[0].l, aba: blocos[0].aba }
+      : { ...comum, blocos };
+
+    APP.gradeNova[fam] = grade;
+    instalarGrade(grade, fam);
+    cacheSalvar(grade, FAMILIAS[fam].cache);
 
     // Quanto disso a base de hoje realmente usa — é o número que diz se a
     // importação valeu, e não o total de linhas da planilha.
     const idx = indiceGrade();
     let naCarteira = 0, comGrade = 0;
     if (APP.base) {
-      const faixaCorre = (APP.dic.faixa || []).findIndex(f => String(f).toUpperCase() === 'CORRE');
+      const iCorre = (APP.dic.faixa || []).findIndex(f => String(f).toUpperCase() === 'CORRE');
+      const daFamilia = r => fam === 'corre' ? r[C.FAIXA] === iCorre : r[C.FAIXA] !== iCorre;
       for (const r of APP.L) {
-        if (!r[C.CART] || r[C.FAIXA] !== faixaCorre) continue;
+        if (!r[C.CART] || !daFamilia(r)) continue;
         naCarteira++;
         if (gradeDaLinha(r)) comGrade++;
       }
     }
-    const pares = l.reduce((soma, linha) => soma + tams.reduce((s, [, c]) => s + (Number(linha[c]) || 0), 0), 0);
+    const nLinhas = blocos.reduce((n, b) => n + b.l.length, 0);
+    let pares = 0, nTams = 0;
+    for (const b of blocos) {
+      const tams = colunasDeTamanho(b.cab);
+      nTams = Math.max(nTams, tams.length);
+      for (const linha of b.l) for (const [, c] of tams) pares += Number(linha[c]) || 0;
+    }
+    const meus = fam === 'corre' ? 'na carteira CORRE' : 'nas demais faixas da carteira';
 
-    $('grade-resultado').innerHTML = `
+    $(ui.res).innerHTML = `
       <div class="admin-resumo" style="margin-top:18px;">
-        <div class="ar-item"><div class="v">${formatarNumero(l.length)}</div><div class="l">linhas</div></div>
+        <div class="ar-item"><div class="v">${formatarNumero(nLinhas)}</div><div class="l">linhas</div></div>
         <div class="ar-item"><div class="v">${formatarNumero(idx.size)}</div><div class="l">produtos</div></div>
         <div class="ar-item"><div class="v">${formatarNumero(pares)}</div><div class="l">pares</div></div>
-        <div class="ar-item"><div class="v">${tams.length}</div><div class="l">tamanhos</div></div>
+        <div class="ar-item"><div class="v">${blocos.length}</div><div class="l">${blocos.length > 1 ? 'abas' : 'aba'}</div></div>
       </div>
       <p class="sub" style="margin-top:12px;">
-        Aba <strong>${escHtml(nomeAba)}</strong> · ${cab.length} colunas guardadas.
-        ${naCarteira ? `Na carteira CORRE de hoje, <strong>${formatarNumero(comGrade)} de ${formatarNumero(naCarteira)}</strong>
+        ${blocos.map(b => `<strong>${escHtml(b.aba)}</strong> · ${formatarNumero(b.l.length)} linhas`).join(' &nbsp;·&nbsp; ')}
+        ${naCarteira ? `<br>Hoje, ${meus}, <strong>${formatarNumero(comGrade)} de ${formatarNumero(naCarteira)}</strong>
           encomendas acharam grade${comGrade < naCarteira ? ` — ${formatarNumero(naCarteira - comGrade)} sem` : ''}.` : ''}
+        ${recusadas.length ? `<br><span style="color:var(--acao-cancelar)">Fora: ${escHtml(recusadas.join('; '))}</span>` : ''}
       </p>`;
-    $('btn-publicar-grade').style.display = '';
-    $('btn-publicar-grade').disabled = false;
-    $('btn-publicar-grade').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar a grade';
+    $(ui.pub).style.display = '';
+    $(ui.pub).disabled = false;
+    $(ui.pub).innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Publicar a grade';
     if (APP.base) render();
-    toast(`Grade lida · ${formatarNumero(l.length)} linhas`);
+    toast(`Grade ${FAMILIAS[fam].rot} lida · ${formatarNumero(nLinhas)} linhas`);
   } catch (e) {
-    $('grade-resultado').innerHTML =
+    $(ui.res).innerHTML =
       `<p class="sub" style="color:var(--acao-cancelar);margin-top:14px;"><strong>Não deu para ler:</strong> ${escHtml(e.message || e)}</p>`;
   } finally {
-    $('grade-barra').classList.remove('show');
+    $(ui.barra).classList.remove('show');
   }
 }
 
-async function publicarGradeCorre() {
-  if (!APP.gradeNova) return;
-  const btn = $('btn-publicar-grade');
-  const estado = $('grade-estado');
+async function publicarGrade(fam) {
+  const grade = APP.gradeNova[fam];
+  if (!grade) return;
+  const ui = FAM_UI[fam];
+  const a = acoesDaFamilia(fam);
+  const btn = $(ui.pub);
+  const estado = $(ui.est);
+  const nLinhas = linhasDe(grade);
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Publicando…';
-  estado.textContent = `${formatarNumero(APP.gradeNova.l.length)} linhas a caminho…`;
+  estado.textContent = `${formatarNumero(nLinhas)} linhas a caminho…`;
   try {
-    const r = await chamarWorker('saveGradeCorre', {
-      data: APP.gradeNova,
+    const r = await chamarWorker(a.salvar, {
+      ...a.arg,
+      data: grade,
       por: APP.sessao ? APP.sessao.nome : '',
     }, 60000);
     if (!r || !r.success) throw new Error((r && r.error) || 'o worker recusou');
     estado.innerHTML = `<strong style="color:var(--acao-manter)">Publicada.</strong> ` +
-      `${formatarNumero(r.linhas)} linhas · a equipe vê ao abrir ou atualizar o app.`;
+      `${formatarNumero(r.linhas || nLinhas)} linhas · a equipe vê ao abrir ou atualizar o app.`;
     btn.innerHTML = '<i class="fa-solid fa-check"></i> Publicada';
-    toast('Grade publicada para a equipe');
+    toast(`Grade ${FAMILIAS[fam].rot} publicada para a equipe`);
   } catch (e) {
     estado.innerHTML = `<strong style="color:var(--acao-cancelar)">Não publicou:</strong> ${escHtml(e.message || e)}`;
     btn.disabled = false;
@@ -6529,12 +6680,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   ligar('btn-baixar', 'click', baixarBase);
   ligar('btn-publicar', 'click', publicarBase);
-  ligar('btn-publicar-grade', 'click', publicarGradeCorre);
-  ligar('file-grade', 'change', (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) importarGradeCorre(f);
-    e.target.value = '';
-  });
+  for (const [fam, ui] of Object.entries(FAM_UI)) {
+    const campo = fam === 'corre' ? 'file-grade' : 'file-gradeg';
+    ligar(ui.pub, 'click', () => publicarGrade(fam));
+    ligar(campo, 'change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importarGrade(f, fam);
+      e.target.value = '';
+    });
+  }
 
   ligar('btn-atualizar', 'click', async (e) => {
     const btn = e.currentTarget;
@@ -6568,10 +6722,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // A grade entra do cache na hora e se atualiza depois, em segundo plano:
   // ela e complemento, e esperar por ela atrasaria a lista de produtos.
-  cacheLer('gradeCorre').then(g => {
-    if (g && Array.isArray(g.l) && g.l.length && !APP.grade) { instalarGrade(g); if (APP.base) render(); }
-    carregarGradeCorre().then(r => { if (r === 'nova' && APP.base) render(); });
-  });
+  for (const fam of NOMES_FAM) {
+    cacheLer(FAMILIAS[fam].cache).then(g => {
+      if (g && linhasDe(g) && !APP.grades[fam]) { instalarGrade(g, fam); if (APP.base) render(); }
+      carregarGrade(fam).then(r => { if (r === 'nova' && APP.base) render(); });
+    });
+  }
 
   const ses = localStorage.getItem(STORAGE.sessao);
   if (ses) { try { APP.sessao = JSON.parse(ses); } catch {} }
