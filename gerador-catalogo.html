@@ -121,11 +121,6 @@
     width:54px; height:54px; border-radius:9px; object-fit:contain;
     background:#f3f4f6; flex-shrink:0;
   }
-  .prev-img-ph{
-    width:54px; height:54px; border-radius:9px; flex-shrink:0;
-    background:#f3f4f6; display:flex; align-items:center; justify-content:center;
-    color:#cbd5e1; font-size:18px;
-  }
   .prev-info{ flex:1; min-width:0; }
   .prev-name{ font-size:13px; font-weight:900; }
   .prev-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
@@ -217,8 +212,7 @@
     margin-top:4px; flex-shrink:0;
   }
   .prev-item.unchecked{ opacity:.5; }
-  .prev-item.unchecked .prev-img,
-  .prev-item.unchecked .prev-img-ph{ filter:grayscale(.6); }
+  .prev-item.unchecked .prev-img{ filter:grayscale(.6); }
 
   /* Toggle */
   .toggle-row{
@@ -247,6 +241,71 @@
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
   .foot{ text-align:center; font-size:11px; color:#94a3b8; margin-top:24px; }
+
+  /* Pendencias */
+  .step-num.pend{ background:#d97706; }
+  .pend-count{ font-size:12px; font-weight:800; color:#d97706; margin-left:6px; }
+  .pend-toggle{ margin-left:auto; font-size:11px; font-weight:800; color:var(--muted);
+    background:none; border:none; cursor:pointer; text-decoration:underline; }
+  .pend-grupo{ margin-top:10px; }
+  .pend-grupo-tit{ font-size:11px; font-weight:900; text-transform:uppercase;
+    letter-spacing:.04em; color:#92400e; margin-bottom:6px; }
+  .pend-item{ display:flex; align-items:center; gap:10px; padding:8px 10px;
+    border:1px solid #fde68a; background:#fffbeb; border-radius:10px; margin-bottom:6px; }
+  .pend-ico{ width:34px; height:34px; flex-shrink:0; border-radius:8px; display:flex;
+    align-items:center; justify-content:center; background:#fef3c7; color:#b45309; font-size:14px; }
+  .pend-info{ flex:1; min-width:0; }
+  .pend-name{ font-size:13px; font-weight:900; }
+  .pend-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .pend-motivo{ font-size:11px; color:#92400e; margin-top:3px; font-weight:600; }
+  .pend-motivo code{ background:#fef3c7; padding:1px 4px; border-radius:4px; font-size:10px; }
+  .btn-mini{ flex-shrink:0; font-size:11px; font-weight:800; padding:7px 12px; border-radius:8px;
+    border:1px solid var(--primary); background:#fff; color:var(--primary); cursor:pointer; }
+  .btn-mini:hover{ background:var(--primary); color:#fff; }
+  .base-origem{ font-size:10px; font-weight:700; opacity:.6; margin-left:6px;
+    text-transform:uppercase; letter-spacing:.04em; }
+
+  /* Modal de cadastro */
+  .modal{ position:fixed; inset:0; z-index:60; background:rgba(15,23,42,.55);
+    display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal.hidden{ display:none; }
+  .modal-box{ background:#fff; border-radius:16px; width:100%; max-width:560px;
+    max-height:92vh; display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 24px 60px rgba(15,23,42,.3); }
+  .modal-head{ display:flex; align-items:flex-start; gap:12px; padding:16px 18px 12px;
+    border-bottom:1px solid var(--border); }
+  .modal-tit{ font-size:16px; font-weight:900; }
+  .modal-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .modal-x{ margin-left:auto; background:none; border:none; cursor:pointer;
+    font-size:18px; color:var(--muted); line-height:1; padding:2px 4px; }
+  .modal-body{ padding:16px 18px; overflow-y:auto; }
+  .modal-foot{ display:flex; gap:8px; justify-content:flex-end; padding:12px 18px;
+    border-top:1px solid var(--border); background:#f8fafc; }
+  .btn-ghost{ background:#fff; color:var(--muted); border:1px solid var(--border); }
+  .cad-img{ display:flex; gap:14px; align-items:center; margin-bottom:14px; }
+  .cad-prev{ width:96px; height:96px; flex-shrink:0; border-radius:12px; overflow:hidden;
+    border:1px dashed var(--border); background:#f8fafc; display:flex; align-items:center;
+    justify-content:center; color:#cbd5e1; font-size:26px; }
+  .cad-prev img{ width:100%; height:100%; object-fit:contain; }
+  .cad-img-lado{ flex:1; min-width:0; }
+  .cad-hint{ font-size:11px; color:var(--muted); margin-top:6px; }
+  .cad-hint code{ background:#f1f5f9; padding:1px 4px; border-radius:4px; }
+  .cad-lbl{ display:block; font-size:11px; font-weight:800; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--muted); margin-bottom:10px; }
+  .cad-inp{ display:block; width:100%; margin-top:4px; padding:8px 10px; font-size:13px;
+    font-weight:600; border:1px solid var(--border); border-radius:8px;
+    font-family:inherit; color:#0f172a; background:#fff; }
+  .cad-inp[readonly]{ background:#f8fafc; color:var(--muted); }
+  .cad-linha{ display:flex; gap:6px; align-items:center; margin-top:4px; }
+  .cad-linha .cad-inp{ margin-top:0; }
+  .cad-res{ font-size:11px; font-weight:700; margin:-4px 0 12px; min-height:14px; }
+  .cad-res.ok{ color:#15803d; }
+  .cad-res.nao{ color:#b45309; }
+  .cad-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+  @media(max-width:520px){ .cad-grid{ grid-template-columns:1fr; } }
+
+  .aviso-pages{ display:block; margin-top:6px; font-size:11px; font-weight:600;
+    color:#92400e; line-height:1.45; }
 </style>
 </head>
 <body>
@@ -296,6 +355,17 @@
     <div class="preview-list" id="previewList"></div>
   </div>
 
+  <!-- Pendências: o que não entra no PDF, e por quê -->
+  <div id="pendCard" class="card hidden">
+    <div class="card-title">
+      <span class="step-num pend">!</span> Pendências
+      <span class="pend-count" id="pendCount"></span>
+      <button id="pendToggle" class="pend-toggle">ocultar</button>
+    </div>
+    <div class="card-desc">Estes produtos não entram no catálogo. Resolva a pendência e eles sobem para a lista acima na hora.</div>
+    <div id="pendBody"></div>
+  </div>
+
   <!-- Passo 4: gerar -->
   <div id="genCard" class="card hidden">
     <div class="card-title"><span class="step-num">4</span> Gerar catálogo</div>
@@ -316,6 +386,59 @@
     <div id="genStatus" class="status"></div>
   </div>
 
+  <!-- Cadastro de produto / envio de imagem -->
+  <div id="modalCad" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div>
+          <div class="modal-tit" id="cadTit">Cadastrar produto</div>
+          <div class="modal-sub" id="cadSub"></div>
+        </div>
+        <button class="modal-x" id="cadFechar" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="cad-img">
+          <div class="cad-prev" id="cadPrev"><i class="fa-solid fa-image"></i></div>
+          <div class="cad-img-lado">
+            <button class="btn-mini" id="cadEscolher"><i class="fa-solid fa-upload"></i> Escolher foto</button>
+            <input type="file" id="cadFile" accept="image/*" class="hidden">
+            <div class="cad-hint" id="cadHint">A foto vai para <code>imagens_olympikus</code> com o nome abaixo.</div>
+          </div>
+        </div>
+
+        <label class="cad-lbl">Nome do arquivo de imagem
+          <div class="cad-linha">
+            <input id="cadArquivo" class="cad-inp" placeholder="43447473_PTO_CH" autocomplete="off">
+            <button class="btn-mini" id="cadTestar">testar</button>
+          </div>
+        </label>
+        <div class="cad-res" id="cadTesteRes"></div>
+
+        <div class="cad-grid">
+          <label class="cad-lbl">Código<input id="cadCodigo" class="cad-inp" readonly></label>
+          <label class="cad-lbl">Cor (da planilha)<input id="cadCor" class="cad-inp" readonly></label>
+          <label class="cad-lbl">Produto<input id="cadProduto" class="cad-inp" autocomplete="off"></label>
+          <label class="cad-lbl">Cor código<input id="cadCorCod" class="cad-inp" autocomplete="off"></label>
+          <label class="cad-lbl">Gênero
+            <select id="cadGenero" class="cad-inp">
+              <option value="">—</option><option>Masculino</option><option>Feminino</option><option>Unissex</option>
+            </select>
+          </label>
+          <label class="cad-lbl">Faixa de tamanho<input id="cadTam" class="cad-inp" placeholder="34/44" autocomplete="off"></label>
+          <label class="cad-lbl">Preço<input id="cadPreco" class="cad-inp" type="number" step="0.01" min="0"></label>
+        </div>
+
+        <div id="cadStatus" class="status"></div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="cadCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="cadSalvar"><i class="fa-solid fa-floppy-disk"></i> Salvar na base</button>
+      </div>
+    </div>
+  </div>
+
   <div class="foot">CMS Representações · Gerador de Catálogo · ferramenta interna</div>
 </div>
 
@@ -324,8 +447,11 @@
 
 // ───────── Config ─────────
 const CATALOGO_BASE = "https://cms-representacoes.github.io/apps-oly-v2";
-const XLSX_URL    = `${CATALOGO_BASE}/Produtos.xlsx`;
-const XLSX_URL_UA = `${CATALOGO_BASE}/produtos_ua.xlsx`;
+// A base de produtos vive em data/produtos.json (repo apps-oly), servida pelo
+// worker — a mesma que o admin cadastra e a carteira consome. O Pages fica como
+// reserva para o caso de o worker estar fora do ar.
+const WORKER_URL   = "https://repasse-worker-cms.marcosrep-cms.workers.dev/";
+const PRODUTOS_URL = "https://cms-representacoes.github.io/apps-oly/data/produtos.json";
 const IMG_BASE  = `${CATALOGO_BASE}/imagens_olympikus/`;
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -352,59 +478,67 @@ function moneyBR(n){
 }
 function numBR(n){ return (Number(n)||0).toLocaleString("pt-BR"); }
 
-// ───────── Passo 1: carrega Produtos.xlsx + produtos_ua.xlsx ─────────
-async function carregarBase(){
-  // helper: baixa uma xlsx e mapeia pro formato unificado
-  async function baixar(url, marca){
-    const res = await fetch(`${url}?v=${Date.now()}`, { cache:"no-store" });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.arrayBuffer();
-    const wb = XLSX.read(data, { type:"array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(ws, { defval:"" });
-    return json.map(r => ({
-      imagem:  String(r["Imagem"] ?? r["IMAGEM"] ?? r["imagem"] ?? "").trim(),
-      codigo:  String(r["Código"] ?? r["Codigo"] ?? r["CODIGO"] ?? "").trim(),
-      produto: String(r["Produto"] ?? r["PRODUTO"] ?? "").trim(),
-      cor:     String(r["Cor"] ?? r["COR"] ?? "").trim(),
-      corCodigo: String(r["Cor código"] ?? r["Cor codigo"] ?? r["COR CÓDIGO"] ?? r["COR CODIGO"] ?? "").trim(),
-      genero:  String(r["Gênero"] ?? r["Genero"] ?? r["GÊNERO"] ?? r["GENERO"] ?? "").trim(),
-      tam:     String(r["TAM"] ?? r["Tam"] ?? r["tam"] ?? "").trim(),
-      preco:   Number(r["Preço"] ?? r["Preco"] ?? r["PREÇO"] ?? r["PRECO"] ?? 0) || 0,
-      marca:   marca
-    }));
+// ───────── Passo 1: carrega a base de produtos ─────────
+async function pedirWorker(action, extra){
+  const r = await fetch(WORKER_URL, {
+    method:"PATCH",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ action, ...(extra||{}) })
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// Normaliza um item da base para o formato que a página usa.
+function mapearProduto(r){
+  return {
+    imagem:    String(r.imagem ?? "").trim(),
+    codigo:    String(r.codigo ?? "").trim(),
+    produto:   String(r.produto ?? "").trim(),
+    cor:       String(r.cor ?? "").trim(),
+    corCodigo: String(r.corCodigo ?? "").trim(),
+    genero:    String(r.genero ?? "").trim(),
+    tam:       String(r.tam ?? "").trim(),
+    preco:     Number(r.preco) || 0,
+    categoria: String(r.categoria ?? "").trim(),
+    segmento:  String(r.segmento ?? "").trim(),
+    marca:     String(r.marca ?? "").trim()
+  };
+}
+
+// Reconstrói o índice ref|cor a partir de baseProdutos. Chamado no carregamento
+// e de novo a cada cadastro feito na página, para o item recém-criado já valer.
+function indexarBase(){
+  baseIndex.clear();
+  for(const p of baseProdutos){
+    baseIndex.set(`${norm(p.codigo)}|${norm(p.cor)}`, p);
+    if(p.corCodigo) baseIndex.set(`${norm(p.codigo)}|${norm(p.corCodigo)}`, p);
   }
+}
+
+async function carregarBase(){
+  let origem = "worker";
   try{
-    // carrega as duas em paralelo — se uma falhar, segue com a outra
-    const [rOly, rUa] = await Promise.allSettled([
-      baixar(XLSX_URL, "Olympikus"),
-      baixar(XLSX_URL_UA, "Under Armour")
-    ]);
-
-    const oly = rOly.status === "fulfilled" ? rOly.value : [];
-    const ua  = rUa.status  === "fulfilled" ? rUa.value  : [];
-
-    if(!oly.length && !ua.length){
-      throw new Error("nenhuma base disponível");
+    let dados;
+    try{
+      dados = await pedirWorker("getProdutos");
+    }catch(err){
+      console.warn("getProdutos falhou, tentando o Pages", err);
+      origem = "Pages";
+      const res = await fetch(`${PRODUTOS_URL}?v=${Date.now()}`, { cache:"no-store" });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      dados = await res.json();
     }
-    baseProdutos = oly.concat(ua);
+    if(!Array.isArray(dados) || !dados.length) throw new Error("base vazia");
 
-    // Índice por código+cor (cor pode bater pelo nome OU pelo código de cor)
-    baseIndex.clear();
-    for(const p of baseProdutos){
-      baseIndex.set(`${norm(p.codigo)}|${norm(p.cor)}`, p);
-      if(p.corCodigo) baseIndex.set(`${norm(p.codigo)}|${norm(p.corCodigo)}`, p);
-    }
+    baseProdutos = dados.map(mapearProduto);
+    indexarBase();
 
-    // status — informa quais bases entraram
-    const partes = [];
-    if(oly.length) partes.push(`${oly.length} Olympikus`);
-    if(ua.length)  partes.push(`${ua.length} Under Armour`);
-    const falhouAlguma = rOly.status === "rejected" || rUa.status === "rejected";
-    setStatus($("baseStatus"), falhouAlguma ? "warn" : "ok",
-      falhouAlguma
-        ? `<i class="fa-solid fa-triangle-exclamation"></i> Base parcial carregada — ${partes.join(" + ")}. ${rOly.status==="rejected"?"Olympikus falhou.":""} ${rUa.status==="rejected"?"Under Armour falhou.":""}`
-        : `<i class="fa-solid fa-circle-check"></i> Base carregada — ${partes.join(" + ")} = ${baseProdutos.length} produtos.`
+    const comTam = baseProdutos.filter(p=> p.tam).length;
+    setStatus($("baseStatus"), "ok",
+      `<i class="fa-solid fa-circle-check"></i> Base carregada — ${numBR(baseProdutos.length)} produtos` +
+      (comTam < baseProdutos.length ? ` (${numBR(baseProdutos.length - comTam)} sem faixa de tamanho)` : "") +
+      `<span class="base-origem">${origem}</span>`
     );
   }catch(err){
     console.error(err);
@@ -512,7 +646,7 @@ async function processarArquivo(file){
     // reset filtros e seleção a cada nova importação
     filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
     selecionados = new Set();
-    recalcular(true);
+    await recalcular(true);
   }catch(err){
     console.error(err);
     setStatus($("cartStatus"), "err", `<i class="fa-solid fa-triangle-exclamation"></i> Erro ao ler a planilha: ${err.message}`);
@@ -537,7 +671,7 @@ function passaFiltros(l){
 
 // Re-filtra linhasBrutas → re-agrupa → re-renderiza
 // reset=true: também reseta seleção (marca todos os grupos resultantes)
-function recalcular(reset){
+async function recalcular(reset){
   const linhasFil = linhasBrutas.filter(passaFiltros);
   const grupos = new Map(); // "ref|cor" → grupo
   for(const l of linhasFil){
@@ -566,10 +700,8 @@ function recalcular(reset){
 
   // Cruza com a base e monta lista final
   carteira = [];
-  let semBase = 0;
   for(const [chave, g] of grupos){
     const prod = baseIndex.get(`${norm(g.ref)}|${norm(g.cor)}`) || null;
-    if(!prod) semBase++;
     const meses = Array.from(g.meses.values())
       .sort((a,b)=> a.ordem - b.ordem)
       .map(m=>({
@@ -606,17 +738,74 @@ function recalcular(reset){
     return String(a.cor).localeCompare(String(b.cor),"pt-BR");
   });
 
-  // Seleção: na primeira vez ou após mudança de filtro → marca todos visíveis
-  // (mas só os que têm imagem cadastrada na base — sem imagem já entra desmarcado,
-  // o usuário pode marcar manualmente se quiser incluir mesmo assim)
-  if(reset){
-    selecionados = new Set(
-      carteira.filter(c=> c.temBase && c.imagem).map(c=> c.chave)
-    );
+  // Estado de cada item. "checando" vira "ok" ou "semImagem" logo abaixo — o
+  // nome do arquivo estar no cadastro não garante que a imagem exista.
+  for(const c of carteira){
+    c.estado = !c.temBase ? "semCadastro" : (c.imagem ? "checando" : "semImagem");
+    c.imagemUrl = "";
   }
 
   renderFiltros();
-  renderPreview(semBase);
+  await conferirImagens();
+
+  // Só entra no PDF quem tem imagem que de fato carregou.
+  if(reset){
+    selecionados = new Set(carteira.filter(c=> c.estado === "ok").map(c=> c.chave));
+  } else {
+    for(const c of carteira){
+      if(c.estado !== "ok") selecionados.delete(c.chave);
+    }
+  }
+
+  renderPreview();
+}
+
+// ───────── Conferência de imagem ─────────
+// A página não consegue listar a pasta de imagens, então a única forma de saber
+// se a foto existe é tentar carregá-la. O resultado fica em cache por nome de
+// arquivo: trocar de filtro não refaz o teste.
+const imgCheck = new Map();   // nome base → Promise<{ ok, url }>
+
+// Foto enviada nesta sessão: o GitHub Pages leva cerca de um minuto para
+// publicá-la, e até lá a URL responde 404. Guardar a imagem escolhida aqui faz
+// o item subir para a lista na hora — e o PDF sai certo antes da publicação.
+const imagensLocais = new Map();   // nome base → dataURL
+
+function checarImagem(base){
+  const nome = String(base||"").trim();
+  if(!nome) return Promise.resolve({ ok:false, url:"" });
+  if(imagensLocais.has(nome)) return Promise.resolve({ ok:true, url:imagensLocais.get(nome) });
+  if(imgCheck.has(nome)) return imgCheck.get(nome);
+  const promessa = new Promise(resolve=>{
+    let i = 0;
+    (function tentar(){
+      if(i >= EXTS.length){ resolve({ ok:false, url:"" }); return; }
+      const url = imgUrl(nome, i++);
+      const img = new Image();
+      img.onload  = ()=> resolve({ ok:true, url });
+      img.onerror = tentar;
+      img.src = url;
+    })();
+  });
+  imgCheck.set(nome, promessa);
+  return promessa;
+}
+
+async function conferirImagens(){
+  const alvos = carteira.filter(c=> c.estado === "checando");
+  if(!alvos.length) return;
+  let feitos = 0;
+  // De 8 em 8 — 78 conexões de uma vez só atrasam todas.
+  for(let i = 0; i < alvos.length; i += 8){
+    await Promise.all(alvos.slice(i, i + 8).map(async c=>{
+      const r = await checarImagem(c.imagem);
+      c.estado = r.ok ? "ok" : "semImagem";
+      c.imagemUrl = r.url;
+      feitos++;
+      setStatus($("cartStatus"), "info",
+        `<i class="fa-solid fa-circle-notch spin"></i> Conferindo imagens… ${feitos} de ${alvos.length}`);
+    }));
+  }
 }
 
 // ───────── Passo 3: preview ─────────
@@ -628,44 +817,32 @@ function imgUrl(base, i){
   return `${IMG_BASE}${encodeURI(clean)}${EXTS[i] || ".png"}`;
 }
 function escAttr(s){ return String(s||"").replace(/"/g,"&quot;"); }
-// onerror: tenta a próxima extensão; se esgotar, vira placeholder
-function tentarProxExt(img){
-  let ext = parseInt(img.dataset.ext||"0",10) + 1;
-  if(ext >= EXTS.length){
-    img.outerHTML = '<div class="prev-img-ph"><i class="fa-solid fa-image"></i></div>';
-    return;
-  }
-  img.dataset.ext = String(ext);
-  img.src = imgUrl(img.dataset.base, ext);
-}
 
-function renderPreview(semBase){
-  const totalProdutos = carteira.length;
-  const totalPares = carteira.reduce((a,c)=> a + c.total, 0);
+function renderPreview(){
+  const itens = carteira.filter(c=> c.estado === "ok");
+  const pend  = carteira.filter(c=> c.estado !== "ok");
+  const totalPares = itens.reduce((a,c)=> a + c.total, 0);
 
-  setStatus($("cartStatus"), semBase ? "warn" : "ok",
-    semBase
-      ? `<i class="fa-solid fa-triangle-exclamation"></i> ${totalProdutos} produtos carregados — ${semBase} sem imagem/preço (não encontrados na base).`
-      : `<i class="fa-solid fa-circle-check"></i> ${totalProdutos} produtos carregados, todos encontrados na base.`
+  const plural = (n, um, muitos) => n === 1 ? um : muitos;
+  setStatus($("cartStatus"), pend.length ? "warn" : "ok",
+    pend.length
+      ? `<i class="fa-solid fa-triangle-exclamation"></i> ${numBR(itens.length)} ${plural(itens.length,"produto pronto","produtos prontos")} — ` +
+        `${numBR(pend.length)} ${plural(pend.length,"ficou","ficaram")} de fora (veja Pendências).`
+      : `<i class="fa-solid fa-circle-check"></i> ${numBR(itens.length)} ${plural(itens.length,"produto pronto","produtos prontos")}, ` +
+        `${plural(itens.length,"com cadastro e imagem","todos com cadastro e imagem")}.`
   );
 
-  // Resumo
   $("resumo").innerHTML = `
-    <div class="resumo-item"><div class="resumo-num">${numBR(totalProdutos)}</div><div class="resumo-lbl">Produtos</div></div>
+    <div class="resumo-item"><div class="resumo-num">${numBR(itens.length)}</div><div class="resumo-lbl">Produtos</div></div>
     <div class="resumo-item"><div class="resumo-num">${numBR(totalPares)}</div><div class="resumo-lbl">Pares</div></div>
-    <div class="resumo-item"><div class="resumo-num">${numBR(semBase)}</div><div class="resumo-lbl">Sem base</div></div>
+    <div class="resumo-item"><div class="resumo-num">${numBR(pend.length)}</div><div class="resumo-lbl">Pendências</div></div>
   `;
 
-  // Barra "selecionar todos" só aparece quando há itens
-  $("selbar").classList.toggle("hidden", carteira.length === 0);
+  $("selbar").classList.toggle("hidden", itens.length === 0);
   atualizarSelBar();
 
-  // Lista
   const mostrarGrade = $("tgGrade").checked;
-  $("previewList").innerHTML = carteira.map((c, idx)=>{
-    const img = c.temBase && c.imagem
-      ? `<img class="prev-img" id="prevImg${idx}" src="${imgUrl(c.imagem, 0)}" data-base="${escAttr(c.imagem)}" data-ext="0" onerror="tentarProxExt(this)">`
-      : `<div class="prev-img-ph"><i class="fa-solid fa-image"></i></div>`;
+  $("previewList").innerHTML = itens.map(c=>{
     const meta = [c.cor, c.genero].filter(Boolean).join(" · ");
 
     let blocoMeses;
@@ -689,18 +866,17 @@ function renderPreview(semBase){
       : "";
 
     const marcado = selecionados.has(c.chave);
-    return `<div class="prev-item ${c.temBase?"":"missing"} ${marcado?"":"unchecked"}" data-chave="${escAttr(c.chave)}">
+    return `<div class="prev-item ${marcado?"":"unchecked"}" data-chave="${escAttr(c.chave)}">
       <input type="checkbox" class="prev-chk" ${marcado?"checked":""} data-chave="${escAttr(c.chave)}">
-      ${img}
+      <img class="prev-img" src="${escAttr(c.imagemUrl)}" alt="">
       <div class="prev-info">
-        <div class="prev-name">${c.produto} · ${c.ref}</div>
-        <div class="prev-meta">${meta || "—"}${c.tam?` · Tam ${c.tam}`:""}</div>
+        <div class="prev-name">${escHtml(c.produto)} · ${escHtml(c.ref)}</div>
+        <div class="prev-meta">${escHtml(meta) || "—"}${c.tam?` · Tam ${escHtml(c.tam)}`:""}</div>
         ${blocoMeses}
-        ${c.temBase?"":'<div class="prev-warn">Não encontrado na base</div>'}
         ${aviso}
       </div>
       <div class="prev-right">
-        <div class="prev-pdv">${c.temBase && c.preco ? moneyBR(c.preco) : "—"}</div>
+        <div class="prev-pdv">${c.preco ? moneyBR(c.preco) : "—"}</div>
         <div class="prev-total"><small>Total</small>${numBR(c.total)}</div>
       </div>
     </div>`;
@@ -717,13 +893,67 @@ function renderPreview(semBase){
     });
   });
 
+  renderPendencias(pend);
+
   $("previewCard").classList.remove("hidden");
-  $("genCard").classList.remove("hidden");
+  $("genCard").classList.toggle("hidden", itens.length === 0);
 }
+
+// Explica, numa frase, por que o item nao entra no catalogo.
+function motivoPendencia(c){
+  if(c.estado === "semCadastro"){
+    return `Sem cadastro na base — não existe produto com o código <code>${escHtml(c.ref)}</code> na cor <code>${escHtml(c.cor)}</code>.`;
+  }
+  if(!c.imagem){
+    return "Cadastrado na base, mas sem nome de arquivo de imagem.";
+  }
+  return `Cadastrado na base, mas nenhuma imagem foi encontrada para <code>${escHtml(c.imagem)}</code>.`;
+}
+
+function renderPendencias(pend){
+  $("pendCard").classList.toggle("hidden", pend.length === 0);
+  if(!pend.length) return;
+
+  $("pendCount").textContent = `${numBR(pend.length)} produto${pend.length>1?"s":""}`;
+
+  const grupos = [
+    { titulo:"Sem cadastro na base", ico:"fa-user-slash", botao:"Cadastrar produto",
+      itens: pend.filter(c=> c.estado === "semCadastro") },
+    { titulo:"Cadastrado, mas sem imagem", ico:"fa-image", botao:"Resolver imagem",
+      itens: pend.filter(c=> c.estado === "semImagem") }
+  ].filter(g=> g.itens.length);
+
+  $("pendBody").innerHTML = grupos.map(g=> `
+    <div class="pend-grupo">
+      <div class="pend-grupo-tit">${g.titulo} (${numBR(g.itens.length)})</div>
+      ${g.itens.map(c=> `
+        <div class="pend-item">
+          <div class="pend-ico"><i class="fa-solid ${g.ico}"></i></div>
+          <div class="pend-info">
+            <div class="pend-name">${escHtml(c.produto)} · ${escHtml(c.ref)}</div>
+            <div class="pend-meta">${escHtml(c.cor)} · ${numBR(c.total)} pares · ${c.meses.map(m=> escHtml(m.nome)).join(", ")}</div>
+            <div class="pend-motivo">${motivoPendencia(c)}</div>
+          </div>
+          <button class="btn-mini" data-chave="${escAttr(c.chave)}">${g.botao}</button>
+        </div>`).join("")}
+    </div>`).join("");
+
+  $("pendBody").querySelectorAll(".btn-mini").forEach(b=>{
+    b.addEventListener("click", ()=> abrirCadastro(b.dataset.chave));
+  });
+}
+
+// Mostrar/ocultar o bloco de pendencias
+$("pendToggle").addEventListener("click", ()=>{
+  const body = $("pendBody");
+  const escondido = body.style.display === "none";
+  body.style.display = escondido ? "" : "none";
+  $("pendToggle").textContent = escondido ? "ocultar" : "mostrar";
+});
 
 // Atualiza a barra "selecionar todos" + contador
 function atualizarSelBar(){
-  const visiveis = carteira.map(c=> c.chave);
+  const visiveis = carteira.filter(c=> c.estado === "ok").map(c=> c.chave);
   const marcados = visiveis.filter(k=> selecionados.has(k)).length;
   $("selCount").textContent = `${marcados} de ${visiveis.length} selecionados`;
   const chk = $("chkTodos");
@@ -734,6 +964,7 @@ function atualizarSelBar(){
 $("chkTodos").addEventListener("change", ()=>{
   const todos = $("chkTodos").checked;
   for(const c of carteira){
+    if(c.estado !== "ok") continue;
     if(todos) selecionados.add(c.chave); else selecionados.delete(c.chave);
   }
   // atualiza checkboxes visíveis sem re-renderizar a lista
@@ -850,9 +1081,197 @@ function escHtml(s){
 
 // Re-renderiza a conferência quando o toggle de grade muda
 $("tgGrade").addEventListener("change", ()=>{
-  if(carteira.length){
-    const semBase = carteira.filter(c=> !c.temBase).length;
-    renderPreview(semBase);
+  if(carteira.length) renderPreview();
+});
+
+// ───────── Cadastro de produto pela própria página ─────────
+// Grava na mesma base que o admin e a carteira usam (data/produtos.json), e a
+// imagem vai para imagens_olympikus — a pasta que este gerador lê.
+let cadastroAlvo = null;   // item da carteira que abriu o modal
+let cadastroFile = null;   // File escolhido, se houver
+const enviadasAgora = new Set();   // nomes enviados nesta sessão, para o aviso
+
+// Nome padrão do arquivo: código + código de cor, sem barra nem espaço.
+function nomeArquivoPadrao(codigo, corCodigo){
+  const cor = String(corCodigo||"").trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  return `${String(codigo||"").trim()}${cor ? "_" + cor : ""}`;
+}
+
+// Empresta gênero, faixa, preço, categoria e segmento de outra cor do mesmo
+// código — quase sempre já existe uma, e assim sobra só conferir.
+function irmaoDoCodigo(codigo){
+  const alvo = norm(codigo);
+  return baseProdutos.find(p=> norm(p.codigo) === alvo) || null;
+}
+
+function abrirCadastro(chave){
+  const c = carteira.find(x=> x.chave === chave);
+  if(!c) return;
+  cadastroAlvo = c;
+  cadastroFile = null;
+
+  const prod = baseIndex.get(`${norm(c.ref)}|${norm(c.cor)}`) || null;
+  const irmao = irmaoDoCodigo(c.ref);
+
+  $("cadTit").textContent = prod ? "Resolver imagem" : "Cadastrar produto";
+  $("cadSub").textContent = prod
+    ? "O produto já está na base; falta a imagem. Envie a foto ou corrija o nome do arquivo."
+    : "Produto novo na base. Confira os campos e envie a foto.";
+
+  $("cadCodigo").value  = c.ref;
+  $("cadCor").value     = c.cor;
+  $("cadProduto").value = prod ? prod.produto : (c.produto || "");
+  $("cadCorCod").value  = prod ? (prod.corCodigo || prod.cor) : c.cor;
+  $("cadGenero").value  = (prod && prod.genero) || (irmao && irmao.genero) || "";
+  $("cadTam").value     = (prod && prod.tam)    || (irmao && irmao.tam)    || "";
+  $("cadPreco").value   = (prod && prod.preco)  || (irmao && irmao.preco)  || "";
+  $("cadArquivo").value = (prod && prod.imagem) || nomeArquivoPadrao(c.ref, c.cor);
+
+  $("cadPrev").innerHTML = '<i class="fa-solid fa-image"></i>';
+  $("cadTesteRes").textContent = "";
+  $("cadTesteRes").className = "cad-res";
+  $("cadStatus").className = "status";
+  $("cadStatus").innerHTML = "";
+  $("cadSalvar").disabled = false;
+  $("modalCad").classList.remove("hidden");
+}
+
+function fecharCadastro(){
+  $("modalCad").classList.add("hidden");
+  cadastroAlvo = null;
+  cadastroFile = null;
+  $("cadFile").value = "";
+}
+$("cadFechar").addEventListener("click", fecharCadastro);
+$("cadCancelar").addEventListener("click", fecharCadastro);
+$("modalCad").addEventListener("click", e=>{ if(e.target === $("modalCad")) fecharCadastro(); });
+document.addEventListener("keydown", e=>{
+  if(e.key === "Escape" && !$("modalCad").classList.contains("hidden")) fecharCadastro();
+});
+
+$("cadEscolher").addEventListener("click", ()=> $("cadFile").click());
+$("cadFile").addEventListener("change", e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  cadastroFile = f;
+  const leitor = new FileReader();
+  leitor.onload = ()=> { $("cadPrev").innerHTML = `<img src="${leitor.result}" alt="">`; };
+  leitor.readAsDataURL(f);
+  // O nome segue o padrão do código+cor; a extensão vem do arquivo escolhido.
+  if(!$("cadArquivo").value.trim()){
+    $("cadArquivo").value = nomeArquivoPadrao($("cadCodigo").value, $("cadCorCod").value);
+  }
+  $("cadTesteRes").textContent = "";
+  $("cadTesteRes").className = "cad-res";
+});
+
+// Testa um nome de arquivo sem gravar nada — resolve o caso de a imagem existir
+// com um nome diferente do que está no cadastro (PTOCH x PTO_CH).
+$("cadTestar").addEventListener("click", async ()=>{
+  const nome = $("cadArquivo").value.trim();
+  const res = $("cadTesteRes");
+  if(!nome){ res.textContent = "Escreva um nome para testar."; res.className = "cad-res nao"; return; }
+  res.textContent = "testando…"; res.className = "cad-res";
+  imgCheck.delete(nome);                       // força uma sondagem nova
+  const r = await checarImagem(nome);
+  res.textContent = r.ok ? "Imagem encontrada." : "Nenhuma imagem com esse nome.";
+  res.className = "cad-res " + (r.ok ? "ok" : "nao");
+});
+
+function lerBase64(file){
+  return new Promise((resolve, reject)=>{
+    const leitor = new FileReader();
+    leitor.onload = ()=> resolve(String(leitor.result).split(",")[1] || "");
+    leitor.onerror = ()=> reject(new Error("não consegui ler o arquivo"));
+    leitor.readAsDataURL(file);
+  });
+}
+
+$("cadSalvar").addEventListener("click", async ()=>{
+  if(!cadastroAlvo) return;
+  const btn = $("cadSalvar");
+  const st  = $("cadStatus");
+
+  const codigo    = $("cadCodigo").value.trim();
+  const corPlan   = $("cadCor").value.trim();
+  const nomeImg   = $("cadArquivo").value.trim();
+  const produto   = $("cadProduto").value.trim();
+  const corCodigo = $("cadCorCod").value.trim();
+
+  if(!produto){ setStatus(st, "err", "Informe o nome do produto."); return; }
+  if(!nomeImg){ setStatus(st, "err", "Informe o nome do arquivo de imagem."); return; }
+
+  btn.disabled = true;
+  try{
+    // 1) Sobe a foto primeiro. Falhando aqui, nada é gravado na base.
+    if(cadastroFile){
+      setStatus(st, "info", '<i class="fa-solid fa-circle-notch spin"></i> Enviando a imagem…');
+      const ext = (cadastroFile.name.match(/\.(jpe?g|png|webp)$/i) || [".jpg"])[0].toLowerCase();
+      const base64 = await lerBase64(cadastroFile);
+      await pedirWorker("uploadMatrizImagem", { nomeArquivo: nomeImg + ext, base64 });
+      imagensLocais.set(nomeImg, `data:${cadastroFile.type || "image/jpeg"};base64,${base64}`);
+      enviadasAgora.add(nomeImg);
+    } else {
+      // Sem foto nova, o nome informado precisa existir de verdade.
+      imgCheck.delete(nomeImg);
+      const r = await checarImagem(nomeImg);
+      if(!r.ok){
+        setStatus(st, "err", `Não achei nenhuma imagem chamada <code>${escHtml(nomeImg)}</code>. Envie a foto ou corrija o nome.`);
+        btn.disabled = false;
+        return;
+      }
+    }
+
+    // 2) Relê a base imediatamente antes de gravar, para não desfazer cadastro
+    //    que alguém tenha feito no admin enquanto este modal estava aberto.
+    setStatus(st, "info", '<i class="fa-solid fa-circle-notch spin"></i> Gravando na base…');
+    const atual = await pedirWorker("getProdutos");
+    const lista = Array.isArray(atual) ? atual : [];
+
+    const irmao = irmaoDoCodigo(codigo);
+    const registro = {
+      imagem:    nomeImg,
+      categoria: (irmao && irmao.categoria) || "",
+      segmento:  (irmao && irmao.segmento)  || "",
+      codigo,
+      produto,
+      corCodigo: corCodigo || corPlan,
+      cor:       corPlan,
+      genero:    $("cadGenero").value,
+      preco:     Number($("cadPreco").value) || 0,
+      custo:     0,
+      tam:       $("cadTam").value.trim(),
+      marca:     (irmao && irmao.marca) || "Olympikus"
+    };
+
+    const iguais = (a, b) =>
+      String(a.codigo||"").trim() === String(b.codigo||"").trim() &&
+      norm(a.cor) === norm(b.cor);
+    const pos = lista.findIndex(x=> iguais(x, registro));
+    if(pos >= 0) lista[pos] = { ...lista[pos], ...registro };
+    else lista.push(registro);
+
+    await pedirWorker("saveProdutos", { data: lista });
+
+    // 3) Base local em dia — o item sobe para a lista sem reimportar a planilha.
+    baseProdutos = lista.map(mapearProduto);
+    indexarBase();
+    imgCheck.delete(nomeImg);
+    fecharCadastro();
+    await recalcular(false);
+
+    if(enviadasAgora.size){
+      const atual = $("cartStatus").innerHTML;
+      setStatus($("cartStatus"), "warn",
+        `${atual}<div class="aviso-pages"><i class="fa-solid fa-clock"></i> ` +
+        `${enviadasAgora.size === 1 ? "A foto enviada agora está" : "As fotos enviadas agora estão"} ` +
+        `sendo publicada no GitHub Pages — leva cerca de um minuto. Até lá o catálogo usa a imagem ` +
+        `deste navegador, então pode gerar o PDF normalmente.</div>`);
+    }
+  }catch(err){
+    console.error(err);
+    setStatus(st, "err", `<i class="fa-solid fa-triangle-exclamation"></i> Não deu para salvar: ${escHtml(err.message)}`);
+    btn.disabled = false;
   }
 });
 
@@ -865,6 +1284,14 @@ function carregarImg(baseName){
   return new Promise(resolve=>{
     if(!baseName){ resolve(null); return; }
     const clean = String(baseName).trim().replace(/\.(png|jpg|jpeg|webp)$/i,"");
+    const local = imagensLocais.get(clean);
+    if(local){
+      const img = new Image();
+      img.onload  = ()=> resolve({ data:local, w:img.naturalWidth, h:img.naturalHeight });
+      img.onerror = ()=> resolve(null);
+      img.src = local;
+      return;
+    }
     let i = 0;
     function tentar(){
       if(i >= IMG_EXTS.length){ resolve(null); return; }
@@ -1303,7 +1730,7 @@ async function gerarPDF(){
 }
 
 // Init
-carregarBase();
+const basePronta = carregarBase();
 </script>
 </body>
 </html>
