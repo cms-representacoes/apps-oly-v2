@@ -508,12 +508,32 @@ function mapearProduto(r){
 
 // Reconstrói o índice ref|cor a partir de baseProdutos. Chamado no carregamento
 // e de novo a cada cadastro feito na página, para o item recém-criado já valer.
+// A mesma cor aparece escrita de dois jeitos conforme a origem — PTO/CH numa
+// planilha, PTOCH noutra. Esta chave ignora pontuação e serve de segunda
+// tentativa, sem atropelar a correspondência exata.
+function chaveCor(s){ return norm(s).replace(/[^A-Z0-9]/g, ""); }
+
 function indexarBase(){
   baseIndex.clear();
   for(const p of baseProdutos){
     baseIndex.set(`${norm(p.codigo)}|${norm(p.cor)}`, p);
     if(p.corCodigo) baseIndex.set(`${norm(p.codigo)}|${norm(p.corCodigo)}`, p);
   }
+  // Segunda passada: só preenche o que a exata não cobriu, para que uma
+  // grafia solta nunca roube o lugar de uma correspondência literal.
+  for(const p of baseProdutos){
+    for(const c of [p.cor, p.corCodigo]){
+      if(!c) continue;
+      const k = `${norm(p.codigo)}|~${chaveCor(c)}`;
+      if(!baseIndex.has(k)) baseIndex.set(k, p);
+    }
+  }
+}
+
+function acharProduto(codigo, cor){
+  return baseIndex.get(`${norm(codigo)}|${norm(cor)}`)
+      || baseIndex.get(`${norm(codigo)}|~${chaveCor(cor)}`)
+      || null;
 }
 
 async function carregarBase(){
@@ -701,7 +721,7 @@ async function recalcular(reset){
   // Cruza com a base e monta lista final
   carteira = [];
   for(const [chave, g] of grupos){
-    const prod = baseIndex.get(`${norm(g.ref)}|${norm(g.cor)}`) || null;
+    const prod = acharProduto(g.ref, g.cor);
     const meses = Array.from(g.meses.values())
       .sort((a,b)=> a.ordem - b.ordem)
       .map(m=>({
@@ -1110,7 +1130,7 @@ function abrirCadastro(chave){
   cadastroAlvo = c;
   cadastroFile = null;
 
-  const prod = baseIndex.get(`${norm(c.ref)}|${norm(c.cor)}`) || null;
+  const prod = acharProduto(c.ref, c.cor);
   const irmao = irmaoDoCodigo(c.ref);
 
   $("cadTit").textContent = prod ? "Resolver imagem" : "Cadastrar produto";
@@ -1246,7 +1266,7 @@ $("cadSalvar").addEventListener("click", async ()=>{
 
     const iguais = (a, b) =>
       String(a.codigo||"").trim() === String(b.codigo||"").trim() &&
-      norm(a.cor) === norm(b.cor);
+      chaveCor(a.cor) === chaveCor(b.cor);
     const pos = lista.findIndex(x=> iguais(x, registro));
     if(pos >= 0) lista[pos] = { ...lista[pos], ...registro };
     else lista.push(registro);
