@@ -3557,7 +3557,7 @@ async function rfvDesenharMapa(A) {
               porCidade.set(chave, g); }
     g.total++; g.pares += e.p1 + e.p2;
     if (e.p2 > 0) g.ativos++;
-    g.lojas.push({ nome: String(cli[1]), p1: e.p1, p2: e.p2, ativo: e.p2 > 0 });
+    g.lojas.push({ nome: String(cli[1]), cod: String(cli[0]), p1: e.p1, p2: e.p2, ativo: e.p2 > 0 });
   }
 
   const pontos = [];
@@ -3573,7 +3573,7 @@ async function rfvDesenharMapa(A) {
       .sort((a, b) => (a.ativo - b.ativo) || (b.p1 + b.p2) - (a.p1 + a.p2))
       .map(l => `<div class="loja">${ponto(l.p1 > 0, '1º sem.: ' + formatarNumero(l.p1) + ' pares')}` +
                 `${ponto(l.p2 > 0, '2º sem.: ' + formatarNumero(l.p2) + ' pares')}` +
-                `<span class="nm">${escHtml(l.nome)}</span>` +
+                `<span class="nm">${escHtml(l.nome)}<i>${escHtml(l.cod)}</i></span>` +
                 `<span class="qt">${formatarNumero(l.p1)} &rarr; ${formatarNumero(l.p2)}</span></div>`)
       .join('');
 
@@ -8330,6 +8330,7 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
 .rfv-balao .pt.sim{ background:var(--acao-manter); }
 .rfv-balao .pt.nao{ background:var(--acao-cancelar); }
 .rfv-balao .nm{ margin-left:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rfv-balao .nm i{ font-style:normal; color:var(--text-3); font-size:10.5px; margin-left:5px; }
 .rfv-balao .qt{ margin-left:auto; padding-left:10px; color:var(--text-3); font-size:11px;
                 font-variant-numeric:tabular-nums; white-space:nowrap; }
 .leaflet-popup-content{ margin:10px 12px; font-family:inherit; font-size:13px; }
