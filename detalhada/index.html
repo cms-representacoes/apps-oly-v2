@@ -2118,7 +2118,10 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
       <div class="rfv-barra" id="rfv-barra">
         <div class="rfv-abas" role="tablist">
           <button class="rfv-aba on" data-v="mes" role="tab">Por mês</button>
-          <button class="rfv-aba" data-v="faixa" role="tab">Por faixa</button>
+          <!-- Desativada a pedido do Marcos (09/09/2026). O código da tela
+               continua de pé em rfvTelaFaixa(); para trazer de volta, basta
+               tirar o `hidden` daqui. -->
+          <button class="rfv-aba" data-v="faixa" role="tab" hidden>Por faixa</button>
           <button class="rfv-aba" data-v="mapa" role="tab">Mapa</button>
         </div>
         <button class="rfv-tgl" id="rfv-cidade" type="button" hidden
@@ -8207,6 +8210,7 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
           border-radius:6px; padding:7px 13px; background:transparent; color:var(--text-2);
           white-space:nowrap; }
 .rfv-aba.on{ background:var(--primary); color:#fff; }
+.rfv-aba[hidden]{ display:none; }
 .rfv-campo{ font:inherit; font-size:13px; color:var(--text); background:var(--card-bg);
             border:1px solid var(--border); border-radius:var(--r-sm); padding:7px 10px; }
 .rfv-campo:focus{ outline:none; border-color:var(--primary); }
