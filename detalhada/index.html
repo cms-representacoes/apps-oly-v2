@@ -2125,21 +2125,24 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
                 title="Mostrar ou ocultar a coluna de cidade">
           <i class="fa-solid fa-location-dot"></i> Cidade
         </button>
-        <select id="rfv-vend" class="rfv-campo" title="Vendedor"><option value="">Todos os vendedores</option></select>
-        <select id="rfv-marca" class="rfv-campo" title="Marca"><option value="">Todas as marcas</option></select>
-        <select id="rfv-linha" class="rfv-campo" title="Linha de produto"><option value="">Todas as linhas</option></select>
-        <select id="rfv-sit" class="rfv-campo" title="Quem comprou em cada semestre">
-          <option value="">Todas as situações</option>
-          <option value="dois">Comprou nos dois semestres</option>
-          <option value="so1">Comprou no 1º semestre</option>
-          <option value="so2">Comprou no 2º semestre</option>
-        </select>
+        <button type="button" class="rfv-campo rfv-dd" data-f="vend" id="rfv-dd-vend">Prepostos</button>
+        <button type="button" class="rfv-campo rfv-dd" data-f="marca">Marca</button>
+        <button type="button" class="rfv-campo rfv-dd" data-f="linha">Faixa</button>
+        <button type="button" class="rfv-campo rfv-dd" data-f="sit">Compra</button>
+        <button type="button" class="rfv-campo rfv-dd" data-f="prod">Produto</button>
         <input id="rfv-busca" class="rfv-campo" type="search" placeholder="Cliente ou código…" autocomplete="off">
         <button class="rfv-limpar" id="rfv-limpar" hidden>Limpar filtros</button>
       </div>
     </div>
 
     <div id="rfv-tela"></div>
+
+    <!-- Lista dos filtros. Fica solta no fim da tela e é posicionada na
+         mão: dentro da barra, que rola de lado, ela seria cortada. -->
+    <div class="rfv-lista" id="rfv-lista" hidden>
+      <input type="search" class="rfv-lista-busca" id="rfv-lista-busca" autocomplete="off" hidden>
+      <div class="rfv-lista-itens" id="rfv-lista-itens"></div>
+    </div>
   </div>
 
   <div id="screen-admin" class="screen">
@@ -2994,7 +2997,22 @@ async function carregarGrade(fam) {
    no worker. A tela abre com o que a base do dia já trouxe.
    ============================================================ */
 
-const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null };
+const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null,
+             f: { vend: '', marca: '', linha: '', sit: '', prod: '', cor: '' }, aberto: null };
+
+/* Cada filtro fechado mostra o NOME dele; escolhido, mostra o valor. É por
+   isso que não são <select>: no nativo o texto fechado é o da opção, e a
+   lista teria de repetir "Todos os vendedores" em vez de só "Todos". */
+const RFV_FILTRO = {
+  vend:  { nome: 'Prepostos', todos: 'Todos'  },
+  marca: { nome: 'Marca',     todos: 'Todas'  },
+  linha: { nome: 'Faixa',     todos: 'Todas'  },
+  sit:   { nome: 'Compra',    todos: 'Todas'  },
+  prod:  { nome: 'Produto',   todos: 'Todos', busca: 'Produto, cor' },
+};
+const RFV_SIT = { dois: 'Comprou nos dois semestres',
+                  so1:  'Comprou no 1º semestre',
+                  so2:  'Comprou no 2º semestre' };
 
 /* ── cidade de cada loja, emprestada do RFV ──────────────────────────────
    A Detalhada não tem cidade: a base do dia traz preposto, cliente e
@@ -3133,10 +3151,12 @@ function rfvMontarMeses() {
 /** Uma passada na base, já com a trava do vendedor e os filtros da tela.
  *  Devolve o total de cada mês e, por cliente, o mês a mês e a linha. */
 function rfvApurar() {
-  const fVend  = $('rfv-vend').value;
-  const fMarca = $('rfv-marca').value;
-  const fLinha = $('rfv-linha').value;
-  const busca  = $('rfv-busca').value.trim().toLowerCase();
+  const fVend = RFV.f.vend, fMarca = RFV.f.marca, fLinha = RFV.f.linha;
+  const busca = $('rfv-busca').value.trim().toLowerCase();
+  // Produto: "12" é o artigo inteiro; "12|7" é aquele artigo naquela cor.
+  const [pRef, pCor] = String(RFV.f.prod || '').split('|');
+  const fRef = pRef === '' || pRef === undefined ? -1 : Number(pRef);
+  const fCor = pCor === undefined ? -1 : Number(pCor);
   const nMes = RFV.meses.length, nFx = (APP.dic.faixa || []).length;
   const iMes = new Map(RFV.meses.map((m, i) => [m, i]));
 
@@ -3149,6 +3169,8 @@ function rfvApurar() {
     if (fVend && APP.dic.prep[r[C.PREP]] !== fVend) continue;
     if (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) continue;
     if (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) continue;
+    if (fRef >= 0 && r[C.REF] !== fRef) continue;
+    if (fCor >= 0 && r[C.COR] !== fCor) continue;
 
     const cli = APP.dic.cli[r[C.CLI]];
     if (busca && !String(cli[1]).toLowerCase().includes(busca) && !String(cli[0]).includes(busca)) continue;
@@ -3186,9 +3208,105 @@ function rfvApurar() {
   return { mes, porCli };
 }
 
+/** As opções de um filtro. `busca` só é usada pelo de produto, onde a
+ *  vírgula troca a lista de produtos pela de cores daquele produto. */
+function rfvOpcoes(f, busca) {
+  const q = String(busca || '').trim().toLowerCase();
+  if (f === 'vend')  return [...new Set(APP.dic.prep)].sort().map(v => ({ v, rot: v }));
+  if (f === 'marca') return [...new Set((APP.dic.marca || []).map(rfvMarcaGrupo))].sort()
+                              .map(v => ({ v, rot: v }));
+  if (f === 'linha') return (APP.dic.faixa || []).map((x, j) => ({ v: String(j), rot: String(x) }))
+                              .sort((a, b) => a.rot.localeCompare(b.rot, 'pt-BR'));
+  if (f === 'sit')   return Object.keys(RFV_SIT).map(v => ({ v, rot: RFV_SIT[v] }));
+
+  // Produto: sai da própria base, e só do que o usuário pode ver.
+  const [txtProd, txtCor] = q.split(',').map(x => (x || '').trim());
+  const refs = new Map(), cores = new Map();
+  for (const r of APP.L) {
+    if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) continue;
+    if (!r[C.CART] && !r[C.FAT]) continue;
+    const ref = APP.dic.ref[r[C.REF]] || ['', ''];
+    const nome = String(ref[1] || ''), art = String(ref[0] || '');
+    if (txtProd && !nome.toLowerCase().includes(txtProd) && !art.includes(txtProd)) continue;
+    if (txtCor === undefined) { refs.set(r[C.REF], { nome, art }); continue; }
+    // Depois da vírgula a lista passa a ser de cores do que foi procurado.
+    const cor = String(APP.dic.cor[r[C.COR]] || '');
+    if (txtCor && !cor.toLowerCase().includes(txtCor)) continue;
+    cores.set(r[C.REF] + '|' + r[C.COR], { nome, art, cor });
+  }
+  if (txtCor === undefined) {
+    return [...refs.entries()]
+      .map(([j, o]) => ({ v: String(j), rot: o.nome || o.art, sub: o.art }))
+      .sort((a, b) => a.rot.localeCompare(b.rot, 'pt-BR')).slice(0, 400);
+  }
+  return [...cores.entries()]
+    .map(([k, o]) => ({ v: k, rot: o.nome || o.art, sub: o.cor }))
+    .sort((a, b) => a.rot.localeCompare(b.rot, 'pt-BR') || a.sub.localeCompare(b.sub, 'pt-BR'))
+    .slice(0, 400);
+}
+
+/** O que o botão mostra: o nome do filtro, ou o que foi escolhido. */
+function rfvRotulo(f) {
+  const v = RFV.f[f];
+  if (!v) return RFV_FILTRO[f].nome;
+  if (f === 'sit') return RFV_SIT[v] || v;
+  if (f === 'linha') return String((APP.dic.faixa || [])[Number(v)] || v);
+  if (f === 'prod') {
+    const [iRef, iCor] = String(v).split('|');
+    const ref = APP.dic.ref[Number(iRef)] || ['', ''];
+    const nome = String(ref[1] || ref[0]);
+    return iCor === undefined ? nome : nome + ' · ' + String(APP.dic.cor[Number(iCor)] || '');
+  }
+  return v;
+}
+
+function rfvPintarBotoes() {
+  document.querySelectorAll('.rfv-dd').forEach(b => {
+    const f = b.dataset.f;
+    b.innerHTML = `<span class="val">${escHtml(rfvRotulo(f))}</span>`;
+    b.classList.toggle('on', !!RFV.f[f]);
+    b.title = RFV_FILTRO[f].nome;
+  });
+  const bv = $('rfv-dd-vend');
+  if (bv) bv.style.display = APP.veTudo ? '' : 'none';
+}
+
+/** Abre a lista embaixo do botão. Ela vive fora da barra porque a barra
+ *  rola de lado e cortaria qualquer coisa que saísse dela. */
+function rfvAbrirLista(btn) {
+  const f = btn.dataset.f;
+  const cx = $('rfv-lista'), busca = $('rfv-lista-busca');
+  RFV.aberto = f;
+  busca.hidden = !RFV_FILTRO[f].busca;
+  busca.placeholder = RFV_FILTRO[f].busca || '';
+  busca.value = '';
+  rfvPintarLista();
+  cx.hidden = false;
+  const r = btn.getBoundingClientRect();
+  const larg = cx.offsetWidth;
+  cx.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - larg - 8))) + 'px';
+  cx.style.top = Math.round(r.bottom + 4) + 'px';
+  if (!busca.hidden) busca.focus();
+}
+
+function rfvPintarLista() {
+  const f = RFV.aberto;
+  if (!f) return;
+  const itens = rfvOpcoes(f, $('rfv-lista-busca').value);
+  const atual = RFV.f[f];
+  $('rfv-lista-itens').innerHTML =
+    `<button type="button" class="rfv-item ${atual ? '' : 'on'}" data-v="">${RFV_FILTRO[f].todos}</button>` +
+    (itens.length
+      ? itens.map(o => `<button type="button" class="rfv-item ${o.v === atual ? 'on' : ''}" data-v="${escHtml(o.v)}">
+          <span>${escHtml(o.rot)}</span>${o.sub ? `<span class="sub">${escHtml(o.sub)}</span>` : ''}</button>`).join('')
+      : '<div class="vazio">Nada com esse nome.</div>');
+}
+
+function rfvFecharLista() { RFV.aberto = null; $('rfv-lista').hidden = true; }
+
 /* '' = todas · dois · so1 (comprou só no 1º) · so2 (entrou no 2º) */
 const rfvSituacao = e => e.p1 > 0 && e.p2 > 0 ? 'dois' : e.p1 > 0 ? 'so1' : e.p2 > 0 ? 'so2' : '';
-const rfvPassaSit = e => { const f = $('rfv-sit').value; return !f || rfvSituacao(e) === f; };
+const rfvPassaSit = e => !RFV.f.sit || rfvSituacao(e) === RFV.f.sit;
 
 /** Linhas da tela, já ordenadas: o maior volume do ano primeiro. */
 function rfvLinhas(A) {
@@ -3221,7 +3339,7 @@ function rfvFichas(A) {
     if (e.p1 > 0 && e.p2 === 0) semCompra++;
   }
   for (const m of A.mes) { fat += m.fat; car += m.car; }
-  const ligado = $('rfv-sit').value === 'so1';
+  const ligado = RFV.f.sit === 'so1';
   const total = A.porCli.size, pares = fat + car;
   // O percentual embaixo do número diz de que ele é parte: cliente sobre a
   // carteira, par sobre o ano. Sem isso, 230 e 971.534 nao querem dizer nada.
@@ -3244,7 +3362,7 @@ function rfvFichas(A) {
 
   const b = $('rfv-fSem');
   if (b) b.onclick = () => {
-    $('rfv-sit').value = $('rfv-sit').value === 'so1' ? '' : 'so1';
+    RFV.f.sit = RFV.f.sit === 'so1' ? '' : 'so1';
     rfvPintar();
   };
 }
@@ -3493,8 +3611,9 @@ function rfvPintar() {
   $('rfv-nome').textContent = RFV.visao === 'mapa' ? 'RFV · Mapa de cobertura' : 'RFV da carteira';
   const bt = $('rfv-cidade');
   if (bt) { bt.hidden = !CIDADES.mapa || RFV.visao === 'mapa'; bt.classList.toggle('on', RFV.verCidade); }
-  $('rfv-limpar').hidden = !($('rfv-vend').value || $('rfv-marca').value || $('rfv-linha').value ||
-                             $('rfv-sit').value || $('rfv-busca').value.trim());
+  rfvPintarBotoes();
+  $('rfv-limpar').hidden = !(RFV.f.vend || RFV.f.marca || RFV.f.linha || RFV.f.sit ||
+                             RFV.f.prod || $('rfv-busca').value.trim());
   rfvMedirTopo();
   rfvVeu();
 }
@@ -3511,25 +3630,7 @@ function rfvVeu() {
 
 function rfvAbrir() {
   if (!APP.base) { toast('A base ainda não carregou'); return; }
-  if (!RFV.montado) {
-    rfvMontarMeses();
-    // Vendedor não escolhe vendedor: ele só tem a carteira dele.
-    const selV = $('rfv-vend');
-    if (APP.veTudo) {
-      const nomes = [...new Set(APP.dic.prep)].sort();
-      selV.insertAdjacentHTML('beforeend', nomes.map(v => `<option>${escHtml(v)}</option>`).join(''));
-    } else {
-      selV.style.display = 'none';
-    }
-    $('rfv-marca').insertAdjacentHTML('beforeend',
-      [...new Set((APP.dic.marca || []).map(rfvMarcaGrupo))].sort()
-        .map(m => `<option>${escHtml(m)}</option>`).join(''));
-    $('rfv-linha').insertAdjacentHTML('beforeend',
-      (APP.dic.faixa || []).map((f, j) => [String(f), j])
-        .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
-        .map(([rot, j]) => `<option value="${j}">${escHtml(rot)}</option>`).join(''));
-    RFV.montado = true;
-  }
+  if (!RFV.montado) { rfvMontarMeses(); RFV.montado = true; }
   // O período e quem está vendo — a mesma leitura do cabeçalho de produtos,
   // para ninguém estranhar uma lista curta sem saber que entrou como vendedor.
   {
@@ -7295,12 +7396,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligar('btn-rfv', 'click', rfvAbrir);
   ligar('btn-voltar-rfv', 'click', () => { show('screen-produtos'); render(); });
   ligar('btn-tema-3', 'click', toggleTema);
-  ['rfv-vend', 'rfv-marca', 'rfv-linha', 'rfv-sit', 'rfv-busca']
-    .forEach(id => ligar(id, 'input', rfvPintar));
+  ligar('rfv-busca', 'input', rfvPintar);
   ligar('rfv-limpar', 'click', () => {
-    ['rfv-vend', 'rfv-marca', 'rfv-linha', 'rfv-sit', 'rfv-busca'].forEach(id => { $(id).value = ''; });
+    for (const k of Object.keys(RFV.f)) RFV.f[k] = '';
+    $('rfv-busca').value = '';
+    rfvFecharLista();
     rfvPintar();
   });
+
+  // Menu dos filtros: abre embaixo do botão, escolhe e fecha.
+  document.querySelectorAll('.rfv-dd').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (RFV.aberto === b.dataset.f) { rfvFecharLista(); return; }
+    rfvAbrirLista(b);
+  }));
+  ligar('rfv-lista-busca', 'input', rfvPintarLista);
+  ligar('rfv-lista', 'click', (e) => {
+    e.stopPropagation();
+    const it = e.target.closest('.rfv-item');
+    if (!it) return;
+    RFV.f[RFV.aberto] = it.dataset.v;
+    rfvFecharLista();
+    rfvPintar();
+  });
+  document.addEventListener('click', () => { if (RFV.aberto) rfvFecharLista(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && RFV.aberto) rfvFecharLista(); });
   ligar('rfv-cidade', 'click', () => { RFV.verCidade = !RFV.verCidade; rfvPintar(); });
   document.querySelectorAll('.rfv-aba').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.rfv-aba').forEach(x => x.classList.toggle('on', x === b));
@@ -8090,6 +8210,34 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
 .rfv-campo{ font:inherit; font-size:13px; color:var(--text); background:var(--card-bg);
             border:1px solid var(--border); border-radius:var(--r-sm); padding:7px 10px; }
 .rfv-campo:focus{ outline:none; border-color:var(--primary); }
+/* Botão de filtro: fechado ele diz o NOME do filtro; escolhido, o valor.
+   Um <select> nativo não faz isso — o texto fechado é o da opção. */
+.rfv-dd{ cursor:pointer; display:inline-flex; align-items:center; gap:7px; max-width:230px;
+         color:var(--text-2); }
+.rfv-dd::after{ content:''; width:0; height:0; flex:none; margin-left:auto;
+                border:4px solid transparent; border-top-color:currentColor; margin-top:2px; }
+.rfv-dd:hover{ border-color:var(--border-2); }
+.rfv-dd.on{ border-color:var(--primary); background:var(--primary-bg); color:var(--primary-2);
+            font-weight:600; }
+.rfv-dd .val{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rfv-lista{ position:fixed; z-index:60; background:var(--card-bg); border:1px solid var(--border);
+            border-radius:var(--r-md); box-shadow:var(--shadow-lift); padding:6px;
+            min-width:200px; max-width:min(340px, 94vw); }
+.rfv-lista[hidden]{ display:none; }
+.rfv-lista-busca{ width:100%; font:inherit; font-size:13px; color:var(--text);
+                  background:var(--card-bg-2); border:1px solid var(--border);
+                  border-radius:var(--r-sm); padding:7px 9px; margin-bottom:6px; }
+.rfv-lista-busca:focus{ outline:none; border-color:var(--primary); }
+.rfv-lista-busca[hidden]{ display:none; }
+.rfv-lista-itens{ max-height:min(320px, 52vh); overflow:auto; }
+.rfv-item{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; font:inherit;
+           font-size:13px; color:var(--text); background:none; border:0; border-radius:var(--r-sm);
+           padding:7px 9px; cursor:pointer; }
+.rfv-item:hover{ background:var(--card-bg-2); }
+.rfv-item.on{ background:var(--primary-bg); color:var(--primary-2); font-weight:600; }
+.rfv-item .sub{ margin-left:auto; padding-left:10px; color:var(--text-3); font-size:11px;
+                white-space:nowrap; }
+.rfv-lista .vazio{ padding:14px 9px; color:var(--text-3); font-size:12.5px; text-align:center; }
 #rfv-busca{ width:170px; }
 .rfv-limpar{ font:inherit; font-size:12px; font-weight:600; cursor:pointer; background:none;
              border:0; color:var(--primary-2); padding:6px 4px; text-decoration:underline; }
