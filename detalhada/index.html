@@ -3000,7 +3000,7 @@ async function carregarGrade(fam) {
    no worker. A tela abre com o que a base do dia já trouxe.
    ============================================================ */
 
-const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null,
+const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null, sel: '',
              f: { vend: '', marca: '', linha: '', sit: '', prod: '', cor: '' }, aberto: null };
 
 /* Cada filtro fechado mostra o NOME dele; escolhido, mostra o valor. É por
@@ -3416,7 +3416,7 @@ function rfvTelaMes(A) {
 
   const corpo = linhas.map(l => {
     const vend = rfvVend(l);
-    return `<tr>
+    return `<tr data-cod="${escHtml(l.cod)}" class="${RFV.sel === l.cod ? 'sel' : ''}">
       <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
         <span class="nome">${escHtml(l.nome)}</span>
         <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}${l.parou ? ' · parou no 2º sem.' : ''}</span></td>
@@ -3478,7 +3478,7 @@ function rfvTelaFaixa(A) {
   const cab = ordem.map(j => `<th title="${escHtml(faixas[j])}">${escHtml(faixas[j])}</th>`).join('');
   const corpo = linhas.map(l => {
     const vend = rfvVend(l.e);
-    return `<tr>
+    return `<tr data-cod="${escHtml(l.cod)}" class="${RFV.sel === l.cod ? 'sel' : ''}">
       <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
         <span class="nome">${escHtml(l.nome)}</span>
         <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''} · ${l.parou
@@ -7419,6 +7419,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligar('btn-rfv', 'click', rfvAbrir);
   ligar('btn-voltar-rfv', 'click', () => { show('screen-produtos'); render(); });
   ligar('btn-tema-3', 'click', toggleTema);
+  // Clicar na linha marca; clicar de novo desmarca. Só troca as classes —
+  // repintar a tabela para acender uma linha seria caro e piscaria.
+  ligar('rfv-tela', 'click', (e) => {
+    const tr = e.target.closest('tr[data-cod]');
+    if (!tr) return;
+    RFV.sel = RFV.sel === tr.dataset.cod ? '' : tr.dataset.cod;
+    document.querySelectorAll('#rfv-tela tr[data-cod]').forEach(x =>
+      x.classList.toggle('sel', !!RFV.sel && x.dataset.cod === RFV.sel));
+  });
   ligar('rfv-busca', 'input', rfvPintar);
   ligar('rfv-limpar', 'click', () => {
     for (const k of Object.keys(RFV.f)) RFV.f[k] = '';
@@ -8341,6 +8350,15 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
   box-shadow:1px 0 0 var(--border); }
 .rfv-quadro thead th.presa{ z-index:3; background:var(--card-bg-2); }
 .rfv-quadro tbody tr:hover .presa{ background:var(--card-bg-2); }
+/* Linha escolhida: fica marcada até a próxima. Com doze meses de largura,
+   perder de vista qual cliente se está lendo é o erro mais fácil da tela.
+   Vem depois do hover de propósito — mesma especificidade, e quem vem
+   depois ganha. */
+.rfv-quadro tbody tr{ cursor:pointer; }
+.rfv-quadro tbody tr.sel td{ background:var(--primary-bg); }
+.rfv-quadro tbody tr.sel .presa{ background:var(--primary-bg);
+  box-shadow:inset 3px 0 0 var(--primary), 1px 0 0 var(--border); }
+.rfv-quadro tbody tr.sel td.cli .nome{ color:var(--primary-2); }
 .rfv-quadro td.cli,.rfv-quadro th.cli{ text-align:left; padding-left:12px; min-width:190px; }
 .rfv-quadro td.cli{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
 .rfv-quadro td.cli .nome{ font-weight:600; }
