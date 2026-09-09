@@ -4856,6 +4856,10 @@ function podeVer(key) {
  *  decisao que ainda nao foi tomada. */
 function ehMeu(key) {
   if (!APP.sessao) return false;
+  // A CMS enxerga e marca a carteira de todos. Esconder dela a fila que ela
+  // mesma acabou de criar era pior do que mostrar fila alheia: a marcação
+  // ia para o servidor e sumia da tela, sem caminho de volta.
+  if (APP.veTudo) return true;
   return donoDaKey(key) === APP.sessao.nome;
 }
 
