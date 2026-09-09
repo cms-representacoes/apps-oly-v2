@@ -3258,11 +3258,16 @@ function rfvAbrir() {
       (APP.dic.faixa || []).map((f, j) => [String(f), j])
         .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
         .map(([rot, j]) => `<option value="${j}">${escHtml(rot)}</option>`).join(''));
+    RFV.montado = true;
+  }
+  // O período e quem está vendo — a mesma leitura do cabeçalho de produtos,
+  // para ninguém estranhar uma lista curta sem saber que entrou como vendedor.
+  {
     const p = RFV.meses.length
       ? `${mesCurtoRotulo(RFV.meses[0])} a ${mesCurtoRotulo(RFV.meses[RFV.meses.length - 1])}`
       : '—';
-    $('rfv-periodo').textContent = p + ' · faturado e carteira';
-    RFV.montado = true;
+    const quem = APP.sessao ? APP.sessao.nome : '';
+    $('rfv-periodo').textContent = p + (quem ? ' · ' + quem + (APP.veTudo ? ' · vendo tudo' : '') : '');
   }
   show('screen-rfv');
   rfvPintar();
@@ -3325,6 +3330,9 @@ function entrar() {
 function logout() {
   localStorage.removeItem(STORAGE.sessao);
   APP.sessao = null;
+  // Quem entrar depois pode ter outro papel: o filtro de vendedor do RFV
+  // é montado uma vez, e precisa ser montado de novo para a pessoa certa.
+  RFV.montado = false;
   APP.busca = '';
   $('busca').value = '';
   limparFiltros();
@@ -7094,7 +7102,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const ses = localStorage.getItem(STORAGE.sessao);
-  if (ses) { try { APP.sessao = JSON.parse(ses); } catch {} }
+  if (ses) {
+    try {
+      const guardada = JSON.parse(ses);
+      const p = PREPOSTOS.find(x => x.nome === (guardada && guardada.nome));
+      if (p) {
+        APP.sessao = { nome: p.nome, papel: p.papel };
+        if (p.papel !== guardada.papel) localStorage.setItem(STORAGE.sessao, JSON.stringify(APP.sessao));
+      }
+    } catch {}
+  }
   if (APP.sessao && APP.base) irParaProdutos();
 
   const r = await carregarBase({ silencioso: !!cache });
