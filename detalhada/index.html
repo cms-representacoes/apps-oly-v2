@@ -3343,28 +3343,37 @@ function rfvVend(e) {
 }
 
 function rfvFichas(A) {
-  // Dois indicadores, e um denominador só: a lista que está na tela. O
-  // primeiro é o tamanho dela — os clientes que sobraram depois dos
-  // filtros. O segundo conta quantos deles pararam no 2º semestre, e o
-  // percentual é sempre sobre o primeiro, com filtro de produto ou sem.
-  let semCompra = 0, comprou1 = 0, total = 0;
+  // Três leituras da mesma lista: quantos clientes ela tem, quantos
+  // compraram no 2º semestre e quantos pararam. Os dois últimos somam o
+  // primeiro, e os percentuais são sempre sobre ele — com filtro de
+  // produto ou sem.
+  let compraram = 0, semCompra = 0, total = 0;
   for (const [, e] of A.porCli) {
     if (!rfvPassaSit(e)) continue;
     total++;
-    if (e.p1 > 0) comprou1++;
-    if (e.p1 > 0 && e.p2 === 0) semCompra++;
+    if (e.p2 > 0) compraram++;
+    else if (e.p1 > 0) semCompra++;
   }
   const ligado = RFV.f.sit === 'so1';
-  const pc = total ? Math.round(100 * semCompra / total) + '%' : '—';
+  const pc = n => total ? Math.round(100 * n / total) + '%' : '\u2014';
+  // "2S26" sai do ano mais recente da base, não fica escrito à mão.
+  const ano = RFV.meses.length ? RFV.meses[RFV.meses.length - 1].slice(5) : '';
+  const rot = '2S' + ano;
 
   $('rfv-fichas').innerHTML = `
-    <div class="rfv-ficha pos" title="clientes com movimento no ano, já com os filtros aplicados">
-      <span class="num"><span class="v">${formatarNumero(total)}</span></span>
-      <span class="n">clientes ativos</span></div>
-    <button class="rfv-ficha ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
-            title="${formatarNumero(semCompra)} de ${formatarNumero(total)} na lista · ${formatarNumero(comprou1)} compraram no 1º semestre — clique para filtrar">
-      <span class="num"><span class="v">${formatarNumero(semCompra)}</span><span class="pc">${pc}</span></span>
-      <span class="n">sem compra no 2º sem.</span></button>`;
+    <div class="rfv-ficha" title="clientes com movimento no ano, já com os filtros aplicados">
+      <span class="n">clientes ativos</span>
+      <span class="v">${formatarNumero(total)}</span>
+      <span class="pc">${pc(total)}</span></div>
+    <div class="rfv-ficha pos" title="têm nota de julho em diante ou pedido em carteira">
+      <span class="n">compraram ${rot}</span>
+      <span class="v">${formatarNumero(compraram)}</span>
+      <span class="pc">${pc(compraram)}</span></div>
+    <button class="rfv-ficha neg ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
+            title="compraram no 1º semestre e não têm nada no 2º — clique para filtrar">
+      <span class="n">sem compra ${rot}</span>
+      <span class="v">${formatarNumero(semCompra)}</span>
+      <span class="pc">${pc(semCompra)}</span></button>`;
 
   const b = $('rfv-fSem');
   if (b) b.onclick = () => {
@@ -3630,10 +3639,20 @@ function rfvPintar() {
   rfvVeu();
 }
 
-/** Onde o cabeçalho da tabela deve parar: embaixo da barra de cima. */
+/** Duas medidas que a tela toma de si mesma: onde o cabeçalho da tabela
+ *  deve parar (embaixo da barra de cima) e quanta altura sobra para o
+ *  quadro. Conta fixa aqui envelhece — a barra muda de altura com a
+ *  fonte, com o zoom e com o formato das fichas. */
 function rfvMedirTopo() {
   const t = $('rfv-topo');
-  if (t) document.documentElement.style.setProperty('--rfv-topo-h', Math.round(t.getBoundingClientRect().height) + 'px');
+  if (t) document.documentElement.style.setProperty('--rfv-topo-h',
+    Math.round(t.getBoundingClientRect().height) + 'px');
+  const q = document.querySelector('.rfv-quadro, .rfv-mapa');
+  if (q) {
+    const topo = Math.max(0, q.getBoundingClientRect().top);
+    document.documentElement.style.setProperty('--rfv-alt',
+      Math.max(240, Math.round(innerHeight - topo - 12)) + 'px');
+  }
 }
 function rfvVeu() {
   veuDe($('rfv-fichas'));
@@ -7442,10 +7461,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('click', () => { if (RFV.aberto) rfvFecharLista(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && RFV.aberto) rfvFecharLista(); });
-  ligar('rfv-cidade', 'click', () => { RFV.verCidade = !RFV.verCidade; rfvPintar(); });
+  ligar('rfv-cidade', 'click', () => {
+    RFV.verCidade = !RFV.verCidade;
+    scrollTo(0, 0);   // a tabela passa a rolar por dentro; medir de cima
+    rfvPintar();
+  });
   document.querySelectorAll('.rfv-aba').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.rfv-aba').forEach(x => x.classList.toggle('on', x === b));
     RFV.visao = b.dataset.v;
+    scrollTo(0, 0);
     rfvPintar();
   }));
   // As duas faixas roláveis avisam, com o véu, que tem coisa fora da vista.
@@ -8200,21 +8224,23 @@ document.addEventListener('DOMContentLoaded', function(){
 
 /* Ficha de indicador: número grande, rótulo do lado. */
 .rfv-ficha{
-  display:flex; align-items:center; gap:8px; white-space:nowrap;
+  display:flex; flex-direction:column; align-items:flex-start; gap:1px; white-space:nowrap;
   background:var(--card-bg); border:1px solid var(--border);
-  border-radius:var(--r-sm); padding:4px 10px; font:inherit; color:var(--text);
+  border-radius:var(--r-sm); padding:5px 11px; font:inherit; color:var(--text);
 }
-/* Número em cima, percentual embaixo — a ficha continua com a mesma
-   altura da barra, que é a altura de um botão. */
-.rfv-ficha .num{ display:flex; flex-direction:column; align-items:flex-start; line-height:1; }
-.rfv-ficha .pc{ font-size:10px; font-weight:700; color:var(--text-3); margin-top:2px;
+/* Rótulo em cima, número no meio, percentual embaixo — o mesmo desenho do
+   placar do RFV, que a equipe já lê todo dia. */
+.rfv-ficha .n{ font-size:9px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+               line-height:1.1; color:var(--text-3); }
+.rfv-ficha .pc{ font-size:10px; font-weight:700; color:var(--text-3); line-height:1.1;
                 font-variant-numeric:tabular-nums; }
 button.rfv-ficha{ cursor:pointer; }
 button.rfv-ficha:hover{ border-color:var(--border-2); }
-.rfv-ficha .v{ font-size:16px; font-weight:800; letter-spacing:-.02em; line-height:1;
+.rfv-ficha .v{ font-size:17px; font-weight:800; letter-spacing:-.02em; line-height:1.1;
                font-variant-numeric:tabular-nums; }
 .rfv-ficha .n{ font-size:11px; font-weight:600; color:var(--text-2); line-height:1.15; }
-.rfv-ficha.pos .v{ color:var(--acao-manter); }
+.rfv-ficha.pos .v,.rfv-ficha.pos .n{ color:var(--acao-manter); }
+.rfv-ficha.neg .v,.rfv-ficha.neg .n{ color:var(--acao-cancelar); }
 .rfv-ficha.car .v{ color:var(--d-warn); }
 .rfv-ficha.on{ border-color:var(--primary); background:var(--primary-bg); }
 .rfv-ficha.on .n{ color:var(--primary-2); }
@@ -8278,7 +8304,7 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
    texto que fica, porque sem ela a cor não quer dizer nada. */
 .rfv-mapa{ margin:10px 0 0; border:1px solid var(--border); border-radius:var(--r-md);
            overflow:hidden; background:var(--card-bg); position:relative; z-index:0;
-           height:calc(100vh - 158px); height:calc(100dvh - 158px); min-height:300px; }
+           height:var(--rfv-alt, 520px); min-height:300px; }
 .rfv-mapa .leaflet-container{ height:100%; width:100%; background:var(--card-bg-2); }
 .rfv-legenda{ position:absolute; left:10px; bottom:10px; z-index:500; display:flex; gap:10px;
               align-items:center; background:var(--card-bg); border:1px solid var(--border);
@@ -8317,7 +8343,7 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
 .rfv-quadro{
   margin:10px 0 0; border:1px solid var(--border); border-radius:var(--r-md);
   background:var(--card-bg); overflow:auto;
-  max-height:calc(100vh - 150px); max-height:calc(100dvh - 150px); min-height:240px;
+  max-height:var(--rfv-alt, 520px); min-height:240px;
 }
 .rfv-quadro table{ border-collapse:separate; border-spacing:0; width:100%; min-width:920px; }
 .rfv-quadro th,.rfv-quadro td{ padding:0; text-align:center; }
@@ -8383,8 +8409,7 @@ html.dark .rfv-ficha.car .v{ color:var(--acao-repassar); }
   .rfv-quadro thead th{ top:var(--rfv-topo-h, 60px); }
   /* Com a coluna de cidade a tabela deixa de caber na janela: volta a
      rolar por dentro, e o cabeçalho gruda na moldura dela. */
-  .rfv-quadro.com-cidade{ overflow:auto; max-height:calc(100vh - 152px);
-                          max-height:calc(100dvh - 152px); }
+  .rfv-quadro.com-cidade{ overflow:auto; max-height:var(--rfv-alt, 520px); }
   .rfv-quadro.com-cidade thead th{ top:0; }
 }
 @media (max-width:640px){
