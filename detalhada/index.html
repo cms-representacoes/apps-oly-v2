@@ -3163,7 +3163,6 @@ function rfvApurar() {
   const nMes = RFV.meses.length, nFx = (APP.dic.faixa || []).length;
   const iMes = new Map(RFV.meses.map((m, i) => [m, i]));
 
-  const mes = RFV.meses.map(() => ({ fat: 0, car: 0 }));
   const porCli = new Map();
   const novo = () => ({ mf: new Array(nMes).fill(0), mc: new Array(nMes).fill(0),
                         a: new Array(nFx).fill(0), b: new Array(nFx).fill(0),
@@ -3201,7 +3200,7 @@ function rfvApurar() {
     if (r[C.FAT] && r[C.DFAT] >= 0) {
       const i = iMes.get(diaParaMes(r[C.DFAT]));
       if (i !== undefined) {
-        mes[i].fat += r[C.FAT]; e.mf[i] += r[C.FAT];
+        e.mf[i] += r[C.FAT];
         if (i >= RFV.corte) { e.b[fx] += r[C.FAT]; e.p2 += r[C.FAT]; }
         else                { e.a[fx] += r[C.FAT]; e.p1 += r[C.FAT]; }
       }
@@ -3210,14 +3209,14 @@ function rfvApurar() {
     if (r[C.CART] && r[C.PREV] >= 0) {
       const i = iMes.get(diaParaMes(r[C.PREV]));
       if (i !== undefined) {
-        mes[i].car += r[C.CART]; e.mc[i] += r[C.CART];
+        e.mc[i] += r[C.CART];
         // Pedido em aberto conta sempre no 2º semestre: é venda que ainda
         // vai acontecer, mesmo quando a previsão já venceu.
         e.b[fx] += r[C.CART]; e.p2 += r[C.CART]; e.car += r[C.CART];
       }
     }
   }
-  return { mes, porCli };
+  return { porCli };
 }
 
 /** As opções de um filtro. `busca` só é usada pelo de produto, onde a
@@ -3344,17 +3343,23 @@ function rfvVend(e) {
 }
 
 function rfvFichas(A) {
-  let ativos = 0, semCompra = 0, comprou1 = 0, fat = 0, car = 0;
+  // Os indicadores falam da lista que está na tela, e de mais nada. Se o
+  // filtro de Compra isolou 86 clientes, é sobre esses 86 que eles contam —
+  // antes o filtro de situação era o único que eles ignoravam, e o número
+  // grande discordava da lista logo abaixo dele.
+  let ativos = 0, semCompra = 0, comprou1 = 0, fat = 0, car = 0, total = 0;
   for (const [, e] of A.porCli) {
+    if (!rfvPassaSit(e)) continue;
+    total++;
     if (e.p2 > 0) ativos++;
     if (e.p1 > 0) comprou1++;
     if (e.p1 > 0 && e.p2 === 0) semCompra++;
+    for (let i = 0; i < e.mf.length; i++) { fat += e.mf[i]; car += e.mc[i]; }
   }
-  for (const m of A.mes) { fat += m.fat; car += m.car; }
   const ligado = RFV.f.sit === 'so1';
-  const total = A.porCli.size, pares = fat + car;
-  // O percentual embaixo do número diz de que ele é parte: cliente sobre a
-  // carteira, par sobre o ano. Sem isso, 230 e 971.534 nao querem dizer nada.
+  const pares = fat + car;
+  // Os dois de cliente têm o mesmo denominador — a lista. Bases diferentes
+  // lado a lado faziam 18% e 77% parecerem coisas comparáveis.
   const pc = (parte, todo) => todo ? Math.round(100 * parte / todo) + '%' : '—';
 
   $('rfv-fichas').innerHTML = `
@@ -3362,8 +3367,8 @@ function rfvFichas(A) {
       <span class="num"><span class="v">${formatarNumero(ativos)}</span><span class="pc">${pc(ativos, total)}</span></span>
       <span class="n">clientes ativos</span></div>
     <button class="rfv-ficha ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
-            title="De ${formatarNumero(comprou1)} que compraram no 1º semestre — clique para filtrar">
-      <span class="num"><span class="v">${formatarNumero(semCompra)}</span><span class="pc">${pc(semCompra, comprou1)}</span></span>
+            title="${formatarNumero(semCompra)} de ${formatarNumero(comprou1)} que compraram no 1º semestre — clique para filtrar">
+      <span class="num"><span class="v">${formatarNumero(semCompra)}</span><span class="pc">${pc(semCompra, total)}</span></span>
       <span class="n">sem compra no 2º sem.</span></button>
     <div class="rfv-ficha" title="de ${formatarNumero(pares)} pares no ano">
       <span class="num"><span class="v">${formatarNumero(fat)}</span><span class="pc">${pc(fat, pares)}</span></span>
@@ -3381,7 +3386,13 @@ function rfvFichas(A) {
 
 /* ── tela 1: cliente nas linhas, mês nas colunas ─────────────────────── */
 function rfvTelaMes(A) {
-  const mes = A.mes, linhas = rfvLinhas(A), verCid = rfvMostraCidade();
+  const linhas = rfvLinhas(A), verCid = rfvMostraCidade();
+  // O total de cada mês soma o que está na tela. Antes vinha de fora e
+  // discordava da lista sempre que o filtro de Compra estava ligado.
+  const mes = RFV.meses.map(() => ({ fat: 0, car: 0 }));
+  for (const l of linhas) {
+    for (let i = 0; i < RFV.meses.length; i++) { mes[i].fat += l.mf[i]; mes[i].car += l.mc[i]; }
+  }
   if (!linhas.length) return '<div class="rfv-quadro"><div class="rfv-vazio">Nenhum cliente com esses filtros.</div></div>';
 
   const hoje = diaParaMes(hojeEmDias());
