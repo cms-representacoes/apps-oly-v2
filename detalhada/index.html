@@ -3992,6 +3992,24 @@ function enviarAoAdmin(e) {
 // e continuar nas duas fazia o vendedor decidir de novo o que já decidiu.
 const ACOES_QUE_SAEM = new Set(['REPASSAR', 'OFERTA', 'CANCELAR']);
 
+/** Quem devolve a última encomenda para "Manter" esvazia a fila — e ficava
+ *  olhando uma tela em branco, precisando de mais um clique para sair dela.
+ *  A tela volta sozinha para Tudo.
+ *
+ *  Devolve `true` quando assumiu a repintura, para quem chamou não pintar
+ *  duas vezes. */
+function sairSeFilaVazia() {
+  if (APP.status !== 'MARCADAS') return false;
+  if (marcasDeRepasse().todas.length) return false;
+  APP.status = 'TUDO';
+  APP.pagina = 1;
+  APP.abertos.clear();
+  renderStatusChips();
+  render();
+  toast('Nada mais em transferências');
+  return true;
+}
+
 function indicesMarcados() {
   const fora = new Set();
   if (!MARCADO_SAI_DA_LISTA || !APP.acoes) return fora;
@@ -4170,8 +4188,7 @@ function renderMarcas() {
     }
     salvarAcoes();
     agendarEnvio(mexidas);
-    renderStatusChips();
-    render();
+    if (!sairSeFilaVazia()) { renderStatusChips(); render(); }
     toast(`${concluidos.length} transferência(s) arquivada(s) · continuam no painel do escritório`);
   });
 
@@ -6533,8 +6550,10 @@ function ligarLista() {
       // lista de novo — senão o card marcado fica na tela até o próximo
       // render, e some sozinho depois, sem motivo aparente.
       const sai = MARCADO_SAI_DA_LISTA && (ACOES_QUE_SAEM.has(acao) || ACOES_QUE_SAEM.has(anteriorAcao));
-      if (naListaDeRepasses() || sai) { renderStatusChips(); render(); }
-      else { alvos.forEach(repintarLinha); renderStatusChips(); }
+      if (!sairSeFilaVazia()) {
+        if (naListaDeRepasses() || sai) { renderStatusChips(); render(); }
+        else { alvos.forEach(repintarLinha); renderStatusChips(); }
+      }
 
       if (irmas.length > 1 && acao !== ACAO_PADRAO) {
         toast(`GCI ${r[C.GCI]} tem ${irmas.length} itens — todos foram marcados como ${acao.toLowerCase()}`, 3500);
