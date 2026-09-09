@@ -7746,7 +7746,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
 /* Faixa que rola para os dois lados quando não cabe — fichas em cima,
    filtros embaixo. Mesmo comportamento da barra da tela de produtos. */
-.rfv-caixa{ position:relative; flex:1 1 0; min-width:0; }
+.rfv-caixa{ position:relative; min-width:0; }
+.rfv-topo-in .rfv-caixa{ flex:1 1 0; }
+.rfv-caixa-filtros{ flex:0 0 auto; }
 .rfv-fichas,.rfv-barra{
   display:flex; align-items:center; gap:7px;
   overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
@@ -7755,6 +7757,7 @@ document.addEventListener('DOMContentLoaded', function(){
 .rfv-fichas::-webkit-scrollbar,.rfv-barra::-webkit-scrollbar{ display:none; }
 .rfv-fichas > *,.rfv-barra > *{ flex:0 0 auto; }
 .rfv-caixa-filtros{ margin:10px 0 0; }
+#rfv-tela{ flex:0 0 auto; }
 .rfv-caixa::before,.rfv-caixa::after{
   content:''; position:absolute; top:0; bottom:0; width:22px;
   pointer-events:none; opacity:0; transition:opacity .15s; z-index:2;
