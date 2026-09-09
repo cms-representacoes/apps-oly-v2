@@ -1936,6 +1936,10 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
           <i class="fa-solid fa-file-arrow-up"></i>
         </button>
+        <button class="btn-icon" id="btn-rfv"
+                title="RFV da carteira — quem comprou em cada semestre">
+          <i class="fa-solid fa-chart-column"></i>
+        </button>
         <button class="btn-icon" id="btn-atualizar" title="Buscar base mais recente">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
@@ -2087,6 +2091,52 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
   <!-- =================================================================
        TELA 3 — ADMIN (subir a Detalhada do dia)
        ================================================================= -->
+  <!-- =================================================================
+       TELA 4 — RFV DA CARTEIRA
+       Uma linha por cliente, uma coluna por mês. Verde é nota emitida,
+       âmbar é pedido em aberto: onde o verde para e o âmbar não começa,
+       o cliente parou.
+       ================================================================= -->
+  <div id="screen-rfv" class="screen">
+    <div class="rfv-topo" id="rfv-topo">
+      <div class="rfv-topo-in">
+        <button class="btn-icon" id="btn-voltar-rfv" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="rfv-tit">
+          <div class="logo-text">RFV da carteira</div>
+          <div class="logo-sub" id="rfv-periodo">—</div>
+        </div>
+        <div class="rfv-caixa"><div class="rfv-fichas" id="rfv-fichas"></div></div>
+        <button class="btn-icon" id="btn-tema-3" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="rfv-caixa rfv-caixa-filtros">
+      <div class="rfv-barra" id="rfv-barra">
+        <div class="rfv-abas" role="tablist">
+          <button class="rfv-aba on" data-v="mes" role="tab">Por mês</button>
+          <button class="rfv-aba" data-v="faixa" role="tab">Por faixa</button>
+        </div>
+        <select id="rfv-vend" class="rfv-campo" title="Vendedor"><option value="">Todos os vendedores</option></select>
+        <select id="rfv-marca" class="rfv-campo" title="Marca"><option value="">Todas as marcas</option></select>
+        <select id="rfv-linha" class="rfv-campo" title="Linha de produto"><option value="">Todas as linhas</option></select>
+        <select id="rfv-sit" class="rfv-campo" title="Quem comprou em cada semestre">
+          <option value="">Todas as situações</option>
+          <option value="dois">Comprou nos dois semestres</option>
+          <option value="so1">Comprou no 1º semestre</option>
+          <option value="so2">Comprou no 2º semestre</option>
+        </select>
+        <input id="rfv-busca" class="rfv-campo" type="search" placeholder="Cliente ou código…" autocomplete="off">
+        <button class="rfv-limpar" id="rfv-limpar" hidden>Limpar filtros</button>
+      </div>
+    </div>
+
+    <div id="rfv-tela"></div>
+  </div>
+
   <div id="screen-admin" class="screen">
     <div class="topbar">
       <div class="topbar-left">
@@ -2921,6 +2971,301 @@ async function carregarGrade(fam) {
     console.warn(`grade ${FAMILIAS[fam].rot}: nao consegui buscar`, e);
   }
   return 'falhou';
+}
+
+
+/* ============================================================
+   RFV DA CARTEIRA — quem comprou em cada semestre
+   ============================================================
+   A pergunta é simples: quem comprava e parou. O que torna a
+   resposta confiável é a carteira — sem ela, o cliente que tem
+   3.000 pares para novembro apareceria como perdido, e o
+   vendedor iria cobrar quem já comprou.
+
+   Por isso "comprou no 2º semestre" = faturou no período OU tem
+   pedido em aberto. Foi a regra que a CMS escolheu.
+
+   Tudo sai de APP.L na hora: nenhum arquivo novo, nenhuma ação
+   no worker. A tela abre com o que a base do dia já trouxe.
+   ============================================================ */
+
+const RFV = { visao: 'mes', meses: [], corte: 0, montado: false };
+
+/* Olympikus e Under Armour: a base guarda a marca junto da categoria
+   (MEOLY, UA_TN...), e aqui só interessa de quem é a marca. */
+const rfvMarcaGrupo = m => String(m).toUpperCase().startsWith('UA') ? 'Under Armour' : 'Olympikus';
+
+/** Os meses que a base tem, do mais antigo ao mais novo. */
+function rfvMontarMeses() {
+  const vistos = new Set();
+  for (const r of APP.L) {
+    if (r[C.FAT] && r[C.DFAT] >= 0)  vistos.add(diaParaMes(r[C.DFAT]));
+    if (r[C.CART] && r[C.PREV] >= 0) vistos.add(diaParaMes(r[C.PREV]));
+  }
+  RFV.meses = [...vistos].sort((a, b) => mesOrdenavel(a).localeCompare(mesOrdenavel(b)));
+  // O corte do semestre sai do ano mais recente da base: julho em diante
+  // é o 2º semestre, e a carteira de janeiro do ano seguinte entra nele.
+  const ano = RFV.meses.length ? RFV.meses[RFV.meses.length - 1].slice(3) : '';
+  RFV.corte = RFV.meses.findIndex(m => m.slice(3) > ano || (m.slice(3) === ano && Number(m.slice(0, 2)) >= 7));
+  if (RFV.corte < 0) RFV.corte = RFV.meses.length;
+}
+
+/** Uma passada na base, já com a trava do vendedor e os filtros da tela.
+ *  Devolve o total de cada mês e, por cliente, o mês a mês e a linha. */
+function rfvApurar() {
+  const fVend  = $('rfv-vend').value;
+  const fMarca = $('rfv-marca').value;
+  const fLinha = $('rfv-linha').value;
+  const busca  = $('rfv-busca').value.trim().toLowerCase();
+  const nMes = RFV.meses.length, nFx = (APP.dic.faixa || []).length;
+  const iMes = new Map(RFV.meses.map((m, i) => [m, i]));
+
+  const mes = RFV.meses.map(() => ({ fat: 0, car: 0 }));
+  const porCli = new Map();
+
+  for (const r of APP.L) {
+    // Vendedor vê a carteira dele; a CMS vê a de todos.
+    if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) continue;
+    if (fVend && APP.dic.prep[r[C.PREP]] !== fVend) continue;
+    if (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) continue;
+    if (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) continue;
+
+    const cli = APP.dic.cli[r[C.CLI]];
+    if (busca && !String(cli[1]).toLowerCase().includes(busca) && !String(cli[0]).includes(busca)) continue;
+
+    let e = porCli.get(r[C.CLI]);
+    if (!e) {
+      e = { mf: new Array(nMes).fill(0), mc: new Array(nMes).fill(0),
+            a: new Array(nFx).fill(0), b: new Array(nFx).fill(0),
+            p1: 0, p2: 0, car: 0, ult: -1, prep: new Map() };
+      porCli.set(r[C.CLI], e);
+    }
+    const fx = r[C.FAIXA];
+    const q = (r[C.CART] || 0) + (r[C.FAT] || 0);
+    if (q) e.prep.set(r[C.PREP], (e.prep.get(r[C.PREP]) || 0) + q);
+
+    if (r[C.FAT] && r[C.DFAT] >= 0) {
+      const i = iMes.get(diaParaMes(r[C.DFAT]));
+      if (i !== undefined) {
+        mes[i].fat += r[C.FAT]; e.mf[i] += r[C.FAT];
+        if (i >= RFV.corte) { e.b[fx] += r[C.FAT]; e.p2 += r[C.FAT]; }
+        else                { e.a[fx] += r[C.FAT]; e.p1 += r[C.FAT]; }
+      }
+      if (r[C.DFAT] > e.ult) e.ult = r[C.DFAT];
+    }
+    if (r[C.CART] && r[C.PREV] >= 0) {
+      const i = iMes.get(diaParaMes(r[C.PREV]));
+      if (i !== undefined) {
+        mes[i].car += r[C.CART]; e.mc[i] += r[C.CART];
+        // Pedido em aberto conta sempre no 2º semestre: é venda que ainda
+        // vai acontecer, mesmo quando a previsão já venceu.
+        e.b[fx] += r[C.CART]; e.p2 += r[C.CART]; e.car += r[C.CART];
+      }
+    }
+  }
+  return { mes, porCli };
+}
+
+/* '' = todas · dois · so1 (comprou só no 1º) · so2 (entrou no 2º) */
+const rfvSituacao = e => e.p1 > 0 && e.p2 > 0 ? 'dois' : e.p1 > 0 ? 'so1' : e.p2 > 0 ? 'so2' : '';
+const rfvPassaSit = e => { const f = $('rfv-sit').value; return !f || rfvSituacao(e) === f; };
+
+/** Linhas da tela, já ordenadas: o maior volume do ano primeiro. */
+function rfvLinhas(A) {
+  const out = [];
+  for (const [ci, e] of A.porCli) {
+    if (!rfvPassaSit(e)) continue;
+    const cli = APP.dic.cli[ci];
+    out.push({ cod: String(cli[0]), nome: String(cli[1]), ...e,
+               parou: e.p1 > 0 && e.p2 === 0, total: e.p1 + e.p2, ci });
+  }
+  out.sort((x, y) => y.total - x.total);
+  return out;
+}
+
+/** O vendedor só aparece para quem enxerga a carteira de todos. Quem está
+ *  logado como vendedor veria o próprio nome em toda linha — não informa
+ *  nada e empurra o nome do cliente para o lado. */
+function rfvVend(e) {
+  if (!APP.veTudo || !e.prep) return '';
+  let melhor = -1, top = -1;
+  for (const [k, v] of e.prep) if (v > top) { top = v; melhor = k; }
+  return melhor >= 0 ? APP.dic.prep[melhor] : '';
+}
+
+function rfvFichas(A) {
+  let ativos = 0, semCompra = 0, fat = 0, car = 0;
+  for (const [, e] of A.porCli) {
+    if (e.p2 > 0) ativos++;
+    if (e.p1 > 0 && e.p2 === 0) semCompra++;
+  }
+  for (const m of A.mes) { fat += m.fat; car += m.car; }
+  const ligado = $('rfv-sit').value === 'so1';
+
+  $('rfv-fichas').innerHTML = `
+    <div class="rfv-ficha pos"><span class="v">${formatarNumero(ativos)}</span><span class="n">clientes ativos</span></div>
+    <button class="rfv-ficha ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
+            title="Compraram no 1º semestre e não no 2º — clique para filtrar">
+      <span class="v">${formatarNumero(semCompra)}</span><span class="n">sem compra no 2º sem.</span></button>
+    <div class="rfv-ficha"><span class="v">${formatarNumero(fat)}</span><span class="n">pares faturados</span></div>
+    <div class="rfv-ficha car"><span class="v">${formatarNumero(car)}</span><span class="n">pares em carteira</span></div>`;
+
+  const b = $('rfv-fSem');
+  if (b) b.onclick = () => {
+    $('rfv-sit').value = $('rfv-sit').value === 'so1' ? '' : 'so1';
+    rfvPintar();
+  };
+}
+
+/* ── tela 1: cliente nas linhas, mês nas colunas ─────────────────────── */
+function rfvTelaMes(A) {
+  const mes = A.mes, linhas = rfvLinhas(A);
+  if (!linhas.length) return '<div class="rfv-quadro"><div class="rfv-vazio">Nenhum cliente com esses filtros.</div></div>';
+
+  const hoje = diaParaMes(hojeEmDias());
+  const cor = m => m.fat && m.car ? 'rfv-mix' : m.car ? 'rfv-car' : 'rfv-fat';
+  const cel = (f, c, extra) => {
+    const t = f + c;
+    if (!t) return `<td class="${extra}rfv-zero">·</td>`;
+    const titulo = f && c ? `${formatarNumero(f)} faturado · ${formatarNumero(c)} em carteira`
+                          : c ? 'em carteira' : 'faturado';
+    return `<td class="${extra}${cor({ fat: f, car: c })}" title="${escHtml(titulo)}">${formatarNumero(t)}</td>`;
+  };
+
+  const cab = RFV.meses.map((m, i) => `<th class="${i === RFV.corte ? 'sem2' : ''}"
+      title="${formatarNumero(mes[i].fat)} faturado · ${formatarNumero(mes[i].car)} em carteira">
+      ${escHtml(mesCurtoRotulo(m))}${m === hoje ? '<span class="obs">em curso</span>' : ''}
+      <span class="tot ${cor(mes[i])}">${mes[i].fat + mes[i].car ? formatarNumero(mes[i].fat + mes[i].car) : '—'}</span>
+    </th>`).join('');
+
+  const s1 = mes.slice(0, RFV.corte).reduce((s, m) => s + m.fat + m.car, 0);
+  const s2 = mes.slice(RFV.corte).reduce((s, m) => s + m.fat + m.car, 0);
+
+  const corpo = linhas.map(l => {
+    const vend = rfvVend(l);
+    return `<tr>
+      <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
+        <span class="nome">${escHtml(l.nome)}</span>
+        <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}${l.parou ? ' · parou no 2º sem.' : ''}</span></td>
+      ${RFV.meses.map((_, i) => cel(l.mf[i], l.mc[i], i === RFV.corte ? 'sem2 ' : '')).join('')}
+      <td class="stot">${l.p1 ? formatarNumero(l.p1) : '—'}</td>
+      <td class="stot ${l.parou ? 'rfv-zero' : ''}">${l.p2 ? formatarNumero(l.p2) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="rfv-quadro"><table>
+      <thead><tr>
+        <th class="cli presa">Cliente<span class="obs">${formatarNumero(linhas.length)} na lista</span></th>
+        ${cab}
+        <th>1º sem.<span class="tot">${formatarNumero(s1)}</span></th>
+        <th>2º sem.<span class="tot">${formatarNumero(s2)}</span></th>
+      </tr></thead>
+      <tbody>${corpo}</tbody>
+    </table></div>`;
+}
+
+/* ── tela 2: cliente nas linhas, linha de produto nas colunas ────────── */
+function rfvTelaFaixa(A) {
+  const faixas = APP.dic.faixa || [];
+  const nFx = faixas.length;
+  // Ordem fixa, da linha mais vendida para a menos: as primeiras colunas
+  // são as que se lê. Não muda com o filtro, para a tabela não dançar.
+  const peso = new Array(nFx).fill(0);
+  for (const [, e] of A.porCli) for (let j = 0; j < nFx; j++) peso[j] += e.a[j] + e.b[j];
+  const ordem = faixas.map((_, j) => j).sort((x, y) => peso[y] - peso[x]);
+
+  const linhas = [];
+  for (const [ci, e] of A.porCli) {
+    if (!rfvPassaSit(e)) continue;
+    const est = new Array(nFx);
+    let perdidas = 0, parados = 0;
+    for (let j = 0; j < nFx; j++) {
+      est[j] = e.a[j] && e.b[j] ? 1 : e.a[j] ? 2 : e.b[j] ? 3 : 0;
+      if (est[j] === 2) { perdidas++; parados += e.a[j]; }
+    }
+    const cli = APP.dic.cli[ci];
+    linhas.push({ ci, cod: String(cli[0]), nome: String(cli[1]), est, e,
+                  perdidas, parados, parou: e.p1 > 0 && e.p2 === 0, total: e.p1 + e.p2 });
+  }
+  linhas.sort((x, y) => (y.parou - x.parou) || (y.parados - x.parados) || (y.total - x.total));
+  if (!linhas.length) return '<div class="rfv-quadro"><div class="rfv-vazio">Nenhum cliente com esses filtros.</div></div>';
+
+  const cel = (l, j) => {
+    const x = l.est[j], a = l.e.a[j], b = l.e.b[j];
+    if (!x) return '<span class="rfv-cel rfv-c0">·</span>';
+    const t = `${faixas[j]} · 1º sem. ${formatarNumero(a)} · 2º sem. ${formatarNumero(b)}`;
+    if (x === 1) return `<span class="rfv-cel rfv-c1" title="${escHtml(t)}">${formatarNumero(b)}</span>`;
+    if (x === 2) return `<span class="rfv-cel rfv-c2" title="${escHtml(t)} · parou">${formatarNumero(a)}</span>`;
+    return `<span class="rfv-cel rfv-c3" title="${escHtml(t)} · entrou no 2º semestre">${formatarNumero(b)}</span>`;
+  };
+
+  const cab = ordem.map(j => `<th title="${escHtml(faixas[j])}">${escHtml(faixas[j])}</th>`).join('');
+  const corpo = linhas.map(l => {
+    const vend = rfvVend(l.e);
+    return `<tr>
+      <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
+        <span class="nome">${escHtml(l.nome)}</span>
+        <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''} · ${l.parou
+          ? 'última nota ' + (l.e.ult >= 0 ? diaParaBR(l.e.ult) : '—')
+          : l.perdidas ? 'parou ' + l.perdidas + '/' + nFx : 'sem perda'}</span></td>
+      ${ordem.map(j => `<td>${cel(l, j)}</td>`).join('')}
+    </tr>`;
+  }).join('');
+
+  return `<div class="rfv-quadro"><table>
+      <thead><tr><th class="cli presa">Cliente<span class="obs">${formatarNumero(linhas.length)} na lista</span></th>${cab}</tr></thead>
+      <tbody>${corpo}</tbody>
+    </table></div>`;
+}
+
+function rfvPintar() {
+  if (!APP.base) return;
+  const A = rfvApurar();
+  rfvFichas(A);
+  $('rfv-tela').innerHTML = RFV.visao === 'mes' ? rfvTelaMes(A) : rfvTelaFaixa(A);
+  $('rfv-limpar').hidden = !($('rfv-vend').value || $('rfv-marca').value || $('rfv-linha').value ||
+                             $('rfv-sit').value || $('rfv-busca').value.trim());
+  rfvMedirTopo();
+  rfvVeu();
+}
+
+/** Onde o cabeçalho da tabela deve parar: embaixo da barra de cima. */
+function rfvMedirTopo() {
+  const t = $('rfv-topo');
+  if (t) document.documentElement.style.setProperty('--rfv-topo-h', Math.round(t.getBoundingClientRect().height) + 'px');
+}
+function rfvVeu() {
+  veuDe($('rfv-fichas'));
+  veuDe($('rfv-barra'));
+}
+
+function rfvAbrir() {
+  if (!APP.base) { toast('A base ainda não carregou'); return; }
+  if (!RFV.montado) {
+    rfvMontarMeses();
+    // Vendedor não escolhe vendedor: ele só tem a carteira dele.
+    const selV = $('rfv-vend');
+    if (APP.veTudo) {
+      const nomes = [...new Set(APP.dic.prep)].sort();
+      selV.insertAdjacentHTML('beforeend', nomes.map(v => `<option>${escHtml(v)}</option>`).join(''));
+    } else {
+      selV.style.display = 'none';
+    }
+    $('rfv-marca').insertAdjacentHTML('beforeend',
+      [...new Set((APP.dic.marca || []).map(rfvMarcaGrupo))].sort()
+        .map(m => `<option>${escHtml(m)}</option>`).join(''));
+    $('rfv-linha').insertAdjacentHTML('beforeend',
+      (APP.dic.faixa || []).map((f, j) => [String(f), j])
+        .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
+        .map(([rot, j]) => `<option value="${j}">${escHtml(rot)}</option>`).join(''));
+    const p = RFV.meses.length
+      ? `${mesCurtoRotulo(RFV.meses[0])} a ${mesCurtoRotulo(RFV.meses[RFV.meses.length - 1])}`
+      : '—';
+    $('rfv-periodo').textContent = p + ' · faturado e carteira';
+    RFV.montado = true;
+  }
+  show('screen-rfv');
+  rfvPintar();
 }
 
 /* ============================================================
@@ -6665,6 +7010,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligar('tb-faixa', 'scroll', atualizarVeuRolagem);
 
   ligar('btn-admin', 'click', () => { atualizarFonteInfo(); show('screen-admin'); });
+
+  // ── RFV da carteira ────────────────────────────────────────────────
+  ligar('btn-rfv', 'click', rfvAbrir);
+  ligar('btn-voltar-rfv', 'click', () => { show('screen-produtos'); render(); });
+  ligar('btn-tema-3', 'click', toggleTema);
+  ['rfv-vend', 'rfv-marca', 'rfv-linha', 'rfv-sit', 'rfv-busca']
+    .forEach(id => ligar(id, 'input', rfvPintar));
+  ligar('rfv-limpar', 'click', () => {
+    ['rfv-vend', 'rfv-marca', 'rfv-linha', 'rfv-sit', 'rfv-busca'].forEach(id => { $(id).value = ''; });
+    rfvPintar();
+  });
+  document.querySelectorAll('.rfv-aba').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.rfv-aba').forEach(x => x.classList.toggle('on', x === b));
+    RFV.visao = b.dataset.v;
+    rfvPintar();
+  }));
+  // As duas faixas roláveis avisam, com o véu, que tem coisa fora da vista.
+  ['rfv-fichas', 'rfv-barra'].forEach(id => ligar(id, 'scroll', () => veuDe($(id))));
+  addEventListener('resize', () => { rfvMedirTopo(); rfvVeu(); });
   ligar('btn-voltar-admin', 'click', () => { show('screen-produtos'); render(); });
   ligar('file-xlsx', 'change', (e) => {
     const f = e.target.files[0];
@@ -7364,6 +7728,133 @@ document.addEventListener('DOMContentLoaded', function(){
   .painel-detalhada{ padding:0 12px 10px; }
   .painel-detalhada .frozen-header{ margin-left:-12px; margin-right:-12px;
                                     padding-left:12px; padding-right:12px; }
+}
+
+/* ============================================================
+   RFV DA CARTEIRA
+   As cores e as medidas são as do resto do app; o que muda aqui
+   é a densidade — a tela existe para caber muita linha.
+   ============================================================ */
+.rfv-topo{
+  position:sticky; top:0; z-index:12; background:var(--bg-1);
+  border-bottom:1px solid var(--border); margin:0 -16px;
+}
+.rfv-topo-in{ display:flex; align-items:center; gap:10px; padding:10px 16px; }
+.rfv-tit{ min-width:0; }
+.rfv-tit .logo-text{ white-space:nowrap; }
+.rfv-tit .logo-sub{ white-space:nowrap; }
+
+/* Faixa que rola para os dois lados quando não cabe — fichas em cima,
+   filtros embaixo. Mesmo comportamento da barra da tela de produtos. */
+.rfv-caixa{ position:relative; flex:1 1 0; min-width:0; }
+.rfv-fichas,.rfv-barra{
+  display:flex; align-items:center; gap:7px;
+  overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; -ms-overflow-style:none; padding:2px 0;
+}
+.rfv-fichas::-webkit-scrollbar,.rfv-barra::-webkit-scrollbar{ display:none; }
+.rfv-fichas > *,.rfv-barra > *{ flex:0 0 auto; }
+.rfv-caixa-filtros{ margin:10px 0 0; }
+.rfv-caixa::before,.rfv-caixa::after{
+  content:''; position:absolute; top:0; bottom:0; width:22px;
+  pointer-events:none; opacity:0; transition:opacity .15s; z-index:2;
+}
+.rfv-caixa::after { right:0; background:linear-gradient(90deg, transparent, var(--bg-1)); }
+.rfv-caixa::before{ left:0;  background:linear-gradient(270deg, transparent, var(--bg-1)); }
+.rfv-caixa.rolavel::after     { opacity:1; }
+.rfv-caixa.rolavel-esq::before{ opacity:1; }
+
+/* Ficha de indicador: número grande, rótulo do lado. */
+.rfv-ficha{
+  display:flex; align-items:baseline; gap:6px; white-space:nowrap;
+  background:var(--card-bg); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:5px 10px; font:inherit; color:var(--text);
+}
+button.rfv-ficha{ cursor:pointer; }
+button.rfv-ficha:hover{ border-color:var(--border-2); }
+.rfv-ficha .v{ font-size:17px; font-weight:800; letter-spacing:-.02em; line-height:1.15;
+               font-variant-numeric:tabular-nums; }
+.rfv-ficha .n{ font-size:11px; font-weight:600; color:var(--text-2); line-height:1.15; }
+.rfv-ficha.pos .v{ color:var(--acao-manter); }
+.rfv-ficha.car .v{ color:var(--d-warn); }
+.rfv-ficha.on{ border-color:var(--primary); background:var(--primary-bg); }
+.rfv-ficha.on .n{ color:var(--primary-2); }
+
+.rfv-abas{ display:flex; gap:4px; background:var(--card-bg); border:1px solid var(--border);
+           border-radius:9px; padding:3px; }
+.rfv-aba{ font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; border:0;
+          border-radius:6px; padding:7px 13px; background:transparent; color:var(--text-2);
+          white-space:nowrap; }
+.rfv-aba.on{ background:var(--primary); color:#fff; }
+.rfv-campo{ font:inherit; font-size:13px; color:var(--text); background:var(--card-bg);
+            border:1px solid var(--border); border-radius:var(--r-sm); padding:7px 10px; }
+.rfv-campo:focus{ outline:none; border-color:var(--primary); }
+#rfv-busca{ width:170px; }
+.rfv-limpar{ font:inherit; font-size:12px; font-weight:600; cursor:pointer; background:none;
+             border:0; color:var(--primary-2); padding:6px 4px; text-decoration:underline; }
+
+/* ── a tabela ─────────────────────────────────────────────────────────
+   Numa tela larga as colunas cabem e quem rola é a página: assim o
+   cabeçalho para embaixo da barra de cima em vez de parar na moldura. */
+.rfv-quadro{
+  margin:10px 0 0; border:1px solid var(--border); border-radius:var(--r-md);
+  background:var(--card-bg); overflow:auto;
+  max-height:calc(100vh - 150px); max-height:calc(100dvh - 150px); min-height:240px;
+}
+.rfv-quadro table{ border-collapse:separate; border-spacing:0; width:100%; min-width:920px; }
+.rfv-quadro th,.rfv-quadro td{ padding:0; text-align:center; }
+.rfv-quadro thead th{
+  position:sticky; top:0; z-index:2; background:var(--card-bg-2);
+  box-shadow:inset 0 -1px 0 var(--border-2);
+  padding:7px 6px; font-size:10.5px; font-weight:800; letter-spacing:.03em;
+  text-transform:uppercase; color:var(--text); white-space:nowrap; vertical-align:bottom;
+}
+.rfv-quadro thead .tot{ display:block; margin-top:3px; font-size:12px; font-weight:800;
+  letter-spacing:0; text-transform:none; font-variant-numeric:tabular-nums; }
+.rfv-quadro thead .obs{ display:block; font-size:9px; font-weight:700; color:var(--text-2);
+  letter-spacing:.03em; }
+.rfv-quadro tbody td{ border-top:1px solid var(--border); padding:6px 6px; font-size:12.5px;
+  font-variant-numeric:tabular-nums; }
+.rfv-quadro tbody tr:hover td{ background:var(--card-bg-2); }
+/* Coluna do cliente presa: com doze meses a tabela rola e o nome tem de ficar */
+.rfv-quadro .presa{ position:sticky; left:0; z-index:1; background:var(--card-bg);
+  box-shadow:1px 0 0 var(--border); }
+.rfv-quadro thead th.presa{ z-index:3; background:var(--card-bg-2); }
+.rfv-quadro tbody tr:hover .presa{ background:var(--card-bg-2); }
+.rfv-quadro td.cli,.rfv-quadro th.cli{ text-align:left; padding-left:12px; min-width:190px; }
+.rfv-quadro td.cli{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+.rfv-quadro td.cli .nome{ font-weight:600; }
+.rfv-quadro td.cli .sub{ color:var(--text-2); font-size:11px; }
+.rfv-quadro .sem2{ border-left:2px solid var(--border-2); }
+.rfv-fat{ color:var(--acao-manter); font-weight:700; }
+.rfv-car{ color:var(--d-warn); font-weight:700; }
+/* No escuro o âmbar do prazo fica marrom demais contra o fundo; o do
+   "Repassar" é o mesmo papel com contraste. */
+html.dark .rfv-car,
+html.dark .rfv-ficha.car .v{ color:var(--acao-repassar); }
+.rfv-mix{ font-weight:700; }
+.rfv-zero{ color:var(--text-3); }
+.rfv-quadro td.stot{ font-weight:800; background:var(--card-bg-2); }
+.rfv-cel{ display:inline-flex; min-width:38px; justify-content:center; padding:3px 6px;
+  border-radius:6px; font-weight:700; font-size:12px; }
+.rfv-c1{ background:var(--primary-soft); color:var(--acao-manter); }
+.rfv-c2{ background:var(--card-bg-2); color:var(--text-2); }
+.rfv-c3{ background:var(--tag-gci-bg); color:var(--tag-gci-fg); }
+.rfv-c0{ color:var(--text-3); font-weight:500; }
+.rfv-vazio{ padding:34px 14px; text-align:center; color:var(--text-2); font-size:13px; }
+
+/* Telas largas: as colunas cabem, o quadro para de rolar por dentro e o
+   cabeçalho gruda embaixo da barra de cima. */
+@media (min-width:1000px){
+  .rfv-quadro{ overflow:visible; max-height:none; min-height:0; }
+  .rfv-quadro table{ min-width:0; }
+  .rfv-quadro thead th{ top:var(--rfv-topo-h, 60px); }
+}
+@media (max-width:640px){
+  .rfv-topo-in{ padding:8px 12px; gap:8px; }
+  .rfv-quadro td.cli,.rfv-quadro th.cli{ min-width:130px; max-width:150px; padding-left:10px; }
+  .rfv-quadro tbody td,.rfv-quadro thead th{ padding:6px; font-size:11.5px; }
+  #rfv-busca{ width:150px; }
 }
 </style>
 
