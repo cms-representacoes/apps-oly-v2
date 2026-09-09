@@ -3165,26 +3165,35 @@ function rfvApurar() {
 
   const mes = RFV.meses.map(() => ({ fat: 0, car: 0 }));
   const porCli = new Map();
+  const novo = () => ({ mf: new Array(nMes).fill(0), mc: new Array(nMes).fill(0),
+                        a: new Array(nFx).fill(0), b: new Array(nFx).fill(0),
+                        p1: 0, p2: 0, car: 0, ult: -1, prep: new Map() });
+  // Com um produto escolhido a pergunta vira outra: não é quem comprou, é
+  // quem NÃO comprou. Então o cliente entra na lista mesmo sem uma linha do
+  // produto — zerado, que é a resposta. Nos demais filtros a lista continua
+  // sendo só de quem tem o que se pediu.
+  const abrirLista = fRef >= 0;
 
   for (const r of APP.L) {
     // Vendedor vê a carteira dele; a CMS vê a de todos.
     if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) continue;
     if (fVend && APP.dic.prep[r[C.PREP]] !== fVend) continue;
-    if (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) continue;
-    if (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) continue;
-    if (fRef >= 0 && r[C.REF] !== fRef) continue;
-    if (fCor >= 0 && r[C.COR] !== fCor) continue;
 
     const cli = APP.dic.cli[r[C.CLI]];
     if (busca && !String(cli[1]).toLowerCase().includes(busca) && !String(cli[0]).includes(busca)) continue;
 
     let e = porCli.get(r[C.CLI]);
-    if (!e) {
-      e = { mf: new Array(nMes).fill(0), mc: new Array(nMes).fill(0),
-            a: new Array(nFx).fill(0), b: new Array(nFx).fill(0),
-            p1: 0, p2: 0, car: 0, ult: -1, prep: new Map() };
-      porCli.set(r[C.CLI], e);
+    if (!e && abrirLista && (r[C.CART] || r[C.FAT])) {
+      e = novo(); porCli.set(r[C.CLI], e);
+      e.prep.set(r[C.PREP], (e.prep.get(r[C.PREP]) || 0) + (r[C.CART] || 0) + (r[C.FAT] || 0));
     }
+
+    if (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) continue;
+    if (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) continue;
+    if (fRef >= 0 && r[C.REF] !== fRef) continue;
+    if (fCor >= 0 && r[C.COR] !== fCor) continue;
+
+    if (!e) { e = novo(); porCli.set(r[C.CLI], e); }
     const fx = r[C.FAIXA];
     const q = (r[C.CART] || 0) + (r[C.FAT] || 0);
     if (q) e.prep.set(r[C.PREP], (e.prep.get(r[C.PREP]) || 0) + q);
