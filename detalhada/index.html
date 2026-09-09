@@ -2434,9 +2434,17 @@ const MARCADO_SAI_DA_LISTA = true;
 const C = { PREP: 0, CLI: 1, MARCA: 2, FAB: 3, FIL: 4, REF: 5, COR: 6, GCI: 7, NF: 8, OC: 9, PREV: 10, CART: 11, FAT: 12, DFAT: 13,
   // No fim de propósito: uma base publicada antes disso tem 14 campos e
   // continua sendo lida — só fica sem o filtro de faixa.
-  FAIXA: 14 };
+  FAIXA: 14,
+  // Código do líder comercial e do financeiro. O comercial é a chave que o
+  // relatório RFV usa: sem ele, cruzar as duas bases só funciona para a
+  // loja que é a própria matriz. Base antiga não tem os dois — vem
+  // `undefined`, e quem lê trata como "sem líder".
+  COMER: 15, FINAN: 16 };
 
 const COLUNAS_XLSX = ['PREPOSTO', 'NOME FANTASIA', 'CODIGO', 'MARCA', 'FAIXA', 'FABRICA', 'FILIAL', 'NF', 'OC', 'GCI', 'REFERENCIA', 'DESCRICAO', 'COR', 'PREV FAT', 'CART', 'FAT', 'DATA FAT'];
+// Colunas que uma planilha gerada antes desta mudança não tem. Faltando, a
+// importação segue e a base sai sem elas.
+const COLUNAS_XLSX_OPCIONAIS = ['COD. COMER', 'COD. FINAN'];
 
 const OPCOES_ORDEM = [
   { id: 'mais_pares',   label: 'Mais pares' },
@@ -2632,6 +2640,7 @@ async function cacheLer(chave = 'base') {
    BASE
    ============================================================ */
 function instalarBase(base) {
+  LIDER_CLI = null;   // outra base, outro mapa de líder
   APP.base = base;
   APP.dic = base.dic;
   APP.L = base.l;
@@ -3129,7 +3138,39 @@ function rfvBuscarCidades() {
   return CIDADES.buscando;
 }
 
-const cidadeDe = cod => (CIDADES.mapa && CIDADES.mapa[String(cod)]) || null;
+/* Código do líder comercial de cada cliente, tirado da própria base.
+   É a chave do RFV: lá a linha é do grupo, não da loja. Uma base publicada
+   antes de a coluna existir simplesmente não tem `comer`, e aí a ponte fica
+   sem uso — sem quebrar nada. */
+let LIDER_CLI = null;
+function liderDe(cod) {
+  if (!LIDER_CLI) {
+    LIDER_CLI = new Map();
+    const dc = APP.dic && APP.dic.comer;
+    if (dc && dc.length) {
+      for (const r of APP.L) {
+        const i = r[C.COMER];
+        if (i == null || i < 0) continue;
+        const c = String(APP.dic.cli[r[C.CLI]][0]);
+        if (!LIDER_CLI.has(c)) LIDER_CLI.set(c, String(dc[i]));
+      }
+    }
+  }
+  return LIDER_CLI.get(String(cod)) || '';
+}
+
+/** A cidade de uma loja, na ordem em que se confia nela:
+ *  1. a da própria loja, do cadastro do portal;
+ *  2. a que o RFV traz para aquele código, quando a loja é a matriz;
+ *  3. a do líder comercial dela — mesma que o RFV usa para o grupo. */
+function cidadeDe(cod) {
+  if (!CIDADES.mapa) return null;
+  const direto = CIDADES.mapa[String(cod)];
+  if (direto) return direto;
+  const lider = liderDe(cod);
+  const doGrupo = lider && CIDADES.mapa[lider];
+  return doGrupo ? { ...doGrupo, fonte: 'grupo' } : null;
+}
 
 
 /* Olympikus e Under Armour: a base guarda a marca junto da categoria
@@ -7091,6 +7132,13 @@ function acharColuna(row, nome) {
   return null;
 }
 
+/** Código que às vezes vem como número: 21511 não pode virar "21511.0". */
+function codigoDaCelula(v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(v);
+  return String(v).trim();
+}
+
 function dataParaDias(v) {
   if (v == null || v === '') return -1;
   if (v instanceof Date) return Math.floor(Date.UTC(v.getFullYear(), v.getMonth(), v.getDate()) / 86400000);
@@ -7105,9 +7153,9 @@ function dataParaDias(v) {
 
 function montarBase(rows, nomeArquivo) {
   const dicPrep = [], dicMarca = [], dicFaixa = [], dicFab = [], dicFil = [], dicCor = [], dicOc = [];
-  const dicCli = [], dicRef = [];
+  const dicCli = [], dicRef = [], dicComer = [], dicFinan = [];
   const iPrep = new Map(), iMarca = new Map(), iFaixa = new Map(), iFab = new Map(), iFil = new Map(), iCor = new Map(), iOc = new Map();
-  const iCli = new Map(), iRef = new Map();
+  const iCli = new Map(), iRef = new Map(), iComer = new Map(), iFinan = new Map();
 
   const idxSimples = (mapa, lista, v) => {
     let i = mapa.get(v);
@@ -7117,6 +7165,7 @@ function montarBase(rows, nomeArquivo) {
 
   const K = {};
   for (const nome of COLUNAS_XLSX) K[nome] = acharColuna(rows[0] || {}, nome);
+  for (const nome of COLUNAS_XLSX_OPCIONAIS) K[nome] = acharColuna(rows[0] || {}, nome);
   const faltando = COLUNAS_XLSX.filter(n => !K[n] && n !== 'PORTA' && n !== 'FAIXA');
 
   // `let` porque a trava de duplicatas, mais abaixo, troca a lista pela
@@ -7172,6 +7221,11 @@ function montarBase(rows, nomeArquivo) {
       // apareceria como uma opção em branco na lista do filtro.
       (() => { const fx = String(row[K['FAIXA']] ?? '').trim();
                return fx ? idxSimples(iFaixa, dicFaixa, fx) : -1; })(),
+      // Também no fim, e também podendo ser -1: são a ponte com o RFV.
+      (() => { const v = codigoDaCelula(row[K['COD. COMER']]);
+               return v ? idxSimples(iComer, dicComer, v) : -1; })(),
+      (() => { const v = codigoDaCelula(row[K['COD. FINAN']]);
+               return v ? idxSimples(iFinan, dicFinan, v) : -1; })(),
     ]);
   }
 
@@ -7238,7 +7292,9 @@ function montarBase(rows, nomeArquivo) {
       gerado: new Date().toISOString(),
       origem: nomeArquivo,
       dataDia,
-      dic: { prep: dicPrep, cli: dicCli, marca: dicMarca, faixa: dicFaixa, fab: dicFab, fil: dicFil, ref: dicRef, cor: dicCor, oc: dicOc },
+      dic: { prep: dicPrep, cli: dicCli, marca: dicMarca, faixa: dicFaixa, fab: dicFab,
+             fil: dicFil, ref: dicRef, cor: dicCor, oc: dicOc,
+             comer: dicComer, finan: dicFinan },
       l: linhas,
     },
     avisos,
