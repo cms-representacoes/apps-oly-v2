@@ -3414,37 +3414,49 @@ async function rfvDesenharMapa(A) {
     const xy = RFV_COORD[chave];
     if (!xy) continue;
     let g = porCidade.get(chave);
-    if (!g) { g = { cidade: c.cidade, uf: c.uf, xy, total: 0, ativos: 0, pares: 0,
-                    comprando: [], parados: [] }; porCidade.set(chave, g); }
+    if (!g) { g = { cidade: c.cidade, uf: c.uf, xy, total: 0, ativos: 0, pares: 0, lojas: [] };
+              porCidade.set(chave, g); }
     g.total++; g.pares += e.p1 + e.p2;
-    const loja = { nome: String(cli[1]), cod: String(cli[0]), pares: e.p2 || e.p1 };
-    if (e.p2 > 0) { g.ativos++; g.comprando.push(loja); } else g.parados.push(loja);
+    if (e.p2 > 0) g.ativos++;
+    g.lojas.push({ nome: String(cli[1]), p1: e.p1, p2: e.p2, ativo: e.p2 > 0 });
   }
 
   const pontos = [];
   for (const g of porCidade.values()) {
     const pc = g.total ? g.ativos / g.total : 0;
     const cor = rfvCorCobertura(pc);
-    const lista = (lojas, classe) => lojas
-      .sort((a, b) => b.pares - a.pares)
-      .map(l => `<li class="${classe}"><span>${escHtml(l.nome)}</span>` +
-                `<b>${formatarNumero(l.pares)}</b></li>`).join('');
+    // O mesmo balão do RFV: dois pontos por loja — comprou no 1º semestre,
+    // comprou no 2º — e a passagem de um para o outro à direita. Quem parou
+    // vem primeiro, que é a pergunta que traz alguém ao mapa.
+    const ponto = (ok, tip) =>
+      `<span class="pt ${ok ? 'sim' : 'nao'}" title="${escHtml(tip)}"></span>`;
+    const lista = g.lojas.slice()
+      .sort((a, b) => (a.ativo - b.ativo) || (b.p1 + b.p2) - (a.p1 + a.p2))
+      .map(l => `<div class="loja">${ponto(l.p1 > 0, '1º sem.: ' + formatarNumero(l.p1) + ' pares')}` +
+                `${ponto(l.p2 > 0, '2º sem.: ' + formatarNumero(l.p2) + ' pares')}` +
+                `<span class="nm">${escHtml(l.nome)}</span>` +
+                `<span class="qt">${formatarNumero(l.p1)} &rarr; ${formatarNumero(l.p2)}</span></div>`)
+      .join('');
+
     L.circleMarker(g.xy, {
       radius: Math.min(22, 5 + Math.sqrt(g.total) * 2.6),
-      color: cor, weight: 1.5, fillColor: cor, fillOpacity: .55
+      color: '#fff', weight: 1.4, fillColor: cor, fillOpacity: .72
     })
       .bindTooltip(`<b>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</b> · ` +
                    `${g.ativos} de ${g.total} comprando`, { direction: 'top' })
-      // O balão é onde a pergunta é respondida: quais lojas pararam.
       .bindPopup(
-        // Quem parou vem primeiro: é a pergunta que traz alguém ao mapa,
-        // e numa cidade grande a outra lista empurraria ela para fora da vista.
-        `<div class="rfv-balao"><h4>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</h4>` +
-        (g.parados.length ? `<p class="cab neg">Sem compra no 2º sem. · ${g.parados.length}</p>
-           <ul>${lista(g.parados, 'neg')}</ul>` : '') +
-        (g.comprando.length ? `<p class="cab pos">Comprando · ${g.comprando.length}</p>
-           <ul>${lista(g.comprando, 'pos')}</ul>` : '') +
-        `</div>`, { maxWidth: 300, maxHeight: 250 })
+        `<div class="rfv-balao">
+          <div class="tit">${escHtml(g.cidade)}${g.uf ? ' / ' + escHtml(g.uf) : ''}
+            <span class="n">&middot; ${g.total} ${g.total === 1 ? 'loja' : 'lojas'}</span></div>
+          <div class="placar"><span class="pos">${g.ativos} comprando</span> &middot;
+            <span class="neg">${g.total - g.ativos} n&atilde;o</span> &middot;
+            ${Math.round(100 * pc)}% no 2&ordm; sem.</div>
+          <div class="corpo">
+            <div class="cab"><span class="pt">1S</span><span class="pt">2S</span>
+              <span class="nm">Loja</span><span class="qt">Pares</span></div>
+            <div class="rol">${lista}</div>
+          </div>
+        </div>`, { maxWidth: 340 })
       .addTo(RFV.camada);
     pontos.push(g.xy);
   }
@@ -8106,19 +8118,27 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
 .rfv-legenda i{ width:10px; height:10px; border-radius:50%; flex:none; }
 .rfv-carregando{ position:absolute; inset:0; display:grid; place-items:center; z-index:600;
                  background:var(--card-bg); color:var(--text-2); font-size:13px; }
-.rfv-balao h4{ margin:0 0 6px; font-size:13px; font-weight:800; color:var(--text); }
-.rfv-balao .cab{ margin:8px 0 3px; font-size:9.5px; font-weight:800; letter-spacing:.06em;
-                 text-transform:uppercase; }
-.rfv-balao .cab.pos{ color:var(--acao-manter); }
-.rfv-balao .cab.neg{ color:var(--acao-cancelar); }
-.rfv-balao ul{ margin:0; padding:0; list-style:none; }
-.rfv-balao li{ display:flex; justify-content:space-between; gap:10px; font-size:12px;
-               padding:2px 0; border-top:1px solid var(--border); }
-.rfv-balao li:first-child{ border-top:0; }
-.rfv-balao li b{ font-variant-numeric:tabular-nums; color:var(--text-2); }
-.rfv-balao li.neg span{ color:var(--text-2); }
-.leaflet-popup-content{ margin:10px 12px; }
-.leaflet-popup-content-wrapper{ border-radius:var(--r-sm); }
+.rfv-balao{ min-width:255px; color:var(--text); }
+.rfv-balao .tit{ font-size:13px; font-weight:600; }
+.rfv-balao .tit .n{ font-weight:400; color:var(--text-3); font-size:11.5px; }
+.rfv-balao .placar{ font-size:11.5px; margin-top:3px; color:var(--text-2); }
+.rfv-balao .placar .pos{ color:var(--acao-manter); }
+.rfv-balao .placar .neg{ color:var(--acao-cancelar); }
+.rfv-balao .corpo{ margin-top:8px; border-top:1px solid var(--border); padding-top:6px; }
+.rfv-balao .cab{ display:flex; align-items:center; gap:6px; font-size:9.5px; letter-spacing:.06em;
+                 text-transform:uppercase; color:var(--text-3); padding:0 0 3px; }
+.rfv-balao .rol{ max-height:180px; overflow:auto; }
+.rfv-balao .loja{ display:flex; align-items:center; gap:6px; padding:2px 0; font-size:12.5px; }
+.rfv-balao .pt{ width:8px; height:8px; border-radius:50%; flex:none; display:inline-block; }
+.rfv-balao .cab .pt{ width:8px; height:auto; border-radius:0; text-align:center; }
+.rfv-balao .pt.sim{ background:var(--acao-manter); }
+.rfv-balao .pt.nao{ background:var(--acao-cancelar); }
+.rfv-balao .nm{ margin-left:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rfv-balao .qt{ margin-left:auto; padding-left:10px; color:var(--text-3); font-size:11px;
+                font-variant-numeric:tabular-nums; white-space:nowrap; }
+.leaflet-popup-content{ margin:10px 12px; font-family:inherit; font-size:13px; }
+.leaflet-popup-content-wrapper{ border-radius:var(--r-sm); background:var(--card-bg); color:var(--text); }
+.leaflet-popup-tip{ background:var(--card-bg); }
 
 
 /* ── a tabela ─────────────────────────────────────────────────────────
