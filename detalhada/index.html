@@ -2104,7 +2104,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
           <i class="fa-solid fa-arrow-left"></i>
         </button>
         <div class="rfv-tit">
-          <div class="logo-text">RFV da carteira</div>
+          <div class="logo-text" id="rfv-nome">RFV da carteira</div>
           <div class="logo-sub" id="rfv-periodo">—</div>
         </div>
         <div class="rfv-caixa"><div class="rfv-fichas" id="rfv-fichas"></div></div>
@@ -2119,7 +2119,12 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <div class="rfv-abas" role="tablist">
           <button class="rfv-aba on" data-v="mes" role="tab">Por mês</button>
           <button class="rfv-aba" data-v="faixa" role="tab">Por faixa</button>
+          <button class="rfv-aba" data-v="mapa" role="tab">Mapa</button>
         </div>
+        <button class="rfv-tgl" id="rfv-cidade" type="button" hidden
+                title="Mostrar ou ocultar a coluna de cidade">
+          <i class="fa-solid fa-location-dot"></i> Cidade
+        </button>
         <select id="rfv-vend" class="rfv-campo" title="Vendedor"><option value="">Todos os vendedores</option></select>
         <select id="rfv-marca" class="rfv-campo" title="Marca"><option value="">Todas as marcas</option></select>
         <select id="rfv-linha" class="rfv-campo" title="Linha de produto"><option value="">Todas as linhas</option></select>
@@ -2989,7 +2994,85 @@ async function carregarGrade(fam) {
    no worker. A tela abre com o que a base do dia já trouxe.
    ============================================================ */
 
-const RFV = { visao: 'mes', meses: [], corte: 0, montado: false };
+const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null };
+
+/* ── cidade de cada loja, emprestada do RFV ──────────────────────────────
+   A Detalhada não tem cidade: a base do dia traz preposto, cliente e
+   produto. Quem tem é o relatório RFV, que a CMS publica pelo mesmo
+   worker — 400 KB de planilha com Líder, Cidade e UF.
+
+   Então a tela busca de lá, uma vez, e guarda no cache do aparelho. Se o
+   RFV não tiver sido publicado, a coluna e o mapa simplesmente não
+   aparecem: são um complemento, não uma dependência. */
+const RFV_COORD = {"RUSSAS|CE":[-4.9267,-37.9721],"NAZARE DO PIAUI|PI":[-6.9702,-42.6773],"BEBERIBE|CE":[-4.1774,-38.1271],"GUIMARAES|MA":[-2.1275,-44.602],"FLORIANO|PI":[-6.7718,-43.0241],"ARACOIABA|CE":[-4.3687,-38.8125],"UBAJARA|CE":[-3.8545,-40.9204],"MIRINZAL|MA":[-2.0709,-44.7787],"OROS|CE":[-6.2518,-38.9053],"TIANGUA|CE":[-3.7296,-40.9923],"SAO PEDRO DA AGUA BRANCA|MA":[-5.0847,-48.4291],"MIGUEL ALVES|PI":[-4.1686,-42.8963],"AURORA|CE":[-6.9335,-38.9742],"GRANJA|CE":[-3.1279,-40.8372],"AQUIRAZ|CE":[-3.8993,-38.3896],"LUZILANDIA|PI":[-3.4683,-42.3718],"SAO JOAO DO PIAUI|PI":[-8.3547,-42.2559],"VARJOTA|CE":[-4.1939,-40.4741],"CURURUPU|MA":[-1.8148,-44.8644],"SAO GONCALO DO AMARANTE|CE":[-3.6052,-38.9726],"IBIAPINA|CE":[-3.924,-40.8911],"PADRE MARCOS|PI":[-7.351,-40.8997],"BREJO DE AREIA|MA":[-4.334,-45.581],"FORTIM|CE":[-4.4513,-37.7981],"CAPINZAL DO NORTE|MA":[-4.7236,-44.328],"ALTANEIRA|CE":[-6.9984,-39.7356],"AMAPA DO MARANHAO|MA":[-1.6752,-46.0024],"PIRIPIRI|PI":[-4.2716,-41.7716],"ITINGA DO MARANHAO|MA":[-4.4529,-47.5235],"ALTO PARNAIBA|MA":[-9.1027,-45.9303],"PACO DO LUMIAR|MA":[-2.5166,-44.1019],"SITIO NOVO|MA":[-5.876,-46.7033],"PACUJA|CE":[-3.9833,-40.6989],"RERIUTABA|CE":[-4.1419,-40.5759],"SAO JOAO DO ARRAIAL|PI":[-3.8186,-42.4459],"DEMERVAL LOBAO|PI":[-5.3587,-42.6776],"SAO VICENTE FERRER|MA":[-2.8949,-44.8681],"PORTEIRAS|CE":[-7.5226,-39.114],"ALTO ALEGRE DO MARANHAO|MA":[-4.213,-44.446],"COREAU|CE":[-3.5415,-40.6587],"ACARAU|CE":[-2.8877,-40.1183],"BARRA DO CORDA|MA":[-5.4968,-45.2485],"LIMOEIRO DO NORTE|CE":[-5.1439,-38.0847],"DEPUTADO IRAPUAN PINHEIRO|CE":[-5.9149,-39.257],"CANDIDO MENDES|MA":[-1.4326,-45.7161],"RIACHAO|MA":[-7.3582,-46.6225],"VARGEM GRANDE|MA":[-3.5364,-43.917],"VARZEA ALEGRE|CE":[-6.7826,-39.2942],"ANTONINA DO NORTE|CE":[-6.7692,-39.987],"SAO LUIS|MA":[-2.5387,-44.2825],"IRACEMA|CE":[-5.8124,-38.2919],"REGENERACAO|PI":[-6.2312,-42.6842],"CANINDE|CE":[-4.3516,-39.3155],"SIMOES|PI":[-7.5911,-40.8137],"SAO LUIS DO CURU|CE":[-3.6698,-39.2391],"BURITI|MA":[-3.9417,-42.9179],"SANTANA DO ACARAU|CE":[-3.4614,-40.2118],"ROSARIO|MA":[-2.9344,-44.2531],"PIMENTEIRAS|PI":[-6.2384,-41.4113],"PARAIPABA|CE":[-3.438,-39.1479],"HIDROLANDIA|CE":[-4.4096,-40.4056],"URUCUI|PI":[-7.2394,-44.5577],"MULUNGU|CE":[-4.3029,-38.9951],"CAMPO ALEGRE DO FIDALGO|PI":[-8.3824,-41.8344],"BOA VIAGEM|CE":[-5.1126,-39.7337],"PACOTI|CE":[-4.2249,-38.922],"BARREIRINHAS|MA":[-2.7586,-42.8232],"LORETO|MA":[-7.0811,-45.1451],"JAGUARIBARA|CE":[-5.6776,-38.5359],"CARIUS|CE":[-6.5243,-39.4916],"SENADOR SA|CE":[-3.3531,-40.4662],"MANOEL EMIDIO|PI":[-8.0123,-43.8755],"BALSAS|MA":[-7.5321,-46.0372],"JAICOS|PI":[-7.3623,-41.1371],"NOVA OLINDA DO MARANHAO|MA":[-2.8423,-45.6953],"INDEPENDENCIA|CE":[-5.3879,-40.3085],"JARDIM|CE":[-7.576,-39.2826],"JACOBINA DO PIAUI|PI":[-7.9306,-41.2075],"MORADA NOVA|CE":[-5.0974,-38.3702],"CANTO DO BURITI|PI":[-8.1111,-42.9517],"TUNTUM|MA":[-5.2548,-44.6444],"PAULO RAMOS|MA":[-4.4448,-45.2398],"MUCAMBO|CE":[-3.9027,-40.7452],"CARUTAPERA|MA":[-1.197,-46.0085],"BREJO|MA":[-3.678,-42.7527],"INHUMA|PI":[-6.665,-41.7041],"CONCEICAO DO LAGO-ACU|MA":[-3.8514,-44.8895],"FRONTEIRAS|PI":[-7.0817,-40.6146],"PEREIRO|CE":[-6.0358,-38.4624],"CRATO|CE":[-7.2153,-39.4103],"LAJEADO NOVO|MA":[-6.1854,-47.0293],"GUADALUPE|PI":[-6.7828,-43.5594],"ALTO SANTO|CE":[-5.5089,-38.2743],"PASTOS BONS|MA":[-6.603,-44.0745],"PRESIDENTE DUTRA|MA":[-5.2898,-44.495],"GRAJAU|MA":[-5.8137,-46.1462],"LAGOA DO MATO|MA":[-6.0502,-43.5333],"ELESBAO VELOSO|PI":[-6.1995,-42.1355],"JAGUARETAMA|CE":[-5.6051,-38.7639],"AGUA DOCE DO MARANHAO|MA":[-2.8405,-42.1189],"BATURITE|CE":[-4.326,-38.8812],"GUARACIABA DO NORTE|CE":[-4.1581,-40.7476],"CROATA|CE":[-4.4048,-40.9022],"PALHANO|CE":[-4.7367,-37.9655],"QUIXERAMOBIM|CE":[-5.1907,-39.2889],"CURRAL NOVO DO PIAUI|PI":[-7.8313,-40.8957],"ITAREMA|CE":[-2.9248,-39.9167],"MIRANDA DO NORTE|MA":[-3.5631,-44.5814],"CORRENTE|PI":[-10.4333,-45.1633],"COELHO NETO|MA":[-4.2524,-43.0108],"ESPERANTINOPOLIS|MA":[-4.8794,-44.6926],"PENAFORTE|CE":[-7.8216,-39.0707],"SANTA LUZIA DO PARUA|MA":[-2.5112,-45.7801],"CAXIAS|MA":[-4.8651,-43.3617],"ACAILANDIA|MA":[-4.9471,-47.5004],"UNIAO|PI":[-4.5857,-42.8583],"PORTO|PI":[-3.8881,-42.6998],"SENADOR LA ROCQUE|MA":[-5.4461,-47.2959],"GOVERNADOR LUIZ ROCHA|MA":[-5.4783,-44.0774],"SAO MIGUEL DO TAPUIO|PI":[-5.4973,-41.3165],"RIBEIRO GONCALVES|PI":[-7.5565,-45.2447],"IGUATU|CE":[-6.3628,-39.2892],"NOVA OLINDA|CE":[-7.0842,-39.6713],"QUITERIANOPOLIS|CE":[-5.8425,-40.7002],"CHAPADINHA|MA":[-3.7388,-43.3538],"PEDRO DO ROSARIO|MA":[-2.9727,-45.3493],"SAO DOMINGOS DO AZEITAO|MA":[-6.8147,-44.6509],"MAGALHAES DE ALMEIDA|MA":[-3.3923,-42.2117],"VIANA|MA":[-3.2045,-44.9912],"CAMOCIM|CE":[-2.9005,-40.8544],"SAO ROBERTO|MA":[-5.0231,-45.001],"ITAITINGA|CE":[-3.9658,-38.5298],"CAPISTRANO|CE":[-4.4557,-38.9048],"TRAIRI|CE":[-3.2693,-39.2681],"CAROLINA|MA":[-7.3358,-47.4634],"ARACATI|CE":[-4.5583,-37.7679],"BURITI BRAVO|MA":[-5.8324,-43.8353],"BERTOLINIA|PI":[-7.6334,-43.9498],"JAGUARIBE|CE":[-5.9021,-38.6227],"DOM PEDRO|MA":[-5.0352,-44.4409],"BURITICUPU|MA":[-4.3238,-46.4409],"TURILANDIA|MA":[-2.2164,-45.3044],"POCAO DE PEDRAS|MA":[-4.7463,-44.9432],"PORTO FRANCO|MA":[-6.3415,-47.3962],"SAO RAIMUNDO NONATO|PI":[-9.0124,-42.6987],"LUIS CORREIA|PI":[-2.8844,-41.6641],"SAO JOAO DO JAGUARIBE|CE":[-5.2752,-38.2694],"PICOS|PI":[-7.0772,-41.467],"CIDELANDIA|MA":[-5.1746,-47.7781],"SAO DOMINGOS DO MARANHAO|MA":[-5.5809,-44.3822],"MARCOLANDIA|PI":[-7.4417,-40.6602],"IPU|CE":[-4.3175,-40.7059],"PASSAGEM FRANCA|MA":[-6.1775,-43.7755],"GRACA|CE":[-4.0442,-40.749],"SAO JOSE DE RIBAMAR|MA":[-2.547,-44.0597],"VICOSA DO CEARA|CE":[-3.5667,-41.0916],"ESPERANTINA|PI":[-3.8886,-42.2324],"CRISTINO CASTRO|PI":[-8.8227,-44.223],"MILHA|CE":[-5.6725,-39.1875],"SIMPLICIO MENDES|PI":[-7.8529,-41.9075],"ICO|CE":[-6.3963,-38.8554],"ESTREITO|MA":[-6.5608,-47.4431],"CATARINA|CE":[-6.1229,-39.8736],"VITORINO FREIRE|MA":[-4.2818,-45.2505],"LAGOA GRANDE DO MARANHAO|MA":[-4.9889,-45.3816],"BREJO SANTO|CE":[-7.4847,-38.9799],"MONSENHOR TABOSA|CE":[-4.791,-40.0646],"QUIXERE|CE":[-5.0715,-37.9802],"CAPITAO GERVASIO OLIVEIRA|PI":[-8.4965,-41.814],"PIO XII|MA":[-3.8931,-45.1759],"CEDRO|CE":[-6.6003,-39.0609],"BARRO|CE":[-7.1719,-38.7741],"SANTA CRUZ DO PIAUI|PI":[-7.1785,-41.7609],"CAUCAIA|CE":[-3.728,-38.6619],"SAO RAIMUNDO DAS MANGABEIRAS|MA":[-7.0218,-45.4809],"SANTA INES|MA":[-3.6511,-45.3774],"MARACANAU|CE":[-3.867,-38.6259],"PENALVA|MA":[-3.2767,-45.1768],"OEIRAS|PI":[-7.0191,-42.1283],"ARARIPE|CE":[-7.2132,-40.1359],"PACATUBA|CE":[-3.9784,-38.6183],"BELA CRUZ|CE":[-3.05,-40.1671],"SAO JOAO DOS PATOS|MA":[-6.4934,-43.7036],"MATA ROMA|MA":[-3.6204,-43.1112],"MORROS|MA":[-2.8538,-44.0357],"SAO MATEUS DO MARANHAO|MA":[-4.0374,-44.4707],"SEBASTIAO LEAL|PI":[-7.568,-44.06],"PEDREIRAS|MA":[-4.5648,-44.6006],"SANTA QUITERIA DO MARANHAO|MA":[-3.4931,-42.5688],"PARAIBANO|MA":[-6.4264,-43.9792],"TABULEIRO DO NORTE|CE":[-5.2435,-38.1282],"ANAJATUBA|MA":[-3.2627,-44.6126],"SANTA QUITERIA|CE":[-4.3261,-40.1523],"COROATA|MA":[-4.1344,-44.1244],"SAO JOAO DO PARAISO|MA":[-6.4563,-47.0594],"SANTA RITA|MA":[-3.1424,-44.3211],"OCARA|CE":[-4.4852,-38.5933],"QUIXADA|CE":[-4.9663,-39.0155],"JIJOCA DE JERICOACOARA|CE":[-2.7933,-40.5127],"MOMBACA|CE":[-5.7384,-39.63],"CAMPESTRE DO MARANHAO|MA":[-6.1707,-47.3625],"BACABEIRA|MA":[-2.9645,-44.3164],"ARAME|MA":[-4.8835,-46.0032],"GOVERNADOR NUNES FREIRE|MA":[-2.129,-45.8777],"AMARANTE|PI":[-6.243,-42.8433],"BAIXA GRANDE DO RIBEIRO|PI":[-7.849,-45.219],"ITAIPAVA DO GRAJAU|MA":[-5.1425,-45.7877],"ASSUNCAO DO PIAUI|PI":[-5.865,-41.0389],"URUBURETAMA|CE":[-3.6232,-39.5107],"ARARI|MA":[-3.4521,-44.7665],"PALMEIRA DO PIAUI|PI":[-8.7308,-44.2466],"PARAUAPEBAS|PA":[-6.0678,-49.9037],"ALCANTARA|MA":[-2.3957,-44.4062],"CARNAUBAL|CE":[-4.1598,-40.9413],"BARAO DE GRAJAU|MA":[-6.7446,-43.0261],"PINHEIRO|MA":[-2.5222,-45.0788],"PIQUET CARNEIRO|CE":[-5.8003,-39.417],"SAO BERNARDO|MA":[-3.3722,-42.4191],"AMARANTE DO MARANHAO|MA":[-5.5691,-46.7473],"BATALHA|PI":[-4.0223,-42.0787],"AGUA BRANCA|PI":[-5.8886,-42.637],"SOBRAL|CE":[-3.6891,-40.3482],"ITAUEIRA|PI":[-7.5999,-43.0249],"JOSE DE FREITAS|PI":[-4.7515,-42.5746],"COCAL DOS ALVES|PI":[-3.6205,-41.4402],"ALDEIAS ALTAS|MA":[-4.6262,-43.4689],"JAGUARUANA|CE":[-4.8315,-37.781],"CAMPOS SALES|CE":[-7.0676,-40.3687],"SENADOR ALEXANDRE COSTA|MA":[-5.251,-44.0533],"CENTRO NOVO DO MARANHAO|MA":[-2.127,-46.1228],"COCAL|PI":[-3.4728,-41.5546],"BARREIRA|CE":[-4.2892,-38.6429],"BOM JESUS|PI":[-9.0712,-44.359],"MATIAS OLIMPIO|PI":[-3.7149,-42.5507],"ANISIO DE ABREU|PI":[-9.1856,-43.0494],"LAGOA DE SAO FRANCISCO|PI":[-4.385,-41.5969],"HUMBERTO DE CAMPOS|MA":[-2.5983,-43.4649],"CAPITAO DE CAMPOS|PI":[-4.457,-41.944],"GOVERNADOR NEWTON BELLO|MA":[-3.4324,-45.6619],"ACAUA|PI":[-8.2195,-41.0831],"ASSARE|CE":[-6.8669,-39.8689],"ZE DOCA|MA":[-3.2701,-45.6553],"ICAPUI|CE":[-4.7121,-37.3531],"TERESINA|PI":[-5.0919,-42.8034],"SANTA HELENA|MA":[-2.2443,-45.29],"PEDRO II|PI":[-4.4258,-41.4482],"CARIRIACU|CE":[-7.0281,-39.2828],"CASCAVEL|CE":[-4.1297,-38.2412],"GOVERNADOR EDISON LOBAO|MA":[-5.7497,-47.3646],"CAJARI|MA":[-3.3274,-45.0145],"GILBUES|PI":[-9.83,-45.3423],"GUAIUBA|CE":[-4.0406,-38.6404],"MAURITI|CE":[-7.386,-38.7708],"BACABAL|MA":[-4.2245,-44.7832],"PACAJUS|CE":[-4.1711,-38.465],"IBICUITINGA|CE":[-4.97,-38.6362],"FRECHEIRINHA|CE":[-3.7556,-40.818],"TARRAFAS|CE":[-6.6784,-39.753],"CRATEUS|CE":[-5.1677,-40.6536],"URBANO SANTOS|MA":[-3.2064,-43.3878],"TAUA|CE":[-5.9859,-40.2968],"LAGO DA PEDRA|MA":[-4.5697,-45.1319],"JUAZEIRO DO NORTE|CE":[-7.1962,-39.3076],"POTENGI|CE":[-7.0915,-40.0233],"APUIARES|CE":[-3.9451,-39.4359],"ALTAMIRA DO MARANHAO|MA":[-4.166,-45.4706],"IPUEIRAS|CE":[-4.538,-40.7118],"MADALENA|CE":[-4.846,-39.5725],"PARNARAMA|MA":[-5.6737,-43.1011],"SAO JOSE DO DIVINO|PI":[-3.8141,-41.8308],"MISSAO VELHA|CE":[-7.2352,-39.143],"BELA VISTA DO MARANHAO|MA":[-3.7262,-45.3075],"NOSSA SENHORA DOS REMEDIOS|PI":[-3.9757,-42.6184],"CRUZ|CE":[-2.9181,-40.176],"TAMBORIL|CE":[-4.8314,-40.3196],"PARAMBU|CE":[-6.2077,-40.6905],"IMPERATRIZ|MA":[-5.5185,-47.4777],"LAGO DOS RODRIGUES|MA":[-4.6117,-44.9798],"SAO BENTO|MA":[-2.6978,-44.8289],"CODO|MA":[-4.4556,-43.8924],"NOVA RUSSAS|CE":[-4.7058,-40.5621],"COLINAS|MA":[-6.032,-44.2543],"PAULISTANA|PI":[-8.1344,-41.1431],"PARACURU|CE":[-3.4144,-39.03],"VALENCA DO PIAUI|PI":[-6.403,-41.7375],"PARNAIBA|PI":[-2.9059,-41.7754],"PEDRA BRANCA|CE":[-5.4534,-39.7078],"NOVO ORIENTE|CE":[-5.5255,-40.7713],"MORRINHOS|CE":[-3.2343,-40.1233],"PIRACURUCA|PI":[-3.9333,-41.7088],"SAO BENEDITO|CE":[-4.0471,-40.8596],"SENADOR POMPEU|CE":[-5.5824,-39.3704],"LAVRAS DA MANGABEIRA|CE":[-6.7448,-38.9706],"BOM JARDIM|MA":[-3.5413,-45.606],"MARACACUME|MA":[-2.0492,-45.9587],"SAO JOAO DO CARU|MA":[-3.5503,-46.2507],"CAMPO MAIOR|PI":[-4.8217,-42.1641],"FORTALEZA|CE":[-3.7166,-38.5423],"REDENCAO DO GURGUEIA|PI":[-9.4794,-44.5811],"PALMEIRAIS|PI":[-5.9709,-43.056],"ALTOS|PI":[-5.0389,-42.4612],"TIMON|MA":[-5.0977,-42.8329],"SANTA LUZIA|MA":[-4.0687,-45.69],"PIO IX|PI":[-6.83,-40.6083],"BETANIA DO PIAUI|PI":[-8.1438,-40.7989],"TIMBIRAS|MA":[-4.256,-43.932],"BARRAS|PI":[-4.2447,-42.2922],"ACOPIARA|CE":[-6.0891,-39.448],"MARCO|CE":[-3.1285,-40.1582],"IGARAPE DO MEIO|MA":[-3.6577,-45.2114],"FORTALEZA DOS NOGUEIRAS|MA":[-6.9598,-46.1749],"MILAGRES|CE":[-7.2975,-38.9378],"NOVO ORIENTE DO PIAUI|PI":[-6.449,-41.9261],"ARAIOSES|MA":[-2.8909,-41.905],"PENTECOSTE|CE":[-3.7927,-39.2692],"ITAPECURU MIRIM|MA":[-3.402,-44.3508],"SANTO ANTONIO DOS LOPES|MA":[-4.8661,-44.3653],"REDENCAO|CE":[-4.2159,-38.7277],"FORMOSA DA SERRA NEGRA|MA":[-6.4402,-46.1916],"ITAPAGE|CE":[-3.6831,-39.5855],"SAO FRANC DE ASSIS DO PIAUI|PI":[-8.236,-41.6873]};
+
+const rfvChaveCidade = (cidade, uf) =>
+  `${String(cidade || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase()}|` +
+  `${String(uf || '').trim().toUpperCase()}`;
+
+const CIDADES = { mapa: null, em: null, buscando: null };
+
+/** Lê as planilhas do RFV e devolve { código do cliente: {cidade, uf} }. */
+function rfvLerCidades(arquivos) {
+  const semAcento = t => String(t == null ? '' : t)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const mapa = {};
+  for (const k of Object.keys(arquivos || {})) {
+    const b64 = arquivos[k] && arquivos[k].b64;
+    if (!b64) continue;
+    try {
+      const bin = atob(String(b64).replace(/\s/g, ''));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const wb = XLSX.read(bytes, { type: 'array' });
+      const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],
+        { header: 1, raw: true, defval: null, blankrows: false });
+      // O cabeçalho não é a primeira linha: o arquivo abre com um título.
+      const hi = linhas.findIndex(l => (l || []).some(c => semAcento(c) === 'lider')
+                                     && (l || []).some(c => semAcento(c) === 'cidade'));
+      if (hi < 0) continue;
+      const cab = linhas[hi].map(semAcento);
+      const iL = cab.indexOf('lider'), iC = cab.indexOf('cidade'), iU = cab.indexOf('uf');
+      if (iL < 0 || iC < 0) continue;
+      for (let i = hi + 1; i < linhas.length; i++) {
+        const r = linhas[i] || [];
+        const cod = String(r[iL] == null ? '' : r[iL]).trim();
+        const cid = String(r[iC] == null ? '' : r[iC]).trim();
+        if (!cod || !cid || mapa[cod]) continue;
+        mapa[cod] = { cidade: cid, uf: iU >= 0 ? String(r[iU] == null ? '' : r[iU]).trim() : '' };
+      }
+    } catch (e) { console.warn('RFV: nao consegui ler', k, e); }
+  }
+  return mapa;
+}
+
+/** Traz as cidades — do cache primeiro, do worker depois. Uma vez por sessão. */
+function rfvBuscarCidades() {
+  if (CIDADES.buscando) return CIDADES.buscando;
+  CIDADES.buscando = (async () => {
+    try {
+      const guardado = await cacheLer('rfvCidades');
+      if (guardado && guardado.mapa) { CIDADES.mapa = guardado.mapa; CIDADES.em = guardado.em; }
+      const r = await chamarWorker('getRfv', {}, 45000);
+      if (!r || !r.files) return CIDADES.mapa;
+      if (guardado && guardado.em && guardado.em === r.updatedAt) return CIDADES.mapa;
+      if (typeof XLSX === 'undefined') return CIDADES.mapa;
+      const mapa = rfvLerCidades(r.files);
+      if (Object.keys(mapa).length) {
+        CIDADES.mapa = mapa; CIDADES.em = r.updatedAt || null;
+        cacheSalvar({ mapa, em: CIDADES.em }, 'rfvCidades');
+      }
+    } catch (e) {
+      // Sem cidade a tela funciona igual, só sem a coluna e sem o mapa.
+      console.warn('RFV: cidades indisponiveis', e);
+    }
+    return CIDADES.mapa;
+  })();
+  return CIDADES.buscando;
+}
+
+const cidadeDe = cod => (CIDADES.mapa && CIDADES.mapa[String(cod)]) || null;
+
 
 /* Olympikus e Under Armour: a base guarda a marca junto da categoria
    (MEOLY, UA_TN...), e aqui só interessa de quem é a marca. */
@@ -3119,7 +3202,7 @@ function rfvFichas(A) {
 
 /* ── tela 1: cliente nas linhas, mês nas colunas ─────────────────────── */
 function rfvTelaMes(A) {
-  const mes = A.mes, linhas = rfvLinhas(A);
+  const mes = A.mes, linhas = rfvLinhas(A), verCid = rfvMostraCidade();
   if (!linhas.length) return '<div class="rfv-quadro"><div class="rfv-vazio">Nenhum cliente com esses filtros.</div></div>';
 
   const hoje = diaParaMes(hojeEmDias());
@@ -3147,15 +3230,17 @@ function rfvTelaMes(A) {
       <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
         <span class="nome">${escHtml(l.nome)}</span>
         <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}${l.parou ? ' · parou no 2º sem.' : ''}</span></td>
+      ${verCid ? celulaCidade(l.cod) : ''}
       ${RFV.meses.map((_, i) => cel(l.mf[i], l.mc[i], i === RFV.corte ? 'sem2 ' : '')).join('')}
       <td class="stot">${l.p1 ? formatarNumero(l.p1) : '—'}</td>
       <td class="stot ${l.parou ? 'rfv-zero' : ''}">${l.p2 ? formatarNumero(l.p2) : '—'}</td>
     </tr>`;
   }).join('');
 
-  return `<div class="rfv-quadro"><table>
+  return `<div class="rfv-quadro${verCid ? ' com-cidade' : ''}"><table>
       <thead><tr>
         <th class="cli presa">Cliente<span class="obs">${formatarNumero(linhas.length)} na lista</span></th>
+        ${verCid ? '<th class="cid">Cidade</th>' : ''}
         ${cab}
         <th>1º sem.<span class="tot">${formatarNumero(s1)}</span></th>
         <th>2º sem.<span class="tot">${formatarNumero(s2)}</span></th>
@@ -3199,6 +3284,7 @@ function rfvTelaFaixa(A) {
     return `<span class="rfv-cel rfv-c3" title="${escHtml(t)} · entrou no 2º semestre">${formatarNumero(b)}</span>`;
   };
 
+  const verCid = rfvMostraCidade();
   const cab = ordem.map(j => `<th title="${escHtml(faixas[j])}">${escHtml(faixas[j])}</th>`).join('');
   const corpo = linhas.map(l => {
     const vend = rfvVend(l.e);
@@ -3208,21 +3294,126 @@ function rfvTelaFaixa(A) {
         <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''} · ${l.parou
           ? 'última nota ' + (l.e.ult >= 0 ? diaParaBR(l.e.ult) : '—')
           : l.perdidas ? 'parou ' + l.perdidas + '/' + nFx : 'sem perda'}</span></td>
+      ${verCid ? celulaCidade(l.cod) : ''}
       ${ordem.map(j => `<td>${cel(l, j)}</td>`).join('')}
     </tr>`;
   }).join('');
 
-  return `<div class="rfv-quadro"><table>
-      <thead><tr><th class="cli presa">Cliente<span class="obs">${formatarNumero(linhas.length)} na lista</span></th>${cab}</tr></thead>
+  return `<div class="rfv-quadro${verCid ? ' com-cidade' : ''}"><table>
+      <thead><tr><th class="cli presa">Cliente<span class="obs">${formatarNumero(linhas.length)} na lista</span></th>${verCid ? '<th class="cid">Cidade</th>' : ''}${cab}</tr></thead>
       <tbody>${corpo}</tbody>
     </table></div>`;
+}
+
+const rfvMostraCidade = () => !!(RFV.verCidade && CIDADES.mapa);
+function celulaCidade(cod) {
+  const c = cidadeDe(cod);
+  return c ? `<td class="cid" title="${escHtml(c.cidade + (c.uf ? ' · ' + c.uf : ''))}">${escHtml(c.cidade)}${c.uf ? ' <span class="uf">' + escHtml(c.uf) + '</span>' : ''}</td>`
+           : '<td class="cid rfv-zero">—</td>';
+}
+
+/* ── mapa de cobertura ─────────────────────────────────────────────────
+   Um círculo por cidade: o tamanho é quantos clientes ela tem, a cor é
+   quantos deles continuam comprando no 2º semestre. Verde é cidade
+   inteira comprando; vermelho é cidade parada. */
+function rfvCorCobertura(pc) { return pc >= 1 ? '#10B981' : pc > 0 ? '#F59E0B' : '#EF4444'; }
+
+async function rfvGarantirLeaflet() {
+  if (window.L) return true;
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css';
+  document.head.appendChild(css);
+  await new Promise((ok, falhou) => {
+    const js = document.createElement('script');
+    js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js';
+    js.onload = ok; js.onerror = falhou;
+    document.head.appendChild(js);
+  }).catch(() => {});
+  return !!window.L;
+}
+
+async function rfvDesenharMapa(A) {
+  const alvo = $('rfv-mapaCanvas');
+  if (!alvo) return;
+  if (!await rfvGarantirLeaflet()) {
+    alvo.innerHTML = '<div class="rfv-carregando">Não consegui carregar o mapa.</div>';
+    return;
+  }
+  const aviso = $('rfv-mapaAviso');
+  if (aviso) aviso.remove();
+
+  if (!RFV.mapa) {
+    RFV.mapa = L.map(alvo, { zoomControl: true }).setView([-5.2, -42.5], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(RFV.mapa);
+    RFV.camada = L.layerGroup().addTo(RFV.mapa);
+  }
+  RFV.camada.clearLayers();
+
+  // Uma cidade por círculo, com a conta de quem parou.
+  const porCidade = new Map();
+  for (const [ci, e] of A.porCli) {
+    if (!rfvPassaSit(e)) continue;
+    const cli = APP.dic.cli[ci];
+    const c = cidadeDe(String(cli[0]));
+    if (!c) continue;
+    const chave = rfvChaveCidade(c.cidade, c.uf);
+    const xy = RFV_COORD[chave];
+    if (!xy) continue;
+    let g = porCidade.get(chave);
+    if (!g) { g = { cidade: c.cidade, uf: c.uf, xy, total: 0, ativos: 0, pares: 0 }; porCidade.set(chave, g); }
+    g.total++; g.pares += e.p1 + e.p2;
+    if (e.p2 > 0) g.ativos++;
+  }
+
+  const pontos = [];
+  for (const g of porCidade.values()) {
+    const pc = g.total ? g.ativos / g.total : 0;
+    const cor = rfvCorCobertura(pc);
+    L.circleMarker(g.xy, {
+      radius: Math.min(22, 5 + Math.sqrt(g.total) * 2.6),
+      color: cor, weight: 1.5, fillColor: cor, fillOpacity: .55
+    }).bindTooltip(
+      `<b>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</b><br>` +
+      `${g.ativos} de ${g.total} comprando · ${formatarNumero(g.pares)} pares`,
+      { direction: 'top' }
+    ).addTo(RFV.camada);
+    pontos.push(g.xy);
+  }
+  if (pontos.length) RFV.mapa.fitBounds(L.latLngBounds(pontos), { padding: [12, 12] });
+  setTimeout(() => RFV.mapa.invalidateSize(), 60);
+}
+
+function rfvTelaMapa() {
+  if (!CIDADES.mapa) {
+    return `<div class="rfv-mapa"><div class="rfv-carregando" id="rfv-mapaAviso">
+      Buscando as cidades no RFV…</div><div id="rfv-mapaCanvas" style="height:100%"></div></div>`;
+  }
+  return `<div class="rfv-mapa">
+      <div id="rfv-mapaCanvas" style="height:100%"></div>
+      <div class="rfv-legenda">
+        <span><i style="background:#10B981"></i> todos comprando</span>
+        <span><i style="background:#F59E0B"></i> parte</span>
+        <span><i style="background:#EF4444"></i> nenhum</span>
+      </div>
+    </div>`;
 }
 
 function rfvPintar() {
   if (!APP.base) return;
   const A = rfvApurar();
   rfvFichas(A);
-  $('rfv-tela').innerHTML = RFV.visao === 'mes' ? rfvTelaMes(A) : rfvTelaFaixa(A);
+  $('rfv-tela').innerHTML = RFV.visao === 'mes'   ? rfvTelaMes(A)
+                          : RFV.visao === 'faixa' ? rfvTelaFaixa(A)
+                          :                         rfvTelaMapa();
+  // O mapa é redesenhado por fora: o Leaflet precisa do elemento na tela.
+  if (RFV.visao === 'mapa') { RFV.mapa = null; rfvDesenharMapa(A); }
+  else if (RFV.mapa) { RFV.mapa.remove(); RFV.mapa = null; }
+  // O nome muda com a visão, e é o único lugar onde ele cabe sem tomar espaço.
+  $('rfv-nome').textContent = RFV.visao === 'mapa' ? 'RFV · Mapa de cobertura' : 'RFV da carteira';
+  const bt = $('rfv-cidade');
+  if (bt) { bt.hidden = !CIDADES.mapa || RFV.visao === 'mapa'; bt.classList.toggle('on', RFV.verCidade); }
   $('rfv-limpar').hidden = !($('rfv-vend').value || $('rfv-marca').value || $('rfv-linha').value ||
                              $('rfv-sit').value || $('rfv-busca').value.trim());
   rfvMedirTopo();
@@ -3267,10 +3458,12 @@ function rfvAbrir() {
       ? `${mesCurtoRotulo(RFV.meses[0])} a ${mesCurtoRotulo(RFV.meses[RFV.meses.length - 1])}`
       : '—';
     const quem = APP.sessao ? APP.sessao.nome : '';
-    $('rfv-periodo').textContent = p + (quem ? ' · ' + quem + (APP.veTudo ? ' · vendo tudo' : '') : '');
+    $('rfv-periodo').textContent = p + (quem ? ' · ' + quem + (APP.veTudo ? ' · Admin' : '') : '');
   }
   show('screen-rfv');
   rfvPintar();
+  // As cidades vêm do RFV e demoram: a tabela não espera por elas.
+  if (!CIDADES.mapa) rfvBuscarCidades().then(m => { if (m) rfvPintar(); });
 }
 
 /* ============================================================
@@ -3341,7 +3534,7 @@ function logout() {
 
 function irParaProdutos() {
   const papel = APP.sessao.papel;
-  $('topbar-user').textContent = papel === 'admin' ? `${APP.sessao.nome} · vendo tudo` : APP.sessao.nome;
+  $('topbar-user').textContent = papel === 'admin' ? `${APP.sessao.nome} · Admin` : APP.sessao.nome;
   $('topbar-user-2').textContent = APP.sessao.nome;
   $('btn-admin').style.display = papel === 'admin' ? '' : 'none';
   // sem extensão não há PDF, e sem PDF a seleção não serve para nada
@@ -7029,6 +7222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ['rfv-vend', 'rfv-marca', 'rfv-linha', 'rfv-sit', 'rfv-busca'].forEach(id => { $(id).value = ''; });
     rfvPintar();
   });
+  ligar('rfv-cidade', 'click', () => { RFV.verCidade = !RFV.verCidade; rfvPintar(); });
   document.querySelectorAll('.rfv-aba').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.rfv-aba').forEach(x => x.classList.toggle('on', x === b));
     RFV.visao = b.dataset.v;
@@ -7812,6 +8006,32 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 #rfv-busca{ width:170px; }
 .rfv-limpar{ font:inherit; font-size:12px; font-weight:600; cursor:pointer; background:none;
              border:0; color:var(--primary-2); padding:6px 4px; text-decoration:underline; }
+.rfv-tgl{ font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+          border:1px solid var(--border); background:var(--card-bg); color:var(--text-2);
+          border-radius:var(--r-sm); padding:7px 11px; display:inline-flex; align-items:center; gap:6px; }
+.rfv-tgl:hover{ border-color:var(--border-2); }
+/* `display` de classe vence o [hidden] do navegador — sem esta linha o
+   botão continua na tela depois de escondido pelo JS. */
+.rfv-tgl[hidden]{ display:none; }
+.rfv-tgl.on{ background:var(--primary-bg); border-color:var(--primary); color:var(--primary-2); }
+.rfv-tgl i{ font-size:12px; }
+
+/* ── mapa de cobertura ───────────────────────────────────────────────
+   A tela é o mapa: o resto some. Uma legenda de três pontos é o único
+   texto que fica, porque sem ela a cor não quer dizer nada. */
+.rfv-mapa{ margin:10px 0 0; border:1px solid var(--border); border-radius:var(--r-md);
+           overflow:hidden; background:var(--card-bg); position:relative;
+           height:calc(100vh - 158px); height:calc(100dvh - 158px); min-height:300px; }
+.rfv-mapa .leaflet-container{ height:100%; width:100%; background:var(--card-bg-2); }
+.rfv-legenda{ position:absolute; left:10px; bottom:10px; z-index:500; display:flex; gap:10px;
+              align-items:center; background:var(--card-bg); border:1px solid var(--border);
+              border-radius:99px; padding:5px 11px; font-size:11px; color:var(--text-2);
+              box-shadow:var(--shadow-card); }
+.rfv-legenda span{ display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.rfv-legenda i{ width:10px; height:10px; border-radius:50%; flex:none; }
+.rfv-carregando{ position:absolute; inset:0; display:grid; place-items:center; z-index:600;
+                 background:var(--card-bg); color:var(--text-2); font-size:13px; }
+
 
 /* ── a tabela ─────────────────────────────────────────────────────────
    Numa tela larga as colunas cabem e quem rola é a página: assim o
@@ -7846,6 +8066,10 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 .rfv-quadro td.cli .nome{ font-weight:600; }
 .rfv-quadro td.cli .sub{ color:var(--text-2); font-size:11px; }
 .rfv-quadro .sem2{ border-left:2px solid var(--border-2); }
+.rfv-quadro td.cid,.rfv-quadro th.cid{ text-align:left; padding-left:10px; white-space:nowrap;
+  max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.rfv-quadro td.cid{ color:var(--text-2); }
+.rfv-quadro td.cid .uf{ color:var(--text-3); font-size:10.5px; }
 .rfv-fat{ color:var(--acao-manter); font-weight:700; }
 .rfv-car{ color:var(--d-warn); font-weight:700; }
 /* No escuro o âmbar do prazo fica marrom demais contra o fundo; o do
@@ -7869,6 +8093,11 @@ html.dark .rfv-ficha.car .v{ color:var(--acao-repassar); }
   .rfv-quadro{ overflow:visible; max-height:none; min-height:0; }
   .rfv-quadro table{ min-width:0; }
   .rfv-quadro thead th{ top:var(--rfv-topo-h, 60px); }
+  /* Com a coluna de cidade a tabela deixa de caber na janela: volta a
+     rolar por dentro, e o cabeçalho gruda na moldura dela. */
+  .rfv-quadro.com-cidade{ overflow:auto; max-height:calc(100vh - 152px);
+                          max-height:calc(100dvh - 152px); }
+  .rfv-quadro.com-cidade thead th{ top:0; }
 }
 @media (max-width:640px){
   .rfv-topo-in{ padding:8px 12px; gap:8px; }
