@@ -3046,25 +3046,62 @@ function rfvLerCidades(arquivos) {
   return mapa;
 }
 
-/** Traz as cidades — do cache primeiro, do worker depois. Uma vez por sessão. */
+/** Traz as cidades — do cache primeiro, do servidor depois.
+ *
+ *  Duas fontes, nesta ordem:
+ *
+ *  1. A base de clientes do portal (data/clientes/<vendedor>.json), que o
+ *     admin já publica. Ela traz a cidade da PRÓPRIA loja, com o código
+ *     dela: 807 dos 882 clientes da carteira.
+ *  2. O relatório RFV, para completar o resto. Ali a chave é o `Líder`, que
+ *     é o código do GRUPO — as cinco lojas da ARMAZEM PARAIBA apontam todas
+ *     para um líder em Teresina. Por isso essa cidade entra marcada como
+ *     `grupo`: serve de referência, não de endereço. */
 function rfvBuscarCidades() {
   if (CIDADES.buscando) return CIDADES.buscando;
   CIDADES.buscando = (async () => {
+    const hoje = new Date().toISOString().slice(0, 10);
     try {
       const guardado = await cacheLer('rfvCidades');
       if (guardado && guardado.mapa) { CIDADES.mapa = guardado.mapa; CIDADES.em = guardado.em; }
-      const r = await chamarWorker('getRfv', {}, 45000);
-      if (!r || !r.files) return CIDADES.mapa;
-      if (guardado && guardado.em && guardado.em === r.updatedAt) return CIDADES.mapa;
-      if (typeof XLSX === 'undefined') return CIDADES.mapa;
-      const mapa = rfvLerCidades(r.files);
+      if (guardado && guardado.em === hoje) return CIDADES.mapa;
+
+      const mapa = {};
+
+      // 1) o portal: cidade da loja
+      try {
+        const lista = await chamarWorker('listClientesVendedores', {}, 20000);
+        const vends = (lista && lista.vendedores) || [];
+        const partes = await Promise.all(vends.map(v =>
+          chamarWorker('getClientes', { vendedor: v.codigo }, 45000).catch(() => null)));
+        for (const parte of partes) {
+          for (const c of ((parte && parte.clientes) || [])) {
+            const cod = String((c && c.codigo) || '').trim();
+            const cid = String((c && c.cidade) || '').trim();
+            if (!cod || !cid || mapa[cod]) continue;
+            mapa[cod] = { cidade: cid, uf: String(c.estado || '').trim(), fonte: 'loja' };
+          }
+        }
+      } catch (e) { console.warn('cidades: portal indisponivel', e); }
+
+      // 2) o RFV: completa o que sobrou, com a cidade do grupo
+      try {
+        const r = await chamarWorker('getRfv', {}, 45000);
+        if (r && r.files && typeof XLSX !== 'undefined') {
+          const doRfv = rfvLerCidades(r.files);
+          for (const cod of Object.keys(doRfv)) {
+            if (!mapa[cod]) mapa[cod] = { ...doRfv[cod], fonte: 'grupo' };
+          }
+        }
+      } catch (e) { console.warn('cidades: RFV indisponivel', e); }
+
       if (Object.keys(mapa).length) {
-        CIDADES.mapa = mapa; CIDADES.em = r.updatedAt || null;
-        cacheSalvar({ mapa, em: CIDADES.em }, 'rfvCidades');
+        CIDADES.mapa = mapa; CIDADES.em = hoje;
+        cacheSalvar({ mapa, em: hoje }, 'rfvCidades');
       }
     } catch (e) {
       // Sem cidade a tela funciona igual, só sem a coluna e sem o mapa.
-      console.warn('RFV: cidades indisponiveis', e);
+      console.warn('cidades indisponiveis', e);
     }
     return CIDADES.mapa;
   })();
@@ -3177,21 +3214,33 @@ function rfvVend(e) {
 }
 
 function rfvFichas(A) {
-  let ativos = 0, semCompra = 0, fat = 0, car = 0;
+  let ativos = 0, semCompra = 0, comprou1 = 0, fat = 0, car = 0;
   for (const [, e] of A.porCli) {
     if (e.p2 > 0) ativos++;
+    if (e.p1 > 0) comprou1++;
     if (e.p1 > 0 && e.p2 === 0) semCompra++;
   }
   for (const m of A.mes) { fat += m.fat; car += m.car; }
   const ligado = $('rfv-sit').value === 'so1';
+  const total = A.porCli.size, pares = fat + car;
+  // O percentual embaixo do número diz de que ele é parte: cliente sobre a
+  // carteira, par sobre o ano. Sem isso, 230 e 971.534 nao querem dizer nada.
+  const pc = (parte, todo) => todo ? Math.round(100 * parte / todo) + '%' : '—';
 
   $('rfv-fichas').innerHTML = `
-    <div class="rfv-ficha pos"><span class="v">${formatarNumero(ativos)}</span><span class="n">clientes ativos</span></div>
+    <div class="rfv-ficha pos" title="de ${formatarNumero(total)} clientes na lista">
+      <span class="num"><span class="v">${formatarNumero(ativos)}</span><span class="pc">${pc(ativos, total)}</span></span>
+      <span class="n">clientes ativos</span></div>
     <button class="rfv-ficha ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
-            title="Compraram no 1º semestre e não no 2º — clique para filtrar">
-      <span class="v">${formatarNumero(semCompra)}</span><span class="n">sem compra no 2º sem.</span></button>
-    <div class="rfv-ficha"><span class="v">${formatarNumero(fat)}</span><span class="n">pares faturados</span></div>
-    <div class="rfv-ficha car"><span class="v">${formatarNumero(car)}</span><span class="n">pares em carteira</span></div>`;
+            title="De ${formatarNumero(comprou1)} que compraram no 1º semestre — clique para filtrar">
+      <span class="num"><span class="v">${formatarNumero(semCompra)}</span><span class="pc">${pc(semCompra, comprou1)}</span></span>
+      <span class="n">sem compra no 2º sem.</span></button>
+    <div class="rfv-ficha" title="de ${formatarNumero(pares)} pares no ano">
+      <span class="num"><span class="v">${formatarNumero(fat)}</span><span class="pc">${pc(fat, pares)}</span></span>
+      <span class="n">pares faturados</span></div>
+    <div class="rfv-ficha car" title="de ${formatarNumero(pares)} pares no ano">
+      <span class="num"><span class="v">${formatarNumero(car)}</span><span class="pc">${pc(car, pares)}</span></span>
+      <span class="n">pares em carteira</span></div>`;
 
   const b = $('rfv-fSem');
   if (b) b.onclick = () => {
@@ -3308,8 +3357,11 @@ function rfvTelaFaixa(A) {
 const rfvMostraCidade = () => !!(RFV.verCidade && CIDADES.mapa);
 function celulaCidade(cod) {
   const c = cidadeDe(cod);
-  return c ? `<td class="cid" title="${escHtml(c.cidade + (c.uf ? ' · ' + c.uf : ''))}">${escHtml(c.cidade)}${c.uf ? ' <span class="uf">' + escHtml(c.uf) + '</span>' : ''}</td>`
-           : '<td class="cid rfv-zero">—</td>';
+  if (!c) return '<td class="cid rfv-zero">—</td>';
+  const grupo = c.fonte === 'grupo';
+  const t = c.cidade + (c.uf ? ' · ' + c.uf : '') + (grupo ? ' — cidade do grupo, não da loja' : '');
+  return `<td class="cid${grupo ? ' aprox' : ''}" title="${escHtml(t)}">${escHtml(c.cidade)}` +
+         `${c.uf ? ' <span class="uf">' + escHtml(c.uf) + '</span>' : ''}${grupo ? '<span class="uf"> ~</span>' : ''}</td>`;
 }
 
 /* ── mapa de cobertura ─────────────────────────────────────────────────
@@ -3362,23 +3414,38 @@ async function rfvDesenharMapa(A) {
     const xy = RFV_COORD[chave];
     if (!xy) continue;
     let g = porCidade.get(chave);
-    if (!g) { g = { cidade: c.cidade, uf: c.uf, xy, total: 0, ativos: 0, pares: 0 }; porCidade.set(chave, g); }
+    if (!g) { g = { cidade: c.cidade, uf: c.uf, xy, total: 0, ativos: 0, pares: 0,
+                    comprando: [], parados: [] }; porCidade.set(chave, g); }
     g.total++; g.pares += e.p1 + e.p2;
-    if (e.p2 > 0) g.ativos++;
+    const loja = { nome: String(cli[1]), cod: String(cli[0]), pares: e.p2 || e.p1 };
+    if (e.p2 > 0) { g.ativos++; g.comprando.push(loja); } else g.parados.push(loja);
   }
 
   const pontos = [];
   for (const g of porCidade.values()) {
     const pc = g.total ? g.ativos / g.total : 0;
     const cor = rfvCorCobertura(pc);
+    const lista = (lojas, classe) => lojas
+      .sort((a, b) => b.pares - a.pares)
+      .map(l => `<li class="${classe}"><span>${escHtml(l.nome)}</span>` +
+                `<b>${formatarNumero(l.pares)}</b></li>`).join('');
     L.circleMarker(g.xy, {
       radius: Math.min(22, 5 + Math.sqrt(g.total) * 2.6),
       color: cor, weight: 1.5, fillColor: cor, fillOpacity: .55
-    }).bindTooltip(
-      `<b>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</b><br>` +
-      `${g.ativos} de ${g.total} comprando · ${formatarNumero(g.pares)} pares`,
-      { direction: 'top' }
-    ).addTo(RFV.camada);
+    })
+      .bindTooltip(`<b>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</b> · ` +
+                   `${g.ativos} de ${g.total} comprando`, { direction: 'top' })
+      // O balão é onde a pergunta é respondida: quais lojas pararam.
+      .bindPopup(
+        // Quem parou vem primeiro: é a pergunta que traz alguém ao mapa,
+        // e numa cidade grande a outra lista empurraria ela para fora da vista.
+        `<div class="rfv-balao"><h4>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</h4>` +
+        (g.parados.length ? `<p class="cab neg">Sem compra no 2º sem. · ${g.parados.length}</p>
+           <ul>${lista(g.parados, 'neg')}</ul>` : '') +
+        (g.comprando.length ? `<p class="cab pos">Comprando · ${g.comprando.length}</p>
+           <ul>${lista(g.comprando, 'pos')}</ul>` : '') +
+        `</div>`, { maxWidth: 300, maxHeight: 250 })
+      .addTo(RFV.camada);
     pontos.push(g.xy);
   }
   if (pontos.length) RFV.mapa.fitBounds(L.latLngBounds(pontos), { padding: [12, 12] });
@@ -7980,19 +8047,27 @@ document.addEventListener('DOMContentLoaded', function(){
 
 /* Ficha de indicador: número grande, rótulo do lado. */
 .rfv-ficha{
-  display:flex; align-items:baseline; gap:6px; white-space:nowrap;
+  display:flex; align-items:center; gap:8px; white-space:nowrap;
   background:var(--card-bg); border:1px solid var(--border);
-  border-radius:var(--r-sm); padding:5px 10px; font:inherit; color:var(--text);
+  border-radius:var(--r-sm); padding:4px 10px; font:inherit; color:var(--text);
 }
+/* Número em cima, percentual embaixo — a ficha continua com a mesma
+   altura da barra, que é a altura de um botão. */
+.rfv-ficha .num{ display:flex; flex-direction:column; align-items:flex-start; line-height:1; }
+.rfv-ficha .pc{ font-size:10px; font-weight:700; color:var(--text-3); margin-top:2px;
+                font-variant-numeric:tabular-nums; }
 button.rfv-ficha{ cursor:pointer; }
 button.rfv-ficha:hover{ border-color:var(--border-2); }
-.rfv-ficha .v{ font-size:17px; font-weight:800; letter-spacing:-.02em; line-height:1.15;
+.rfv-ficha .v{ font-size:16px; font-weight:800; letter-spacing:-.02em; line-height:1;
                font-variant-numeric:tabular-nums; }
 .rfv-ficha .n{ font-size:11px; font-weight:600; color:var(--text-2); line-height:1.15; }
 .rfv-ficha.pos .v{ color:var(--acao-manter); }
 .rfv-ficha.car .v{ color:var(--d-warn); }
 .rfv-ficha.on{ border-color:var(--primary); background:var(--primary-bg); }
 .rfv-ficha.on .n{ color:var(--primary-2); }
+.rfv-ficha.pos .pc{ color:var(--acao-manter); }
+.rfv-ficha.car .pc{ color:var(--d-warn); }
+html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
 
 .rfv-abas{ display:flex; gap:4px; background:var(--card-bg); border:1px solid var(--border);
            border-radius:9px; padding:3px; }
@@ -8031,6 +8106,19 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 .rfv-legenda i{ width:10px; height:10px; border-radius:50%; flex:none; }
 .rfv-carregando{ position:absolute; inset:0; display:grid; place-items:center; z-index:600;
                  background:var(--card-bg); color:var(--text-2); font-size:13px; }
+.rfv-balao h4{ margin:0 0 6px; font-size:13px; font-weight:800; color:var(--text); }
+.rfv-balao .cab{ margin:8px 0 3px; font-size:9.5px; font-weight:800; letter-spacing:.06em;
+                 text-transform:uppercase; }
+.rfv-balao .cab.pos{ color:var(--acao-manter); }
+.rfv-balao .cab.neg{ color:var(--acao-cancelar); }
+.rfv-balao ul{ margin:0; padding:0; list-style:none; }
+.rfv-balao li{ display:flex; justify-content:space-between; gap:10px; font-size:12px;
+               padding:2px 0; border-top:1px solid var(--border); }
+.rfv-balao li:first-child{ border-top:0; }
+.rfv-balao li b{ font-variant-numeric:tabular-nums; color:var(--text-2); }
+.rfv-balao li.neg span{ color:var(--text-2); }
+.leaflet-popup-content{ margin:10px 12px; }
+.leaflet-popup-content-wrapper{ border-radius:var(--r-sm); }
 
 
 /* ── a tabela ─────────────────────────────────────────────────────────
@@ -8070,6 +8158,7 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
   max-width:160px; overflow:hidden; text-overflow:ellipsis; }
 .rfv-quadro td.cid{ color:var(--text-2); }
 .rfv-quadro td.cid .uf{ color:var(--text-3); font-size:10.5px; }
+.rfv-quadro td.cid.aprox{ color:var(--text-3); }
 .rfv-fat{ color:var(--acao-manter); font-weight:700; }
 .rfv-car{ color:var(--d-warn); font-weight:700; }
 /* No escuro o âmbar do prazo fica marrom demais contra o fundo; o do
