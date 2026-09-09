@@ -3358,6 +3358,9 @@ function rfvFichas(A) {
   }
   const ligado = RFV.f.sit === 'so1';
   const pares = fat + car;
+  // Os dois primeiros cartões dividem a lista — comprando agora, ou parou.
+  // Só o filtro de produto cria um terceiro grupo: quem nunca comprou.
+  const nunca = total - ativos - semCompra;
   // Os dois de cliente têm o mesmo denominador — a lista. Bases diferentes
   // lado a lado faziam 18% e 77% parecerem coisas comparáveis.
   const pc = (parte, todo) => todo ? Math.round(100 * parte / todo) + '%' : '—';
@@ -3365,11 +3368,14 @@ function rfvFichas(A) {
   $('rfv-fichas').innerHTML = `
     <div class="rfv-ficha pos" title="de ${formatarNumero(total)} clientes na lista">
       <span class="num"><span class="v">${formatarNumero(ativos)}</span><span class="pc">${pc(ativos, total)}</span></span>
-      <span class="n">clientes ativos</span></div>
+      <span class="n">comprando no 2º sem.</span></div>
     <button class="rfv-ficha ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
             title="${formatarNumero(semCompra)} de ${formatarNumero(comprou1)} que compraram no 1º semestre — clique para filtrar">
       <span class="num"><span class="v">${formatarNumero(semCompra)}</span><span class="pc">${pc(semCompra, total)}</span></span>
       <span class="n">sem compra no 2º sem.</span></button>
+    ${RFV.f.prod ? `<div class="rfv-ficha" title="não compraram esse produto em nenhum semestre">
+      <span class="num"><span class="v">${formatarNumero(nunca)}</span><span class="pc">${pc(nunca, total)}</span></span>
+      <span class="n">nunca compraram</span></div>` : ''}
     <div class="rfv-ficha" title="de ${formatarNumero(pares)} pares no ano">
       <span class="num"><span class="v">${formatarNumero(fat)}</span><span class="pc">${pc(fat, pares)}</span></span>
       <span class="n">pares faturados</span></div>
