@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0D9488">
+  <meta name="theme-color" content="#EFEFEC">
   <title>Detalhada</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <!-- SheetJS hospedado no próprio repo (a rede bloqueia CDNs externas). Fallback pra CDN só por segurança. -->
   <script src="xlsx.full.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
@@ -17,75 +17,152 @@
     /* =========================================================
        VARIÁVEIS DE TEMA
        ========================================================= */
+    /* =========================================================
+       SISTEMA VISUAL — um jogo de tokens só
+       Vem do redesenho "Do torto ao grid" (Claude Design, 1a/1b).
+       Neutros com um fio de verde, que é a cor da marca; cor só com
+       significado: azul = carteira (previsto), verde = faturado
+       (realizado), âmbar = atenção. Tudo o que o app pinta passa por aqui.
+       ========================================================= */
     :root {
-      --primary: #0D9488;
-      --primary-2: #0F766E;
-      --primary-soft: #CCFBF1;
-      --primary-bg: #F0FDFA;
-      --primary-rgb: 13, 148, 136;
+      /* superfícies */
+      --ds-page:        #EFEFEC;   /* fundo da página */
+      --ds-card:        #FFFFFF;   /* cartões, barras */
+      --ds-card-2:      #FAFAF8;   /* cabeçalho de tabela, campos */
+      --ds-band:        #FCFCFA;   /* faixa de indicadores */
+      --ds-sunk:        #F2F3EF;   /* trilho de abas, etiquetas */
 
-      --bg-1: #F8FAFC;
-      --bg-2: #F1F5F9;
-      --bg-grad: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+      /* fios */
+      --ds-line:        #E4E5E0;   /* borda de controle e cartão */
+      --ds-line-soft:   #EDEEE9;   /* separador de faixa */
+      --ds-line-row:    #F1F2ED;   /* separador de linha */
+      --ds-line-strong: #D3D5CE;   /* borda no hover */
 
-      --card-bg: #FFFFFF;
-      --card-bg-2: #F8FAFC;
+      /* tinta */
+      --ds-ink:         #161A18;
+      --ds-ink-2:       #3A3F3A;   /* números, texto de apoio */
+      --ds-muted:       #6C716B;   /* subtítulos */
+      --ds-faint:       #8A8F89;   /* rótulos */
+      --ds-ghost:       #9A9F98;   /* placeholder */
 
-      --text: #0F172A;
-      --text-2: #475569;
-      --text-3: #94A3B8;
+      /* marca — o verde-água de sempre da CMS. O verde-escuro do
+         redesenho deixou o app preto e branco, sem vida; a marca voltou. */
+      --ds-accent:      #0D9488;
+      --ds-accent-2:    #0F766E;
+      --ds-accent-soft: #CCFBF1;
+      --ds-accent-bg:   #F0FDFA;
+      --ds-accent-rgb:  13, 148, 136;
+      --ds-logo:        linear-gradient(135deg, #14B8A6, #0F766E);
+      --ds-logo-solid:  #0F766E;
+      --ds-logo-ink:    #FFFFFF;
 
-      --border: #E2E8F0;
-      --border-2: #CBD5E1;
+      /* significado */
+      --ds-carteira:    #4E6A9B;
+      --ds-carteira-bg: #ECF0F6;
+      --ds-carteira-ink:#3A5383;
+      --ds-faturado:    #2F7A5C;
+      --ds-faturado-ink:#1F5C46;
+      --ds-faturado-bg: #E6F0EA;
+      --ds-atencao:     #B4802F;
+      --ds-atencao-ink: #8A5E1C;
+      --ds-atencao-bg:  #F7EFE1;
+      --ds-erro:        #B5473A;
+      --ds-gestao:      #B8672E;
 
-      --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-      --shadow-lift: 0 4px 16px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.05);
+      /* tipo */
+      --ds-font: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --ds-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-      --r-sm: 8px;
-      --r-md: 12px;
-      --r-lg: 16px;
-      --r-xl: 20px;
+      /* forma: raio 6 · 9 · 16 */
+      --ds-r-sm: 6px;
+      --ds-r-md: 9px;
+      --ds-r-lg: 16px;
+      --ds-shadow-card: 0 1px 2px rgba(20, 24, 20, .04), 0 12px 32px -18px rgba(20, 24, 20, .22);
+      --ds-shadow-lift: 0 1px 2px rgba(20, 24, 20, .06), 0 16px 36px -16px rgba(20, 24, 20, .30);
 
-      --acao-manter:   #10B981;
-      --acao-cancelar: #EF4444;
-      --acao-repassar: #F59E0B;
-      --acao-transferir: #3B82F6;
-      --acao-gestao:   #F97316;
+      /* ── apelidos: os nomes antigos continuam valendo, apontando para cá ── */
+      --primary:      var(--ds-accent);
+      --primary-2:    var(--ds-accent-2);
+      --primary-soft: var(--ds-accent-soft);
+      --primary-bg:   var(--ds-accent-bg);
+      --primary-rgb:  var(--ds-accent-rgb);
 
-      --tag-gci-bg: #E0F2FE;
-      --tag-gci-fg: #075985;
-      --tag-mes-bg: #FEF3C7;
-      --tag-mes-fg: #92400E;
+      --bg-1:    var(--ds-page);
+      --bg-2:    var(--ds-sunk);
+      --bg-grad: var(--ds-page);
+
+      --card-bg:   var(--ds-card);
+      --card-bg-2: var(--ds-card-2);
+
+      --text:   var(--ds-ink);
+      --text-2: var(--ds-ink-2);
+      --text-3: var(--ds-faint);
+
+      --border:   var(--ds-line);
+      --border-2: var(--ds-line-strong);
+
+      --shadow-card: var(--ds-shadow-card);
+      --shadow-lift: var(--ds-shadow-lift);
+
+      --r-sm: var(--ds-r-sm);
+      --r-md: var(--ds-r-md);
+      --r-lg: var(--ds-r-lg);
+      --r-xl: var(--ds-r-lg);
+
+      --acao-manter:     var(--ds-faturado);
+      --acao-cancelar:   var(--ds-erro);
+      --acao-repassar:   var(--ds-atencao);
+      --acao-transferir: var(--ds-carteira);
+      --acao-gestao:     var(--ds-gestao);
+
+      --tag-gci-bg: var(--ds-carteira-bg);
+      --tag-gci-fg: var(--ds-carteira-ink);
+      --tag-mes-bg: var(--ds-atencao-bg);
+      --tag-mes-fg: var(--ds-atencao-ink);
     }
 
+    /* Escuro (1b): só os valores mudam, os apelidos acompanham sozinhos. */
     html.dark {
-      --primary: #2DD4BF;
-      --primary-2: #5EEAD4;
-      --primary-soft: #134E4A;
-      --primary-bg: #0F2A28;
-      --primary-rgb: 45, 212, 191;
+      --ds-page:        #0F1213;
+      --ds-card:        #15181A;
+      --ds-card-2:      #1B1F21;
+      --ds-band:        #181C1E;
+      --ds-sunk:        #232829;
 
-      --bg-1: #0F172A;
-      --bg-2: #1E293B;
-      --bg-grad: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+      --ds-line:        #2A2F31;
+      --ds-line-soft:   #232829;
+      --ds-line-row:    #202527;
+      --ds-line-strong: #3A4043;
 
-      --card-bg: #1E293B;
-      --card-bg-2: #0F172A;
+      --ds-ink:         #F1F3EF;
+      --ds-ink-2:       #DDE1DD;
+      --ds-muted:       #AEB5B0;
+      --ds-faint:       #868E89;
+      --ds-ghost:       #6C7470;
 
-      --text: #F1F5F9;
-      --text-2: #CBD5E1;
-      --text-3: #64748B;
+      --ds-accent:      #14B8A6;
+      --ds-accent-2:    #5EEAD4;
+      --ds-accent-soft: #134E4A;
+      --ds-accent-bg:   #0F2A28;
+      --ds-accent-rgb:  20, 184, 166;
+      --ds-logo:        linear-gradient(135deg, #14B8A6, #0F766E);
+      --ds-logo-solid:  #0F766E;
+      --ds-logo-ink:    #FFFFFF;
 
-      --border: #334155;
-      --border-2: #475569;
+      --ds-carteira:    #7F9CCF;
+      --ds-carteira-bg: #1C2433;
+      --ds-carteira-ink:#A9BCE0;
+      --ds-faturado:    #4FBF8B;
+      --ds-faturado-ink:#6FD3A3;
+      --ds-faturado-bg: #173127;
+      --ds-atencao:     #D9A55A;
+      --ds-atencao-ink: #E6C68C;
+      --ds-atencao-bg:  #33291A;
+      --ds-erro:        #E07A6E;
+      --ds-gestao:      #E0935A;
 
-      --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-      --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
-
-      --tag-gci-bg: #0C4A6E;
-      --tag-gci-fg: #BAE6FD;
-      --tag-mes-bg: #78350F;
-      --tag-mes-fg: #FDE68A;
+      --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .6);
+      --ds-shadow-lift: 0 1px 2px rgba(0, 0, 0, .35), 0 18px 40px -18px rgba(0, 0, 0, .7);
     }
 
     /* =========================================================
@@ -95,7 +172,7 @@
     html, body { margin: 0; padding: 0; height: 100%; }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--ds-font);
       background: var(--bg-grad);
       /* Ancorado na janela: assim a barra congelada pinta exatamente a mesma
          fatia do degrade que estaria atras dela, em qualquer rolagem. */
@@ -143,10 +220,10 @@
     .logo-mark {
       width: 36px; height: 36px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #14B8A6, #0F766E);
-      color: #fff;
+      background: var(--ds-logo);
+      color: var(--ds-logo-ink);
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 800; letter-spacing: .04em;
+      font-size: 13px; font-weight: 700; letter-spacing: .04em;
       flex-shrink: 0;
       box-shadow: 0 3px 10px rgba(15, 118, 110, .28);
     }
@@ -236,8 +313,8 @@
       background: var(--card-bg); cursor: pointer; text-align: left;
       transition: border-color .14s, background .14s, box-shadow .14s;
     }
-    .quem:hover { border-color: #14B8A6; }
-    .quem:focus-visible { outline: 3px solid rgba(20, 184, 166, .38); outline-offset: 2px; }
+    .quem:hover { border-color: var(--ds-accent); }
+    .quem:focus-visible { outline: 3px solid rgba(var(--ds-accent-rgb), .38); outline-offset: 2px; }
     .quem-ini {
       width: 30px; height: 30px; flex-shrink: 0;
       border-radius: 9px;
@@ -255,25 +332,25 @@
       text-transform: uppercase; color: var(--text-3);
     }
     .quem.escolhido {
-      border-color: #14B8A6; background: rgba(20, 184, 166, .08);
-      box-shadow: inset 0 0 0 1px #14B8A6;
+      border-color: var(--ds-accent); background: var(--ds-accent-bg);
+      box-shadow: inset 0 0 0 1px var(--ds-accent);
     }
     .quem.escolhido .quem-ini {
-      background: linear-gradient(135deg, #14B8A6, #0F766E); color: #fff;
+      background: var(--ds-logo); color: var(--ds-logo-ink);
     }
-    .quem.escolhido .quem-papel { color: #0F766E; }
+    .quem.escolhido .quem-papel { color: var(--ds-accent); }
     html.dark .quem-ini { background: var(--bg-1); }
-    html.dark .quem.escolhido { background: rgba(20, 184, 166, .14); }
-    html.dark .quem.escolhido .quem-papel { color: #5EEAD4; }
+    html.dark .quem.escolhido { background: var(--ds-accent-soft); }
+    html.dark .quem.escolhido .quem-papel { color: var(--ds-accent-2); }
     @media (prefers-reduced-motion: reduce) { .quem { transition: none; } }
 
     .login-logo {
       width: 64px; height: 64px;
       border-radius: 18px;
-      background: linear-gradient(135deg, #14B8A6, #0F766E);
-      color: #fff;
+      background: var(--ds-logo);
+      color: var(--ds-logo-ink);
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; font-weight: 800; letter-spacing: .04em;
+      font-size: 22px; font-weight: 700; letter-spacing: .04em;
       margin: 0 auto 20px;
       box-shadow: 0 6px 18px rgba(15, 118, 110, .3);
     }
@@ -721,7 +798,7 @@
       padding: 4px 6px;
       min-width: 36px;
       text-align: center;
-      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-family: var(--ds-mono);
       line-height: 1.15;
     }
     html.dark .grade-cell { background: var(--primary-soft); border-color: var(--primary); }
@@ -1290,9 +1367,9 @@
       display: inline-flex; align-items: center; gap: 8px;
       padding: 11px 16px;
       border: 0; border-radius: 999px;
-      background: linear-gradient(135deg, #14B8A6, #0F766E);
-      color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .01em;
-      box-shadow: 0 4px 14px rgba(15, 118, 110, .34);
+      background: var(--ds-logo);
+      color: var(--ds-logo-ink); font-size: 13px; font-weight: 600; letter-spacing: .01em;
+      box-shadow: var(--ds-shadow-lift);
       cursor: pointer;
       opacity: 0; transform: translateY(12px);
       transition: opacity .18s ease, transform .18s ease, box-shadow .18s ease;
@@ -1301,9 +1378,9 @@
        regra do navegador, e ele continuaria alcancavel pelo teclado. */
     .btn-topo[hidden] { display: none; }
     .btn-topo.aparece { opacity: 1; transform: translateY(0); }
-    .btn-topo:hover { box-shadow: 0 6px 18px rgba(15, 118, 110, .45); }
+    .btn-topo:hover { box-shadow: 0 1px 2px rgba(20,24,20,.08), 0 18px 36px -14px rgba(20,24,20,.4); }
     .btn-topo:active { transform: translateY(1px); }
-    .btn-topo:focus-visible { outline: 3px solid #14B8A6; outline-offset: 3px; }
+    .btn-topo:focus-visible { outline: 3px solid var(--ds-accent); outline-offset: 3px; }
     .btn-topo i { font-size: 12px; }
 
     /* A barra de seleção pode ocupar quase toda a largura no celular. */
@@ -1377,17 +1454,17 @@
       background: var(--primary-bg); border-radius: 5px; padding: 2px 6px;
       white-space: nowrap;
     }
-    html.dark .gr-cx { background: rgba(20,184,166,.14); color: #5EEAD4; }
+    html.dark .gr-cx { background: var(--ds-accent-soft); color: var(--ds-accent-2); }
     .gr-tam {
       display: inline-flex; flex-direction: column; align-items: center;
       min-width: 26px; padding: 2px 4px;
-      border: 1px solid var(--primary-soft, #CCFBF1); border-radius: 5px;
+      border: 1px solid var(--primary-soft); border-radius: var(--ds-r-sm);
       background: var(--primary-bg); line-height: 1.1;
     }
     .gr-tam b { font-size: 8.5px; font-weight: 700; color: var(--text-3); }
     .gr-tam i { font-size: 11px; font-style: normal; font-weight: 800; color: var(--primary-2); }
-    html.dark .gr-tam { background: rgba(20,184,166,.10); border-color: rgba(20,184,166,.28); }
-    html.dark .gr-tam i { color: #5EEAD4; }
+    html.dark .gr-tam { background: var(--ds-accent-bg); border-color: var(--ds-accent-soft); }
+    html.dark .gr-tam i { color: var(--ds-accent-2); }
 
     /* O botao so existe onde a grade recolhe. */
     .gr-botao { display: none; align-items: center; gap: 5px;
@@ -1564,7 +1641,7 @@
       background: var(--primary-bg);
       border-bottom: 1px solid var(--border);
     }
-    html.dark .dest-cond { background: rgba(45, 212, 191, .08); }
+    html.dark .dest-cond { background: var(--ds-accent-bg); }
     .dest-cond label { flex: 1; min-width: 0; }
     .dest-cond span {
       display: block; font-size: 10.5px; font-weight: 800;
@@ -1819,37 +1896,26 @@
    porque a página é um livro-caixa: o que se faz aqui é comparar colunas.
    ───────────────────────────────────────────────────────────────────── */
 :root{
-  /* estrutura — stone, quente */
-  --d-bg:      #FAF9F7;
-  --d-surface: #FFFFFF;
-  --d-line:    #E8E4DD;
-  --d-line-2:  #D9D3C9;
-  --d-ink:     #1C1917;
-  --d-muted:   #79716B;
-  --d-faint:   #A8A29E;
+  /* apelidos do jogo único (--ds-*, lá no alto) */
+  --d-bg:      var(--ds-page);
+  --d-surface: var(--ds-card);
+  --d-line:    var(--ds-line);
+  --d-line-2:  var(--ds-line-strong);
+  --d-ink:     var(--ds-ink);
+  --d-muted:   var(--ds-muted);
+  --d-faint:   var(--ds-faint);
 
   /* papéis — cada cor faz uma coisa só */
-  --d-pos:     #0E9F6E;   /* confirmação: Manter, faturado */
-  --d-pos-bg:  #E7F7F0;
-  --d-link:    #2563EB;   /* clicável: referência, GCI */
-  --d-warn:    #B45309;   /* prazo */
-  --d-warn-bg: #FDF4E7;
-  --d-err:     #DC2626;   /* cancelar, erro */
+  --d-pos:     var(--ds-faturado);      /* confirmação: Manter, faturado */
+  --d-pos-bg:  var(--ds-faturado-bg);
+  --d-link:    var(--ds-carteira-ink);  /* clicável: referência, GCI */
+  --d-warn:    var(--ds-atencao);       /* prazo */
+  --d-warn-bg: var(--ds-atencao-bg);
+  --d-err:     var(--ds-erro);          /* cancelar, erro */
 
-  --d-r:  10px;
-  --d-r-sm: 7px;
+  --d-r:    var(--ds-r-md);
+  --d-r-sm: var(--ds-r-sm);
   --alt-cab-tabela: 34px;   /* barra de titulos da tabela, quando grudada */
-}
-html.dark{
-  --d-bg:      #1C1917;
-  --d-surface: #262220;
-  --d-line:    #37312D;
-  --d-line-2:  #4A423C;
-  --d-ink:     #F5F3F0;
-  --d-muted:   #A8A29E;
-  --d-faint:   #79716B;
-  --d-pos-bg:  #12312A;
-  --d-warn-bg: #33261A;
 }
 
 body{ background:var(--d-bg) !important; color:var(--d-ink); }
@@ -1903,36 +1969,34 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
   <div id="screen-produtos" class="screen">
 
     <div class="painel-detalhada">
-    <div class="topbar topbar-produtos">
-      <!-- Único elemento fixo: o selo. Até o nome do relatório rola junto
-           com o resto — numa tela estreita ele é o que menos faz falta. -->
+    <!-- CABEÇALHO EM TRÊS FAIXAS
+         1 identidade — quem sou, a busca e as ações. Nada rola de lado.
+         2 números    — o que a tela está somando agora.
+         3 recorte    — gruda no alto: o que vejo (abas) e como recorto
+                        (filtros). Os ids são os mesmos de antes; só mudou
+                        o lugar de cada coisa. -->
+    <header class="cab-ident">
       <div class="logo-mark">CMS</div>
+      <div class="cab-titulo">
+        <div class="logo-text">Detalhada</div>
+        <div class="logo-sub" id="topbar-user">—</div>
+      </div>
 
-      <div class="tb-caixa">
-      <div class="tb-faixa" id="tb-faixa">
-        <div class="tb-titulo">
-          <div class="logo-text">Detalhada</div>
-          <div class="logo-sub" id="topbar-user">—</div>
-        </div>
+      <div class="search-wrap cab-busca" id="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="busca"
+          inputmode="search"
+          enterkeyhint="search"
+          placeholder="Cliente, código, produto, cor ou GCI"
+          autocomplete="off">
+        <button class="search-clear" title="Limpar (ESC)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
-        <div class="search-wrap compacta" id="search-wrap">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input
-            type="search"
-            id="busca"
-            inputmode="search"
-            enterkeyhint="search"
-            placeholder="Cliente, código, produto, cor, GCI"
-            autocomplete="off">
-          <button class="search-clear" title="Limpar (ESC)">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="tipo-chips" id="status-chips"></div>
-        <div class="products-summary" id="summary"></div>
-
-        <div class="topbar-actions">
+      <div class="topbar-actions cab-acoes" role="toolbar" aria-label="Ações">
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
           <i class="fa-solid fa-file-arrow-up"></i>
         </button>
@@ -1943,19 +2007,28 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <button class="btn-icon" id="btn-atualizar" title="Buscar base mais recente">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
+        <span class="cab-div" aria-hidden="true"></span>
         <button class="btn-icon" id="btn-tema" title="Alternar tema">
           <i class="fa-solid fa-moon"></i>
         </button>
         <button class="btn-icon" id="btn-sair" title="Sair">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
-        </div>
       </div>
-      </div>
+    </header>
+
+    <div class="cab-numeros" id="cab-numeros">
+      <div class="products-summary" id="summary"></div>
+      <button type="button" class="kpi-toggle" id="btn-kpis" title="Recolher os números" aria-expanded="true">
+        <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+      </button>
     </div>
 
-    <!-- HEADER CONGELADO — só a linha de filtros -->
-    <div class="frozen-header" id="frozen-header">
+    <!-- HEADER CONGELADO — abas de visão + filtros -->
+    <div class="frozen-header cab-recorte" id="frozen-header">
+    <div class="cab-trilho" id="tb-faixa">
+      <div class="tipo-chips" id="status-chips"></div>
+      <span class="cab-sep" aria-hidden="true"></span>
 
       <!-- Filtros da revisão de repasses. Os de produto não valem aqui:
            ficavam à mostra e não faziam nada. -->
@@ -2000,9 +2073,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
             <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
-        <button class="filter-clear-btn" id="btn-limpar-rep" title="Limpar filtros">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <button class="filter-clear-btn" id="btn-limpar-rep">Limpar filtros</button>
       </div>
       </div>
 
@@ -2074,12 +2145,11 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
             <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
-        <button class="filter-clear-btn" id="btn-limpar-filtros" title="Limpar filtros">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <button class="filter-clear-btn" id="btn-limpar-filtros">Limpar filtros</button>
       </div>
       </div>
 
+    </div>
     </div>
 
     <div class="products-list" id="lista"></div>
@@ -2117,7 +2187,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
     <div class="rfv-caixa rfv-caixa-filtros">
       <div class="rfv-barra" id="rfv-barra">
         <div class="rfv-abas" role="tablist">
-          <button class="rfv-aba on" data-v="mes" role="tab">Por mês</button>
+          <button class="rfv-aba on" data-v="mes" role="tab">Tabela</button>
           <!-- Desativada a pedido do Marcos (09/09/2026). O código da tela
                continua de pé em rfvTelaFaixa(); para trazer de volta, basta
                tirar o `hidden` daqui. -->
@@ -2452,6 +2522,12 @@ const OPCOES_ORDEM = [
   { id: 'mes_proximo',  label: 'Mês mais próximo' },
   { id: 'mes_distante', label: 'Mês mais distante' },
   { id: 'descricao',    label: 'A-Z (descrição)' },
+  // As quatro abaixo nasceram com o título clicável das colunas da lista;
+  // ficam também aqui, para quem prefere escolher pelo menu.
+  { id: 'mais_carteira',   label: 'Mais carteira' },
+  { id: 'mais_faturado',   label: 'Mais faturado' },
+  { id: 'mais_clientes',   label: 'Mais clientes' },
+  { id: 'mais_encomendas', label: 'Mais encomendas' },
 ];
 
 const POR_PAGINA = 120;
@@ -2593,6 +2669,8 @@ function hojeEmDias() {
 function aplicarTema() {
   const escuro = localStorage.getItem(STORAGE.tema) === 'dark';
   document.documentElement.classList.toggle('dark', escuro);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = escuro ? '#0F1213' : '#EFEFEC';
   document.querySelectorAll('#btn-tema i, #btn-tema-2 i').forEach(i => {
     i.className = escuro ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   });
@@ -3009,7 +3087,7 @@ async function carregarGrade(fam) {
    no worker. A tela abre com o que a base do dia já trouxe.
    ============================================================ */
 
-const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null, sel: '',
+const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null, sel: '', ordem: '',
              f: { vend: '', marca: '', linha: '', sit: '', prod: '', cor: '' }, aberto: null };
 
 /* Cada filtro fechado mostra o NOME dele; escolhido, mostra o valor. É por
@@ -3198,7 +3276,9 @@ function rfvMontarMeses() {
 /** Uma passada na base, já com a trava do vendedor e os filtros da tela.
  *  Devolve o total de cada mês e, por cliente, o mês a mês e a linha. */
 function rfvApurar() {
-  const fVend = RFV.f.vend, fMarca = RFV.f.marca, fLinha = RFV.f.linha;
+  const sVend = new Set(rfvSel('vend'));
+  const sMarca = new Set(rfvSel('marca'));
+  const sLinha = new Set(rfvSel('linha').map(Number));
   const busca = $('rfv-busca').value.trim().toLowerCase();
   // Produto: "12" é o artigo inteiro; "12|7" é aquele artigo naquela cor.
   const [pRef, pCor] = String(RFV.f.prod || '').split('|');
@@ -3224,7 +3304,7 @@ function rfvApurar() {
   for (const r of APP.L) {
     // Vendedor vê a carteira dele; a CMS vê a de todos.
     if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) continue;
-    if (fVend && APP.dic.prep[r[C.PREP]] !== fVend) continue;
+    if (sVend.size && !sVend.has(APP.dic.prep[r[C.PREP]])) continue;
 
     const cli = APP.dic.cli[r[C.CLI]];
     if (busca && !String(cli[1]).toLowerCase().includes(busca) && !String(cli[0]).includes(busca)) continue;
@@ -3232,8 +3312,8 @@ function rfvApurar() {
     const q = (r[C.CART] || 0) + (r[C.FAT] || 0);
     // Linha fora do recorte de produto: põe o cliente na carteira, não soma.
     const foraDoRecorte =
-      (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) ||
-      (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) ||
+      (sMarca.size && !sMarca.has(rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]))) ||
+      (sLinha.size && !sLinha.has(r[C.FAIXA])) ||
       (fRef >= 0 && (r[C.REF] !== fRef || (fCor >= 0 && r[C.COR] !== fCor)));
     if (foraDoRecorte && !q) continue;
 
@@ -3303,8 +3383,24 @@ function rfvOpcoes(f, busca) {
     .slice(0, 400);
 }
 
+/** Filtros de lista, em que faz sentido marcar mais de um: duas faixas,
+ *  três marcas, dois prepostos. Compra e Produto continuam de uma escolha
+ *  só — as situações de Compra se excluem, e o Produto nasce de uma busca. */
+const RFV_MULTI = new Set(['vend', 'marca', 'linha']);
+/** O que está marcado num filtro, sempre como lista ('' = nada). */
+function rfvSel(f) {
+  const v = RFV.f[f];
+  return Array.isArray(v) ? v : (v ? [v] : []);
+}
+
 /** O que o botão mostra: o nome do filtro, ou o que foi escolhido. */
 function rfvRotulo(f) {
+  if (RFV_MULTI.has(f)) {
+    const sel = rfvSel(f);
+    if (!sel.length) return RFV_FILTRO[f].nome;
+    if (sel.length > 1) return `${RFV_FILTRO[f].nome} · ${sel.length}`;
+    return f === 'linha' ? String((APP.dic.faixa || [])[Number(sel[0])] || sel[0]) : sel[0];
+  }
   const v = RFV.f[f];
   if (!v) return RFV_FILTRO[f].nome;
   if (f === 'sit') return RFV_SIT[v] || v;
@@ -3322,7 +3418,7 @@ function rfvPintarBotoes() {
   document.querySelectorAll('.rfv-dd').forEach(b => {
     const f = b.dataset.f;
     b.innerHTML = `<span class="val">${escHtml(rfvRotulo(f))}</span>`;
-    b.classList.toggle('on', !!RFV.f[f]);
+    b.classList.toggle('on', RFV_MULTI.has(f) ? rfvSel(f).length > 0 : !!RFV.f[f]);
     b.title = RFV_FILTRO[f].nome;
   });
   const bv = $('rfv-dd-vend');
@@ -3351,6 +3447,20 @@ function rfvPintarLista() {
   const f = RFV.aberto;
   if (!f) return;
   const itens = rfvOpcoes(f, $('rfv-lista-busca').value);
+  if (RFV_MULTI.has(f)) {
+    // Caixa de marcar: a lista fica aberta enquanto se marca, como nos
+    // filtros da tela de produtos. "Todas" desmarca tudo de uma vez.
+    const sel = new Set(rfvSel(f));
+    const caixa = on => `<i class="ck fa-${on ? 'solid fa-square-check' : 'regular fa-square'}" aria-hidden="true"></i>`;
+    $('rfv-lista-itens').innerHTML =
+      `<button type="button" class="rfv-item multi ${sel.size ? '' : 'on'}" data-v="">${caixa(!sel.size)}<span>${RFV_FILTRO[f].todos}</span></button>` +
+      (itens.length
+        ? itens.map(o => `<button type="button" class="rfv-item multi ${sel.has(o.v) ? 'on' : ''}" data-v="${escHtml(o.v)}"
+              role="menuitemcheckbox" aria-checked="${sel.has(o.v)}">${caixa(sel.has(o.v))}
+            <span>${escHtml(o.rot)}</span>${o.sub ? `<span class="sub">${escHtml(o.sub)}</span>` : ''}</button>`).join('')
+        : '<div class="vazio">Nada com esse nome.</div>');
+    return;
+  }
   const atual = RFV.f[f];
   $('rfv-lista-itens').innerHTML =
     `<button type="button" class="rfv-item ${atual ? '' : 'on'}" data-v="">${RFV_FILTRO[f].todos}</button>` +
@@ -3432,8 +3542,27 @@ function rfvFichas(A) {
 }
 
 /* ── tela 1: cliente nas linhas, mês nas colunas ─────────────────────── */
+/** Variação do 2º semestre sobre o 1º. Sem 1º semestre não há base de
+ *  comparação: o cliente é novo, e vai para o fim quando se ordena. */
+function rfvVar(l) { return l.p1 ? (l.p2 - l.p1) / l.p1 : Infinity; }
+
+/** A ordem do título clicado. Sem escolha, fica a de sempre: maior total. */
+function rfvOrdenar(ls) {
+  const o = RFV.ordem;
+  if (!o) return;
+  if (o === 'nome') ls.sort((a, b) => a.nome.localeCompare(b.nome));
+  else if (o === 'p1') ls.sort((a, b) => b.p1 - a.p1);
+  else if (o === 'p2') ls.sort((a, b) => b.p2 - a.p2);
+  else if (o === 'var') ls.sort((a, b) => rfvVar(a) - rfvVar(b));   // maiores quedas primeiro
+  else if (o[0] === 'm') {
+    const i = Number(o.slice(1));
+    ls.sort((a, b) => (b.mf[i] + b.mc[i]) - (a.mf[i] + a.mc[i]));
+  }
+}
+
 function rfvTelaMes(A) {
   const linhas = rfvLinhas(A), verCid = rfvMostraCidade();
+  rfvOrdenar(linhas);
   // O total de cada mês soma o que está na tela. Antes vinha de fora e
   // discordava da lista sempre que o filtro de Compra estava ligado.
   const mes = RFV.meses.map(() => ({ fat: 0, car: 0 }));
@@ -3452,35 +3581,57 @@ function rfvTelaMes(A) {
     return `<td class="${extra}${cor({ fat: f, car: c })}" title="${escHtml(titulo)}">${formatarNumero(t)}</td>`;
   };
 
-  const cab = RFV.meses.map((m, i) => `<th class="${i === RFV.corte ? 'sem2' : ''}"
-      title="${formatarNumero(mes[i].fat)} faturado · ${formatarNumero(mes[i].car)} em carteira">
-      ${escHtml(mesCurtoRotulo(m))}${m === hoje ? '<span class="obs">em curso</span>' : ''}
+  // Título que ordena: o mesmo gesto da lista de produtos. Clicar de novo
+  // devolve a ordem de sempre.
+  const ordAttr = (ord, rot) => {
+    const on = RFV.ordem === ord;
+    return `data-ord="${ord}" class="${on ? 'ord-on' : ''}" title="${on ? 'Voltar à ordem por total' : 'Ordenar por ' + rot}"`;
+  };
+  const seta = ord => RFV.ordem === ord ? ' <i class="fa-solid fa-arrow-down ord-seta" aria-hidden="true"></i>' : '';
+
+  const cab = RFV.meses.map((m, i) => {
+    const a = ordAttr('m' + i, mesCurtoRotulo(m));
+    return `<th ${a.replace('class="', `class="${i === RFV.corte ? 'sem2 ' : ''}${i % 2 ? 'alt ' : ''}${m === hoje ? 'agora ' : ''}`)}>
+      <span class="rot">${escHtml(mesCurtoRotulo(m))}${seta('m' + i)}</span>
       <span class="tot ${cor(mes[i])}">${mes[i].fat + mes[i].car ? formatarNumero(mes[i].fat + mes[i].car) : '—'}</span>
-    </th>`).join('');
+    </th>`;
+  }).join('');
 
   const s1 = mes.slice(0, RFV.corte).reduce((s, m) => s + m.fat + m.car, 0);
   const s2 = mes.slice(RFV.corte).reduce((s, m) => s + m.fat + m.car, 0);
+  const varTxt = v => (v > 0 ? '+' : v < 0 ? '\u2212' : '') + Math.abs(Math.round(v * 100)) + '%';
+  const celVar = l => {
+    if (!l.p1) return '<td class="var"><span class="v-tag v-novo">novo</span></td>';
+    if (!l.p2) return '<td class="var"><span class="v-tag v-parou">parou</span></td>';
+    const v = rfvVar(l);
+    return `<td class="var ${v < 0 ? 'v-neg' : 'v-pos'}">${varTxt(v)}</td>`;
+  };
+  const vTot = s1 ? (s2 - s1) / s1 : 0;
 
   const corpo = linhas.map(l => {
     const vend = rfvVend(l);
+    const st = l.p2 > 0 ? 'ok' : l.p1 > 0 ? 'parou' : 'nada';
+    const stTit = st === 'ok' ? 'comprou no 2º semestre' : st === 'parou' ? 'comprou no 1º e parou no 2º' : 'sem compra no ano';
     return `<tr data-cod="${escHtml(l.cod)}" class="${RFV.sel === l.cod ? 'sel' : ''}">
       <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
-        <span class="nome">${escHtml(l.nome)}</span>
-        <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}${l.parou ? ' · parou no 2º sem.' : ''}</span></td>
+        <i class="st st-${st}" title="${stTit}"></i><span class="nome">${escHtml(l.nome)}</span>
+        <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}</span></td>
       ${verCid ? celulaCidade(l.cod) : ''}
-      ${RFV.meses.map((_, i) => cel(l.mf[i], l.mc[i], i === RFV.corte ? 'sem2 ' : '')).join('')}
+      ${RFV.meses.map((m, i) => cel(l.mf[i], l.mc[i], (i === RFV.corte ? 'sem2 ' : '') + (i % 2 ? 'alt ' : '') + (m === hoje ? 'agora ' : ''))).join('')}
       <td class="stot">${l.p1 ? formatarNumero(l.p1) : '—'}</td>
       <td class="stot ${l.parou ? 'rfv-zero' : ''}">${l.p2 ? formatarNumero(l.p2) : '—'}</td>
+      ${celVar(l)}
     </tr>`;
   }).join('');
 
   return `<div class="rfv-quadro${verCid ? ' com-cidade' : ''}"><table>
       <thead><tr>
-        <th class="cli presa">Cliente<span class="obs">${formatarNumero(linhas.length)} na lista</span></th>
+        <th class="cli presa ${RFV.ordem === 'nome' ? 'ord-on' : ''}" data-ord="nome" title="${RFV.ordem === 'nome' ? 'Voltar à ordem por total' : 'Ordenar por nome'}"><span class="rot">Cliente${seta('nome')}</span><span class="obs">${formatarNumero(linhas.length)} na lista</span></th>
         ${verCid ? '<th class="cid">Cidade</th>' : ''}
         ${cab}
-        <th>1º sem.<span class="tot">${formatarNumero(s1)}</span></th>
-        <th>2º sem.<span class="tot">${formatarNumero(s2)}</span></th>
+        <th ${ordAttr('p1', '1º semestre')}><span class="rot">1º sem.${seta('p1')}</span><span class="tot">${formatarNumero(s1)}</span></th>
+        <th ${ordAttr('p2', '2º semestre')}><span class="rot">2º sem.${seta('p2')}</span><span class="tot">${formatarNumero(s2)}</span></th>
+        <th ${ordAttr('var', 'variação (maiores quedas primeiro)')}><span class="rot">Var.${seta('var')}</span><span class="tot ${vTot < 0 ? 'v-neg' : 'v-pos'}">${s1 ? varTxt(vTot) : '—'}</span></th>
       </tr></thead>
       <tbody>${corpo}</tbody>
     </table></div>`;
@@ -3556,7 +3707,12 @@ function celulaCidade(cod) {
    Um círculo por cidade: o tamanho é quantos clientes ela tem, a cor é
    quantos deles continuam comprando no 2º semestre. Verde é cidade
    inteira comprando; vermelho é cidade parada. */
-function rfvCorCobertura(pc) { return pc >= 1 ? '#10B981' : pc > 0 ? '#F59E0B' : '#EF4444'; }
+// Cores vivas de propósito: sobre o mapa colorido, as do sistema (mais
+// sóbrias) sumiam. Pedido do Marcos, 10/09/2026.
+const RFV_COR_MAPA = { todos: '#10B981', parte: '#F59E0B', nenhum: '#EF4444' };
+function rfvCorCobertura(pc) {
+  return pc >= 1 ? RFV_COR_MAPA.todos : pc > 0 ? RFV_COR_MAPA.parte : RFV_COR_MAPA.nenhum;
+}
 
 async function rfvGarantirLeaflet() {
   if (window.L) return true;
@@ -3610,9 +3766,12 @@ async function rfvDesenharMapa(A) {
   }
 
   const pontos = [];
+  const conta = [0, 0, 0];                       // todos · parte · nenhum
+  const borda = '#fff';
   for (const g of porCidade.values()) {
     const pc = g.total ? g.ativos / g.total : 0;
     const cor = rfvCorCobertura(pc);
+    conta[pc >= 1 ? 0 : pc > 0 ? 1 : 2]++;
     // O mesmo balão do RFV: dois pontos por loja — comprou no 1º semestre,
     // comprou no 2º — e a passagem de um para o outro à direita. Quem parou
     // vem primeiro, que é a pergunta que traz alguém ao mapa.
@@ -3628,7 +3787,7 @@ async function rfvDesenharMapa(A) {
 
     L.circleMarker(g.xy, {
       radius: Math.min(22, 5 + Math.sqrt(g.total) * 2.6),
-      color: '#fff', weight: 1.4, fillColor: cor, fillOpacity: .72
+      color: borda, weight: 1.4, fillColor: cor, fillOpacity: .72
     })
       .bindTooltip(`<b>${escHtml(g.cidade)}${g.uf ? '/' + escHtml(g.uf) : ''}</b> · ` +
                    `${g.ativos} de ${g.total} comprando`, { direction: 'top' })
@@ -3637,8 +3796,9 @@ async function rfvDesenharMapa(A) {
           <div class="tit">${escHtml(g.cidade)}${g.uf ? ' / ' + escHtml(g.uf) : ''}
             <span class="n">&middot; ${g.total} ${g.total === 1 ? 'loja' : 'lojas'}</span></div>
           <div class="placar"><span class="pos">${g.ativos} comprando</span> &middot;
-            <span class="neg">${g.total - g.ativos} n&atilde;o</span> &middot;
-            ${Math.round(100 * pc)}% no 2&ordm; sem.</div>
+            <span class="neg">${g.total - g.ativos} n&atilde;o</span>
+            <span class="pc">${Math.round(100 * pc)}% no 2&ordm; sem.</span></div>
+          <div class="cob" aria-hidden="true"><i style="width:${(100 * pc).toFixed(1)}%;background:${cor}"></i></div>
           <div class="corpo">
             <div class="cab"><span class="pt">1S</span><span class="pt">2S</span>
               <span class="nm">Loja</span><span class="qt">Pares</span></div>
@@ -3648,6 +3808,8 @@ async function rfvDesenharMapa(A) {
       .addTo(RFV.camada);
     pontos.push(g.xy);
   }
+  // A legenda conta as cidades de cada cor: sem isso ela só explica a cor.
+  conta.forEach((n, k) => { const el = $('rfv-lg-' + k); if (el) el.textContent = formatarNumero(n); });
   if (pontos.length) RFV.mapa.fitBounds(L.latLngBounds(pontos), { padding: [12, 12] });
   setTimeout(() => RFV.mapa.invalidateSize(), 60);
 }
@@ -3660,9 +3822,9 @@ function rfvTelaMapa() {
   return `<div class="rfv-mapa">
       <div id="rfv-mapaCanvas" style="height:100%"></div>
       <div class="rfv-legenda">
-        <span><i style="background:#10B981"></i> todos comprando</span>
-        <span><i style="background:#F59E0B"></i> parte</span>
-        <span><i style="background:#EF4444"></i> nenhum</span>
+        <span><i style="background:${RFV_COR_MAPA.todos}"></i> todos comprando <b id="rfv-lg-0"></b></span>
+        <span><i style="background:${RFV_COR_MAPA.parte}"></i> parte <b id="rfv-lg-1"></b></span>
+        <span><i style="background:${RFV_COR_MAPA.nenhum}"></i> nenhum <b id="rfv-lg-2"></b></span>
       </div>
     </div>`;
 }
@@ -3928,6 +4090,10 @@ function ordenarGrupos(g) {
     case 'mes_proximo':  g.sort((a, b) => a.prevMin - b.prevMin); break;
     case 'mes_distante': g.sort((a, b) => (b.prevMin === Infinity ? -1 : b.prevMin) - (a.prevMin === Infinity ? -1 : a.prevMin)); break;
     case 'descricao':    g.sort((a, b) => desc(a.ref).localeCompare(desc(b.ref)) || APP.dic.cor[a.cor].localeCompare(APP.dic.cor[b.cor])); break;
+    case 'mais_carteira':   g.sort((a, b) => b.cart - a.cart); break;
+    case 'mais_faturado':   g.sort((a, b) => b.fat - a.fat); break;
+    case 'mais_clientes':   g.sort((a, b) => b.clientes.size - a.clientes.size); break;
+    case 'mais_encomendas': g.sort((a, b) => b.linhas.length - a.linhas.length); break;
   }
 }
 
@@ -4324,11 +4490,18 @@ function render() {
   const { grupos, totCart, totFat, totLinhas, nClientes } = agregar();
   APP.grupos = grupos;
 
+  // Conversão: quanto do que foi pedido já virou nota. É a pergunta que se
+  // faz olhando carteira e faturado lado a lado — aqui ela vem respondida.
+  const conv = totCart + totFat ? totFat / (totCart + totFat) : 0;
   $('summary').innerHTML = `
     <div class="summary-chip" title="${formatarNumero(totLinhas)} encomendas · ${formatarNumero(nClientes)} clientes"><strong class="c-cart">${formatarNumero(totCart)}</strong> carteira</div>
     <div class="summary-chip"><strong class="c-fat">${formatarNumero(totFat)}</strong> faturado</div>
+    <div class="summary-chip s-conv" title="faturado ÷ (carteira + faturado)"><strong class="c-conv">${pctBR(conv, 1)}</strong> conversão</div>
     <div class="summary-chip"><strong>${formatarNumero(grupos.length)}</strong> produtos</div>
+    <div class="summary-chip"><strong>${formatarNumero(nClientes)}</strong> clientes</div>
   `;
+  // A barrinha da carteira de cada linha é medida contra a maior da lista.
+  APP.maxCart = grupos.reduce((m, g) => Math.max(m, g.cart), 0);
 
   atualizarBotoesFiltros();
   atualizarVeuRolagem();
@@ -4347,18 +4520,55 @@ function render() {
   }
 
   const ate = Math.min(grupos.length, APP.pagina * POR_PAGINA);
+  // Título que ordena: clicar põe a lista naquela ordem; clicar de novo
+  // devolve a ordem padrão (mês mais próximo).
+  const tit = (ord, rot, cls = '') => {
+    const mes = ord === 'mes_proximo';
+    const on = mes ? (APP.ordem === 'mes_proximo' || APP.ordem === 'mes_distante') : APP.ordem === ord;
+    const seta = mes && APP.ordem === 'mes_distante' ? 'fa-arrow-up' : 'fa-arrow-down';
+    const dica = mes ? (APP.ordem === 'mes_proximo' ? 'Inverter: mês mais distante primeiro' : 'Ordenar pelo mês mais próximo')
+                     : (on ? 'Voltar à ordem por mês' : 'Ordenar por ' + rot.toLowerCase());
+    return `<button type="button" class="d-lab lh-ord ${cls} ${on ? 'on' : ''}" data-ord="${ord}"
+              title="${dica}">${rot}${on ? ` <i class="fa-solid ${seta}" aria-hidden="true"></i>` : ''}</button>`;
+  };
+  const convTot = totCart + totFat ? totFat / (totCart + totFat) : 0;
   lista.innerHTML =
     `<div class="lista-head">
-       <span class="lh-img"><i class="fa-regular fa-image" aria-hidden="true"></i></span><span class="d-lab">Produto</span>
-       <span class="d-lab" style="text-align:right">Clientes</span>
-       <span class="d-lab" style="text-align:right">Carteira</span>
-       <span class="d-lab" style="text-align:right">Faturado</span>
+       <span class="lh-img"><i class="fa-regular fa-image" aria-hidden="true"></i></span>
+       ${tit('descricao', 'Produto', 'lh-prod')}
+       <span class="d-lab lh-fixo col-cor">Cor</span>
+       <span class="d-lab lh-fixo col-ref">Referência</span>
+       ${tit('mes_proximo', 'Prev. fat.', 'lh-n col-prev')}
+       ${tit('mais_clientes', 'Clientes', 'lh-n col-cli-h')}
+       ${tit('mais_encomendas', 'Encomendas', 'lh-n col-enc')}
+       ${tit('mais_carteira', 'Carteira', 'lh-n')}
+       ${tit('mais_faturado', 'Faturado', 'lh-n')}
        <button type="button" class="btn-recolher" id="btn-recolher" hidden
                title="Recolher os produtos abertos" aria-label="Recolher os produtos abertos">
          <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
        </button>
      </div>` +
-    grupos.slice(0, ate).map((g, i) => cardProduto(g, i)).join('');
+    grupos.slice(0, ate).map((g, i) => cardProduto(g, i)).join('') +
+    // Fecha a tabela com a soma de tudo que o filtro trouxe (não só do que
+    // já está na tela: a lista carrega de 120 em 120).
+    `<div class="lista-total">
+       <span></span>
+       <span class="lt-rot">Total · ${formatarNumero(grupos.length)} produto${grupos.length > 1 ? 's' : ''}</span>
+       <span class="lt-n lt-cli d-num">${formatarNumero(nClientes)}</span>
+       <span class="lt-n col-enc d-num">${formatarNumero(totLinhas)}</span>
+       <span class="lt-n lt-cart d-num">${formatarNumero(totCart)}</span>
+       <span class="lt-n lt-fat d-num">${formatarNumero(totFat)}</span>
+       <span></span>
+     </div>`;
+  lista.querySelectorAll('.lh-ord').forEach(b => b.addEventListener('click', () => {
+    const o = b.dataset.ord;
+    if (o === 'mes_proximo') APP.ordem = APP.ordem === 'mes_proximo' ? 'mes_distante' : 'mes_proximo';
+    else APP.ordem = APP.ordem === o ? 'mes_proximo' : o;
+    const rotOrdem = $('ordem-label');
+    if (rotOrdem) rotOrdem.textContent = (OPCOES_ORDEM.find(o => o.id === APP.ordem) || {}).label || '';
+    APP.pagina = 1;
+    render();
+  }));
   pintarParciais();
   atualizarBotaoRecolher();
 
@@ -4372,6 +4582,11 @@ function render() {
 
 // Chave numérica única do par referência+cor (o nº de cores é a base da conta)
 function mkChave(ref, cor) { return ref * APP.dic.cor.length + cor; }
+
+/** 0,661 → "66,1%" (casas = 1) ou "66%" (casas = 0). */
+function pctBR(v, casas = 0) {
+  return (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '%';
+}
 function chaveGrupo(g) { return mkChave(g.ref, g.cor); }
 
 function cardProduto(g, idx) {
@@ -4395,12 +4610,15 @@ function cardProduto(g, idx) {
         </div>
         <div class="product-info">
           <p class="product-name">${escHtml(descricao || referencia)}</p>
-          <p class="product-meta">${escHtml(cor)} · <span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` · <span class="p-mes"><i class="fa-solid fa-calendar-day"></i> ${escHtml(mesCurtoRotulo(mesProx))}</span>` : ''}</p>
+          <p class="product-meta">${escHtml(cor)} · <span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` <span class="p-mes">${escHtml(mesCurtoRotulo(mesProx))}</span>` : ''}</p>
         </div>
+        <span class="col-cor">${escHtml(cor)}</span>
+        <span class="col-ref">${escHtml(referencia)}</span>
+        <span class="col-prev">${mesProx ? `<span class="p-mes">${escHtml(mesCurtoRotulo(mesProx))}</span>` : '<span class="gc-vazio">—</span>'}</span>
         <div class="product-tags col-cli">
-          <span class="tag tag-clientes d-num">${g.clientes.size}</span>
-          <span class="tag tag-ref">${g.linhas.length} enc.</span>
+          <span class="tag tag-clientes d-num">${formatarNumero(g.clientes.size)}</span>
         </div>
+        <div class="col-enc d-num">${formatarNumero(g.linhas.length)}</div>
         <div class="product-right">
           <div class="prod-nums">
             <div class="num-linha col-cart ${g.cart ? '' : 'zerada'}">
@@ -4451,8 +4669,19 @@ function linhasDoGrupo(g, chave) {
 
     // Só quem ainda está em carteira pode ser mantido, repassado ou cancelado.
     const acao = emCarteira ? acaoDaLinha(r) : null;
+    // Na tela larga cada informação tem coluna própria. As células "gc"
+    // só aparecem ali; no tablet e no celular continua a linha compacta de
+    // sempre (nome, subtítulo e pares à direita), que é o que cabe.
+    const vazio = '<span class="gc-vazio">—</span>';
+    const gciCel = r[C.GCI]
+      ? `<button class="copiar-btn" data-copiar="${escAttr(r[C.GCI])}" title="Copiar GCI ${r[C.GCI]}"><i class="fa-solid fa-copy"></i></button><span>${r[C.GCI]}</span>`
+      : vazio;
+    const ocCel = r[C.OC] >= 0 ? escHtml(APP.dic.oc[r[C.OC]])
+      : (!emCarteira && r[C.NF] ? 'NF ' + r[C.NF] : vazio);
     const classes = [
       'gci-item',
+      APP.veTudo ? 'gi-prep' : '',
+      emCarteira ? '' : 'faturada',
       acao && acao !== ACAO_PADRAO ? 'marcada acao-' + acao.toLowerCase() : '',
       emCarteira && repassePendente(r) ? 'pendente' : '',
       APP.modoSelecao && APP.selecao.has(i) ? 'sel-marcada' : '',
@@ -4461,13 +4690,21 @@ function linhasDoGrupo(g, chave) {
     return `
       <div class="${classes}">
         ${caixaDaLinha(i, r)}
+        <span class="gc gc-cod">${botaoPdfHTML(r)}<span>${escHtml(codigo)}</span></span>
         <div class="gci-info">
           <p class="gci-cli">${escHtml(fantasia)}</p>
-          <p class="gci-meta"><span class="gci-cod">${escHtml(codigo)}</span> ${meta}${gradeHTML(r)}</p>
+          <p class="gci-meta"><span class="gci-cod">${escHtml(codigo)}</span> ${meta}</p>
+          ${gradeHTML(r)}
         </div>
-        ${emCarteira ? pillsDeAcao(r, i) : ''}
+        <span class="gc gc-gci">${gciCel}</span>
+        <span class="gc gc-oc">${ocCel}</span>
+        ${APP.veTudo ? `<span class="gc gc-prep">${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : ''}
+        <span class="gc gc-cart">${emCarteira ? `${formatarNumero(r[C.CART])} <small>pares</small>` : vazio}</span>
+        <span class="gc gc-fat">${r[C.FAT] ? `${formatarNumero(r[C.FAT])} <small>pares</small>` : vazio}</span>
+        <span class="gc gc-quando"><span class="q-curto ${emCarteira ? '' : 'q-fat'}">${emCarteira ? diaParaCurto(r[C.PREV]) : 'fat. ' + diaParaCurto(r[C.DFAT])}</span></span>
+        ${emCarteira ? pillsDeAcao(r, i) : `<span class="gc gc-sem-acao">${vazio}</span>`}
         <div class="gci-dir">
-          <p class="gci-pares ${emCarteira ? 'cart' : 'fat'}">${formatarNumero(pares)} pares</p>
+          <p class="gci-pares ${emCarteira ? 'cart' : 'fat'}">${formatarNumero(pares)} <small>pares</small></p>
           <p class="gci-quando">
             <span class="q-curto"><i class="fa-solid ${emCarteira ? 'fa-calendar-day' : 'fa-circle-check'}"></i> ${emCarteira ? diaParaCurto(r[C.PREV]) : diaParaCurto(r[C.DFAT])}</span>
           </p>
@@ -4476,7 +4713,10 @@ function linhasDoGrupo(g, chave) {
       </div>`;
   }).join('');
 
-  const cabecalho = `<div class="gci-head"><span>${linhas.length} encomenda${linhas.length > 1 ? 's' : ''}</span><span>${g.clientes.size} cliente${g.clientes.size > 1 ? 's' : ''}</span></div>`;
+  const cabecalho = `<div class="gci-head"><span>${linhas.length} encomenda${linhas.length > 1 ? 's' : ''}</span><span>${g.clientes.size} cliente${g.clientes.size > 1 ? 's' : ''}</span></div>` +
+    // os títulos das colunas, só na tela larga
+    `<div class="gci-cols ${APP.veTudo ? 'gi-prep' : ''}"><span>Código</span><span>Cliente</span><span>GCI</span><span>OC / NF</span>` +
+    `${APP.veTudo ? '<span>Preposto</span>' : ''}<span>Carteira</span><span>Faturado</span><span>Prev. / Fat.</span><span>Ações</span></div>`;
   const mais = ate < linhas.length
     ? `<button class="gci-mais" data-vertudo="${chave}">Ver os ${formatarNumero(linhas.length - ate)} restantes</button>`
     : '';
@@ -7507,6 +7747,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     medirTopoCongelado();
   });
   ligar('tb-faixa', 'scroll', atualizarVeuRolagem);
+  // As fitas de filtro rolam sozinhas no celular; sem ouvir a rolagem
+  // delas, o esfumado ficava parado e não dizia de que lado havia mais.
+  ligar('filter-row', 'scroll', atualizarVeuRolagem);
+  ligar('filter-row-rep', 'scroll', atualizarVeuRolagem);
+  // Números do topo: recolhem e voltam num toque. A escolha fica guardada
+  // no aparelho — quem recolheu para ganhar espaço não quer repetir todo dia.
+  const kpisRecolhidos = () => { try { return localStorage.getItem('detalhada.kpis') === 'recolhido'; } catch { return false; } };
+  const pintarKpis = rec => {
+    const cx = $('cab-numeros'), bt = $('btn-kpis');
+    if (!cx || !bt) return;
+    cx.classList.toggle('recolhido', rec);
+    bt.title = rec ? 'Mostrar os números' : 'Recolher os números';
+    bt.setAttribute('aria-expanded', String(!rec));
+    bt.querySelector('i').className = 'fa-solid ' + (rec ? 'fa-chevron-down' : 'fa-chevron-up');
+  };
+  pintarKpis(kpisRecolhidos());
+  ligar('btn-kpis', 'click', () => {
+    const rec = !$('cab-numeros').classList.contains('recolhido');
+    try { localStorage.setItem('detalhada.kpis', rec ? 'recolhido' : ''); } catch {}
+    pintarKpis(rec);
+  });
+  // No PC, com mouse comum, a roda só rola para baixo. Em cima da fita de
+  // filtros ela passa a rolar para os lados — e, chegando na ponta, devolve
+  // o gesto para a página, que continua rolando normalmente.
+  ['filter-row', 'filter-row-rep'].forEach(id => ligar(id, 'wheel', e => {
+    const r = e.currentTarget;
+    if (r.scrollWidth <= r.clientWidth + 1) return;
+    if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;   // touchpad já rola de lado
+    const antes = r.scrollLeft;
+    r.scrollLeft += e.deltaY;
+    if (r.scrollLeft !== antes) e.preventDefault();
+  }));
+  window.addEventListener('resize', atualizarVeuRolagem, { passive: true });
 
   ligar('btn-admin', 'click', () => { atualizarFonteInfo(); show('screen-admin'); });
 
@@ -7517,6 +7790,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Clicar na linha marca; clicar de novo desmarca. Só troca as classes —
   // repintar a tabela para acender uma linha seria caro e piscaria.
   ligar('rfv-tela', 'click', (e) => {
+    const th = e.target.closest('th[data-ord]');
+    if (th) {
+      RFV.ordem = RFV.ordem === th.dataset.ord ? '' : th.dataset.ord;
+      rfvPintar();
+      return;
+    }
     const tr = e.target.closest('tr[data-cod]');
     if (!tr) return;
     RFV.sel = RFV.sel === tr.dataset.cod ? '' : tr.dataset.cod;
@@ -7542,7 +7821,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.stopPropagation();
     const it = e.target.closest('.rfv-item');
     if (!it) return;
-    RFV.f[RFV.aberto] = it.dataset.v;
+    const f = RFV.aberto;
+    if (RFV_MULTI.has(f)) {
+      // marca e desmarca sem fechar; vazio volta a ser '' (= todos)
+      const v = it.dataset.v;
+      const sel = new Set(rfvSel(f));
+      if (!v) sel.clear();
+      else if (sel.has(v)) sel.delete(v);
+      else sel.add(v);
+      RFV.f[f] = sel.size ? [...sel] : '';
+      rfvPintar();
+      rfvPintarLista();
+      return;
+    }
+    RFV.f[f] = it.dataset.v;
     rfvFecharLista();
     rfvPintar();
   });
@@ -7920,7 +8212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   display:inline-flex; align-items:center; gap:7px;
 }
 .tb-faixa .tipo-chip .chip-n{ margin-left:-1px; }
-.tb-faixa .tipo-chip.ativo{ background:var(--d-surface); color:var(--d-ink); box-shadow:0 1px 3px rgba(28,25,23,.1); }
+.tb-faixa .tipo-chip.ativo{ background:var(--d-surface); color:var(--d-ink); box-shadow:0 1px 2px rgba(20,24,20,.08); }
 
 .tb-faixa .btn-icon{
   background:transparent; border:1px solid var(--d-line);
@@ -7963,7 +8255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 #btn-mais-filtros:hover{ border-color:var(--d-line-2); color:var(--d-ink); }
 #btn-mais-filtros.on{ border-color:var(--d-ink); color:var(--d-ink); }
 #btn-mais-filtros .conta{
-  background:var(--d-ink); color:#fff; border-radius:999px;
+  background:var(--d-ink); color:var(--ds-card); border-radius:999px;
   font-size:9.5px; padding:1px 5px; font-variant-numeric:tabular-nums;
 }
 
@@ -8042,6 +8334,12 @@ document.addEventListener('DOMContentLoaded', function(){
     b.addEventListener('click', function(){
       var on = row.classList.toggle('mostrar-extras');
       b.classList.toggle('on', on);
+      // Os extras entram antes do botão e o empurram para a direita; a fita
+      // corre até o fim para mostrar o que abriu (e o próprio botão).
+      if (on && row.scrollWidth > row.clientWidth) {
+        row.scrollTo({ left: row.scrollWidth, behavior: 'smooth' });
+      }
+      if (typeof atualizarVeuRolagem === 'function') atualizarVeuRolagem();
     });
     var limpar = document.getElementById('btn-limpar-filtros');
     if(limpar) row.insertBefore(b, limpar); else row.appendChild(b);
@@ -8328,12 +8626,11 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 .rfv-ficha .n{ font-size:11px; font-weight:600; color:var(--text-2); line-height:1.15; }
 .rfv-ficha.pos .v,.rfv-ficha.pos .n{ color:var(--acao-manter); }
 .rfv-ficha.neg .v,.rfv-ficha.neg .n{ color:var(--acao-cancelar); }
-.rfv-ficha.car .v{ color:var(--d-warn); }
+.rfv-ficha.car .v{ color:var(--ds-carteira); }
 .rfv-ficha.on{ border-color:var(--primary); background:var(--primary-bg); }
 .rfv-ficha.on .n{ color:var(--primary-2); }
 .rfv-ficha.pos .pc{ color:var(--acao-manter); }
-.rfv-ficha.car .pc{ color:var(--d-warn); }
-html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
+.rfv-ficha.car .pc{ color:var(--ds-carteira); }
 
 .rfv-abas{ display:flex; gap:4px; background:var(--card-bg); border:1px solid var(--border);
            border-radius:9px; padding:3px; }
@@ -8473,11 +8770,7 @@ html.dark .rfv-ficha.car .pc{ color:var(--acao-repassar); }
 .rfv-quadro td.cid .uf{ color:var(--text-3); font-size:10.5px; }
 .rfv-quadro td.cid.aprox{ color:var(--text-3); }
 .rfv-fat{ color:var(--acao-manter); font-weight:700; }
-.rfv-car{ color:var(--d-warn); font-weight:700; }
-/* No escuro o âmbar do prazo fica marrom demais contra o fundo; o do
-   "Repassar" é o mesmo papel com contraste. */
-html.dark .rfv-car,
-html.dark .rfv-ficha.car .v{ color:var(--acao-repassar); }
+.rfv-car{ color:var(--ds-carteira); font-weight:700; }
 .rfv-mix{ font-weight:700; }
 .rfv-zero{ color:var(--text-3); }
 .rfv-quadro td.stot{ font-weight:800; background:var(--card-bg-2); }
@@ -8507,6 +8800,1332 @@ html.dark .rfv-ficha.car .v{ color:var(--acao-repassar); }
   #rfv-busca{ width:150px; }
 }
 </style>
+
+<style id="ds-fundacao">
+/* ─────────────────────────────────────────────────────────────────────
+   Fundação do redesenho (fase 1). Vem por último para valer sobre os
+   blocos antigos sem precisar mexer neles um a um.
+
+   Duas vozes de letra:
+     Instrument Sans  — tudo que se lê: nomes, números, botões
+     IBM Plex Mono    — tudo que rotula: cabeçalhos de coluna, códigos,
+                        rótulos dos totais. Pequeno, espaçado, cinza.
+   ───────────────────────────────────────────────────────────────────── */
+body{ background:var(--ds-page) !important; color:var(--ds-ink); font-family:var(--ds-font); }
+button, input, select, textarea{ font-family:inherit; }
+input::placeholder{ color:var(--ds-ghost); }
+
+/* todo número alinha em coluna */
+.num-linha .n, .summary-chip strong, .rfv-ficha .v, .rfv-quadro td,
+.rfv-quadro thead th .tot, .tag-clientes, .chip-n{
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+
+/* ── micro-rótulos em mono ── */
+.d-lab, .rfv-ficha .n, .mg-rot, .rfv-balao .cab, .fp-contador, .grupo-titulo,
+.gci-head, .num-linha .l{
+  font-family:var(--ds-mono); font-weight:500; letter-spacing:.1em;
+}
+.d-lab{ font-size:10px; color:var(--ds-ghost); }
+.rfv-ficha .n{ font-size:9.5px; }
+
+/* totais do topo: rótulo mono, número em Instrument */
+.tb-faixa .summary-chip{
+  font-family:var(--ds-mono); font-size:9.5px; font-weight:500;
+  letter-spacing:.1em; color:var(--ds-faint);
+}
+.tb-faixa .summary-chip strong{
+  font-family:var(--ds-font); font-size:15px; font-weight:600; letter-spacing:-.2px;
+}
+
+/* ── códigos em mono: é assim que se reconhece um código de relance ── */
+.product-meta{ font-family:var(--ds-mono); font-size:10.5px; letter-spacing:.02em; }
+.product-meta .p-mes{
+  font-family:var(--ds-mono); background:var(--ds-sunk); color:var(--ds-muted);
+  border-radius:5px; padding:1px 5px; margin-left:1px;
+}
+.col-cli .tag-ref{ font-family:var(--ds-mono); font-size:10px; color:var(--ds-ghost); }
+
+/* ── nome do produto e números, na escala do redesenho ── */
+.product-name{ font-size:14px; font-weight:600; letter-spacing:-.005em; }
+.num-linha .n{ font-size:14px; }
+.col-cart .n.cart{ color:var(--ds-ink-2) !important; font-weight:500; }
+.col-fat .n.fat{ color:var(--ds-faturado-ink) !important; font-weight:600; font-size:14px; }
+html.dark .col-fat .n.fat{ color:var(--ds-faturado) !important; }
+
+/* ── forma: pílula vira raio 9 (trilho) / 6 (aba) ── */
+.tb-faixa .tipo-chips{ border-radius:var(--ds-r-md); padding:3px; background:var(--ds-sunk); }
+.tb-faixa .tipo-chip{ border-radius:var(--ds-r-sm); font-size:12.5px; font-weight:500; }
+.tb-faixa .tipo-chip.ativo{ font-weight:600; }
+.product-card{ border-radius:var(--ds-r-md); }
+.product-thumb, .product-thumb-fallback{ border-radius:var(--ds-r-md); background:#F7F7F4; border-color:#E9EAE5; }
+html.dark .product-thumb, html.dark .product-thumb-fallback{ background:var(--ds-card-2); border-color:var(--ds-line); }
+
+/* ── RFV: placar e tabela na mesma voz ── */
+.rfv-ficha .v{ font-weight:600; letter-spacing:-.3px; }
+.rfv-quadro thead th{ font-family:var(--ds-mono); font-weight:500; letter-spacing:.08em; font-size:10px; }
+.rfv-quadro thead th .tot{ font-family:var(--ds-font); font-size:12.5px; font-weight:600; letter-spacing:0; }
+.rfv-aba{ border-radius:var(--ds-r-sm); }
+.leaflet-popup-content-wrapper{ border-radius:var(--ds-r-md); }
+/* ── barra de filtros: dentro do quadro branco, como no redesenho ── */
+.painel-detalhada .frozen-header{ background:var(--ds-card); border-color:var(--ds-line-soft); }
+.frozen-header{ border-color:var(--ds-line-soft); }
+
+/* chips de filtro: retângulo de raio 9, não pílula */
+.filter-chip, #btn-mais-filtros{ border-radius:var(--ds-r-md); font-size:12.5px; font-weight:500; }
+.filter-chip.active, #btn-mais-filtros.on{
+  border-color:rgba(var(--ds-accent-rgb), .35); background:var(--ds-accent-bg); color:var(--ds-accent);
+}
+.filter-chip.active i{ color:var(--ds-accent); }
+#btn-mais-filtros .conta{ font-family:var(--ds-mono); border-radius:5px; font-weight:500; }
+
+/* contadores das abas: número mono cinza ao lado do rótulo (Tudo 1.376).
+   O fundo translúcido era feito para chip colorido; na barra clara sumia. */
+.tb-faixa .tipo-chip .chip-n{
+  background:transparent; color:var(--ds-faint); padding:0; margin-left:0;
+  font-family:var(--ds-mono); font-size:10.5px; font-weight:500;
+}
+.tb-faixa .tipo-chip.alerta .chip-alerta{
+  background:var(--ds-erro); color:#fff; border-radius:5px;
+  font-family:var(--ds-mono); font-weight:500;
+}
+
+/* celular: o código e o mês não cabem numa linha em mono — quebram em
+   duas em vez de sumir atrás de reticências */
+@media (max-width:700px){
+  .product-meta{ white-space:normal; font-size:10px; letter-spacing:0; line-height:1.55; }
+  .product-meta .p-mes{ white-space:nowrap; }
+}
+</style>
+
+<style id="ds-cabecalho">
+/* ─────────────────────────────────────────────────────────────────────
+   CABEÇALHO EM TRÊS FAIXAS (proposta, 10/09/2026)
+   Antes: uma fita só com título, busca, abas, totais e cinco botões,
+   rolando de lado até no computador — metade dos botões ficava fora da
+   vista. Agora cada coisa tem a sua faixa e nada se esconde.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* o painel vira o quadro do redesenho: borda nos quatro lados, raio 16 */
+.painel-detalhada{
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-lg);
+  box-shadow:var(--ds-shadow-card);
+}
+
+/* ── 1 · IDENTIDADE ─────────────────────────────────────────────────── */
+.cab-ident{
+  display:flex; align-items:center; gap:14px;
+  min-height:62px; padding:12px 0;
+}
+.cab-ident .logo-mark{ width:34px; height:34px; border-radius:var(--ds-r-md); font-size:12px; }
+.cab-titulo{
+  display:flex; flex-direction:column; justify-content:center; line-height:1.15;
+  flex:none; min-width:0; padding-right:16px; border-right:1px solid var(--ds-line-soft);
+}
+.cab-titulo .logo-text{ font-size:15px; font-weight:600; letter-spacing:-.15px; color:var(--ds-ink); }
+.cab-titulo .logo-sub{
+  margin-top:3px; font-family:var(--ds-mono); font-size:10px; font-weight:400;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--ds-ghost);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+.cab-busca{ flex:1 1 320px; max-width:540px; min-width:0; }
+.cab-busca input{
+  height:38px; padding:0 38px 0 36px; font-size:13.5px;
+  background:var(--ds-card-2); border:1px solid var(--ds-line);
+  border-radius:var(--ds-r-md); box-shadow:none; color:var(--ds-ink);
+}
+.cab-busca input:focus{
+  background:var(--ds-card); border-color:rgba(var(--ds-accent-rgb), .55);
+  box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .12);
+}
+.cab-busca .search-icon{ left:13px; font-size:12px; color:var(--ds-ghost); }
+.cab-busca .search-clear{ right:4px; width:30px; height:30px; border-radius:var(--ds-r-sm); font-size:12px; }
+
+/* as ações num grupo só, à direita, sempre inteiras */
+.cab-acoes{
+  margin-left:auto; flex:none;
+  display:flex; align-items:center; gap:2px; padding:3px;
+  background:var(--ds-card); border:1px solid var(--ds-line); border-radius:var(--ds-r-md);
+}
+.cab-acoes .btn-icon{
+  width:32px; height:32px; border-radius:var(--ds-r-sm);
+  background:transparent; border:0; box-shadow:none;
+  color:var(--ds-muted); font-size:14px;
+}
+.cab-acoes .btn-icon:hover{ background:var(--ds-sunk); color:var(--ds-ink); transform:none; box-shadow:none; }
+.cab-acoes .btn-icon:focus-visible{ outline:2px solid var(--ds-accent); outline-offset:1px; }
+.cab-acoes #btn-sair:hover{ color:var(--ds-erro); }
+.cab-acoes .cab-div{ width:1px; height:18px; background:var(--ds-line); margin:0 3px; }
+
+/* ── 2 · NÚMEROS ───────────────────────────────────────────────────────
+   Rótulo mono com o ponto da cor do papel (azul carteira, verde
+   faturado), número grande embaixo. Sem caixinha: são leituras. */
+.cab-numeros{
+  margin:0 -16px; background:var(--ds-band);
+  border-top:1px solid var(--ds-line-soft);
+}
+.cab-numeros .products-summary{
+  display:flex; gap:0; margin:0; padding:0;
+  overflow-x:auto; scrollbar-width:none;
+}
+.cab-numeros .products-summary::-webkit-scrollbar{ display:none; }
+.cab-numeros .summary-chip{
+  position:relative; flex:1 1 0; min-width:128px;
+  display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:4px;
+  height:auto; padding:11px 16px; margin:0;
+  background:transparent; border:0; border-left:1px solid var(--ds-line-soft);
+  border-radius:0; box-shadow:none;
+  font-family:var(--ds-mono); font-size:10px; font-weight:500; line-height:1.2;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ds-faint);
+  white-space:nowrap; text-indent:13px;
+}
+.cab-numeros .summary-chip:first-child{ border-left:0; }
+.cab-numeros .summary-chip strong{
+  order:2; text-indent:0; margin:0;
+  font-family:var(--ds-font); font-size:21px; font-weight:600; line-height:1.1;
+  letter-spacing:-.4px; text-transform:none; color:var(--ds-ink) !important;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+.cab-numeros .summary-chip::before{
+  content:''; position:absolute; left:16px; top:14px;
+  width:6px; height:6px; border-radius:2px; background:var(--ds-line-strong);
+}
+.cab-numeros .summary-chip:has(.c-cart)::before{ background:var(--ds-carteira); }
+.cab-numeros .summary-chip:has(.c-fat)::before{ background:var(--ds-faturado); }
+.cab-numeros .summary-chip.alerta{ color:var(--ds-erro); }
+.cab-numeros .summary-chip.alerta::before{ background:var(--ds-erro); }
+.cab-numeros .summary-chip.alerta strong{ color:var(--ds-erro) !important; }
+.cab-numeros .products-summary:empty{ display:none; }
+
+/* ── 3 · RECORTE (gruda no alto) ───────────────────────────────────── */
+.painel-detalhada .frozen-header.cab-recorte{
+  margin:0 -16px; padding:9px 16px;
+  background:var(--ds-card);
+  border-top:1px solid var(--ds-line-soft); border-bottom:1px solid var(--ds-line-soft);
+}
+.cab-trilho{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+.cab-sep{ flex:none; width:1px; height:22px; background:var(--ds-line); }
+
+/* abas de visão: trilho cinza, aba ativa branca */
+.cab-trilho .tipo-chips{
+  flex:none; display:flex; gap:2px; margin:0; padding:2px;
+  background:var(--ds-sunk); border-radius:var(--ds-r-md);
+}
+.cab-trilho .tipo-chip,
+.cab-trilho .tipo-chip.alerta{
+  height:28px; padding:0 11px; border:0; border-radius:var(--ds-r-sm);
+  background:transparent; box-shadow:none; color:var(--ds-muted);
+  display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+  font-size:12.5px; font-weight:500;
+}
+.cab-trilho .tipo-chip i{ display:none; }
+.cab-trilho .tipo-chip:hover{ color:var(--ds-ink); }
+.cab-trilho .tipo-chip.ativo,
+.cab-trilho .tipo-chip.alerta.ativo{
+  background:var(--ds-card); color:var(--ds-ink); font-weight:600;
+  box-shadow:0 1px 2px rgba(20,24,20,.08), 0 0 0 1px var(--ds-line);
+}
+.cab-trilho .tipo-chip .chip-n{
+  margin:0; padding:0; background:transparent; color:var(--ds-faint);
+  font-family:var(--ds-mono); font-size:10.5px; font-weight:500;
+}
+.cab-trilho .tipo-chip .chip-alerta{
+  margin:0 0 0 -2px; padding:1px 5px; border-radius:5px;
+  background:var(--ds-erro); color:#fff;
+  font-family:var(--ds-mono); font-size:10px; font-weight:500;
+}
+
+/* filtros */
+/* Os filtros são uma fita que rola de lado — no computador também. Quebrar
+   em duas linhas ao abrir "Mais filtros" empurrava a lista para baixo. */
+.cab-trilho .filtros-caixa{ position:relative; flex:1 1 auto; min-width:0; }
+.cab-trilho .filter-row{
+  gap:6px; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; padding:0;
+}
+.cab-trilho .filter-row::-webkit-scrollbar{ display:none; }
+.cab-trilho .filter-row > *{ flex:0 0 auto; }
+/* esfumado dos lados: diz que ainda há filtro escondido ali */
+.cab-trilho .filtros-caixa::before,
+.cab-trilho .filtros-caixa::after{
+  content:''; display:block; position:absolute; top:0; bottom:0; width:36px;
+  pointer-events:none; opacity:0; transition:opacity .15s; z-index:2;
+}
+.cab-trilho .filtros-caixa::after { right:0; background:linear-gradient(90deg, transparent, var(--ds-card) 80%); }
+.cab-trilho .filtros-caixa::before{ left:0;  background:linear-gradient(270deg, transparent, var(--ds-card) 80%); }
+.cab-trilho .filtros-caixa.rolavel::after{ opacity:1; }
+.cab-trilho .filtros-caixa.rolavel-esq::before{ opacity:1; }
+.cab-trilho .filter-chip,
+.cab-trilho #btn-mais-filtros{
+  height:32px; padding:0 11px; gap:7px;
+  display:inline-flex; align-items:center; white-space:nowrap;
+  background:var(--ds-card); border:1px solid var(--ds-line); border-radius:var(--ds-r-md);
+  box-shadow:none; color:var(--ds-ink-2); font-size:12.5px; font-weight:500;
+}
+.cab-trilho .filter-chip i{ font-size:11px; color:var(--ds-ghost); }
+.cab-trilho .filter-chip i.fa-chevron-down{ font-size:8px; margin-left:1px; }
+.cab-trilho .filter-chip:hover,
+.cab-trilho #btn-mais-filtros:hover{ border-color:var(--ds-line-strong); color:var(--ds-ink); }
+.cab-trilho .filter-chip.active{
+  background:var(--ds-accent-bg); border-color:rgba(var(--ds-accent-rgb), .35); color:var(--ds-accent);
+}
+.cab-trilho .filter-chip.active i{ color:var(--ds-accent); }
+/* "Mais filtros 4" parecia "4 filtros ligados"; é quantos há guardados */
+.cab-trilho #btn-mais-filtros .conta{
+  background:transparent; color:var(--ds-faint); padding:0;
+  font-family:var(--ds-mono); font-size:10.5px; font-weight:500;
+}
+.cab-trilho #btn-mais-filtros .conta::before{ content:'+'; }
+.cab-trilho #btn-mais-filtros.on{ background:var(--ds-sunk); border-color:var(--ds-line); color:var(--ds-ink); }
+.cab-trilho .btn-na-linha{
+  width:32px; height:32px; align-self:center; border-radius:var(--ds-r-md);
+  background:var(--ds-card); border:1px solid var(--ds-line); box-shadow:none; color:var(--ds-muted);
+}
+.cab-trilho .btn-na-linha:hover{ transform:none; box-shadow:none; border-color:var(--ds-line-strong); color:var(--ds-ink); }
+.cab-trilho .btn-na-linha.ativo{ background:var(--ds-accent); border-color:var(--ds-accent); color:#fff; }
+/* limpar vai para a ponta direita, longe do que se clica sem querer */
+.cab-trilho .filter-clear-btn{
+  margin-left:auto; width:32px; height:32px; border-radius:var(--ds-r-md);
+  background:transparent; border:1px solid transparent; box-shadow:none; color:var(--ds-faint);
+}
+.cab-trilho .filter-clear-btn:hover{ background:var(--ds-sunk); border-color:transparent; color:var(--ds-erro); }
+
+/* ── tablet e celular: o trilho vira uma fita que rola de lado ────────── */
+@media (max-width:900px){
+  .cab-trilho{ flex-wrap:wrap; gap:8px; }
+  .cab-sep{ display:none; }
+  .cab-trilho > .tipo-chips{
+    flex:1 1 100%; overflow-x:auto; scrollbar-width:none;
+  }
+  .cab-trilho > .tipo-chips::-webkit-scrollbar{ display:none; }
+  .cab-trilho .tipo-chip{ flex:1 0 auto; justify-content:center; }
+  .cab-trilho .filtros-caixa{ flex:1 1 100%; min-width:0; }
+  .cab-trilho .filter-clear-btn{ margin-left:0; }
+}
+
+@media (max-width:700px){
+  .painel-detalhada{ border-radius:var(--ds-r-md); }
+  /* título e ações na primeira linha, busca inteira na segunda */
+  .cab-ident{ flex-wrap:wrap; gap:10px; padding:10px 0 12px; min-height:0; }
+  .cab-titulo{ flex:1 1 auto; border-right:0; padding-right:0; }
+  .cab-acoes{ order:2; }
+  .cab-busca{ order:3; flex:1 1 100%; max-width:none; }
+  .cab-busca input{ height:40px; font-size:14px; }
+  .cab-acoes .btn-icon{ width:34px; height:34px; }
+
+  .cab-numeros{ margin:0 -12px; }
+  .cab-numeros .summary-chip{ min-width:92px; padding:7px 12px; gap:2px; font-size:9px; letter-spacing:.1em; text-indent:11px; }
+  .cab-numeros .summary-chip::before{ left:12px; top:10px; width:5px; height:5px; }
+  .cab-numeros .summary-chip strong{ font-size:16px; letter-spacing:-.2px; }
+
+  .painel-detalhada .frozen-header.cab-recorte{ margin:0 -12px; padding:8px 12px; }
+  .cab-trilho .tipo-chip{ padding:0 9px; }
+}
+@media (max-width:380px){
+  .cab-acoes .btn-icon{ width:31px; }
+  .cab-acoes .cab-div{ margin:0 1px; }
+}
+/* ── LARGURA ─────────────────────────────────────────────────────────────
+   O quadro parava em 1200px e sobrava faixa vazia dos dois lados. Agora
+   ele usa a tela, e só para de crescer em monitor muito largo. */
+.app{ max-width:1680px; }
+@media (min-width:1024px){ .app{ padding:16px 20px; } }
+
+/* ── ESCURO COM A LEITURA DO RFV ──────────────────────────────────────────
+   No RFV escuro os números são fortes e a cor diz o papel: azul é
+   carteira, verde é faturado. A lista de produtos passa a falar igual. */
+html.dark .col-cart .n.cart{ color:var(--ds-carteira) !important; font-weight:700; }
+html.dark .col-fat .n.fat{ color:var(--ds-faturado) !important; font-weight:700; }
+html.dark .num-linha.col-fat.zerada .n.fat{ background:transparent; color:var(--ds-faint) !important; }
+html.dark .col-cli .tag-clientes{ font-weight:700; color:var(--ds-ink); }
+html.dark .col-cli .tag-ref{ color:var(--ds-muted); }
+html.dark .product-name{ font-weight:650; color:var(--ds-ink); }
+html.dark .product-meta{ color:#BAC1BC; }
+html.dark .product-meta .p-mes{ background:var(--ds-sunk); color:#C9CFCB; }
+/* nos totais do topo, só quando é a tela de produtos (carteira + faturado) */
+html.dark .products-summary:has(.c-fat) .summary-chip:has(.c-cart) strong{ color:var(--ds-carteira) !important; }
+html.dark .products-summary:has(.c-fat) .summary-chip:has(.c-fat) strong{ color:var(--ds-faturado) !important; }
+/* no cartão aberto: pares em carteira em azul, faturados em verde — antes
+   a carteira saía no verde da marca e parecia faturado */
+html.dark .gci-pares.cart{ color:var(--ds-carteira); font-weight:700; }
+html.dark .gci-pares.fat{ color:var(--ds-faturado); font-weight:650; }
+</style>
+
+<style id="ds-lista">
+/* ─────────────────────────────────────────────────────────────────────
+   LISTA DE PRODUTOS (fase 2)
+   Grade fixa: toda linha usa as mesmas colunas, então cada número cai
+   sempre na mesma vertical. Encomendas ganha coluna própria (antes vinha
+   empilhada embaixo dos clientes e tirava a linha do eixo). Faturado
+   deixa de ser pílula e vira número + percentual + barrinha.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* miniatura de 40px; a lupa só aparece quando o mouse passa */
+.painel-detalhada .product-thumb,
+.painel-detalhada .product-thumb-fallback{ width:40px; height:40px; border-radius:var(--ds-r-md); }
+.painel-detalhada .product-thumb-fallback{ border-style:solid; }
+.painel-detalhada .product-thumb-fallback i{ font-size:14px; }
+.painel-detalhada .lista-head .lh-img{ width:40px; }
+@media (hover:hover){
+  .painel-detalhada .product-zoom{ opacity:0; transition:opacity .15s; }
+  .painel-detalhada .product-thumb-wrap:hover .product-zoom{ opacity:1; }
+}
+
+/* células de número */
+.painel-detalhada .num-linha{
+  display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:6px;
+}
+.painel-detalhada .nl-topo{ display:inline-flex; align-items:baseline; gap:8px; }
+.painel-detalhada .num-linha .pct,
+.painel-detalhada .lista-total .pct{
+  font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-ghost); font-weight:400;
+}
+.painel-detalhada .col-fat .n.fat,
+html.dark .painel-detalhada .col-fat .n.fat{
+  background:transparent; padding:0; border-radius:0;
+}
+.painel-detalhada .num-linha .barra{
+  display:block; height:2px; border-radius:1px; overflow:hidden;
+  background:var(--ds-line-soft);
+}
+.painel-detalhada .col-cart .barra{ width:52px; }
+.painel-detalhada .col-fat .barra{ width:84px; }
+.painel-detalhada .num-linha .barra i{ display:block; height:100%; border-radius:1px; background:var(--ds-carteira); }
+.painel-detalhada .col-fat .barra i{ background:var(--ds-faturado); }
+html.dark .painel-detalhada .num-linha .barra{ background:var(--ds-line); }
+
+/* encomendas: contagem de apoio, mais leve que clientes */
+.painel-detalhada .col-enc{
+  text-align:right; font-size:14px; font-weight:400; color:var(--ds-muted);
+  font-variant-numeric:tabular-nums;
+}
+.painel-detalhada .col-cli .tag-clientes{ font-size:14px; font-weight:500; color:var(--ds-ink-2); }
+html.dark .painel-detalhada .col-cli .tag-clientes{ color:var(--ds-ink); }
+
+/* títulos que ordenam */
+.painel-detalhada .lista-head .lh-ord{
+  background:none; border:0; padding:0; margin:0; cursor:pointer;
+  display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+  color:var(--ds-faint);
+}
+.painel-detalhada .lista-head .lh-ord.lh-n{ justify-self:end; }
+.painel-detalhada .lista-head .lh-prod{ justify-self:start; }
+.painel-detalhada .lista-head .lh-ord:hover{ color:var(--ds-ink); }
+.painel-detalhada .lista-head .lh-ord.on{ color:var(--ds-ink); }
+.painel-detalhada .lista-head .lh-ord i{ font-size:9px; }
+.painel-detalhada .lista-head .lh-ord:focus-visible{ outline:2px solid var(--ds-accent); outline-offset:3px; border-radius:3px; }
+
+/* linha de total: fecha a tabela */
+.painel-detalhada .lista-total{
+  display:grid; align-items:center; gap:0 16px;
+  padding:14px 0;
+  background:var(--ds-card-2); margin:0 -16px; padding-left:16px; padding-right:16px;
+}
+.painel-detalhada .lista-total .lt-rot{
+  font-family:var(--ds-mono); font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ds-muted);
+}
+.painel-detalhada .lista-total .lt-n{
+  text-align:right; font-size:14px; font-weight:600; color:var(--ds-ink);
+  font-variant-numeric:tabular-nums;
+}
+.painel-detalhada .lista-total .lt-fat{ color:var(--ds-faturado-ink); display:inline-flex; justify-content:flex-end; align-items:baseline; gap:8px; }
+html.dark .painel-detalhada .lista-total .lt-fat{ color:var(--ds-faturado); }
+html.dark .painel-detalhada .lista-total .lt-cart{ color:var(--ds-carteira); }
+
+/* ── a grade, por largura de tela ──
+   (só de 701px para cima: o celular tem a grade dele, lá no bloco antigo) */
+@media (min-width:1100px){
+  .painel-detalhada #lista .lista-head,
+  .painel-detalhada #lista .product-main,
+  .painel-detalhada #lista .lista-total{
+    grid-template-columns:40px minmax(0,1fr) 84px 100px 112px 168px 28px;
+    gap:0 16px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .lista-head,
+  .painel-detalhada #lista:has(.sel-chk) .product-main,
+  .painel-detalhada #lista:has(.sel-chk) .lista-total{
+    grid-template-columns:17px 40px minmax(0,1fr) 84px 100px 112px 168px 28px;
+  }
+}
+@media (min-width:701px) and (max-width:1099.98px){
+  /* tablet: encomendas sai de cena (continua no cartão aberto) para o nome
+     do produto não ser espremido */
+  .painel-detalhada #lista .lista-head,
+  .painel-detalhada #lista .product-main,
+  .painel-detalhada #lista .lista-total{
+    grid-template-columns:40px minmax(0,1fr) 72px 96px 136px 24px;
+    gap:0 14px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .lista-head,
+  .painel-detalhada #lista:has(.sel-chk) .product-main,
+  .painel-detalhada #lista:has(.sel-chk) .lista-total{
+    grid-template-columns:17px 40px minmax(0,1fr) 72px 96px 136px 24px;
+  }
+  .painel-detalhada .col-enc,
+  .painel-detalhada .lista-head .lh-ord.col-enc{ display:none; }
+  .painel-detalhada .col-fat .barra{ width:72px; }
+}
+@media (min-width:701px){
+  .painel-detalhada .product-main{ padding-top:12px; padding-bottom:12px; min-height:64px; }
+  .painel-detalhada #lista:has(.sel-chk) .lista-total::before{ content:''; }
+}
+
+/* celular: a grade antiga continua; saem encomendas e percentual */
+@media (max-width:700px){
+  .painel-detalhada .col-enc,
+  .painel-detalhada .num-linha .pct{ display:none; }
+  .painel-detalhada .col-cart .barra{ width:40px; }
+  .painel-detalhada .col-fat .barra{ width:52px; }
+  .painel-detalhada .num-linha{ gap:5px; }
+  .painel-detalhada .lista-total{
+    grid-template-columns:44px minmax(0,1fr) 66px 74px 18px; gap:0 8px;
+    margin:0 -12px; padding:12px;
+  }
+  .painel-detalhada .lista-total .lt-cli{ display:none; }
+  .painel-detalhada .lista-total .lt-rot{ grid-column:1 / 3; }
+  .painel-detalhada .lista-total > span:first-child{ display:none; }
+}
+@media (max-width:400px){
+  .painel-detalhada .lista-total{ grid-template-columns:40px minmax(0,1fr) 60px 68px 16px; gap:0 7px; }
+}
+@media (max-width:380px){
+  .painel-detalhada .lista-total{ display:none; }
+  .painel-detalhada .num-linha .barra{ display:none; }
+}
+
+/* ── números do topo: conversão com barra ── */
+.cab-numeros .summary-chip:has(.c-conv)::before{ background:var(--ds-atencao); }
+/* com a barra da conversão a faixa cresce 6px; os rótulos continuam na mesma linha */
+.cab-numeros .summary-chip{ justify-content:flex-start; }
+.cab-numeros .s-barra{
+  order:3; display:block; align-self:stretch; max-width:180px; height:3px;
+  margin-top:3px; border-radius:2px; overflow:hidden; background:var(--ds-line-soft);
+  text-indent:0;
+}
+html.dark .cab-numeros .s-barra{ background:var(--ds-line); }
+.cab-numeros .s-barra i{ display:block; height:100%; background:var(--ds-faturado); border-radius:2px; }
+</style>
+
+<style id="ds-telas">
+/* ─────────────────────────────────────────────────────────────────────
+   FASE 3 · as outras telas na mesma língua
+   Cartão aberto, Transferências, RFV, admin, login e janelas.
+   Regras só de aparência: nenhuma muda o que o botão faz.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ══ 1 · CARTÃO ABERTO ══════════════════════════════════════════════════ */
+.painel-detalhada .product-details-inner{ padding:0 0 6px; }
+.painel-detalhada .gci-head{
+  padding:10px 0 8px; border-bottom:1px solid var(--ds-line-soft); color:var(--ds-faint);
+}
+.painel-detalhada .gci-head > span{ font-family:var(--ds-mono); font-size:10px; font-weight:500; letter-spacing:.12em; }
+.painel-detalhada .gci-item{ padding:11px 0; border-bottom:1px solid var(--ds-line-row); }
+.painel-detalhada .gci-cli{ font-size:13.5px; font-weight:600; color:var(--ds-ink); }
+.painel-detalhada .gci-meta{
+  font-family:var(--ds-mono); font-size:10.5px; letter-spacing:.02em;
+  color:var(--ds-muted); gap:3px 8px;
+}
+.painel-detalhada .gci-meta .gci-cod{ color:var(--ds-ghost); }
+.painel-detalhada .gci-meta .gci-num{ color:var(--ds-carteira-ink); font-weight:500; gap:6px; }
+.painel-detalhada .gci-meta .sep{ color:var(--ds-line-strong); }
+/* o nome do preposto vem com o próprio ponto; sem o espaço ele colava (·JORGE) */
+.painel-detalhada .gci-meta .meta-prep{ display:inline-flex; align-items:center; gap:8px; }
+/* no celular o nome do preposto continua de fora, como já era */
+@media (max-width:700px){ .painel-detalhada .gci-meta .meta-prep{ display:none; } }
+.painel-detalhada .copiar-btn{
+  width:20px; height:20px; border:0; border-radius:5px;
+  background:var(--ds-sunk); color:var(--ds-muted); font-size:9.5px;
+}
+.painel-detalhada .copiar-btn:hover{ background:var(--ds-accent); color:#fff; }
+
+/* pares: número forte, unidade miúda; a data vira etiqueta, como o mês */
+.painel-detalhada .gci-pares{ font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+.painel-detalhada .gci-pares small{ font-size:11px; font-weight:400; color:var(--ds-faint); }
+.painel-detalhada .gci-pares.fat{ color:var(--ds-muted); font-weight:500; }
+.painel-detalhada .gci-quando{ margin:4px 0 0; }
+.painel-detalhada .gci-quando .q-curto{
+  font-family:var(--ds-mono); font-size:10px; letter-spacing:.02em;
+  padding:1px 6px; border-radius:5px;
+  background:var(--ds-atencao-bg); color:var(--ds-atencao-ink);
+}
+.painel-detalhada .gci-dir:has(.gci-pares.fat) .q-curto{ background:var(--ds-sunk); color:var(--ds-muted); }
+.painel-detalhada .gci-quando .q-curto i{ display:none; }
+
+/* botões da linha: retângulos de raio 9, mesma altura dos filtros menores */
+.painel-detalhada .acao-pill,
+.painel-detalhada .acao-mais-btn,
+.painel-detalhada .btn-destino,
+.painel-detalhada .btn-oferta,
+.painel-detalhada .btn-admin{
+  height:28px; border-radius:var(--ds-r-md); font-size:12px; font-weight:500;
+}
+.painel-detalhada .acao-pill{ padding:0 11px; border-color:var(--ds-line); color:var(--ds-ink-2); }
+.painel-detalhada .acao-pill:hover{ border-color:var(--ds-line-strong); color:var(--ds-ink); }
+.painel-detalhada .acao-pill.ativo{ color:#fff; font-weight:600; }
+.painel-detalhada .acao-mais-btn{ width:28px; border-color:var(--ds-line); color:var(--ds-muted); }
+.painel-detalhada .btn-destino,
+.painel-detalhada .btn-oferta{ padding:0 11px; }
+.painel-detalhada .btn-admin{ padding:0 12px; }
+.painel-detalhada .acao-menu{
+  border-color:var(--ds-line); border-radius:var(--ds-r-md); box-shadow:var(--ds-shadow-lift);
+}
+.painel-detalhada .acao-menu .acao-pill{ height:auto; border-radius:var(--ds-r-sm); }
+.painel-detalhada .gci-destinos{ font-size:11.5px; }
+.painel-detalhada .gci-mais{
+  width:auto; margin:10px auto 4px; padding:0 14px; height:32px;
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-md);
+  background:var(--ds-card); color:var(--ds-ink-2); font-size:12.5px; font-weight:500;
+}
+.painel-detalhada .gci-mais:hover{ border-color:var(--ds-line-strong); color:var(--ds-ink); }
+/* a faixa lateral de ação marcada: mais fina, a cor diz tudo */
+.painel-detalhada .gci-item.marcada{ border-left-width:2px; padding-left:12px; }
+html.dark .painel-detalhada .gci-meta{ color:#B7BEB9; }
+
+/* ══ 2 · TRANSFERÊNCIAS ═════════════════════════════════════════════════
+   Os cartões eram caixas com sombra dentro do quadro branco. Viram linhas
+   da mesma tabela, com a faixa de cor da situação na lateral. */
+.painel-detalhada .marca-card{
+  background:transparent; box-shadow:none; border-radius:0; margin:0;
+  padding:14px 4px 14px 14px;
+  border-left:2px solid var(--ds-line-strong); border-bottom:1px solid var(--ds-line-row);
+}
+.painel-detalhada .marca-card.novidade{ background:var(--ds-accent-bg); box-shadow:none; }
+.painel-detalhada .marca-card:hover{ background:var(--ds-card-2); }
+.painel-detalhada .marca-titulo{ font-size:14px; font-weight:600; color:var(--ds-ink); }
+.painel-detalhada .marca-titulo .m-prod{ font-weight:600; }
+.painel-detalhada .marca-titulo .m-para{ color:var(--ds-muted); font-weight:500; }
+.painel-detalhada .marca-sub{
+  font-family:var(--ds-mono); font-size:10.5px; letter-spacing:.02em; color:var(--ds-muted);
+}
+.painel-detalhada .marca-sub .cinza{ color:var(--ds-ghost); }
+/* selo da ação e da situação: etiquetas em mono, fundo tingido da cor */
+.painel-detalhada .selo-acao,
+.painel-detalhada .estado-badge{
+  font-family:var(--ds-mono); font-size:10px; font-weight:500; letter-spacing:.08em;
+  text-transform:uppercase; border:0; border-radius:5px; padding:3px 7px;
+  background:color-mix(in srgb, currentColor 11%, transparent);
+}
+.painel-detalhada .estado-badge{ text-transform:none; letter-spacing:.02em; font-size:10.5px; }
+.painel-detalhada .estado-badge.aguardando{ color:var(--ds-atencao-ink); background:var(--ds-atencao-bg); }
+.painel-detalhada .estado-badge.faturou{ color:var(--ds-erro); background:color-mix(in srgb, var(--ds-erro) 12%, transparent); }
+.painel-detalhada .estado-badge.saiu,
+.painel-detalhada .estado-badge.confirmado,
+.painel-detalhada .estado-badge.finalizado{ color:var(--ds-faturado-ink); background:var(--ds-faturado-bg); }
+html.dark .painel-detalhada .estado-badge.saiu,
+html.dark .painel-detalhada .estado-badge.confirmado,
+html.dark .painel-detalhada .estado-badge.finalizado{ color:var(--ds-faturado); }
+html.dark .painel-detalhada .estado-badge.aguardando{ color:var(--ds-atencao); }
+.painel-detalhada .marca-alerta{ font-size:12px; font-weight:600; color:var(--ds-erro); }
+.painel-detalhada .marca-cancel{ border-top-color:var(--ds-line-soft); font-size:12px; }
+.painel-detalhada .marca-grade{ font-size:11.5px; }
+
+/* ══ 3 · RFV ════════════════════════════════════════════════════════════
+   O mesmo quadro da tela de produtos: identidade e números em cima,
+   abas e filtros numa fita, a tabela fechando embaixo. */
+#screen-rfv .rfv-topo{
+  margin:0; background:var(--ds-card);
+  border:1px solid var(--ds-line); border-bottom:1px solid var(--ds-line-soft);
+  border-radius:var(--ds-r-lg) var(--ds-r-lg) 0 0;
+}
+#screen-rfv .rfv-topo-in{ gap:14px; padding:10px 16px; }
+#screen-rfv .rfv-tit{ padding-right:16px; border-right:1px solid var(--ds-line-soft); }
+#screen-rfv .rfv-tit .logo-text{ font-size:15px; font-weight:600; letter-spacing:-.15px; }
+#screen-rfv .rfv-tit .logo-sub{
+  margin-top:3px; font-family:var(--ds-mono); font-size:10px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ds-ghost);
+}
+#screen-rfv .rfv-topo .btn-icon{
+  width:32px; height:32px; border-radius:var(--ds-r-md);
+  background:var(--ds-card); border:1px solid var(--ds-line); box-shadow:none; color:var(--ds-muted);
+}
+#screen-rfv .rfv-topo .btn-icon:hover{ background:var(--ds-sunk); color:var(--ds-ink); transform:none; }
+#screen-rfv .rfv-caixa::after { background:linear-gradient(90deg, transparent, var(--ds-card)); }
+#screen-rfv .rfv-caixa::before{ background:linear-gradient(270deg, transparent, var(--ds-card)); }
+
+/* fichas: leituras, não caixas — como os números da tela de produtos */
+#screen-rfv .rfv-fichas{ gap:0; }
+#screen-rfv .rfv-ficha{
+  position:relative; border:0; border-left:1px solid var(--ds-line-soft); border-radius:0;
+  background:transparent; padding:4px 18px 4px 16px; gap:2px;
+}
+#screen-rfv .rfv-ficha:first-child{ border-left:0; padding-left:0; }
+#screen-rfv .rfv-ficha .n{
+  font-family:var(--ds-mono); font-size:9.5px; font-weight:500; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ds-faint);
+}
+#screen-rfv .rfv-ficha .v{ font-size:21px; font-weight:600; letter-spacing:-.4px; color:var(--ds-ink); }
+#screen-rfv .rfv-ficha .pc{ font-family:var(--ds-mono); font-size:10px; font-weight:400; color:var(--ds-ghost); }
+#screen-rfv .rfv-ficha.pos .v{ color:var(--ds-faturado-ink); }
+#screen-rfv .rfv-ficha.neg .v{ color:var(--ds-erro); }
+html.dark #screen-rfv .rfv-ficha.pos .v{ color:var(--ds-faturado); }
+#screen-rfv .rfv-ficha.pos .n,
+#screen-rfv .rfv-ficha.neg .n{ color:var(--ds-faint); }
+#screen-rfv .rfv-ficha.pos .pc,
+#screen-rfv .rfv-ficha.neg .pc{ color:var(--ds-ghost); }
+#screen-rfv button.rfv-ficha{ border-radius:var(--ds-r-md); border-left-color:transparent; }
+#screen-rfv button.rfv-ficha:hover{ background:var(--ds-sunk); }
+#screen-rfv .rfv-ficha.on{ background:var(--ds-accent-bg); }
+#screen-rfv .rfv-ficha.on .n{ color:var(--ds-accent); }
+
+/* fita de abas e filtros */
+#screen-rfv .rfv-caixa-filtros{
+  margin:0; background:var(--ds-card); padding:9px 16px;
+  border-left:1px solid var(--ds-line); border-right:1px solid var(--ds-line);
+}
+#screen-rfv .rfv-barra{ gap:6px; }
+#screen-rfv .rfv-abas{ background:var(--ds-sunk); border:0; border-radius:var(--ds-r-md); padding:2px; gap:2px; margin-right:4px; }
+#screen-rfv .rfv-aba{ height:28px; padding:0 12px; border-radius:var(--ds-r-sm); font-size:12.5px; font-weight:500; color:var(--ds-muted); }
+#screen-rfv .rfv-aba:hover{ color:var(--ds-ink); }
+/* a aba escolhida volta a ser verde-água cheia, como sempre foi */
+#screen-rfv .rfv-aba.on{ background:var(--ds-accent); color:#fff; font-weight:600; box-shadow:none; }
+html.dark #screen-rfv .rfv-aba.on{ background:var(--ds-accent-2); color:#0F2A28; }
+#screen-rfv .rfv-campo,
+#screen-rfv .rfv-tgl{
+  height:32px; padding:0 11px; border:1px solid var(--ds-line); border-radius:var(--ds-r-md);
+  background:var(--ds-card); color:var(--ds-ink-2); font-size:12.5px; font-weight:500;
+}
+#screen-rfv .rfv-dd::after{ border-width:3.5px; opacity:.55; }
+#screen-rfv .rfv-dd:hover,
+#screen-rfv .rfv-tgl:hover{ border-color:var(--ds-line-strong); color:var(--ds-ink); }
+#screen-rfv .rfv-dd.on,
+#screen-rfv .rfv-tgl.on{
+  background:var(--ds-accent-bg); border-color:rgba(var(--ds-accent-rgb), .35); color:var(--ds-accent);
+}
+#screen-rfv .rfv-tgl i{ font-size:11px; color:var(--ds-ghost); }
+#screen-rfv .rfv-tgl.on i{ color:var(--ds-accent); }
+#screen-rfv #rfv-busca{ background:var(--ds-card-2); font-weight:400; }
+#screen-rfv #rfv-busca:focus{
+  background:var(--ds-card); border-color:rgba(var(--ds-accent-rgb), .55);
+  box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .12);
+}
+#screen-rfv .rfv-limpar{ color:var(--ds-muted); text-decoration:none; font-weight:500; }
+#screen-rfv .rfv-limpar:hover{ color:var(--ds-erro); }
+
+/* tabela e mapa fecham o quadro */
+#screen-rfv .rfv-quadro,
+#screen-rfv .rfv-mapa{
+  margin:0; border:1px solid var(--ds-line); border-top:1px solid var(--ds-line-soft);
+  border-radius:0 0 var(--ds-r-lg) var(--ds-r-lg);
+}
+#screen-rfv .rfv-quadro thead th{ background:var(--ds-card-2); box-shadow:inset 0 -1px 0 var(--ds-line); color:var(--ds-faint); }
+#screen-rfv .rfv-quadro thead th .tot{ color:var(--ds-ink); }
+#screen-rfv .rfv-quadro thead th.presa{ background:var(--ds-card-2); }
+#screen-rfv .rfv-quadro tbody td{ border-top-color:var(--ds-line-row); font-size:13px; padding:7px 6px; }
+#screen-rfv .rfv-quadro td.cli .nome{ font-weight:600; color:var(--ds-ink); }
+#screen-rfv .rfv-quadro td.cli .sub{ font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-ghost); letter-spacing:.02em; }
+#screen-rfv .rfv-quadro td.stot{ background:var(--ds-card-2); font-weight:700; }
+#screen-rfv .rfv-quadro .sem2{ border-left-color:var(--ds-line-strong); }
+#screen-rfv .rfv-fat{ color:var(--ds-faturado-ink); font-weight:600; }
+html.dark #screen-rfv .rfv-fat{ color:var(--ds-faturado); font-weight:700; }
+#screen-rfv .rfv-car{ font-weight:600; }
+html.dark #screen-rfv .rfv-car{ font-weight:700; }
+#screen-rfv .rfv-legenda{ border-radius:var(--ds-r-md); border-color:var(--ds-line); font-size:11.5px; }
+.rfv-lista{ border-color:var(--ds-line); border-radius:var(--ds-r-md); box-shadow:var(--ds-shadow-lift); }
+.rfv-item{ border-radius:var(--ds-r-sm); }
+.rfv-item .sub{ font-family:var(--ds-mono); font-size:10.5px; }
+.rfv-balao .cab{ font-family:var(--ds-mono); font-weight:500; letter-spacing:.1em; }
+.rfv-balao .nm i,
+.rfv-balao .qt{ font-family:var(--ds-mono); font-size:10.5px; }
+.leaflet-popup-content-wrapper{ border-radius:var(--ds-r-md); box-shadow:var(--ds-shadow-lift); }
+
+@media (max-width:640px){
+  #screen-rfv .rfv-topo{ border-radius:var(--ds-r-md) var(--ds-r-md) 0 0; }
+  #screen-rfv .rfv-quadro,
+  #screen-rfv .rfv-mapa{ border-radius:0 0 var(--ds-r-md) var(--ds-r-md); }
+  #screen-rfv .rfv-tit{ border-right:0; padding-right:0; flex:1 1 auto; }
+  /* no celular os três números descem para uma linha própria, inteiros —
+     espremidos ao lado do título, só se via o começo do primeiro */
+  #screen-rfv .rfv-topo-in{ flex-wrap:wrap; row-gap:8px; }
+  #screen-rfv .rfv-topo-in .rfv-caixa{ order:3; flex:1 1 100%; }
+  #screen-rfv .rfv-fichas{ justify-content:space-between; }
+  #screen-rfv .rfv-caixa-filtros{ padding:8px 12px; }
+  #screen-rfv .rfv-ficha{ padding:3px 10px; }
+  #screen-rfv .rfv-ficha .n{ font-size:9px; letter-spacing:.05em; }
+  #screen-rfv .rfv-ficha .v{ font-size:17px; }
+}
+
+/* ══ 4 · ADMIN, LOGIN E JANELAS ═════════════════════════════════════════ */
+#screen-admin .topbar{
+  background:var(--ds-card); border:1px solid var(--ds-line); border-radius:var(--ds-r-lg);
+  padding:12px 16px; margin-bottom:12px; box-shadow:var(--ds-shadow-card);
+}
+#screen-admin .topbar .logo-mark{ width:34px; height:34px; border-radius:var(--ds-r-md); font-size:12px; }
+#screen-admin .topbar .logo-text{ font-size:15px; font-weight:600; }
+#screen-admin .topbar .logo-sub{
+  font-family:var(--ds-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ds-ghost);
+}
+#screen-admin .topbar .btn-icon,
+#screen-admin .back{
+  width:32px; height:32px; border-radius:var(--ds-r-md);
+  background:var(--ds-card); border:1px solid var(--ds-line); box-shadow:none; color:var(--ds-muted);
+  display:inline-flex; align-items:center; justify-content:center;
+}
+#screen-admin .topbar .btn-icon:hover,
+#screen-admin .back:hover{ background:var(--ds-sunk); color:var(--ds-ink); transform:none; }
+#screen-admin .frozen-header{ background:var(--ds-page); padding:4px 0 12px; margin:0; }
+#screen-admin .frozen-header::before,
+#screen-admin .frozen-header::after{ display:none; }
+#screen-admin .client-strip{ display:flex; align-items:center; gap:12px; }
+#screen-admin .client-info-compact .name{ font-size:14px; font-weight:600; color:var(--ds-ink); margin:0; }
+#screen-admin .client-info-compact .meta{
+  font-family:var(--ds-mono); font-size:10.5px; letter-spacing:.02em; color:var(--ds-muted); margin:2px 0 0;
+}
+.admin-card{
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-lg);
+  box-shadow:var(--ds-shadow-card); padding:20px 22px;
+}
+.admin-card h3{ font-size:15px; font-weight:600; letter-spacing:-.1px; }
+.admin-card p.sub{ font-size:12.5px; color:var(--ds-muted); }
+.admin-card p.sub code, .admin-passos code{ font-family:var(--ds-mono); font-size:11px; }
+.admin-drop{
+  border:1.5px dashed var(--ds-line-strong); border-radius:var(--ds-r-md);
+  background:var(--ds-card-2); color:var(--ds-muted);
+}
+.admin-drop:hover, .admin-drop.over{
+  border-color:var(--ds-accent); background:var(--ds-accent-bg); color:var(--ds-accent);
+}
+.admin-drop i{ font-size:24px; }
+.admin-drop strong{ font-weight:600; }
+.admin-passos li::before{ font-family:var(--ds-mono); font-weight:500; border-radius:6px; }
+.ar-item{ border-radius:var(--ds-r-md); background:var(--ds-card-2); border:1px solid var(--ds-line-soft); }
+.ar-item .v{ font-weight:600; font-variant-numeric:tabular-nums; }
+.ar-item .l{ font-family:var(--ds-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ds-faint); }
+.admin-aviso{ border-radius:var(--ds-r-md); background:var(--ds-atencao-bg); color:var(--ds-atencao-ink); }
+html.dark .admin-aviso{ background:var(--ds-atencao-bg); color:var(--ds-atencao); }
+.admin-aviso.ok, html.dark .admin-aviso.ok{ background:var(--ds-faturado-bg); color:var(--ds-faturado-ink); }
+html.dark .admin-aviso.ok{ color:var(--ds-faturado); }
+.btn-baixar, .btn-primary{
+  border-radius:var(--ds-r-md); box-shadow:none; font-weight:600;
+  background:var(--ds-accent); color:#fff;
+}
+.btn-baixar:hover, .btn-primary:hover{ background:var(--ds-accent-2); transform:none; }
+.barra-progresso{ height:3px; background:var(--ds-line-soft); }
+.barra-progresso i{ background:var(--ds-accent); }
+
+/* login */
+.login-card{
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-lg); box-shadow:var(--ds-shadow-lift);
+}
+.login-title{ font-weight:600; letter-spacing:-.3px; }
+.quem{ border-radius:var(--ds-r-md); border-color:var(--ds-line); }
+.quem-ini{ border-radius:var(--ds-r-sm); font-family:var(--ds-mono); font-weight:500; background:var(--ds-sunk); }
+.quem-nome{ font-weight:600; }
+.quem-papel{ font-family:var(--ds-mono); font-weight:500; letter-spacing:.1em; font-size:9.5px; }
+
+/* janelas */
+.modal-card{ background:var(--ds-page); border:1px solid var(--ds-line); box-shadow:var(--ds-shadow-lift); }
+@media (min-width:700px){ .modal-card{ border-radius:var(--ds-r-lg); } }
+.modal-topo{ background:var(--ds-card); border-bottom-color:var(--ds-line-soft); }
+.modal-titulo{ font-weight:600; letter-spacing:-.15px; }
+.modal-sub{ font-family:var(--ds-mono); font-size:10.5px; letter-spacing:.02em; color:var(--ds-muted); }
+.modal-fechar{ border-radius:var(--ds-r-md); background:var(--ds-sunk); }
+.caixa-banner{ border-radius:var(--ds-r-md); background:var(--ds-accent-bg); color:var(--ds-accent); }
+html.dark .caixa-banner{ background:var(--ds-accent-bg); color:var(--ds-accent-2); }
+.filter-popover{ border-color:var(--ds-line); border-radius:var(--ds-r-md); box-shadow:var(--ds-shadow-lift); }
+.filter-option{ border-radius:var(--ds-r-sm); }
+.fo-extra{ font-family:var(--ds-mono); font-size:10.5px; }
+.zoom-modal img{ border-radius:var(--ds-r-lg); }
+.zoom-modal .zoom-close{ border-radius:var(--ds-r-md); }
+.toast{
+  background:var(--ds-ink); color:var(--ds-card); border-radius:var(--ds-r-md);
+  font-size:13px; font-weight:500; box-shadow:var(--ds-shadow-lift);
+}
+.barra-selecao{ background:var(--ds-logo-solid); border-color:var(--ds-logo-solid); border-radius:var(--ds-r-lg); }
+html.dark .barra-selecao{ background:var(--ds-card-2); border-color:var(--ds-line); }
+.barra-selecao button{ border-radius:var(--ds-r-md); font-weight:600; }
+.btn-topo{ border-radius:var(--ds-r-md); }
+</style>
+
+<style id="ds-rfv">
+/* ─────────────────────────────────────────────────────────────────────
+   RFV · segunda passada (o que a lista de produtos teve na fase 2)
+   ───────────────────────────────────────────────────────────────────── */
+
+/* cabeçalho que é gráfico e ordena */
+#screen-rfv .rfv-quadro thead th{ cursor:pointer; vertical-align:bottom; padding-top:8px; }
+#screen-rfv .rfv-quadro thead th:hover .rot{ color:var(--ds-ink); }
+#screen-rfv .rfv-quadro thead th.ord-on .rot{ color:var(--ds-ink); }
+#screen-rfv .rfv-quadro thead .rot{ display:block; }
+#screen-rfv .rfv-quadro thead .ord-seta{ font-size:8px; margin-left:2px; }
+#screen-rfv .rfv-quadro thead th.cli{ cursor:pointer; }
+
+
+/* faixas verticais: um mês sim, outro não, com um verde-água bem leve —
+   o olho desce pela coluna sem escorregar para a do lado. A passagem do
+   mouse e a linha escolhida continuam por cima delas. */
+#screen-rfv .rfv-quadro th.alt,
+#screen-rfv .rfv-quadro td.alt{ background:color-mix(in srgb, var(--ds-accent) 6%, var(--ds-card)); }
+#screen-rfv .rfv-quadro thead th.alt{ background:color-mix(in srgb, var(--ds-accent) 7%, var(--ds-card-2)); }
+html.dark #screen-rfv .rfv-quadro th.alt,
+html.dark #screen-rfv .rfv-quadro td.alt{ background:color-mix(in srgb, var(--ds-accent) 7%, var(--ds-card)); }
+#screen-rfv .rfv-quadro tbody tr:hover td{ background:var(--ds-card-2); }
+#screen-rfv .rfv-quadro tbody tr:hover td.alt{ background:color-mix(in srgb, var(--ds-accent) 11%, var(--ds-card)); }
+html.dark #screen-rfv .rfv-quadro tbody tr:hover td{ background:color-mix(in srgb, var(--ds-ink) 5%, var(--ds-card)); }
+html.dark #screen-rfv .rfv-quadro tbody tr:hover td.alt{ background:color-mix(in srgb, var(--ds-accent) 12%, var(--ds-card)); }
+/* o mês em curso continua mandando na cor da coluna dele */
+#screen-rfv .rfv-quadro th.agora,
+#screen-rfv .rfv-quadro td.agora{ background:var(--ds-atencao-bg); }
+
+/* linha escolhida: tinha fundo quase branco e sumia. Agora é uma faixa
+   verde de verdade, com a barra da marca na lateral, fios em cima e
+   embaixo e o nome em destaque — dá para acompanhar rolando para o lado.
+   As colunas de semestre, que têm fundo próprio, também tingem. */
+#screen-rfv .rfv-quadro tbody tr.sel td,
+#screen-rfv .rfv-quadro tbody tr.sel td.stot,
+#screen-rfv .rfv-quadro tbody tr.sel .presa{
+  background:color-mix(in srgb, var(--ds-accent) 22%, var(--ds-card));
+  border-top-color:color-mix(in srgb, var(--ds-accent) 60%, transparent);
+}
+#screen-rfv .rfv-quadro tbody tr.sel + tr td{
+  border-top-color:color-mix(in srgb, var(--ds-accent) 55%, transparent);
+}
+#screen-rfv .rfv-quadro tbody tr.sel .presa{
+  box-shadow:inset 4px 0 0 var(--ds-accent), 1px 0 0 var(--ds-line);
+}
+#screen-rfv .rfv-quadro tbody tr.sel td.cli .nome{ color:var(--ds-accent-2); font-weight:700; }
+html.dark #screen-rfv .rfv-quadro tbody tr.sel td,
+html.dark #screen-rfv .rfv-quadro tbody tr.sel td.stot,
+html.dark #screen-rfv .rfv-quadro tbody tr.sel .presa{
+  background:color-mix(in srgb, var(--ds-accent) 36%, var(--ds-card));
+}
+
+/* mês em curso: a coluna inteira ganha o tom de atenção, de cima a baixo,
+   no lugar do rótulo "em curso" */
+#screen-rfv .rfv-quadro th.agora,
+#screen-rfv .rfv-quadro td.agora{ background:var(--ds-atencao-bg); }
+#screen-rfv .rfv-quadro thead th.agora{ box-shadow:inset 0 -2px 0 var(--ds-atencao); }
+#screen-rfv .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao-ink); font-weight:600; }
+html.dark #screen-rfv .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao); }
+
+/* lista dos filtros com caixa de marcar */
+.rfv-item.multi .ck{ width:14px; flex:none; font-size:13px; color:var(--ds-ghost); }
+.rfv-item.multi.on{ background:transparent; color:var(--ds-ink); font-weight:600; }
+.rfv-item.multi.on .ck{ color:var(--ds-accent); }
+.rfv-item.multi:hover{ background:var(--ds-sunk); }
+
+/* situação do cliente num ponto: verde comprou no 2º, âmbar parou */
+#screen-rfv .rfv-quadro td.cli .st{
+  display:inline-block; width:7px; height:7px; border-radius:2px;
+  margin-right:8px; vertical-align:1px; background:var(--ds-line-strong);
+}
+#screen-rfv .rfv-quadro td.cli .st-ok{ background:var(--ds-faturado); }
+#screen-rfv .rfv-quadro td.cli .st-parou{ background:var(--ds-atencao); }
+
+/* variação 2º sobre 1º */
+#screen-rfv .rfv-quadro td.var,
+#screen-rfv .rfv-quadro thead .tot.v-pos,
+#screen-rfv .rfv-quadro thead .tot.v-neg{ font-family:var(--ds-mono); font-size:11.5px; }
+#screen-rfv .rfv-quadro td.var{ padding-right:12px; white-space:nowrap; }
+#screen-rfv .v-pos{ color:var(--ds-faturado-ink); }
+#screen-rfv .v-neg{ color:var(--ds-atencao-ink); }
+html.dark #screen-rfv .v-pos{ color:var(--ds-faturado); }
+html.dark #screen-rfv .v-neg{ color:var(--ds-atencao); }
+#screen-rfv .v-tag{
+  font-family:var(--ds-mono); font-size:10px; letter-spacing:.04em;
+  padding:1px 6px; border-radius:5px;
+}
+#screen-rfv .v-parou{ background:var(--ds-atencao-bg); color:var(--ds-atencao-ink); }
+html.dark #screen-rfv .v-parou{ color:var(--ds-atencao); }
+#screen-rfv .v-novo{ background:var(--ds-carteira-bg); color:var(--ds-carteira-ink); }
+
+/* ── mapa ── */
+#screen-rfv .rfv-mapa .leaflet-bar{
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-md); box-shadow:none; overflow:hidden;
+}
+#screen-rfv .rfv-mapa .leaflet-bar a{
+  width:30px; height:30px; line-height:30px; background:var(--ds-card); color:var(--ds-ink-2);
+  border-bottom-color:var(--ds-line);
+}
+#screen-rfv .rfv-mapa .leaflet-bar a:hover{ background:var(--ds-sunk); color:var(--ds-ink); }
+#screen-rfv .rfv-mapa .leaflet-control-attribution{
+  background:color-mix(in srgb, var(--ds-card) 85%, transparent); color:var(--ds-faint);
+  font-family:var(--ds-mono); font-size:9.5px;
+}
+#screen-rfv .rfv-legenda{ background:var(--ds-card); gap:14px; padding:7px 12px; }
+#screen-rfv .rfv-legenda i{ width:9px; height:9px; }
+#screen-rfv .rfv-legenda b{ font-family:var(--ds-mono); font-weight:500; color:var(--ds-ink); margin-left:2px; }
+.leaflet-tooltip{
+  font-family:var(--ds-font); font-size:12px; color:var(--ds-ink); background:var(--ds-card);
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-sm); box-shadow:var(--ds-shadow-card);
+}
+.leaflet-tooltip-top::before{ border-top-color:var(--ds-card); }
+.leaflet-popup-content-wrapper{ background:var(--ds-card); color:var(--ds-ink); border:1px solid var(--ds-line); }
+.leaflet-popup-tip{ background:var(--ds-card); }
+.leaflet-container a.leaflet-popup-close-button{ color:var(--ds-ghost); }
+
+/* balão */
+.rfv-balao .tit{ font-size:14px; font-weight:600; color:var(--ds-ink); }
+.rfv-balao .tit .n{ font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-ghost); }
+.rfv-balao .placar{ display:flex; align-items:baseline; gap:6px; font-size:12px; margin-top:4px; color:var(--ds-muted); }
+.rfv-balao .placar .pos{ color:var(--ds-faturado-ink); font-weight:600; }
+.rfv-balao .placar .neg{ color:var(--ds-erro); font-weight:600; }
+html.dark .rfv-balao .placar .pos{ color:var(--ds-faturado); }
+.rfv-balao .placar .pc{ margin-left:auto; font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-faint); }
+.rfv-balao .cob{ height:3px; border-radius:2px; background:var(--ds-line-soft); overflow:hidden; margin-top:6px; }
+.rfv-balao .cob i{ display:block; height:100%; border-radius:2px; }
+.rfv-balao .corpo{ border-top-color:var(--ds-line-soft); margin-top:10px; }
+.rfv-balao .pt.sim{ background:#10B981; }
+.rfv-balao .pt.nao{ background:#EF4444; }
+.rfv-balao .loja{ padding:3px 0; font-size:12.5px; color:var(--ds-ink-2); }
+</style>
+
+<style id="ds-previa">
+/* ─────────────────────────────────────────────────────────────────────
+   A PRÉVIA APROVADA (10/09/2026)
+   Faixa de cima na cor da marca, linhas e botões em verde-água,
+   cabeçalho da tabela de ponta a ponta com títulos ao meio, produto em
+   colunas e o cartão aberto em verde-água com as encomendas em colunas.
+   ───────────────────────────────────────────────────────────────────── */
+:root{
+  --alt-cab-tabela: 40px;
+  --pv-marca: linear-gradient(90deg, #0F766E, #0D9488);
+  --pv-aberto:#D7ECE7; --pv-borda:#C2DED7; --pv-fio:#C9E3DC; --pv-lin2:#EEF7F4; --pv-cab-ink:#083F3A;
+  --pv-linha:#D3D5CE;
+}
+html.dark{
+  --pv-aberto:#1B3531; --pv-borda:#2A4B45; --pv-fio:#2A4B45; --pv-lin2:#172C29; --pv-cab-ink:#B4F5EA;
+  --pv-linha:#30363A;
+}
+
+/* quadro de cantos retos */
+.painel-detalhada{ border-radius:0; }
+
+/* ── faixa de cima na cor da marca ── */
+.painel-detalhada .cab-ident{ margin:0 -16px; padding:12px 16px; background:var(--pv-marca); }
+.cab-ident .logo-mark{ background:#fff; color:var(--ds-logo-solid); box-shadow:0 2px 8px rgba(0,0,0,.14); }
+.cab-ident .cab-titulo{ border-right-color:rgba(255,255,255,.28); }
+.cab-ident .cab-titulo .logo-text{ color:#fff; }
+.cab-ident .cab-titulo .logo-sub{ color:rgba(255,255,255,.72); }
+.cab-ident .cab-busca input{
+  background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.3); color:#fff;
+}
+.cab-ident .cab-busca input::placeholder{ color:rgba(255,255,255,.82); }
+.cab-ident .cab-busca .search-icon,
+.cab-ident .cab-busca .search-clear{ color:rgba(255,255,255,.9); }
+/* ao digitar, o campo vira branco para o texto ler bem */
+.cab-ident .cab-busca input:focus{ background:#fff; border-color:#fff; color:var(--ds-ink); box-shadow:0 0 0 3px rgba(255,255,255,.25); }
+.cab-ident .cab-busca input:focus::placeholder{ color:var(--ds-ghost); }
+.cab-ident .cab-busca:focus-within .search-icon,
+.cab-ident .cab-busca:focus-within .search-clear{ color:var(--ds-ghost); }
+html.dark .cab-ident .cab-busca input:focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
+.cab-ident .cab-acoes{ background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); }
+.cab-ident .cab-acoes .btn-icon{ color:#fff; }
+.cab-ident .cab-acoes .btn-icon:hover,
+.cab-ident .cab-acoes #btn-sair:hover{ background:rgba(255,255,255,.16); color:#fff; }
+.cab-ident .cab-acoes .cab-div{ background:rgba(255,255,255,.3); }
+
+/* ── linhas e botões em verde-água ── */
+.cab-numeros{ border-top:0; }
+.cab-numeros .summary-chip{ border-left-color:var(--ds-accent); }
+.painel-detalhada .frozen-header.cab-recorte{ border-top-color:var(--ds-accent); border-bottom-color:var(--ds-accent); }
+.cab-sep{ background:var(--ds-accent); }
+.cab-trilho .filter-chip,
+.cab-trilho #btn-mais-filtros,
+.cab-trilho .btn-na-linha{ border-color:var(--ds-accent); color:var(--ds-ink); }
+.cab-trilho .filter-chip i,
+.cab-trilho .btn-na-linha i,
+.cab-trilho #btn-mais-filtros i{ color:var(--ds-accent-2); }
+html.dark .cab-trilho .filter-chip i,
+html.dark .cab-trilho .btn-na-linha i,
+html.dark .cab-trilho #btn-mais-filtros i{ color:var(--ds-accent); }
+.cab-trilho .btn-na-linha.ativo i{ color:#fff; }
+.cab-trilho .tipo-chips{ box-shadow:inset 0 0 0 1px var(--ds-accent); }
+.cab-trilho .tipo-chip,
+.cab-trilho .tipo-chip.alerta{ color:var(--ds-ink-2); }
+.cab-trilho .tipo-chip.ativo,
+.cab-trilho .tipo-chip.alerta.ativo{ color:var(--ds-ink); box-shadow:0 1px 2px rgba(20,24,20,.08), 0 0 0 1px var(--ds-accent); }
+
+/* ── cabeçalho da tabela: de uma borda à outra, títulos ao meio ── */
+.painel-detalhada #lista{ padding-top:0; }
+.painel-detalhada .lista-head{
+  margin:0 -16px; padding:0 16px; height:var(--alt-cab-tabela);
+  background:var(--pv-marca); border-bottom:0;
+}
+.painel-detalhada .lista-head .lh-img{ width:auto; justify-self:center; color:#fff; opacity:.85; }
+.painel-detalhada .lista-head .lh-ord,
+.painel-detalhada .lista-head .lh-fixo{
+  justify-self:center; color:#fff; font-family:var(--ds-mono);
+  font-size:10.5px; font-weight:500; letter-spacing:.11em;
+}
+.painel-detalhada .lista-head .lh-ord:hover{ color:#fff; opacity:.8; }
+/* títulos ao meio só onde as células também estão ao meio (tela larga);
+   no tablet os números seguem à direita, e os títulos com eles */
+@media (min-width:1100px){
+  .painel-detalhada .lista-head .lh-ord.lh-n{ justify-self:center; }
+}
+/* "Produto" em cima do começo dos nomes, que são alinhados à esquerda */
+.painel-detalhada .lista-head .lh-ord.lh-prod{ justify-self:start; }
+/* um respiro entre a foto e o nome; o título anda junto para continuar
+   em cima do começo do nome */
+.painel-detalhada .product-main > .product-info{ padding-left:12px; }
+.painel-detalhada .lista-head .lh-ord.lh-prod{ margin-left:12px; }
+.painel-detalhada .lista-total .lt-rot{ padding-left:12px; }
+@media (max-width:700px){
+  .painel-detalhada .product-main > .product-info{ padding-left:6px; }
+}
+/* no computador, o vão entre a foto e o nome é o mesmo que separa a cor
+   da referência (86px numa tela de 1366, 120px numa de 1920). As colunas
+   de cor e referência crescem com a tela, então o recuo cresce junto:
+   14px do vão da grade + este recuo. Para no tamanho máximo do quadro. */
+@media (min-width:1100px){
+  :root{ --vao-foto: clamp(40px, calc(10.68vw - 74px), 106px); }
+  .painel-detalhada .product-main > .product-info{ padding-left:var(--vao-foto); }
+  .painel-detalhada .lista-head .lh-ord.lh-prod{ margin-left:var(--vao-foto); }
+  .painel-detalhada .lista-total .lt-rot{ padding-left:var(--vao-foto); }
+}
+.painel-detalhada .lista-head .lh-ord.on{ color:#fff; }
+.painel-detalhada .lista-head .btn-recolher{
+  background:transparent; border-color:rgba(255,255,255,.55); color:#fff;
+}
+.painel-detalhada .lista-head .btn-recolher:hover{ border-color:#fff; color:#fff; }
+
+/* linhas da lista mais marcadas */
+/* a linha entre produtos é a mesma verde-água da borda dos botões */
+.painel-detalhada .product-card{ border-bottom-color:var(--ds-accent); }
+.painel-detalhada .product-card.expanded{ border-bottom-color:transparent; }
+.painel-detalhada .product-card.expanded .product-name{ color:var(--ds-accent-2); }
+
+/* células novas: só na tela larga */
+.painel-detalhada .col-cor,
+.painel-detalhada .col-ref,
+.painel-detalhada .col-prev,
+.painel-detalhada .lista-head .col-cor,
+.painel-detalhada .lista-head .col-ref,
+.painel-detalhada .lista-head .col-prev{ display:none; }
+.painel-detalhada .gc-vazio{ color:var(--ds-line-strong); }
+
+/* ── o cartão aberto: verde-água de ponta a ponta ── */
+.painel-detalhada .product-details-inner{ padding:0; }
+.painel-detalhada .product-card.expanded .product-details-inner{
+  background:var(--pv-aberto); border:1px solid var(--pv-borda);
+  border-radius:12px; margin:0 0 12px; padding:0 0 12px; overflow:hidden;
+  gap:0;   /* o contêiner é flex com 12px entre filhos; aqui as linhas se tocam */
+}
+.painel-detalhada .product-card.expanded .gci-head{
+  padding:10px 14px 8px; border-bottom:1px solid var(--pv-fio); color:var(--pv-cab-ink);
+}
+.painel-detalhada .product-card.expanded .gci-head > span{ font-weight:600; color:var(--pv-cab-ink); }
+.painel-detalhada .gci-cols{ display:none; }
+.painel-detalhada .product-card.expanded .gci-item{
+  padding:10px 14px; border-bottom:0; border-top:1px solid var(--pv-fio); background:transparent;
+}
+.painel-detalhada .product-card.expanded .gci-head + .gci-cols + .gci-item,
+.painel-detalhada .product-card.expanded .gci-head + .gci-item{ border-top:0; }
+.painel-detalhada .product-card.expanded .gci-item.faturada{ background:var(--pv-lin2); }
+.painel-detalhada .product-card.expanded .gci-item.sel-marcada{ background:color-mix(in srgb, var(--ds-accent) 22%, var(--pv-aberto)); }
+/* ação marcada: a faixa lateral vira sombra interna — dentro do cartão
+   uma borda empurraria a linha para fora da coluna */
+.painel-detalhada .product-card.expanded .gci-item.marcada{ border-left:0; padding-left:14px; }
+.painel-detalhada .product-card.expanded .gci-item.acao-repassar{ box-shadow:inset 3px 0 0 var(--acao-transferir); }
+.painel-detalhada .product-card.expanded .gci-item.acao-oferta{ box-shadow:inset 3px 0 0 var(--acao-repassar); }
+.painel-detalhada .product-card.expanded .gci-item.acao-cancelar{ box-shadow:inset 3px 0 0 var(--acao-cancelar); }
+.painel-detalhada .product-card.expanded .gci-mais{ margin:12px auto 0; }
+.painel-detalhada .gc{ display:none; }
+.painel-detalhada .gci-info .gci-grade{ margin:4px 0 0; }
+
+/* ══ tela larga: produto e encomendas em colunas ══════════════════════ */
+@media (min-width:1100px){
+  .painel-detalhada #lista .lista-head,
+  .painel-detalhada #lista .product-main,
+  .painel-detalhada #lista .lista-total{
+    grid-template-columns:40px minmax(190px,2.2fr) minmax(84px,1fr) minmax(96px,1fr) minmax(84px,.9fr)
+                          minmax(70px,.8fr) minmax(92px,.9fr) minmax(100px,1.1fr) minmax(120px,1.2fr) 28px;
+    gap:0 14px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .lista-head,
+  .painel-detalhada #lista:has(.sel-chk) .product-main,
+  .painel-detalhada #lista:has(.sel-chk) .lista-total{
+    grid-template-columns:17px 40px minmax(190px,2.2fr) minmax(84px,1fr) minmax(96px,1fr) minmax(84px,.9fr)
+                          minmax(70px,.8fr) minmax(92px,.9fr) minmax(100px,1.1fr) minmax(120px,1.2fr) 28px;
+  }
+  .painel-detalhada .col-cor,
+  .painel-detalhada .col-ref,
+  .painel-detalhada .col-prev,
+  .painel-detalhada .lista-head .col-cor,
+  .painel-detalhada .lista-head .col-ref,
+  .painel-detalhada .lista-head .col-prev{ display:block; }
+  .painel-detalhada .product-meta{ display:none !important; }
+  .painel-detalhada .product-main > *{ justify-self:center; text-align:center; }
+  .painel-detalhada .product-main > .product-info{ justify-self:stretch; text-align:left; }
+  .painel-detalhada .product-tags.col-cli{ align-items:center; }
+  .painel-detalhada .num-linha{ align-items:center; text-align:center; }
+  .painel-detalhada .col-fat,
+  .painel-detalhada .expand-icon{ justify-self:center; }
+  .painel-detalhada .col-cor{ font-family:var(--ds-mono); font-size:11.5px; font-weight:500; color:var(--ds-ink-2); letter-spacing:.02em; }
+  .painel-detalhada .col-ref{ font-family:var(--ds-mono); font-size:11.5px; font-weight:500; color:var(--ds-carteira-ink); }
+  .painel-detalhada .col-prev .p-mes{
+    font-family:var(--ds-mono); font-size:10.5px; padding:2px 7px; border-radius:5px;
+    background:var(--ds-atencao-bg); color:var(--ds-atencao-ink);
+  }
+  html.dark .painel-detalhada .col-ref{ color:var(--ds-carteira-ink); }
+  .painel-detalhada .lista-total > *,
+  .painel-detalhada .lista-total .lt-n{ text-align:center; }
+  .painel-detalhada .lista-total .lt-rot{ grid-column:span 4; text-align:left; }
+  .painel-detalhada .lista-total .lt-fat{ justify-content:center; }
+
+  /* encomendas */
+  .painel-detalhada .product-card.expanded .gci-head{ display:none; }
+  .painel-detalhada .gci-cols,
+  .painel-detalhada .product-card.expanded .gci-item{
+    grid-template-columns:minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr)
+                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+    column-gap:14px;
+  }
+  .painel-detalhada .gci-cols.gi-prep,
+  .painel-detalhada .product-card.expanded .gci-item.gi-prep{
+    grid-template-columns:minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr) minmax(86px,.9fr)
+                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols,
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item{
+    grid-template-columns:19px minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr)
+                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols.gi-prep,
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item.gi-prep{
+    grid-template-columns:19px minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr) minmax(86px,.9fr)
+                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols::before{ content:''; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-head{ padding-left:14px; }
+  .painel-detalhada .gci-cols{
+    display:grid; align-items:center; height:36px; padding:0 14px;
+    border-bottom:1px solid var(--pv-fio);
+  }
+  .painel-detalhada .gci-cols > span{
+    text-align:center; font-family:var(--ds-mono); font-size:10.5px; font-weight:600;
+    letter-spacing:.11em; text-transform:uppercase; color:var(--pv-cab-ink); white-space:nowrap;
+  }
+  .painel-detalhada .product-card.expanded .gci-item{ min-height:48px; padding:7px 14px; }
+  .painel-detalhada .gc{ display:block; text-align:center; }
+  .painel-detalhada .gci-meta,
+  .painel-detalhada .gci-dir{ display:none !important; }
+  .painel-detalhada .gci-info{ grid-column:auto; }
+  .painel-detalhada .gc-cod{ font-family:var(--ds-mono); font-size:11.5px; font-weight:500; color:var(--ds-muted); }
+  .painel-detalhada .gc-gci{
+    display:inline-flex; align-items:center; justify-content:center; gap:7px; justify-self:center;
+    font-family:var(--ds-mono); font-size:11.5px; font-weight:500; color:var(--ds-carteira-ink);
+  }
+  .painel-detalhada .gc-gci .copiar-btn,
+  .painel-detalhada .gc-gci .pdf-btn{ background:rgba(255,255,255,.7); }
+  html.dark .painel-detalhada .gc-gci .copiar-btn,
+  html.dark .painel-detalhada .gc-gci .pdf-btn{ background:rgba(255,255,255,.08); }
+  .painel-detalhada .gc-oc,
+  .painel-detalhada .gc-prep{ font-family:var(--ds-mono); font-size:11px; font-weight:500; color:var(--ds-muted); letter-spacing:.02em; }
+  .painel-detalhada .gc-cart,
+  .painel-detalhada .gc-fat{ font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .painel-detalhada .gc-cart{ color:var(--ds-ink); }
+  .painel-detalhada .gc-fat{ color:var(--ds-faturado-ink); }
+  html.dark .painel-detalhada .gc-cart{ color:var(--ds-carteira); }
+  html.dark .painel-detalhada .gc-fat{ color:var(--ds-faturado); }
+  .painel-detalhada .gc-cart small,
+  .painel-detalhada .gc-fat small{ font-size:11px; font-weight:400; color:var(--ds-faint); }
+  .painel-detalhada .gc-quando .q-curto{
+    font-family:var(--ds-mono); font-size:10.5px; padding:2px 7px; border-radius:5px;
+    background:var(--ds-atencao-bg); color:var(--ds-atencao-ink);
+  }
+  .painel-detalhada .gc-quando .q-curto.q-fat{ background:rgba(255,255,255,.65); color:var(--ds-muted); }
+  html.dark .painel-detalhada .gc-quando .q-curto.q-fat{ background:rgba(255,255,255,.07); }
+  .painel-detalhada .product-card.expanded .acao-pills{ grid-column:auto; justify-content:center; }
+  .painel-detalhada .gci-destinos{ grid-column:1 / -1; }
+}
+
+/* telas estreitas: o que só existe na larga fica de fora */
+@media (max-width:1099.98px){
+  .painel-detalhada .gc-sem-acao{ display:none; }
+}
+@media (max-width:700px){
+  .painel-detalhada .cab-ident{ margin:0 -12px; padding:10px 12px 12px; }
+  .painel-detalhada .product-card.expanded .gci-item{ padding:10px 12px; }
+  .painel-detalhada .product-card.expanded .gci-head{ padding:10px 12px 8px; }
+}
+</style>
+
+<style id="ds-ajustes">
+/* ── 1) o PDF mora antes do código do cliente ── */
+@media (min-width:1100px){
+  /* PDF e código encostados à esquerda: os códigos têm de 4 a 7 dígitos,
+     e ao meio o ícone mudava de lugar a cada linha */
+  .painel-detalhada .gc-cod{ display:inline-flex; align-items:center; justify-content:flex-start; gap:8px; justify-self:start; text-align:left; }
+  .painel-detalhada .gci-cols > span:first-child{ text-align:left; }
+  /* "Cliente" em cima do começo dos nomes, que são alinhados à esquerda */
+  .painel-detalhada .gci-cols > span:nth-child(2){ text-align:left; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols > span:first-child{ text-align:left; }
+  .painel-detalhada .gc-cod .pdf-btn{ background:rgba(255,255,255,.7); }
+  html.dark .painel-detalhada .gc-cod .pdf-btn{ background:rgba(255,255,255,.08); }
+}
+
+/* ── 2) o cabeçalho das encomendas gruda junto com a linha do produto ──
+   O `overflow:hidden` do bloco aberto transformava ele numa área de
+   rolagem própria, e nada lá dentro conseguia grudar na tela. `clip`
+   corta do mesmo jeito (a animação de abrir continua), sem esse efeito. */
+.painel-detalhada .product-card.expanded .product-details,
+.painel-detalhada .product-card.expanded .product-details-inner{ overflow:clip; }
+/* o menu de ações continua podendo sair do bloco */
+.painel-detalhada .product-card:has(.acao-mais.aberto) .product-details,
+.painel-detalhada .product-card:has(.acao-mais.aberto) .product-details-inner{ overflow:visible; }
+@media (min-width:1100px){
+  :root{ --alt-prod:64px; }
+  .painel-detalhada .product-card.expanded .product-main{ height:var(--alt-prod); box-sizing:border-box; }
+  .painel-detalhada .product-card.expanded .gci-cols{
+    position:sticky; z-index:2; background:var(--pv-aberto);
+    top:calc(var(--topo-congelado, 60px) + var(--alt-cab-tabela) + var(--alt-prod) - 2px);
+  }
+}
+
+/* ── um tom só para as encomendas (carteira e faturado iguais), o mais
+   claro; o tom mais forte fica só no cabeçalho, que assim se destaca ── */
+.painel-detalhada .product-card.expanded .product-details-inner{ background:var(--pv-lin2); }
+.painel-detalhada .product-card.expanded .gci-item,
+.painel-detalhada .product-card.expanded .gci-item.faturada{ background:transparent; }
+.painel-detalhada .product-card.expanded .gci-head,
+.painel-detalhada .product-card.expanded .gci-cols{ background:var(--pv-aberto); }
+
+/* os títulos Cor e Referência herdavam a cor das células no escuro */
+.painel-detalhada .lista-head .col-cor,
+.painel-detalhada .lista-head .col-ref,
+html.dark .painel-detalhada .lista-head .col-cor,
+html.dark .painel-detalhada .lista-head .col-ref{ color:#fff; }
+
+/* ── 3) o canto: sem arredondado e sem a linha cinza por cima ── */
+.painel-detalhada .product-card.expanded .product-details{ border-top-color:transparent; }
+.painel-detalhada .product-card.expanded .product-details-inner{ border-radius:0; }
+
+/* ── 4) limpar filtros em texto: todo mundo entende ── */
+.cab-trilho .filter-clear-btn{
+  width:auto; height:32px; padding:0 8px; gap:0;
+  background:transparent; border:0; box-shadow:none;
+  font-size:12.5px; font-weight:500; color:var(--ds-muted);
+  text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--ds-line-strong);
+  white-space:nowrap;
+}
+.cab-trilho .filter-clear-btn:hover{ background:transparent; color:var(--ds-erro); text-decoration-color:currentColor; }
+
+/* ── 5) recolher os números: uma setinha discreta no canto ── */
+.cab-numeros{ position:relative; }
+.cab-numeros .products-summary{ padding-right:40px; }
+.kpi-toggle{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; padding:0; border:0; border-radius:var(--ds-r-sm);
+  background:transparent; color:var(--ds-faint); font-size:12px;
+  display:grid; place-items:center; cursor:pointer;
+}
+.kpi-toggle:hover{ background:var(--ds-sunk); color:var(--ds-ink); }
+.kpi-toggle:focus-visible{ outline:2px solid var(--ds-accent); outline-offset:1px; }
+.cab-numeros.recolhido .products-summary{ display:none; }
+.cab-numeros.recolhido{ height:26px; }
+.cab-numeros.recolhido .kpi-toggle{ height:22px; }
+</style>
+
+
+
+
+
+
+
+
 
 </body>
 </html>
