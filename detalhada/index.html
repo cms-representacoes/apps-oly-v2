@@ -3024,7 +3024,10 @@ const RFV_FILTRO = {
 };
 const RFV_SIT = { dois: 'Comprou nos dois semestres',
                   so1:  'Comprou no 1º semestre',
-                  so2:  'Comprou no 2º semestre' };
+                  so2:  'Comprou no 2º semestre',
+                  // o mesmo corte do cartão "sem compra": tudo que não comprou
+                  // no 2º semestre, tenha comprado no 1º ou nunca.
+                  sem2: 'Sem compra no 2º semestre' };
 
 /* ── cidade de cada loja, emprestada do RFV ──────────────────────────────
    A Detalhada não tem cidade: a base do dia traz preposto, cliente e
@@ -3208,12 +3211,16 @@ function rfvApurar() {
   const novo = () => ({ mf: new Array(nMes).fill(0), mc: new Array(nMes).fill(0),
                         a: new Array(nFx).fill(0), b: new Array(nFx).fill(0),
                         p1: 0, p2: 0, car: 0, ult: -1, prep: new Map() });
-  // Com um produto escolhido a pergunta vira outra: não é quem comprou, é
-  // quem NÃO comprou. Então o cliente entra na lista mesmo sem uma linha do
-  // produto — zerado, que é a resposta. Nos demais filtros a lista continua
-  // sendo só de quem tem o que se pediu.
-  const abrirLista = fRef >= 0;
-
+  // Dois tipos de filtro, com papéis diferentes:
+  //
+  //  · Prepostos e busca escolhem CLIENTES — eles definem a carteira que se
+  //    está olhando, e o placar conta sobre ela.
+  //  · Marca, Faixa e Produto escolhem O QUE foi comprado — eles não tiram
+  //    ninguém da carteira, só marcam quem comprou aquilo. Quem não comprou
+  //    fica na lista zerado, que é a resposta que se procura.
+  //
+  // Assim "clientes ativos" é sempre o tamanho da carteira: filtrar chinelo
+  // não faz o Jorge ter 93 clientes em vez de 306.
   for (const r of APP.L) {
     // Vendedor vê a carteira dele; a CMS vê a de todos.
     if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) continue;
@@ -3222,21 +3229,20 @@ function rfvApurar() {
     const cli = APP.dic.cli[r[C.CLI]];
     if (busca && !String(cli[1]).toLowerCase().includes(busca) && !String(cli[0]).includes(busca)) continue;
 
-    let e = porCli.get(r[C.CLI]);
-    if (!e && abrirLista && (r[C.CART] || r[C.FAT])) {
-      e = novo(); porCli.set(r[C.CLI], e);
-      e.prep.set(r[C.PREP], (e.prep.get(r[C.PREP]) || 0) + (r[C.CART] || 0) + (r[C.FAT] || 0));
-    }
-
-    if (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) continue;
-    if (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) continue;
-    if (fRef >= 0 && r[C.REF] !== fRef) continue;
-    if (fCor >= 0 && r[C.COR] !== fCor) continue;
-
-    if (!e) { e = novo(); porCli.set(r[C.CLI], e); }
-    const fx = r[C.FAIXA];
     const q = (r[C.CART] || 0) + (r[C.FAT] || 0);
+    // Linha fora do recorte de produto: põe o cliente na carteira, não soma.
+    const foraDoRecorte =
+      (fMarca && rfvMarcaGrupo(APP.dic.marca[r[C.MARCA]]) !== fMarca) ||
+      (fLinha !== '' && r[C.FAIXA] !== Number(fLinha)) ||
+      (fRef >= 0 && (r[C.REF] !== fRef || (fCor >= 0 && r[C.COR] !== fCor)));
+    if (foraDoRecorte && !q) continue;
+
+    let e = porCli.get(r[C.CLI]);
+    if (!e) { e = novo(); porCli.set(r[C.CLI], e); }
     if (q) e.prep.set(r[C.PREP], (e.prep.get(r[C.PREP]) || 0) + q);
+    if (foraDoRecorte) continue;
+
+    const fx = r[C.FAIXA];
 
     if (r[C.FAT] && r[C.DFAT] >= 0) {
       const i = iMes.get(diaParaMes(r[C.DFAT]));
@@ -3358,7 +3364,8 @@ function rfvFecharLista() { RFV.aberto = null; $('rfv-lista').hidden = true; }
 
 /* '' = todas · dois · so1 (comprou só no 1º) · so2 (entrou no 2º) */
 const rfvSituacao = e => e.p1 > 0 && e.p2 > 0 ? 'dois' : e.p1 > 0 ? 'so1' : e.p2 > 0 ? 'so2' : '';
-const rfvPassaSit = e => !RFV.f.sit || rfvSituacao(e) === RFV.f.sit;
+const rfvPassaSit = e => !RFV.f.sit
+  || (RFV.f.sit === 'sem2' ? e.p2 === 0 : rfvSituacao(e) === RFV.f.sit);
 
 /** Linhas da tela, já ordenadas: o maior volume do ano primeiro. */
 function rfvLinhas(A) {
@@ -3384,25 +3391,26 @@ function rfvVend(e) {
 }
 
 function rfvFichas(A) {
-  // Três leituras da mesma lista: quantos clientes ela tem, quantos
-  // compraram no 2º semestre e quantos pararam. Os dois últimos somam o
-  // primeiro, e os percentuais são sempre sobre ele — com filtro de
-  // produto ou sem.
-  let compraram = 0, semCompra = 0, total = 0;
-  for (const [, e] of A.porCli) {
-    if (!rfvPassaSit(e)) continue;
-    total++;
-    if (e.p2 > 0) compraram++;
-    else if (e.p1 > 0) semCompra++;
-  }
-  const ligado = RFV.f.sit === 'so1';
+  // A mesma conta do relatório RFV, que a equipe já lê todo dia:
+  //
+  //   clientes    = o universo da lista
+  //   compraram   = quem comprou no 2º semestre
+  //   sem comprar = clientes − compraram      (o resto, sempre)
+  //
+  // Os dois últimos fecham 100% sobre o primeiro. E o filtro de Compra não
+  // mexe no placar — ele corta a tabela, como o de recência lá: o placar
+  // continua dizendo o tamanho do universo enquanto a lista mostra o recorte.
+  let compraram = 0;
+  const total = A.porCli.size;
+  for (const [, e] of A.porCli) if (e.p2 > 0) compraram++;
+  const semComprar = total - compraram;
+  const ligado = RFV.f.sit === 'sem2';
   const pc = n => total ? Math.round(100 * n / total) + '%' : '\u2014';
-  // "2S26" sai do ano mais recente da base, não fica escrito à mão.
   const ano = RFV.meses.length ? RFV.meses[RFV.meses.length - 1].slice(5) : '';
   const rot = '2S' + ano;
 
   $('rfv-fichas').innerHTML = `
-    <div class="rfv-ficha" title="clientes com movimento no ano, já com os filtros aplicados">
+    <div class="rfv-ficha" title="clientes da lista, antes do filtro de Compra">
       <span class="n">clientes ativos</span>
       <span class="v">${formatarNumero(total)}</span>
       <span class="pc">${pc(total)}</span></div>
@@ -3411,14 +3419,14 @@ function rfvFichas(A) {
       <span class="v">${formatarNumero(compraram)}</span>
       <span class="pc">${pc(compraram)}</span></div>
     <button class="rfv-ficha neg ${ligado ? 'on' : ''}" id="rfv-fSem" type="button"
-            title="compraram no 1º semestre e não têm nada no 2º — clique para filtrar">
+            title="não compraram no 2º semestre — clique para ver só eles">
       <span class="n">sem compra ${rot}</span>
-      <span class="v">${formatarNumero(semCompra)}</span>
-      <span class="pc">${pc(semCompra)}</span></button>`;
+      <span class="v">${formatarNumero(semComprar)}</span>
+      <span class="pc">${pc(semComprar)}</span></button>`;
 
   const b = $('rfv-fSem');
   if (b) b.onclick = () => {
-    RFV.f.sit = RFV.f.sit === 'so1' ? '' : 'so1';
+    RFV.f.sit = RFV.f.sit === 'sem2' ? '' : 'sem2';
     rfvPintar();
   };
 }
