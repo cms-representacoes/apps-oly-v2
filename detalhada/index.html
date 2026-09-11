@@ -2177,11 +2177,20 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
           <div class="logo-text" id="rfv-nome">RFV da carteira</div>
           <div class="logo-sub" id="rfv-periodo">—</div>
         </div>
-        <div class="rfv-caixa"><div class="rfv-fichas" id="rfv-fichas"></div></div>
         <button class="btn-icon" id="btn-tema-3" title="Alternar tema">
           <i class="fa-solid fa-moon"></i>
         </button>
       </div>
+    </div>
+
+    <!-- Números e filtros ficam fora da barra do título porque são eles
+         que grudam no alto: o nome do relatório sobe com a página. -->
+    <div class="rfv-numeros" id="rfv-numeros">
+      <div class="rfv-caixa"><div class="rfv-fichas" id="rfv-fichas"></div></div>
+      <button type="button" class="kpi-toggle" id="btn-kpis-rfv"
+              title="Recolher os números" aria-expanded="true">
+        <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+      </button>
     </div>
 
     <div class="rfv-caixa rfv-caixa-filtros">
@@ -2547,7 +2556,8 @@ const APP = {
   prepFixo: -1,        // índice do preposto do vendedor logado (-1 = não achado)
   veTudo: false,       // só a CMS (admin) enxerga o que é dos outros
   busca: '',
-  status: 'TUDO',      // TUDO | CART | FAT
+  // Abre em Carteira: é o que ainda dá para agir. O faturado já foi.
+  status: 'CART',      // TUDO | CART | FAT
   // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
   filtros: { cliente: new Set(), preposto: new Set(), faixa: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
              // usados só na revisão de repasses
@@ -3031,6 +3041,29 @@ function indiceGrade() {
 }
 
 /** A grade de uma linha da base, ou null. */
+/** MASC, FEM ou UNSX, lido da faixa de tamanhos da grade.
+ *
+ *  No calçado o tamanho é que diz o gênero: uma caixa que termina no 40
+ *  é feminina, uma que começa no 38 é masculina. O código da grade não
+ *  serve para isso — a mesma "1221" aparece em 35–38 e em 39–42.
+ *  Sem grade importada não há como saber, e a coluna fica vazia. */
+function generoDaLinha(r) {
+  const g = gradeDaLinha(r);
+  if (!g) return '';
+  const tams = [];
+  const juntar = t => Object.keys(t || {}).forEach(k => {
+    const n = parseInt(String(k), 10);
+    if (n) tams.push(n);
+  });
+  if (Array.isArray(g.caixas) && g.caixas.length) g.caixas.forEach(c => juntar(c.tam));
+  else juntar(g.tam);
+  if (!tams.length) return '';
+  const min = Math.min(...tams), max = Math.max(...tams);
+  if (max <= 40 && min <= 36) return 'FEM';
+  if (min >= 38) return 'MASC';
+  return 'UNSX';
+}
+
 function gradeDaLinha(r) {
   if (!temAlgumaGrade() || !r[C.GCI]) return null;
   const chave = [r[C.GCI], APP.dic.ref[r[C.REF]][0], String(APP.dic.cor[r[C.COR]] || '').toUpperCase()].join('|');
@@ -3546,11 +3579,24 @@ function rfvFichas(A) {
  *  comparação: o cliente é novo, e vai para o fim quando se ordena. */
 function rfvVar(l) { return l.p1 ? (l.p2 - l.p1) / l.p1 : Infinity; }
 
+/** O nome da cidade do cliente, ou '' quando não se sabe. */
+function rfvCidadeNome(cod) {
+  const c = cidadeDe(cod);
+  return c ? c.cidade + (c.uf ? '/' + c.uf : '') : '';
+}
+
 /** A ordem do título clicado. Sem escolha, fica a de sempre: maior total. */
 function rfvOrdenar(ls) {
   const o = RFV.ordem;
   if (!o) return;
   if (o === 'nome') ls.sort((a, b) => a.nome.localeCompare(b.nome));
+  // Por cidade: quem não tem cidade vai para o fim, senão uma pilha de
+  // traços abre a lista.
+  else if (o === 'cidade') ls.sort((a, b) => {
+    const x = rfvCidadeNome(a.cod), y = rfvCidadeNome(b.cod);
+    if (!x !== !y) return x ? -1 : 1;
+    return x.localeCompare(y, 'pt-BR') || a.nome.localeCompare(b.nome);
+  });
   else if (o === 'p1') ls.sort((a, b) => b.p1 - a.p1);
   else if (o === 'p2') ls.sort((a, b) => b.p2 - a.p2);
   else if (o === 'var') ls.sort((a, b) => rfvVar(a) - rfvVar(b));   // maiores quedas primeiro
@@ -3612,10 +3658,14 @@ function rfvTelaMes(A) {
     const vend = rfvVend(l);
     const st = l.p2 > 0 ? 'ok' : l.p1 > 0 ? 'parou' : 'nada';
     const stTit = st === 'ok' ? 'comprou no 2º semestre' : st === 'parou' ? 'comprou no 1º e parou no 2º' : 'sem compra no ano';
+    // O código sai da linha e vive na dica: passando o cursor pelo nome
+    // aparecem nome, código e cidade de uma vez.
+    const cidNome = rfvCidadeNome(l.cod);
+    const dica = `${l.nome} · ${l.cod}${cidNome ? ' · ' + cidNome : ''}${vend ? ' · ' + vend : ''}`;
     return `<tr data-cod="${escHtml(l.cod)}" class="${RFV.sel === l.cod ? 'sel' : ''}">
-      <td class="cli presa" title="${escHtml(l.nome)} · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}">
+      <td class="cli presa" title="${escHtml(dica)}">
         <i class="st st-${st}" title="${stTit}"></i><span class="nome">${escHtml(l.nome)}</span>
-        <span class="sub"> · ${escHtml(l.cod)}${vend ? ' · ' + escHtml(vend) : ''}</span></td>
+        ${vend ? `<span class="sub"> · ${escHtml(vend)}</span>` : ''}</td>
       ${verCid ? celulaCidade(l.cod) : ''}
       ${RFV.meses.map((m, i) => cel(l.mf[i], l.mc[i], (i === RFV.corte ? 'sem2 ' : '') + (i % 2 ? 'alt ' : '') + (m === hoje ? 'agora ' : ''))).join('')}
       <td class="stot">${l.p1 ? formatarNumero(l.p1) : '—'}</td>
@@ -3626,8 +3676,9 @@ function rfvTelaMes(A) {
 
   return `<div class="rfv-quadro${verCid ? ' com-cidade' : ''}"><table>
       <thead><tr>
-        <th class="cli presa ${RFV.ordem === 'nome' ? 'ord-on' : ''}" data-ord="nome" title="${RFV.ordem === 'nome' ? 'Voltar à ordem por total' : 'Ordenar por nome'}"><span class="rot">Cliente${seta('nome')}</span><span class="obs">${formatarNumero(linhas.length)} na lista</span></th>
-        ${verCid ? '<th class="cid">Cidade</th>' : ''}
+        <th class="cli presa ${RFV.ordem === 'nome' ? 'ord-on' : ''}" data-ord="nome" title="${RFV.ordem === 'nome' ? 'Voltar à ordem por total' : 'Ordenar por nome'}"><span class="rot">Cliente${seta('nome')}</span></th>
+        ${verCid ? `<th class="cid ${RFV.ordem === 'cidade' ? 'ord-on' : ''}" data-ord="cidade"
+              title="${RFV.ordem === 'cidade' ? 'Voltar à ordem por total' : 'Ordenar por cidade'}"><span class="rot">Cidade${seta('cidade')}</span></th>` : ''}
         ${cab}
         <th ${ordAttr('p1', '1º semestre')}><span class="rot">1º sem.${seta('p1')}</span><span class="tot">${formatarNumero(s1)}</span></th>
         <th ${ordAttr('p2', '2º semestre')}><span class="rot">2º sem.${seta('p2')}</span><span class="tot">${formatarNumero(s2)}</span></th>
@@ -3839,6 +3890,9 @@ function rfvPintar() {
   // O mapa é redesenhado por fora: o Leaflet precisa do elemento na tela.
   if (RFV.visao === 'mapa') { RFV.mapa = null; rfvDesenharMapa(A); }
   else if (RFV.mapa) { RFV.mapa.remove(); RFV.mapa = null; }
+  // No mapa, números e filtros deixam de grudar: rolando um pouco, o mapa
+  // fica com a tela inteira. Na tabela eles continuam presos no alto.
+  $('screen-rfv').classList.toggle('mapa-aberto', RFV.visao === 'mapa');
   // O nome muda com a visão, e é o único lugar onde ele cabe sem tomar espaço.
   $('rfv-nome').textContent = RFV.visao === 'mapa' ? 'RFV · Mapa de cobertura' : 'RFV da carteira';
   const bt = $('rfv-cidade');
@@ -3855,9 +3909,17 @@ function rfvPintar() {
  *  quadro. Conta fixa aqui envelhece — a barra muda de altura com a
  *  fonte, com o zoom e com o formato das fichas. */
 function rfvMedirTopo() {
+  // Quem gruda no alto são os números e a fita de filtros; o cabeçalho da
+  // tabela para logo abaixo dos dois. A barra do título rola com a página.
+  const n = $('rfv-numeros');
+  if (n) document.documentElement.style.setProperty('--rfv-num-h',
+    Math.round(n.getBoundingClientRect().height) + 'px');
   const t = $('rfv-topo');
   if (t) document.documentElement.style.setProperty('--rfv-topo-h',
     Math.round(t.getBoundingClientRect().height) + 'px');
+  const f = document.querySelector('.rfv-caixa-filtros');
+  if (f) document.documentElement.style.setProperty('--rfv-barra-h',
+    Math.round(f.getBoundingClientRect().height) + 'px');
   const q = document.querySelector('.rfv-quadro, .rfv-mapa');
   if (q) {
     const topo = Math.max(0, q.getBoundingClientRect().top);
@@ -4662,7 +4724,7 @@ function linhasDoGrupo(g, chave) {
       r[C.GCI]
         ? `<span class="gci-num"><button class="copiar-btn" data-copiar="${escAttr(r[C.GCI])}" title="Copiar GCI ${r[C.GCI]}"><i class="fa-solid fa-copy"></i></button>${botaoPdfHTML(r)} GCI ${r[C.GCI]}</span>`
         : `<span><i class="fa-solid fa-receipt"></i> GCI —</span>`,
-      r[C.OC] >= 0 ? `<span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span>` : '',
+      r[C.OC] >= 0 ? `<span class="meta-oc"><span class="sep">·</span><span>${escHtml(APP.dic.oc[r[C.OC]])}</span></span>` : '',
       APP.veTudo ? `<span class="meta-prep"><span class="sep">·</span><span>${escHtml(APP.dic.prep[r[C.PREP]])}</span></span>` : '',
       !emCarteira && r[C.NF] ? `<span class="sep">·</span><span>NF ${r[C.NF]}</span>` : '',
     ].filter(Boolean).join(' ');
@@ -4696,6 +4758,10 @@ function linhasDoGrupo(g, chave) {
           <p class="gci-meta"><span class="gci-cod">${escHtml(codigo)}</span> ${meta}</p>
           ${gradeHTML(r)}
         </div>
+        <span class="gc gc-gen">${(() => {
+          const gen = generoDaLinha(r);
+          return gen ? `<span class="tag-gen g-${gen.toLowerCase()}">${gen}</span>` : vazio;
+        })()}</span>
         <span class="gc gc-gci">${gciCel}</span>
         <span class="gc gc-oc">${ocCel}</span>
         ${APP.veTudo ? `<span class="gc gc-prep">${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : ''}
@@ -4709,13 +4775,17 @@ function linhasDoGrupo(g, chave) {
             <span class="q-curto"><i class="fa-solid ${emCarteira ? 'fa-calendar-day' : 'fa-circle-check'}"></i> ${emCarteira ? diaParaCurto(r[C.PREV]) : diaParaCurto(r[C.DFAT])}</span>
           </p>
         </div>
+        <button type="button" class="gci-exp" title="Ver GCI, grade e ações"
+                aria-label="Ver detalhes da encomenda"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
         ${emCarteira ? linhaDestinosHTML(repasseDaLinha(r), r[C.CART]) : ''}
       </div>`;
   }).join('');
 
   const cabecalho = `<div class="gci-head"><span>${linhas.length} encomenda${linhas.length > 1 ? 's' : ''}</span><span>${g.clientes.size} cliente${g.clientes.size > 1 ? 's' : ''}</span></div>` +
     // os títulos das colunas, só na tela larga
-    `<div class="gci-cols ${APP.veTudo ? 'gi-prep' : ''}"><span>Código</span><span>Cliente</span><span>GCI</span><span>OC / NF</span>` +
+    `<div class="gci-cols ${APP.veTudo ? 'gi-prep' : ''}"><span>Código</span><span>Cliente</span>` +
+    `<button type="button" class="gr-tgl" title="Mostrar ou ocultar as grades">Grade<i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>` +
+    `<span>GCI</span><span>OC / NF</span>` +
     `${APP.veTudo ? '<span>Preposto</span>' : ''}<span>Carteira</span><span>Faturado</span><span>Prev. / Fat.</span><span>Ações</span></div>`;
   const mais = ate < linhas.length
     ? `<button class="gci-mais" data-vertudo="${chave}">Ver os ${formatarNumero(linhas.length - ate)} restantes</button>`
@@ -7661,6 +7731,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligarRespostaPdf();
 
   ligar('btn-selecao', 'click', alternarModoSelecao);
+  // Grades: um botão só abre ou fecha todas. No computador elas já vinham
+  // abertas; no celular vinham recolhidas, porque ocupam a linha inteira.
+  // A escolha fica guardada no aparelho.
+  const gradeGuardada = () => { try { return localStorage.getItem('detalhada.grade'); } catch { return null; } };
+  const pintarGrade = ver => {
+    document.documentElement.classList.toggle('grades-on', ver);
+    document.documentElement.classList.toggle('grades-off', !ver);
+    // O interruptor vive no cabeçalho de cada produto aberto, e há um por
+    // produto: todos mostram o mesmo estado.
+    document.querySelectorAll('.gr-tgl').forEach(b => {
+      b.classList.toggle('on', ver);
+      b.title = ver ? 'Ocultar as grades' : 'Mostrar as grades de todas as encomendas';
+      b.setAttribute('aria-pressed', String(ver));
+      const i = b.querySelector('i');
+      if (i) i.className = 'fa-solid ' + (ver ? 'fa-chevron-up' : 'fa-chevron-down');
+    });
+  };
+  pintarGrade(gradeGuardada() ? gradeGuardada() === 'on' : innerWidth >= 1024);
+  // Como o cabeçalho nasce junto com cada produto aberto, o clique é ouvido
+  // no documento e o estado é repintado em todos de uma vez.
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.gr-tgl')) return;
+    e.stopPropagation();
+    const ver = !document.documentElement.classList.contains('grades-on');
+    try { localStorage.setItem('detalhada.grade', ver ? 'on' : 'off'); } catch {}
+    pintarGrade(ver);
+  });
+  // Celular: a encomenda mostra o essencial e abre o resto num toque.
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('.gci-exp');
+    if (!b) return;
+    e.stopPropagation();
+    const item = b.closest('.gci-item');
+    if (item) item.classList.toggle('aberta');
+  });
+
+  // Produto recém-aberto: o cabeçalho dele nasce com o estado de agora.
+  new MutationObserver(() => pintarGrade(document.documentElement.classList.contains('grades-on')))
+    .observe($('lista'), { childList: true, subtree: true });
   ligar('bs-copiar', 'click', copiarGcisSelecionados);
   ligar('bs-tudo', 'click', marcarTudoFiltrado);
   ligar('bs-limpar', 'click', () => {
@@ -7801,6 +7910,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     RFV.sel = RFV.sel === tr.dataset.cod ? '' : tr.dataset.cod;
     document.querySelectorAll('#rfv-tela tr[data-cod]').forEach(x =>
       x.classList.toggle('sel', !!RFV.sel && x.dataset.cod === RFV.sel));
+  });
+  // Os números do RFV recolhem como os da tela de produtos, e a escolha
+  // fica guardada no aparelho.
+  const kpisRfvRecolhidos = () => { try { return localStorage.getItem('detalhada.kpisRfv') === 'recolhido'; } catch { return false; } };
+  const pintarKpisRfv = rec => {
+    const cx = $('rfv-numeros'), bt = $('btn-kpis-rfv');
+    if (!cx || !bt) return;
+    cx.classList.toggle('recolhido', rec);
+    bt.title = rec ? 'Mostrar os números' : 'Recolher os números';
+    bt.setAttribute('aria-expanded', String(!rec));
+    bt.querySelector('i').className = 'fa-solid ' + (rec ? 'fa-chevron-down' : 'fa-chevron-up');
+    rfvMedirTopo();
+  };
+  pintarKpisRfv(kpisRfvRecolhidos());
+  ligar('btn-kpis-rfv', 'click', () => {
+    const rec = !$('rfv-numeros').classList.contains('recolhido');
+    try { localStorage.setItem('detalhada.kpisRfv', rec ? 'recolhido' : ''); } catch {}
+    pintarKpisRfv(rec);
   });
   ligar('rfv-busca', 'input', rfvPintar);
   ligar('rfv-limpar', 'click', () => {
@@ -10118,6 +10245,353 @@ html.dark .painel-detalhada .lista-head .col-ref{ color:#fff; }
 .cab-numeros.recolhido{ height:26px; }
 .cab-numeros.recolhido .kpi-toggle{ height:22px; }
 </style>
+
+<style id="ds-rfv-formato">
+/* ─────────────────────────────────────────────────────────────────────
+   RFV com a formatação da tela de produtos (11/09/2026)
+   1 · faixa de cima na cor da marca
+   2 · botões com contorno verde-água e letra forte
+   3 · números em faixa própria, com as divisórias em destaque
+   ───────────────────────────────────────────────────────────────────── */
+
+/* o quadro do RFV segue o da lista: cantos retos */
+#screen-rfv .rfv-topo{ border-radius:0; }
+#screen-rfv .rfv-quadro,
+#screen-rfv .rfv-mapa{ border-radius:0; }
+
+/* ── 1 · identidade na cor da marca ── */
+#screen-rfv .rfv-topo-in{ background:var(--pv-marca); padding:12px 16px; gap:14px; }
+#screen-rfv .rfv-tit{ border-right:0; padding-right:0; margin-right:auto; }
+#screen-rfv .rfv-tit .logo-text{ color:#fff; }
+#screen-rfv .rfv-tit .logo-sub{ color:rgba(255,255,255,.72); }
+#screen-rfv .rfv-topo .btn-icon{
+  background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); color:#fff;
+}
+#screen-rfv .rfv-topo .btn-icon:hover{ background:rgba(255,255,255,.16); color:#fff; }
+#screen-rfv .rfv-topo .btn-icon:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
+
+/* ── 3 · faixa de números, com as divisórias em destaque ── */
+#screen-rfv .rfv-numeros{
+  position:relative; background:var(--ds-band);
+  border-top:1px solid var(--ds-accent);
+}
+#screen-rfv .rfv-numeros .rfv-caixa{ min-width:0; }
+#screen-rfv .rfv-fichas{ gap:0; padding:0 40px 0 0; align-items:stretch; }
+#screen-rfv .rfv-ficha{
+  position:relative; flex:1 1 0; min-width:128px;
+  border:0; border-left:1px solid var(--ds-accent); border-radius:0;
+  background:transparent; padding:11px 16px; gap:4px; justify-content:flex-start;
+  text-indent:15px;
+}
+/* a regra antiga zerava o recuo da primeira ficha e o texto subia em
+   cima do pontinho */
+#screen-rfv .rfv-ficha:first-child{ border-left:0; padding-left:16px; }
+/* o pontinho da cor do papel, como nos números da tela de produtos */
+#screen-rfv .rfv-ficha::before{
+  content:''; position:absolute; left:16px; top:14px;
+  width:6px; height:6px; border-radius:2px; background:var(--ds-line-strong);
+}
+#screen-rfv .rfv-ficha.pos::before{ background:var(--ds-faturado); }
+#screen-rfv .rfv-ficha.neg::before{ background:var(--ds-erro); }
+#screen-rfv .rfv-ficha .n{ font-size:10px; letter-spacing:.12em; color:var(--ds-faint); }
+#screen-rfv .rfv-ficha .v,
+#screen-rfv .rfv-ficha .pc{ text-indent:0; }
+#screen-rfv .rfv-ficha .v{ font-size:21px; }
+#screen-rfv button.rfv-ficha{ border-radius:0; border-left-color:var(--ds-accent); text-align:left; }
+#screen-rfv button.rfv-ficha:hover{ background:var(--ds-sunk); }
+#screen-rfv .rfv-ficha.on{ background:var(--ds-accent-bg); }
+#screen-rfv .rfv-numeros.recolhido .rfv-caixa{ display:none; }
+#screen-rfv .rfv-numeros.recolhido{ height:26px; }
+#screen-rfv .rfv-numeros.recolhido .kpi-toggle{ height:22px; }
+
+/* ── 2 · botões com o contorno verde-água da lista ── */
+#screen-rfv .rfv-caixa-filtros{ border-top:1px solid var(--ds-accent); padding:9px 16px; }
+#screen-rfv .rfv-campo,
+#screen-rfv .rfv-tgl{ border-color:var(--ds-accent); color:var(--ds-ink); }
+#screen-rfv .rfv-tgl i,
+#screen-rfv .rfv-dd::after{ color:var(--ds-accent-2); opacity:1; }
+html.dark #screen-rfv .rfv-tgl i,
+html.dark #screen-rfv .rfv-dd::after{ color:var(--ds-accent); }
+#screen-rfv .rfv-dd::after{ border-top-color:currentColor; }
+#screen-rfv .rfv-dd:hover,
+#screen-rfv .rfv-tgl:hover{ border-color:var(--ds-accent-2); color:var(--ds-ink); }
+#screen-rfv .rfv-abas{ box-shadow:inset 0 0 0 1px var(--ds-accent); }
+#screen-rfv .rfv-aba{ color:var(--ds-ink-2); }
+#screen-rfv #rfv-busca{ border-color:var(--ds-accent); }
+#screen-rfv #rfv-busca::placeholder{ color:var(--ds-ghost); }
+
+@media (max-width:640px){
+  #screen-rfv .rfv-topo-in{ padding:10px 12px; }
+  /* os três números cabem na largura do aparelho, sem rolar de lado */
+  #screen-rfv .rfv-numeros .rfv-fichas{ padding-right:30px; }
+  #screen-rfv .rfv-ficha,
+  #screen-rfv .rfv-ficha:first-child{ min-width:0; padding:9px; text-indent:12px; }
+  #screen-rfv .rfv-ficha::before{ left:9px; top:12px; width:5px; height:5px; }
+  #screen-rfv .rfv-ficha .n{ font-size:9px; letter-spacing:.06em; }
+  #screen-rfv .rfv-ficha .v{ font-size:18px; }
+  #screen-rfv .rfv-caixa-filtros{ padding:8px 12px; }
+}
+</style>
+
+<style id="ds-rfv-cab">
+/* ─────────────────────────────────────────────────────────────────────
+   RFV · cabeçalho da tabela no verde da marca e botões congelados
+   ───────────────────────────────────────────────────────────────────── */
+
+/* a fita de abas e filtros gruda embaixo da barra de cima */
+#screen-rfv .rfv-caixa-filtros{
+  position:sticky; top:calc(var(--rfv-topo-h, 60px) - 1px); z-index:11;
+  background:var(--ds-card);
+}
+
+/* o cabeçalho da tabela: mesma faixa verde da lista de produtos */
+#screen-rfv .rfv-quadro thead th{
+  background:var(--pv-marca); color:#fff; box-shadow:none;
+  border-bottom:0; padding-top:8px;
+}
+#screen-rfv .rfv-quadro thead th .rot,
+#screen-rfv .rfv-quadro thead th .tot,
+#screen-rfv .rfv-quadro thead th .obs{ color:#fff; }
+#screen-rfv .rfv-quadro thead th:hover .rot,
+#screen-rfv .rfv-quadro thead th.ord-on .rot{ color:#fff; }
+#screen-rfv .rfv-quadro thead th.ord-on .rot{ font-weight:700; }
+#screen-rfv .rfv-quadro thead th .tot{ font-weight:600; }
+#screen-rfv .rfv-quadro thead th.presa{ background:var(--pv-marca); }
+/* a divisória do semestre e a listra alternada aparecem por cima do verde */
+#screen-rfv .rfv-quadro thead th.alt{ background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(255,255,255,.07)), var(--pv-marca); }
+#screen-rfv .rfv-quadro thead th.sem2{ border-left-color:rgba(255,255,255,.5); }
+/* mês em curso: fundo mais claro e o fio âmbar embaixo */
+#screen-rfv .rfv-quadro thead th.agora,
+#screen-rfv .rfv-quadro thead th.agora.alt{
+  background:linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.16)), var(--pv-marca);
+  box-shadow:inset 0 -3px 0 var(--ds-atencao);
+}
+#screen-rfv .rfv-quadro thead th.agora .rot,
+html.dark #screen-rfv .rfv-quadro thead th.agora .rot{ color:#fff; font-weight:700; }
+/* os totais do topo perdem a cor de carteira/faturado: sobre o verde,
+   branco é o que se lê */
+#screen-rfv .rfv-quadro thead th .tot.rfv-fat,
+#screen-rfv .rfv-quadro thead th .tot.rfv-car,
+#screen-rfv .rfv-quadro thead th .tot.rfv-mix,
+#screen-rfv .rfv-quadro thead th .tot.v-pos,
+#screen-rfv .rfv-quadro thead th .tot.v-neg{ color:#fff; }
+
+/* com a tabela rolando por dentro (celular ou coluna de cidade), o
+   cabeçalho gruda na moldura dela, como antes */
+@media (min-width:1000px){
+  #screen-rfv .rfv-quadro thead th{
+    top:calc(var(--rfv-topo-h, 60px) + var(--rfv-barra-h, 50px) - 2px);
+  }
+  #screen-rfv .rfv-quadro.com-cidade thead th{ top:0; }
+}
+</style>
+
+<style id="ds-rfv-cliente">
+/* a coluna da cidade: título ao meio e clicável para ordenar */
+#screen-rfv .rfv-quadro th.cid{ text-align:center; padding-left:6px; cursor:pointer; }
+/* Cliente e Cidade não têm total embaixo, então ficavam pousados na base
+   da faixa: agora centram na altura e ganham meio ponto de corpo. */
+#screen-rfv .rfv-quadro thead th.cli,
+#screen-rfv .rfv-quadro thead th.cid{ vertical-align:middle; font-size:11.5px; }
+#screen-rfv .rfv-quadro thead th.cli .rot,
+#screen-rfv .rfv-quadro thead th.cid .rot{ display:block; font-size:11.5px; }
+</style>
+
+<style id="ds-rfv-gruda">
+/* ── só os números e os botões ficam congelados ── */
+#screen-rfv .rfv-topo{ position:static; border-bottom:0; }
+#screen-rfv .rfv-numeros{
+  position:sticky; top:0; z-index:12;
+  border-left:1px solid var(--ds-line); border-right:1px solid var(--ds-line);
+}
+#screen-rfv .rfv-caixa-filtros{ top:calc(var(--rfv-num-h, 70px) - 1px); }
+@media (min-width:1000px){
+  #screen-rfv .rfv-quadro thead th{
+    top:calc(var(--rfv-num-h, 70px) + var(--rfv-barra-h, 50px) - 2px);
+  }
+  #screen-rfv .rfv-quadro.com-cidade thead th{ top:0; }
+}
+</style>
+
+<style id="ds-rfv-mapa">
+/* ── mapa: só a barra do título sobe ──
+   Números e filtros continuam presos no alto, como na tabela. O mapa
+   ganha altura de tela menos essas duas faixas: rolando o tanto da barra
+   do título, ele encaixa certinho embaixo delas e ocupa o resto. */
+#screen-rfv.mapa-aberto .rfv-mapa{
+  height:calc(100dvh - var(--rfv-num-h, 70px) - var(--rfv-barra-h, 50px) - 14px);
+  min-height:360px;
+}
+@supports not (height: 100dvh){
+  #screen-rfv.mapa-aberto .rfv-mapa{
+    height:calc(100vh - var(--rfv-num-h, 70px) - var(--rfv-barra-h, 50px) - 14px);
+  }
+}
+</style>
+
+
+<style id="ds-grade">
+/* ── mostrar ou ocultar todas as grades num botão só ──
+   Ligado: os quadradinhos aparecem em toda encomenda, em qualquer tela, e
+   o botão "Grade" de cada linha some (ele não tem mais o que fazer).
+   Desligado: nem os quadradinhos nem o botão. */
+html.grades-on .painel-detalhada .gci-grade .gr-lista{ display:inline-flex !important; }
+html.grades-on .painel-detalhada .gci-grade .gr-botao{ display:none !important; }
+/* Desligado na tela larga: some tudo, porque lá não há botão por linha.
+   No tablet e no celular o botão "Grade" de cada linha continua, para
+   quem quiser ver só uma. */
+@media (min-width:1025px){
+  html.grades-off .painel-detalhada .gci-grade{ display:none !important; }
+}
+@media (max-width:1024px){
+  html.grades-on .painel-detalhada .gci-grade{ display:flex; width:100%; margin:4px 0 0; }
+  html.grades-on .painel-detalhada .gci-grade .gr-lista{ width:100%; }
+}
+</style>
+
+<style id="ds-genero">
+/* ── coluna de gênero, entre cliente e GCI ── */
+.painel-detalhada .tag-gen{
+  display:inline-block; font-family:var(--ds-mono); font-size:10px; font-weight:500;
+  letter-spacing:.06em; padding:2px 7px; border-radius:5px;
+  background:var(--ds-sunk); color:var(--ds-muted);
+}
+.painel-detalhada .tag-gen.g-masc{ background:var(--ds-carteira-bg); color:var(--ds-carteira-ink); }
+.painel-detalhada .tag-gen.g-fem{ background:var(--ds-atencao-bg); color:var(--ds-atencao-ink); }
+html.dark .painel-detalhada .tag-gen.g-fem{ color:var(--ds-atencao); }
+
+@media (min-width:1100px){
+  /* a grade das encomendas ganha mais uma coluna */
+  .painel-detalhada .gci-cols,
+  .painel-detalhada .product-card.expanded .gci-item{
+    grid-template-columns:minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr)
+                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+  }
+  .painel-detalhada .gci-cols.gi-prep,
+  .painel-detalhada .product-card.expanded .gci-item.gi-prep{
+    grid-template-columns:minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr) minmax(84px,.85fr)
+                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols,
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item{
+    grid-template-columns:19px minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr)
+                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols.gi-prep,
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item.gi-prep{
+    grid-template-columns:19px minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr) minmax(84px,.85fr)
+                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+  }
+}
+</style>
+
+<style id="ds-grade-tgl">
+/* o título "Grade" é o interruptor das grades, no cabeçalho do produto */
+.painel-detalhada .gci-cols .gr-tgl{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  margin:0 auto; padding:2px 8px; border:0; border-radius:5px;
+  background:transparent; cursor:pointer;
+  font-family:var(--ds-mono); font-size:10.5px; font-weight:600;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--pv-cab-ink);
+}
+.painel-detalhada .gci-cols .gr-tgl i{ font-size:9px; opacity:.75; }
+.painel-detalhada .gci-cols .gr-tgl:hover{ background:rgba(255,255,255,.5); }
+html.dark .painel-detalhada .gci-cols .gr-tgl:hover{ background:rgba(255,255,255,.08); }
+.painel-detalhada .gci-cols .gr-tgl:focus-visible{ outline:2px solid var(--ds-accent); outline-offset:1px; }
+</style>
+
+<style id="ds-mobile-linha">
+/* ── celular e tablet: a linha do cliente fica só com o essencial ──
+   Código do cliente e OC saem (continuam na tela larga, em coluna), e o
+   chip da grade perde a contagem de tamanhos — quem abre já vê. */
+@media (max-width:1099.98px){
+  .painel-detalhada .gci-meta .gci-cod,
+  .painel-detalhada .gci-meta .meta-oc{ display:none; }
+  .painel-detalhada .gr-botao .gr-n{ display:none; }
+}
+
+/* No celular não existe o cabeçalho de colunas, mas a linha do produto
+   grudava como se ele estivesse lá: sobrava uma janela de 40px onde as
+   encomendas passavam por trás, à vista. Ela para logo abaixo dos filtros. */
+@media (max-width:700px){
+  .painel-detalhada .product-card.expanded .product-main{
+    top:calc(var(--topo-congelado, 60px) - 1px);
+  }
+}
+</style>
+
+<style id="ds-mobile-card">
+/* o selinho de lupa sai do celular: ele só cobre um pedaço da foto.
+   Tocar na miniatura continua ampliando, como antes. */
+@media (max-width:700px){
+  .painel-detalhada .product-zoom{ display:none !important; }
+}
+
+/* na tela larga a encomenda já mostra tudo em colunas: sem botão */
+.painel-detalhada .gci-exp{ display:none; }
+
+@media (max-width:700px){
+  /* ── uma linha só: cliente · pares · previsão · seta ── */
+  .painel-detalhada .product-card.expanded .gci-item{
+    grid-template-columns:minmax(0,1fr) auto 30px;
+    align-items:center; row-gap:8px; column-gap:10px;
+  }
+  .painel-detalhada .gci-info{ grid-column:1; grid-row:1; }
+  .painel-detalhada .gci-dir{
+    grid-column:2; grid-row:1; display:flex; align-items:center; gap:8px; text-align:right;
+  }
+  .painel-detalhada .gci-quando{ margin:0; }
+  .painel-detalhada .gci-exp{
+    grid-column:3; grid-row:1; display:flex; align-items:center; justify-content:center;
+    width:28px; height:28px; padding:0; border:0; border-radius:var(--ds-r-sm);
+    background:transparent; color:var(--ds-faint); font-size:12px; cursor:pointer;
+  }
+  .painel-detalhada .gci-exp:hover{ background:rgba(255,255,255,.5); color:var(--ds-ink); }
+  .painel-detalhada .gci-item.aberta .gci-exp i{ transform:rotate(180deg); }
+  .painel-detalhada .gci-exp i{ transition:transform .18s ease; }
+
+  /* fechada: só o essencial */
+  .painel-detalhada .gci-item:not(.aberta) .gci-meta,
+  .painel-detalhada .gci-item:not(.aberta) .gci-grade,
+  .painel-detalhada .gci-item:not(.aberta) .acao-pills,
+  .painel-detalhada .gci-item:not(.aberta) .gci-destinos{ display:none !important; }
+
+  /* aberta: cada coisa numa linha, e a grade ao lado dos botões — um
+     toque a menos, porque ela não depende mais do chip "Grade".
+     O bloco do cliente vira transparente na grade (display:contents) para
+     nome, GCI e grade poderem ocupar linhas diferentes. */
+  .painel-detalhada .gci-item.aberta{ align-items:start; row-gap:8px; }
+  .painel-detalhada .gci-item.aberta .gci-dir,
+  .painel-detalhada .gci-item.aberta .gci-exp{ align-self:start; }
+  .painel-detalhada .gci-item.aberta .gci-info{ display:contents; }
+  .painel-detalhada .gci-item.aberta .gci-cli{
+    grid-column:1; grid-row:1; min-width:0; margin:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .painel-detalhada .gci-item.aberta .gci-meta{ grid-column:1 / -1; grid-row:2; display:flex; margin:0; }
+  .painel-detalhada .gci-item.aberta .acao-pills{ grid-column:1; grid-row:3; justify-content:flex-start; }
+  .painel-detalhada .gci-item.aberta .gci-grade{
+    grid-column:2 / -1; grid-row:3; justify-self:end; margin:0;
+    display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center;
+  }
+  /* a grade aparece sozinha quando a encomenda está aberta */
+  .painel-detalhada .gci-item.aberta .gr-botao{ display:none !important; }
+  .painel-detalhada .gci-item.aberta .gr-lista{ display:inline-flex !important; width:auto; margin:0; }
+  .painel-detalhada .gci-item.aberta .gci-destinos{ grid-column:1 / -1; grid-row:4; margin:0; }
+  @media (prefers-reduced-motion: reduce){
+    .painel-detalhada .gci-exp i{ transition:none; }
+  }
+}
+</style>
+
+
+
+
+
+
+
+
+
 
 
 
