@@ -2158,6 +2158,30 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
     <p class="fonte-info" id="fonte-info"></p>
   </div>
 
+  <!-- Exportar o que está filtrado no RFV: planilha e PDF, só os ícones. -->
+  <div class="fab-export" id="fab-export" hidden>
+    <button type="button" id="btn-exp-xlsx" title="Baixar em Excel (.xlsx)" aria-label="Baixar em Excel">
+      <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
+    </button>
+    <button type="button" id="btn-exp-pdf" title="Baixar em PDF" aria-label="Baixar em PDF">
+      <svg class="ico-pdf" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+        <path d="M6.2 2.6h7.4L19.4 8.4V21a1.8 1.8 0 0 1-1.8 1.8H6.2A1.8 1.8 0 0 1 4.4 21V4.4a1.8 1.8 0 0 1 1.8-1.8Z"
+              fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M13.4 2.8v5.4h5.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <text x="11.9" y="18.6" text-anchor="middle" font-size="7.6" font-weight="700"
+              fill="currentColor" font-family="'Instrument Sans', Arial, sans-serif">PDF</text>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Limpar filtros flutuante: no tablet e no celular o botão da fita
+       fica escondido atrás da rolagem, e quem filtrou sem querer não
+       achava o caminho de volta. -->
+  <button type="button" class="fab-limpar" id="fab-limpar" hidden>
+    <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+    <span>Limpar filtros</span>
+  </button>
+
   <!-- =================================================================
        TELA 3 — ADMIN (subir a Detalhada do dia)
        ================================================================= -->
@@ -2177,6 +2201,14 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
           <div class="logo-text" id="rfv-nome">RFV da carteira</div>
           <div class="logo-sub" id="rfv-periodo">—</div>
         </div>
+
+        <div class="search-wrap cab-busca rfv-busca-cima" id="rfv-search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input id="rfv-busca" type="search" inputmode="search" enterkeyhint="search"
+                 placeholder="Cliente ou código" autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
         <button class="btn-icon" id="btn-tema-3" title="Alternar tema">
           <i class="fa-solid fa-moon"></i>
         </button>
@@ -2212,7 +2244,6 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <button type="button" class="rfv-campo rfv-dd" data-f="linha">Faixa</button>
         <button type="button" class="rfv-campo rfv-dd" data-f="sit">Compra</button>
         <button type="button" class="rfv-campo rfv-dd" data-f="prod">Produto</button>
-        <input id="rfv-busca" class="rfv-campo" type="search" placeholder="Cliente ou código…" autocomplete="off">
         <button class="rfv-limpar" id="rfv-limpar" hidden>Limpar filtros</button>
       </div>
     </div>
@@ -3913,6 +3944,7 @@ function rfvPintar() {
   rfvPintarBotoes();
   $('rfv-limpar').hidden = !(RFV.f.vend || RFV.f.marca || RFV.f.linha || RFV.f.sit ||
                              RFV.f.prod || $('rfv-busca').value.trim());
+  atualizarFabLimpar();
   rfvMedirTopo();
   rfvVeu();
 }
@@ -4311,6 +4343,171 @@ function ajustarStatusDaBusca(termo) {
     APP.statusAntesDaBusca = null;
     renderStatusChips();
   }
+}
+
+/* ============================================================
+   EXPORTAR O RFV — planilha e PDF
+   Sai o que está filtrado na tela, com todas as linhas e os meses em
+   colunas. As bibliotecas do PDF entram só na hora, como o mapa.
+   ============================================================ */
+
+/** Uma frase com os filtros ligados, para o cabeçalho do arquivo. */
+function rfvResumoFiltros() {
+  const partes = [];
+  for (const f of ['vend', 'marca', 'linha', 'sit', 'prod']) {
+    const tem = RFV_MULTI.has(f) ? rfvSel(f).length : !!RFV.f[f];
+    if (tem) partes.push(RFV_FILTRO[f].nome + ': ' + rfvRotulo(f));
+  }
+  const busca = $('rfv-busca').value.trim();
+  if (busca) partes.push('Busca: ' + busca);
+  return partes.join(' · ');
+}
+
+function rfvSituacaoTexto(l) {
+  if (l.p2 > 0) return l.p1 > 0 ? 'Comprou nos dois' : 'Entrou no 2º sem.';
+  return l.p1 > 0 ? 'Parou no 2º sem.' : 'Sem compra no ano';
+}
+
+/** Cabeçalho e linhas prontos para a planilha e para o PDF. */
+function rfvTabelaExport() {
+  const A = rfvApurar();
+  const linhas = rfvLinhas(A);
+  rfvOrdenar(linhas);
+  const comCidade = !!CIDADES.mapa;
+  const cab = ['Cliente', 'Código'];
+  if (APP.veTudo) cab.push('Preposto');
+  if (comCidade) cab.push('Cidade');
+  cab.push('Situação');
+  RFV.meses.forEach(m => cab.push(mesCurtoRotulo(m)));
+  cab.push('1º sem.', '2º sem.', 'Var. %');
+
+  const corpo = linhas.map(l => {
+    const lin = [l.nome, l.cod];
+    if (APP.veTudo) lin.push(rfvVend(l) || '');
+    if (comCidade) lin.push(rfvCidadeNome(l.cod) || '');
+    lin.push(rfvSituacaoTexto(l));
+    RFV.meses.forEach((_, i) => lin.push((l.mf[i] || 0) + (l.mc[i] || 0)));
+    lin.push(l.p1, l.p2, l.p1 ? Math.round(100 * (l.p2 - l.p1) / l.p1) : '');
+    return lin;
+  });
+
+  // a primeira coluna de número: depois dela tudo é contagem de pares
+  const primeiroNumero = cab.length - RFV.meses.length - 3;
+  return { cab, corpo, primeiroNumero };
+}
+
+function rfvNomeArquivo(ext) {
+  const hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+  const quem = rfvSel('vend').length === 1 ? ' ' + rfvSel('vend')[0] : '';
+  return 'RFV da carteira' + quem + ' ' + hoje + '.' + ext;
+}
+
+/** Planilha: cabeçalho com os filtros, números com separador de milhar,
+ *  colunas na medida, filtro automático e o cliente preso à esquerda. */
+function rfvExportXlsx() {
+  if (typeof XLSX === 'undefined') { toast('A planilha não carregou; recarregue a página'); return; }
+  const { cab, corpo, primeiroNumero } = rfvTabelaExport();
+  const periodo = RFV.meses.length ? RFV.meses[0] + ' a ' + RFV.meses[RFV.meses.length - 1] : '';
+  const resumo = rfvResumoFiltros();
+  const aoa = [
+    ['RFV da carteira · ' + periodo],
+    [resumo ? 'Filtros — ' + resumo : 'Sem filtros'],
+    [corpo.length + ' cliente(s) · gerado em ' + new Date().toLocaleString('pt-BR')],
+    [],
+    cab,
+  ].concat(corpo);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const linhaCab = 4;                                   // base zero
+  ws['!cols'] = cab.map((c, i) => ({ wch: i === 0 ? 34 : Math.max(9, c.length + 3) }));
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(
+    { s: { r: linhaCab, c: 0 }, e: { r: linhaCab + corpo.length, c: cab.length - 1 } }) };
+  for (let r = 0; r < corpo.length; r++) {
+    for (let c = primeiroNumero; c < cab.length; c++) {
+      const cel = ws[XLSX.utils.encode_cell({ r: linhaCab + 1 + r, c })];
+      if (cel && typeof cel.v === 'number') cel.z = (c === cab.length - 1) ? '0"%"' : '#,##0';
+    }
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'RFV');
+  XLSX.writeFile(wb, rfvNomeArquivo('xlsx'));
+  toast('Planilha gerada · ' + corpo.length + ' cliente(s)');
+}
+
+async function rfvGarantirPdf() {
+  const pronto = () => window.jspdf && window.jspdf.jsPDF &&
+    typeof window.jspdf.jsPDF.API.autoTable === 'function';
+  if (pronto()) return true;
+  const carregar = src => new Promise((ok, nao) => {
+    const t = document.createElement('script');
+    t.src = src; t.onload = ok; t.onerror = nao;
+    document.head.appendChild(t);
+  });
+  try {
+    await carregar('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await carregar('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+  } catch (e) { return false; }
+  return pronto();
+}
+
+/** PDF: paisagem, cabeçalho verde, uma linha por cliente e rodapé com a
+ *  página. Quem gera é o navegador, então vale offline depois da 1ª vez. */
+async function rfvExportPdf() {
+  syncShow('Montando o PDF…');
+  if (!await rfvGarantirPdf()) {
+    syncHide();
+    toast('Não consegui carregar o gerador de PDF');
+    return;
+  }
+  const { cab, corpo } = rfvTabelaExport();
+  const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const periodo = RFV.meses.length ? RFV.meses[0] + ' a ' + RFV.meses[RFV.meses.length - 1] : '';
+  const resumo = rfvResumoFiltros();
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(15, 118, 110);
+  doc.text('RFV da carteira · ' + periodo, 24, 34);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(110, 116, 110);
+  doc.text(resumo ? 'Filtros — ' + resumo : 'Sem filtros', 24, 48);
+  doc.text(corpo.length + ' cliente(s) · ' + new Date().toLocaleString('pt-BR'), 24, 60);
+
+  doc.autoTable({
+    head: [cab],
+    body: corpo.map(l => l.map(v => typeof v === 'number' ? formatarNumero(v) : v)),
+    startY: 70,
+    theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 6.4, cellPadding: 2.4,
+              lineColor: [214, 222, 219], lineWidth: 0.4, textColor: [40, 46, 42] },
+    headStyles: { fillColor: [15, 118, 110], textColor: 255, fontSize: 6.4, halign: 'center' },
+    alternateRowStyles: { fillColor: [244, 250, 248] },
+    bodyStyles: { halign: 'center' },
+    columnStyles: { 0: { cellWidth: 104, halign: 'left' } },
+    margin: { left: 24, right: 24, bottom: 28 },
+    didDrawPage: () => {
+      const alt = doc.internal.pageSize.getHeight(), larg = doc.internal.pageSize.getWidth();
+      doc.setFontSize(7); doc.setTextColor(150, 156, 150);
+      doc.text('CMS Representações · Detalhada', 24, alt - 14);
+      doc.text('página ' + doc.internal.getNumberOfPages(), larg - 24, alt - 14, { align: 'right' });
+    },
+  });
+  doc.save(rfvNomeArquivo('pdf'));
+  syncHide();
+  toast('PDF gerado · ' + corpo.length + ' cliente(s)');
+}
+
+/** O flutuante de limpar filtros: aparece quando há filtro ligado, na
+ *  tela que estiver aberta. No computador ele fica de fora — lá o botão
+ *  da fita está sempre à vista. */
+function atualizarFabLimpar() {
+  const fab = $('fab-limpar');
+  if (!fab) return;
+  const noRfv = !!document.querySelector('#screen-rfv.active');
+  const ligado = noRfv
+    ? !$('rfv-limpar').hidden
+    : $('btn-limpar-filtros').classList.contains('show') || $('btn-limpar-rep').classList.contains('show');
+  fab.hidden = !ligado;
+  fab.dataset.tela = noRfv ? 'rfv' : 'produtos';
+  const exp = $('fab-export');
+  if (exp) exp.hidden = !(noRfv && ligado);
 }
 
 function renderStatusChips() {
@@ -6797,8 +6994,11 @@ function atualizarBotaoRecolher() {
 function medirTopoCongelado() {
   const fh = $('frozen-header');
   if (!fh) return;
-  const h = Math.round(fh.getBoundingClientRect().height);
-  document.documentElement.style.setProperty('--topo-congelado', h + 'px');
+  // Sem arredondar: a altura da barra cai em fração de pixel conforme a
+  // largura da tela, e arredondar para baixo fazia a barra cobrir a
+  // primeira linha do cabeçalho verde (ficava um risco por cima dele).
+  const h = fh.getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--topo-congelado', h.toFixed(2) + 'px');
 }
 
 // Abre animando ate a altura real e depois solta o limite de vez. Enquanto
@@ -7438,6 +7638,7 @@ function atualizarBotoesFiltros() {
       : `${NOME_FILTRO[id]} · ${sel.size}`;
   });
   $('btn-limpar-filtros').classList.toggle('show', algum || !!APP.busca);
+  atualizarFabLimpar();
   const lr = $('btn-limpar-rep');
   if (lr) lr.classList.toggle('show', algumRep || APP.repQuando !== 'tudo' || !!APP.busca);
   const rq = $('repQuando-label');
@@ -7970,7 +8171,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     try { localStorage.setItem('detalhada.kpisRfv', rec ? 'recolhido' : ''); } catch {}
     pintarKpisRfv(rec);
   });
-  ligar('rfv-busca', 'input', rfvPintar);
+  // A busca do RFV mora na barra de cima e tem o X de limpar, como a da
+  // tela de produtos.
+  configurarBuscaComX('rfv-busca', 'rfv-search-wrap', () => rfvPintar());
+  ligar('btn-exp-xlsx', 'click', rfvExportXlsx);
+  ligar('btn-exp-pdf', 'click', rfvExportPdf);
+  ligar('fab-limpar', 'click', () => {
+    const fab = $('fab-limpar');
+    if (fab.dataset.tela === 'rfv') $('rfv-limpar').click();
+    else if ($('btn-limpar-rep').classList.contains('show')) $('btn-limpar-rep').click();
+    else $('btn-limpar-filtros').click();
+  });
   ligar('rfv-limpar', 'click', () => {
     for (const k of Object.keys(RFV.f)) RFV.f[k] = '';
     $('rfv-busca').value = '';
@@ -8598,7 +8809,7 @@ document.addEventListener('DOMContentLoaded', function(){
    nao aparece porque os filtros estao em z-index 10, acima destes 4. */
 .painel-detalhada #lista{ padding-top:18px; }
 .painel-detalhada .lista-head{
-  position:sticky; top:calc(var(--topo-congelado, 60px) - 1px); z-index:4;
+  position:sticky; top:var(--topo-congelado, 60px); z-index:4;
   background:var(--d-surface);
   height:var(--alt-cab-tabela); box-sizing:border-box;
   padding-top:0; padding-bottom:0; margin-bottom:0;
@@ -10624,6 +10835,113 @@ html.dark .painel-detalhada .gci-cols .gr-tgl:hover{ background:rgba(255,255,255
   }
 }
 </style>
+
+<style id="ds-it23">
+/* ── 2) busca do RFV na barra de cima ── */
+#screen-rfv .rfv-busca-cima{ flex:1 1 280px; max-width:420px; min-width:0; }
+#screen-rfv .rfv-busca-cima input{
+  width:100%; height:36px; padding:0 36px 0 34px; font-size:13.5px;
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
+  border-radius:var(--ds-r-md); color:#fff; box-shadow:none; outline:none;
+}
+#screen-rfv .rfv-busca-cima input::placeholder{ color:rgba(255,255,255,.82); }
+#screen-rfv .rfv-busca-cima .search-icon{ left:12px; font-size:12px; color:rgba(255,255,255,.9); }
+#screen-rfv .rfv-busca-cima .search-clear{ right:4px; width:28px; height:28px; border-radius:var(--ds-r-sm); color:rgba(255,255,255,.9); font-size:12px; }
+#screen-rfv .rfv-busca-cima input:focus{
+  background:#fff; border-color:#fff; color:var(--ds-ink);
+  box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+#screen-rfv .rfv-busca-cima input:focus::placeholder{ color:var(--ds-ghost); }
+#screen-rfv .rfv-busca-cima:focus-within .search-icon,
+#screen-rfv .rfv-busca-cima:focus-within .search-clear{ color:var(--ds-ghost); }
+html.dark #screen-rfv .rfv-busca-cima input:focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
+#screen-rfv .rfv-tit{ margin-right:4px; }
+
+/* ── 3) flutuante laranja de limpar filtros ── */
+.fab-limpar{
+  position:fixed; left:16px; bottom:16px; z-index:70;
+  display:inline-flex; align-items:center; gap:8px;
+  height:42px; padding:0 16px; border:0; border-radius:999px;
+  background:#EA7A21; color:#fff; font-size:13px; font-weight:600;
+  box-shadow:0 6px 18px rgba(234,122,33,.38);
+  cursor:pointer;
+}
+.fab-limpar:hover{ background:#D86C16; }
+.fab-limpar:focus-visible{ outline:3px solid rgba(234,122,33,.4); outline-offset:2px; }
+.fab-limpar i{ font-size:14px; }
+.fab-limpar[hidden]{ display:none; }
+/* no computador o botão da fita basta */
+@media (min-width:1100px){ .fab-limpar{ display:none !important; } }
+/* no tablet e no celular o da fita sai de cena */
+@media (max-width:1099.98px){
+  .cab-trilho .filter-clear-btn,
+  #screen-rfv .rfv-limpar{ display:none !important; }
+}
+</style>
+
+<style id="ds-export">
+/* ── exportar o RFV: dois botões redondos, só o ícone ── */
+.fab-export{
+  position:fixed; right:16px; bottom:16px; z-index:70;
+  display:flex; align-items:center; gap:10px;
+}
+.fab-export[hidden]{ display:none; }
+.fab-export button{
+  width:46px; height:46px; border:0; border-radius:50%;
+  display:grid; place-items:center; font-size:17px; color:#fff; cursor:pointer;
+  box-shadow:0 6px 18px rgba(20,24,20,.28);
+}
+#btn-exp-xlsx{ background:#1D7044; }
+#btn-exp-xlsx:hover{ background:#175A37; }
+#btn-exp-pdf{ background:#B3352B; }
+#btn-exp-pdf:hover{ background:#932A22; }
+.fab-export button:focus-visible{ outline:3px solid rgba(255,255,255,.6); outline-offset:2px; }
+/* o "voltar ao topo" sobe para não brigar com eles */
+body:has(#fab-export:not([hidden])) .btn-topo{ bottom:74px; }
+@media (max-width:700px){
+  .fab-export{ right:12px; bottom:12px; gap:8px; }
+  .fab-export button{ width:42px; height:42px; font-size:16px; }
+}
+</style>
+
+<style id="ds-quatro">
+/* ── 1) o ícone do PDF é desenhado aqui ── */
+.fab-export .ico-pdf{ display:block; }
+
+/* ── 2) aba escolhida em verde, como Tabela/Mapa do RFV ── */
+.cab-trilho .tipo-chip.ativo,
+.cab-trilho .tipo-chip.alerta.ativo{
+  background:var(--ds-accent); color:#fff; box-shadow:none;
+}
+html.dark .cab-trilho .tipo-chip.ativo,
+html.dark .cab-trilho .tipo-chip.alerta.ativo{ background:var(--ds-accent-2); color:#0F2A28; }
+.cab-trilho .tipo-chip.ativo .chip-n{ color:rgba(255,255,255,.85); }
+html.dark .cab-trilho .tipo-chip.ativo .chip-n{ color:rgba(15,42,40,.7); }
+
+/* ── 3) a busca do RFV com a cor da busca da Detalhada ── */
+#screen-rfv #rfv-busca{
+  height:38px; padding:0 38px 0 36px; font-size:13.5px; font-weight:400;
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
+  border-radius:var(--ds-r-md); color:#fff; box-shadow:none;
+}
+#screen-rfv #rfv-busca::placeholder{ color:rgba(255,255,255,.82); }
+#screen-rfv #rfv-busca:focus{
+  background:#fff; border-color:#fff; color:var(--ds-ink);
+  box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+#screen-rfv #rfv-busca:focus::placeholder{ color:var(--ds-ghost); }
+html.dark #screen-rfv #rfv-busca:focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
+
+/* ── 4) celular: limpar filtros só com o ícone ── */
+@media (max-width:700px){
+  .fab-limpar{ width:46px; height:46px; padding:0; border-radius:50%; justify-content:center; }
+  .fab-limpar span{ display:none; }
+  .fab-limpar i{ font-size:17px; }
+}
+</style>
+
+
+
 
 
 
