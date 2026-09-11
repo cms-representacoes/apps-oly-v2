@@ -2004,6 +2004,10 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
                 title="RFV da carteira — quem comprou em cada semestre">
           <i class="fa-solid fa-chart-column"></i>
         </button>
+        <button class="btn-icon" id="btn-es"
+                title="Entradas e saídas — o que entrou e o que saiu da carteira">
+          <i class="fa-solid fa-right-left"></i>
+        </button>
         <button class="btn-icon" id="btn-atualizar" title="Buscar base mais recente">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
@@ -2255,6 +2259,64 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
     <div class="rfv-lista" id="rfv-lista" hidden>
       <input type="search" class="rfv-lista-busca" id="rfv-lista-busca" autocomplete="off" hidden>
       <div class="rfv-lista-itens" id="rfv-lista-itens"></div>
+    </div>
+  </div>
+
+  <!-- Entradas e saídas da carteira. Mesmo esqueleto do RFV (título que
+       sobe, números e filtros que grudam, tabela), e as mesmas classes:
+       o visual vem inteiro de lá. -->
+  <div id="screen-es" class="screen">
+    <div class="rfv-topo" id="es-topo">
+      <div class="rfv-topo-in">
+        <button class="btn-icon" id="btn-voltar-es" title="Voltar">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="rfv-tit">
+          <div class="logo-text" id="es-nome">Entradas e saídas</div>
+          <div class="logo-sub" id="es-periodo">—</div>
+        </div>
+
+        <div class="search-wrap cab-busca rfv-busca-cima" id="es-search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input id="es-busca" type="search" inputmode="search" enterkeyhint="search"
+                 placeholder="Cliente, produto, cor ou GCI" autocomplete="off">
+          <button class="search-clear" title="Limpar (ESC)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <button class="btn-icon" id="btn-tema-4" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="rfv-numeros" id="es-numeros">
+      <div class="rfv-caixa"><div class="rfv-fichas" id="es-fichas"></div></div>
+      <button type="button" class="kpi-toggle" id="btn-kpis-es"
+              title="Recolher os números" aria-expanded="true">
+        <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="rfv-caixa rfv-caixa-filtros">
+      <div class="rfv-barra" id="es-barra">
+        <div class="rfv-abas" role="tablist">
+          <button class="rfv-aba on" data-es="ent" role="tab">Entradas</button>
+          <button class="rfv-aba" data-es="sai" role="tab">Saídas</button>
+        </div>
+        <button type="button" class="rfv-campo rfv-dd es-dd" data-f="vend" id="es-dd-vend">Prepostos</button>
+        <button type="button" class="rfv-campo rfv-dd es-dd" data-f="marca">Marca</button>
+        <button type="button" class="rfv-campo rfv-dd es-dd" data-f="linha">Faixa</button>
+        <button type="button" class="rfv-campo rfv-dd es-dd" data-f="prod">Produto</button>
+        <button type="button" class="rfv-campo rfv-dd es-dd" data-f="motivo" id="es-dd-motivo">Motivo</button>
+        <button class="rfv-limpar" id="es-limpar" hidden>Limpar filtros</button>
+      </div>
+    </div>
+
+    <div id="es-tela"></div>
+
+    <div class="rfv-lista" id="es-lista" hidden>
+      <input type="search" class="rfv-lista-busca" id="es-lista-busca" autocomplete="off" hidden>
+      <div class="rfv-lista-itens" id="es-lista-itens"></div>
     </div>
   </div>
 
@@ -3492,7 +3554,7 @@ function rfvRotulo(f) {
 }
 
 function rfvPintarBotoes() {
-  document.querySelectorAll('.rfv-dd').forEach(b => {
+  document.querySelectorAll('#screen-rfv .rfv-dd').forEach(b => {
     const f = b.dataset.f;
     b.innerHTML = `<span class="val">${escHtml(rfvRotulo(f))}</span>`;
     b.classList.toggle('on', RFV_MULTI.has(f) ? rfvSel(f).length > 0 : !!RFV.f[f]);
@@ -3956,16 +4018,20 @@ function rfvPintar() {
 function rfvMedirTopo() {
   // Quem gruda no alto são os números e a fita de filtros; o cabeçalho da
   // tabela para logo abaixo dos dois. A barra do título rola com a página.
-  const n = $('rfv-numeros');
+  // Serve ao RFV e às Entradas e saídas, que têm o mesmo esqueleto: mede
+  // sempre a tela aberta — a escondida mediria zero.
+  const tela = document.querySelector('#screen-rfv.active, #screen-es.active');
+  if (!tela) return;
+  const n = tela.querySelector('.rfv-numeros');
   if (n) document.documentElement.style.setProperty('--rfv-num-h',
     Math.round(n.getBoundingClientRect().height) + 'px');
-  const t = $('rfv-topo');
+  const t = tela.querySelector('.rfv-topo');
   if (t) document.documentElement.style.setProperty('--rfv-topo-h',
     Math.round(t.getBoundingClientRect().height) + 'px');
-  const f = document.querySelector('.rfv-caixa-filtros');
+  const f = tela.querySelector('.rfv-caixa-filtros');
   if (f) document.documentElement.style.setProperty('--rfv-barra-h',
     Math.round(f.getBoundingClientRect().height) + 'px');
-  const q = document.querySelector('.rfv-quadro, .rfv-mapa');
+  const q = tela.querySelector('.rfv-quadro, .rfv-mapa');
   if (q) {
     const topo = Math.max(0, q.getBoundingClientRect().top);
     document.documentElement.style.setProperty('--rfv-alt',
@@ -4064,6 +4130,11 @@ function logout() {
   RFV.aberto = null;
   const buscaRfv = $('rfv-busca');
   if (buscaRfv) { buscaRfv.value = ''; $('rfv-search-wrap')?.classList.remove('has-value'); }
+  // Entradas e saídas: o movimento é recortado por quem está vendo.
+  for (const k of Object.keys(ES.f)) ES.f[k] = '';
+  Object.assign(ES, { aba: 'ent', ordem: 'mes_proximo', sel: '', mov: null, movDe: '', limite: 500 });
+  const buscaEs = $('es-busca');
+  if (buscaEs) { buscaEs.value = ''; $('es-search-wrap')?.classList.remove('has-value'); }
   APP.busca = '';
   $('busca').value = '';
   limparFiltros();
@@ -4523,6 +4594,354 @@ async function rfvExportPdf() {
   toast('PDF gerado · ' + corpo.length + ' cliente(s)');
 }
 
+/* ============================================================
+   ENTRADAS E SAÍDAS DA CARTEIRA — o movimento do mês
+   Quem faz a conta é quem publica a base: a cada atualização ela é
+   comparada com a anterior e o que mudou vira evento num registro do mês,
+   que viaja dentro da própria base (campo `mov`). Virou o mês, o registro
+   recomeça do zero.
+     entrou = encomenda (GCI · produto · cor · cliente) com mais pares em
+              carteira do que tinha;
+     saiu   = a que ficou com menos: "Faturou" quando a nota apareceu,
+              "Sem nota" quando não (cancelada, ou ainda faturando),
+              "Repassada" quando trocou de preposto.
+   A data é o dia do movimento: a base da manhã traz o dia útil anterior.
+   ============================================================ */
+// Enquanto o script diário não publica o `mov` dentro da base, o protótipo
+// lê um registro gerado à parte, do mesmo formato.
+const ES_MOV_LOCAL = 'dados/movimento.json';
+const ES = {
+  aba: 'ent', mov: null, movDe: '', fonte: null,
+  f: { vend: '', marca: '', linha: '', prod: '', motivo: '' },
+  ordem: 'mes_proximo', aberto: null, sel: '', limite: 500,
+  carregando: '', erro: '', pedido: 0,
+};
+const ES_FILTRO = {
+  vend:   { nome: 'Prepostos', todos: 'Todos' },
+  marca:  { nome: 'Marca',     todos: 'Todas' },
+  linha:  { nome: 'Faixa',     todos: 'Todas' },
+  prod:   { nome: 'Produto',   todos: 'Todos', busca: 'Produto ou código' },
+  motivo: { nome: 'Motivo',    todos: 'Todos' },
+};
+const ES_MULTI = new Set(['vend', 'marca', 'linha']);
+const ES_MOTIVO = { fat: 'Faturou', sem: 'Sem nota', rep: 'Repassada' };
+
+/** "2026-09" do fuso da empresa: o mês que está valendo agora. */
+function esMesAtual() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+}
+function esNomeMes(mes) {
+  const m = /^(\d{4})-(\d{2})$/.exec(mes || '');
+  return m ? NOMES_MES[Number(m[2]) - 1] : '';
+}
+
+/** O registro do mês: o que veio na base ou, no protótipo, o arquivo à parte. */
+async function esBuscarRegistro() {
+  if (APP.base && APP.base.mov) return { mov: APP.base.mov, fonte: 'base' };
+  const r = await fetch(ES_MOV_LOCAL + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) return { mov: null, fonte: null };
+  return { mov: await r.json(), fonte: 'arquivo' };
+}
+
+/** Eventos do registro viram as linhas das duas abas. O vendedor fica só
+ *  com o que é dele — o registro traz a carteira de todos. */
+function esMontar(reg) {
+  const ent = [], sai = [];
+  if (!reg || !Array.isArray(reg.ev)) return { ent, sai };
+  const d = reg.dic;
+  const eu = APP.veTudo ? null : APP.dic.prep[APP.prepFixo];
+  reg.ev.forEach((e, i) => {
+    const [dia, tipo, gci, iRef, iCor, iCli, iPrep, iMarca, iFaixa, prev, qtde, motivo] = e;
+    const prep = String(d.prep[iPrep] || '');
+    if (eu !== null && prep !== eu) return;
+    const ref = d.ref[iRef] || ['', ''], cli = d.cli[iCli] || ['', ''];
+    const o = { k: String(i), tipo: tipo === 'e' ? 'ent' : 'sai', dia, gci,
+                refCod: String(ref[0]), refNome: String(ref[1] || ref[0]), cor: String(d.cor[iCor] || ''),
+                cliCod: String(cli[0]), cliNome: String(cli[1] || cli[0]), prep,
+                marca: String(d.marca[iMarca] || ''), faixa: String(d.faixa[iFaixa] || ''),
+                prev, qtde, motivo: motivo || '' };
+    (o.tipo === 'ent' ? ent : sai).push(o);
+  });
+  return { ent, sai };
+}
+
+/** Busca o registro e repinta quando chega. */
+async function esCarregar() {
+  const pedido = ++ES.pedido;
+  const chave = (APP.base ? APP.base.gerado : '') + '|' + (APP.sessao ? APP.sessao.nome : '');
+  if (ES.mov && ES.movDe === chave) { esPintar(); return; }
+  try {
+    ES.erro = '';
+    ES.carregando = 'Buscando o movimento do mês…';
+    esPintar();
+    const { mov, fonte } = await esBuscarRegistro();
+    if (pedido !== ES.pedido) return;
+    ES.carregando = '';
+    ES.fonte = fonte;
+    if (!mov) { ES.erro = 'O movimento do mês ainda não foi gerado.'; ES.mov = null; esPintar(); return; }
+    // Virou o mês e ainda não houve atualização nele: começa do zero.
+    ES.reg = mov;
+    ES.mov = mov.mes === esMesAtual() ? esMontar(mov) : { ent: [], sai: [] };
+    ES.movDe = chave;
+  } catch (e) {
+    if (pedido !== ES.pedido) return;
+    ES.carregando = '';
+    ES.erro = 'Não consegui buscar o movimento do mês: ' + (e && e.message ? e.message : e);
+  }
+  esPintar();
+}
+
+function esAbrir() {
+  if (!APP.base) { toast('A base ainda não carregou'); return; }
+  show('screen-es');
+  esCarregar();
+}
+
+function esSel(f) {
+  const v = ES.f[f];
+  return Array.isArray(v) ? v : (v ? [v] : []);
+}
+
+function esRotulo(f) {
+  if (ES_MULTI.has(f)) {
+    const sel = esSel(f);
+    if (!sel.length) return ES_FILTRO[f].nome;
+    return sel.length > 1 ? `${ES_FILTRO[f].nome} · ${sel.length}` : sel[0];
+  }
+  const v = ES.f[f];
+  if (!v) return ES_FILTRO[f].nome;
+  if (f === 'motivo') return ES_MOTIVO[v] || v;
+  if (f === 'prod') {
+    const o = ES.mov && [...ES.mov.ent, ...ES.mov.sai].find(x => x.refCod === v);
+    return o ? o.refNome : v;
+  }
+  return v;
+}
+
+function esTemFiltro() {
+  return !!(esSel('vend').length || esSel('marca').length || esSel('linha').length ||
+            ES.f.prod || ES.f.motivo || $('es-busca').value.trim());
+}
+
+function esPintarBotoes() {
+  document.querySelectorAll('#screen-es .es-dd').forEach(b => {
+    const f = b.dataset.f;
+    b.innerHTML = `<span class="val">${escHtml(esRotulo(f))}</span>`;
+    b.classList.toggle('on', ES_MULTI.has(f) ? esSel(f).length > 0 : !!ES.f[f]);
+    b.title = ES_FILTRO[f].nome;
+  });
+  $('es-dd-vend').style.display = APP.veTudo ? '' : 'none';
+  // Motivo só existe para o que saiu.
+  $('es-dd-motivo').style.display = ES.aba === 'sai' ? '' : 'none';
+}
+
+/** As opções de cada filtro saem do próprio movimento: não adianta
+ *  oferecer uma marca que não entrou nem saiu. */
+function esOpcoes(f, busca) {
+  const q = normalizar(busca || '').trim();
+  if (f === 'motivo') return Object.keys(ES_MOTIVO).map(v => ({ v, rot: ES_MOTIVO[v] }));
+  const todos = ES.mov ? [...ES.mov.ent, ...ES.mov.sai] : [];
+  if (f === 'vend')  return [...new Set(todos.map(o => o.prep).filter(Boolean))].sort().map(v => ({ v, rot: v }));
+  if (f === 'marca') return [...new Set(todos.map(o => rfvMarcaGrupo(o.marca)))].sort().map(v => ({ v, rot: v }));
+  if (f === 'linha') return [...new Set(todos.map(o => o.faixa).filter(Boolean))]
+                             .sort((a, b) => a.localeCompare(b, 'pt-BR')).map(v => ({ v, rot: v }));
+  // Produto: do que está na aba aberta, procurando por nome ou código.
+  const lista = ES.mov ? (ES.aba === 'ent' ? ES.mov.ent : ES.mov.sai) : [];
+  const refs = new Map();
+  for (const o of lista) {
+    if (q && !normalizar(o.refNome).includes(q) && !o.refCod.toLowerCase().includes(q)) continue;
+    refs.set(o.refCod, o.refNome);
+  }
+  return [...refs.entries()].map(([v, rot]) => ({ v, rot, sub: v }))
+    .sort((a, b) => a.rot.localeCompare(b.rot, 'pt-BR')).slice(0, 400);
+}
+
+function esAbrirLista(btn) {
+  const f = btn.dataset.f;
+  const cx = $('es-lista'), busca = $('es-lista-busca');
+  ES.aberto = f;
+  busca.hidden = !ES_FILTRO[f].busca;
+  busca.placeholder = ES_FILTRO[f].busca || '';
+  busca.value = '';
+  esPintarLista();
+  cx.hidden = false;
+  const r = btn.getBoundingClientRect();
+  const larg = cx.offsetWidth;
+  cx.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - larg - 8))) + 'px';
+  cx.style.top = Math.round(r.bottom + 4) + 'px';
+  if (!busca.hidden) busca.focus();
+}
+
+function esPintarLista() {
+  const f = ES.aberto;
+  if (!f) return;
+  const itens = esOpcoes(f, $('es-lista-busca').value);
+  const sub = o => o.sub ? `<span class="sub">${escHtml(o.sub)}</span>` : '';
+  if (ES_MULTI.has(f)) {
+    const sel = new Set(esSel(f));
+    const caixa = on => `<i class="ck fa-${on ? 'solid fa-square-check' : 'regular fa-square'}" aria-hidden="true"></i>`;
+    $('es-lista-itens').innerHTML =
+      `<button type="button" class="rfv-item multi ${sel.size ? '' : 'on'}" data-v="">${caixa(!sel.size)}<span>${ES_FILTRO[f].todos}</span></button>` +
+      (itens.length
+        ? itens.map(o => `<button type="button" class="rfv-item multi ${sel.has(o.v) ? 'on' : ''}" data-v="${escHtml(o.v)}"
+              role="menuitemcheckbox" aria-checked="${sel.has(o.v)}">${caixa(sel.has(o.v))}
+            <span>${escHtml(o.rot)}</span>${sub(o)}</button>`).join('')
+        : '<div class="vazio">Nada com esse nome.</div>');
+    return;
+  }
+  const atual = ES.f[f];
+  $('es-lista-itens').innerHTML =
+    `<button type="button" class="rfv-item ${atual ? '' : 'on'}" data-v="">${ES_FILTRO[f].todos}</button>` +
+    (itens.length
+      ? itens.map(o => `<button type="button" class="rfv-item ${o.v === atual ? 'on' : ''}" data-v="${escHtml(o.v)}">
+          <span>${escHtml(o.rot)}</span>${sub(o)}</button>`).join('')
+      : '<div class="vazio">Nada com esse nome.</div>');
+}
+
+function esFecharLista() { ES.aberto = null; $('es-lista').hidden = true; }
+
+/** Filtros e busca. O Motivo fica de fora daqui: ele só recorta a aba de
+ *  saídas, e os números de cima continuam contando as duas. */
+function esPassa(o) {
+  const vend = esSel('vend'), marca = esSel('marca'), linha = esSel('linha');
+  if (vend.length && !vend.includes(o.prep)) return false;
+  if (marca.length && !marca.includes(rfvMarcaGrupo(o.marca))) return false;
+  if (linha.length && !linha.includes(o.faixa)) return false;
+  if (ES.f.prod && o.refCod !== ES.f.prod) return false;
+  const q = normalizar($('es-busca').value).trim();
+  if (q) {
+    const alvo = normalizar(`${o.cliNome} ${o.cliCod} ${o.refNome} ${o.refCod} ${o.cor} ${o.gci}`);
+    if (!q.split(/\s+/).every(p => alvo.includes(p))) return false;
+  }
+  return true;
+}
+
+/** A ordem da tabela principal: o faturamento mais próximo primeiro, e os
+ *  títulos clicáveis trocam como lá. */
+function esOrdenar(ls) {
+  const SEM = 1e9;
+  const prev = o => o.prev < 0 ? SEM : o.prev;
+  const nome = (a, b) => a.refNome.localeCompare(b.refNome, 'pt-BR') || a.cor.localeCompare(b.cor, 'pt-BR')
+                      || a.cliNome.localeCompare(b.cliNome, 'pt-BR');
+  switch (ES.ordem) {
+    case 'mais_pares':   ls.sort((a, b) => b.qtde - a.qtde || nome(a, b)); break;
+    case 'menos_pares':  ls.sort((a, b) => a.qtde - b.qtde || nome(a, b)); break;
+    case 'descricao':    ls.sort(nome); break;
+    case 'cliente':      ls.sort((a, b) => a.cliNome.localeCompare(b.cliNome, 'pt-BR') || nome(a, b)); break;
+    case 'dia_recente':  ls.sort((a, b) => b.dia - a.dia || nome(a, b)); break;
+    case 'dia_antigo':   ls.sort((a, b) => a.dia - b.dia || nome(a, b)); break;
+    case 'mes_distante': ls.sort((a, b) => (prev(b) === SEM ? -1 : prev(b)) - (prev(a) === SEM ? -1 : prev(a)) || nome(a, b)); break;
+    default:             ls.sort((a, b) => prev(a) - prev(b) || nome(a, b));
+  }
+}
+
+function esFichas(ent, sai) {
+  const soma = ls => ls.reduce((t, o) => t + o.qtde, 0);
+  const pe = soma(ent), ps = soma(sai);
+  const pf = soma(sai.filter(o => o.motivo === 'fat'));
+  const saldo = pe - ps;
+  const enc = n => `${formatarNumero(n)} encomenda${n === 1 ? '' : 's'}`;
+  const on = (aba, mot) => ES.aba === aba && (mot === undefined || ES.f.motivo === mot) ? 'on' : '';
+  $('es-fichas').innerHTML = `
+    <button class="rfv-ficha ${on('ent')}" type="button" data-aba="ent" title="ver o que entrou no mês">
+      <span class="n">entraram</span>
+      <span class="v">${formatarNumero(pe)}</span>
+      <span class="pc">${enc(ent.length)}</span></button>
+    <button class="rfv-ficha neg ${ES.f.motivo ? '' : on('sai')}" type="button" data-aba="sai" data-mot="" title="ver o que saiu no mês">
+      <span class="n">saíram</span>
+      <span class="v">${formatarNumero(ps)}</span>
+      <span class="pc">${enc(sai.length)}</span></button>
+    <button class="rfv-ficha pos ${on('sai', 'fat')}" type="button" data-aba="sai" data-mot="fat" title="ver só o que saiu faturado">
+      <span class="n">faturaram</span>
+      <span class="v">${formatarNumero(pf)}</span>
+      <span class="pc">${ps ? Math.round(100 * pf / ps) + '% do que saiu' : '—'}</span></button>
+    <div class="rfv-ficha" title="entraram menos saíram, no mês">
+      <span class="n">saldo do mês</span>
+      <span class="v">${saldo > 0 ? '+' : saldo < 0 ? '−' : ''}${formatarNumero(Math.abs(saldo))}</span>
+      <span class="pc">pares</span></div>`;
+}
+
+function esTabela(lista) {
+  const mes = esNomeMes(esMesAtual()).toLowerCase();
+  if (!lista.length) {
+    return `<div class="rfv-quadro es-quadro"><div class="rfv-vazio">${ES.aba === 'ent' ? 'Nada entrou' : 'Nada saiu'}
+      da carteira em ${mes}${esTemFiltro() ? ' com esses filtros' : ' até agora'}.</div></div>`;
+  }
+  const seta = (on, sobe) => on ? ` <i class="fa-solid fa-arrow-${sobe ? 'up' : 'down'} ord-seta" aria-hidden="true"></i>` : '';
+  const th = (ord, rot, cls, dica, on, extra = '', sobe = false) =>
+    `<th class="${cls} ${on ? 'ord-on' : ''}" data-ord="${ord}" title="${dica}"><span class="rot">${rot}${seta(on, sobe)}</span>${extra}</th>`;
+  const o = ES.ordem;
+  const total = lista.reduce((t, x) => t + x.qtde, 0);
+  const rotDia = ES.aba === 'ent' ? 'Entrou em' : 'Saiu em';
+  const cab = `<tr>
+      <th class="es-foto"><span class="rot"><i class="fa-solid fa-image" aria-hidden="true"></i></span></th>
+      ${th('descricao', 'Produto', 'es-prod', o === 'descricao' ? 'Voltar à ordem do faturamento' : 'Ordenar de A a Z', o === 'descricao')}
+      <th class="es-cor"><span class="rot">Cor</span></th>
+      <th class="es-gci"><span class="rot">GCI</span></th>
+      ${th('cliente', 'Cliente', 'cli', o === 'cliente' ? 'Voltar à ordem do faturamento' : 'Ordenar por cliente', o === 'cliente')}
+      ${th(o === 'dia_recente' ? 'dia_antigo' : 'dia_recente', rotDia, 'es-dia',
+           o === 'dia_recente' ? 'Inverter: mais antigo primeiro' : 'Ordenar pelo mais recente',
+           o === 'dia_recente' || o === 'dia_antigo', '', o === 'dia_antigo')}
+      ${th(o === 'mais_pares' ? 'menos_pares' : 'mais_pares', 'Qtde', 'es-qtde',
+           o === 'mais_pares' ? 'Inverter: menos pares primeiro' : 'Ordenar por mais pares',
+           o === 'mais_pares' || o === 'menos_pares', `<span class="tot">${formatarNumero(total)}</span>`, o === 'menos_pares')}
+      ${th(o === 'mes_proximo' ? 'mes_distante' : 'mes_proximo', 'Prev. fat.', 'es-prev',
+           o === 'mes_proximo' ? 'Inverter: mais distante primeiro' : 'Ordenar pelo mais próximo',
+           o === 'mes_proximo' || o === 'mes_distante', '', o === 'mes_distante')}
+      ${ES.aba === 'sai' ? '<th class="es-mot"><span class="rot">Motivo</span></th>' : ''}
+    </tr>`;
+  const corpo = lista.slice(0, ES.limite).map(x => `
+    <tr data-k="${escAttr(x.k)}" class="${ES.sel === x.k ? 'sel' : ''}">
+      <td class="es-foto"><span class="es-thumb"><img src="${IMG_PATH}${escAttr(x.refCod + '_' + corParaArquivo(x.cor))}.jpg"
+          alt="" loading="lazy" onerror="this.parentNode.classList.add('failed')"><i class="fa-solid fa-image" aria-hidden="true"></i></span></td>
+      <td class="es-prod" title="${escAttr(x.refNome + ' · ' + x.refCod)}"><span class="nome">${escHtml(x.refNome)}</span><span class="sub">${escHtml(x.refCod)}</span></td>
+      <td class="es-cor" data-gci="GCI ${x.gci}">${escHtml(x.cor)}</td>
+      <td class="es-gci">${x.gci}</td>
+      <td class="cli" title="${escAttr(x.cliNome + ' · ' + x.cliCod + (x.prep ? ' · ' + x.prep : ''))}"><span class="nome">${escHtml(x.cliNome)}</span>${APP.veTudo && x.prep ? `<span class="sub"> · ${escHtml(x.prep)}</span>` : ''}${x.tipo === 'ent' && x.motivo === 'rep' ? ' <span class="es-motivo m-rep" title="veio de outro preposto">repasse</span>' : ''}</td>
+      <td class="es-dia" data-rot="${ES.aba === 'ent' ? 'entrou' : 'saiu'}" title="${escAttr(diaParaBR(x.dia))}">${diaParaCurto(x.dia)}</td>
+      <td class="es-qtde ${x.tipo}">${formatarNumero(x.qtde)}</td>
+      <td class="es-prev" title="${escAttr(diaParaBR(x.prev))}">${x.prev >= 0 ? diaParaCurto(x.prev) : '—'}</td>
+      ${x.tipo === 'sai' ? `<td class="es-mot"><span class="es-motivo m-${x.motivo}">${ES_MOTIVO[x.motivo] || ''}</span></td>` : ''}
+    </tr>`).join('');
+  const resto = lista.length - ES.limite;
+  const mais = resto > 0
+    ? `<button type="button" class="es-mais" id="es-mais">Mostrar mais ${formatarNumero(Math.min(500, resto))} · faltam ${formatarNumero(resto)}</button>`
+    : '';
+  return `<div class="rfv-quadro es-quadro es-${ES.aba}"><table>
+      <thead>${cab}</thead><tbody>${corpo}</tbody></table>${mais}</div>`;
+}
+
+function esPintar() {
+  if (!APP.base) return;
+  document.querySelectorAll('#screen-es .rfv-aba').forEach(b => b.classList.toggle('on', b.dataset.es === ES.aba));
+  const mes = esMesAtual();
+  const ate = ES.reg && ES.reg.mes === mes && ES.reg.diaAte >= 0 ? ' · até ' + diaParaCurto(ES.reg.diaAte) : '';
+  const quem = APP.sessao ? APP.sessao.nome : '';
+  $('es-periodo').textContent = esNomeMes(mes) + ate
+    + (quem ? ' · ' + quem + (APP.veTudo ? ' · Admin' : '') : '');
+  if (!ES.mov || ES.carregando || ES.erro) {
+    $('es-fichas').innerHTML = ['entraram', 'saíram', 'faturaram', 'saldo do mês'].map(n =>
+      `<div class="rfv-ficha"><span class="n">${n}</span><span class="v">—</span><span class="pc">&nbsp;</span></div>`).join('');
+    $('es-tela').innerHTML = `<div class="rfv-quadro es-quadro"><div class="rfv-vazio">${ES.erro
+      ? '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' + escHtml(ES.erro)
+      : '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> ' + escHtml(ES.carregando || 'Carregando…')}</div></div>`;
+  } else {
+    const ent = ES.mov.ent.filter(esPassa), sai = ES.mov.sai.filter(esPassa);
+    esFichas(ent, sai);
+    const lista = ES.aba === 'ent' ? ent : sai.filter(o => !ES.f.motivo || o.motivo === ES.f.motivo);
+    esOrdenar(lista);
+    $('es-tela').innerHTML = esTabela(lista);
+  }
+  esPintarBotoes();
+  $('es-limpar').hidden = !esTemFiltro();
+  atualizarFabLimpar();
+  rfvMedirTopo();
+  esVeu();
+}
+/** Mexeu em filtro, aba ou busca: a lista volta para o começo. */
+function esRepintar() { ES.limite = 500; esPintar(); }
+function esVeu() { veuDe($('es-fichas')); veuDe($('es-barra')); }
+
 /** O flutuante de limpar filtros: aparece quando há filtro ligado, na
  *  tela que estiver aberta. No computador ele fica de fora — lá o botão
  *  da fita está sempre à vista. */
@@ -4530,11 +4949,12 @@ function atualizarFabLimpar() {
   const fab = $('fab-limpar');
   if (!fab) return;
   const noRfv = !!document.querySelector('#screen-rfv.active');
-  const ligado = noRfv
-    ? !$('rfv-limpar').hidden
+  const noEs = !!document.querySelector('#screen-es.active');
+  const ligado = noRfv ? !$('rfv-limpar').hidden
+    : noEs ? !$('es-limpar').hidden
     : $('btn-limpar-filtros').classList.contains('show') || $('btn-limpar-rep').classList.contains('show');
   fab.hidden = !ligado;
-  fab.dataset.tela = noRfv ? 'rfv' : 'produtos';
+  fab.dataset.tela = noRfv ? 'rfv' : noEs ? 'es' : 'produtos';
   const exp = $('fab-export');
   if (exp) exp.hidden = !(noRfv && ligado);
 }
@@ -8237,6 +8657,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligar('fab-limpar', 'click', () => {
     const fab = $('fab-limpar');
     if (fab.dataset.tela === 'rfv') $('rfv-limpar').click();
+    else if (fab.dataset.tela === 'es') $('es-limpar').click();
     else if ($('btn-limpar-rep').classList.contains('show')) $('btn-limpar-rep').click();
     else $('btn-limpar-filtros').click();
   });
@@ -8248,7 +8669,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Menu dos filtros: abre embaixo do botão, escolhe e fecha.
-  document.querySelectorAll('.rfv-dd').forEach(b => b.addEventListener('click', (e) => {
+  document.querySelectorAll('#screen-rfv .rfv-dd').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
     if (RFV.aberto === b.dataset.f) { rfvFecharLista(); return; }
     rfvAbrirLista(b);
@@ -8282,15 +8703,105 @@ document.addEventListener('DOMContentLoaded', async () => {
     scrollTo(0, 0);   // a tabela passa a rolar por dentro; medir de cima
     rfvPintar();
   });
-  document.querySelectorAll('.rfv-aba').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.rfv-aba').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('#screen-rfv .rfv-aba').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#screen-rfv .rfv-aba').forEach(x => x.classList.toggle('on', x === b));
     RFV.visao = b.dataset.v;
     scrollTo(0, 0);
     rfvPintar();
   }));
   // As duas faixas roláveis avisam, com o véu, que tem coisa fora da vista.
   ['rfv-fichas', 'rfv-barra'].forEach(id => ligar(id, 'scroll', () => veuDe($(id))));
-  addEventListener('resize', () => { rfvMedirTopo(); rfvVeu(); });
+  addEventListener('resize', () => { rfvMedirTopo(); rfvVeu(); esVeu(); });
+
+  // ── Entradas e saídas ──────────────────────────────────────────────
+  ligar('btn-es', 'click', esAbrir);
+  ligar('btn-voltar-es', 'click', () => { esFecharLista(); show('screen-produtos'); render(); });
+  ligar('btn-tema-4', 'click', toggleTema);
+  configurarBuscaComX('es-busca', 'es-search-wrap', () => esRepintar());
+  document.querySelectorAll('#screen-es .rfv-aba').forEach(b => b.addEventListener('click', () => {
+    if (ES.aba === b.dataset.es) return;
+    ES.aba = b.dataset.es;
+    ES.f.prod = '';               // o produto de uma aba pode não existir na outra
+    scrollTo(0, 0);
+    esRepintar();
+  }));
+  ligar('es-fichas', 'click', (e) => {
+    const b = e.target.closest('button.rfv-ficha');
+    if (!b) return;
+    const mot = b.dataset.mot;
+    if (b.dataset.aba === 'sai' && mot && ES.aba === 'sai' && ES.f.motivo === mot) ES.f.motivo = '';
+    else if (mot !== undefined) ES.f.motivo = mot;
+    if (ES.aba !== b.dataset.aba) { ES.aba = b.dataset.aba; ES.f.prod = ''; scrollTo(0, 0); }
+    esRepintar();
+  });
+  ligar('es-tela', 'click', (e) => {
+    if (e.target.closest('#es-mais')) { ES.limite += 500; esPintar(); return; }
+    const th = e.target.closest('th[data-ord]');
+    if (th) {
+      const o = th.dataset.ord;
+      // Produto e Cliente: clicar de novo volta à ordem do faturamento.
+      ES.ordem = (o === 'descricao' || o === 'cliente') && ES.ordem === o ? 'mes_proximo' : o;
+      esPintar();
+      return;
+    }
+    const tr = e.target.closest('tr[data-k]');
+    if (!tr) return;
+    ES.sel = ES.sel === tr.dataset.k ? '' : tr.dataset.k;
+    document.querySelectorAll('#es-tela tr[data-k]').forEach(x =>
+      x.classList.toggle('sel', !!ES.sel && x.dataset.k === ES.sel));
+  });
+  const kpisEsRecolhidos = () => { try { return localStorage.getItem('detalhada.kpisEs') === 'recolhido'; } catch { return false; } };
+  const pintarKpisEs = rec => {
+    const cx = $('es-numeros'), bt = $('btn-kpis-es');
+    if (!cx || !bt) return;
+    cx.classList.toggle('recolhido', rec);
+    bt.title = rec ? 'Mostrar os números' : 'Recolher os números';
+    bt.setAttribute('aria-expanded', String(!rec));
+    bt.querySelector('i').className = 'fa-solid ' + (rec ? 'fa-chevron-down' : 'fa-chevron-up');
+    rfvMedirTopo();
+  };
+  pintarKpisEs(kpisEsRecolhidos());
+  ligar('btn-kpis-es', 'click', () => {
+    const rec = !$('es-numeros').classList.contains('recolhido');
+    try { localStorage.setItem('detalhada.kpisEs', rec ? 'recolhido' : ''); } catch {}
+    pintarKpisEs(rec);
+  });
+  ligar('es-limpar', 'click', () => {
+    for (const k of Object.keys(ES.f)) ES.f[k] = '';
+    $('es-busca').value = '';
+    $('es-search-wrap').classList.remove('has-value');
+    esFecharLista();
+    esRepintar();
+  });
+  document.querySelectorAll('#screen-es .es-dd').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (ES.aberto === b.dataset.f) { esFecharLista(); return; }
+    esAbrirLista(b);
+  }));
+  ligar('es-lista-busca', 'input', esPintarLista);
+  ligar('es-lista', 'click', (e) => {
+    e.stopPropagation();
+    const it = e.target.closest('.rfv-item');
+    if (!it) return;
+    const f = ES.aberto;
+    if (ES_MULTI.has(f)) {
+      const v = it.dataset.v;
+      const sel = new Set(esSel(f));
+      if (!v) sel.clear();
+      else if (sel.has(v)) sel.delete(v);
+      else sel.add(v);
+      ES.f[f] = sel.size ? [...sel] : '';
+      esRepintar();
+      esPintarLista();
+      return;
+    }
+    ES.f[f] = it.dataset.v;
+    esFecharLista();
+    esRepintar();
+  });
+  document.addEventListener('click', () => { if (ES.aberto) esFecharLista(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ES.aberto) esFecharLista(); });
+  ['es-fichas', 'es-barra'].forEach(id => ligar(id, 'scroll', () => veuDe($(id))));
   ligar('btn-voltar-admin', 'click', () => { show('screen-produtos'); render(); });
   ligar('file-xlsx', 'change', (e) => {
     const f = e.target.files[0];
@@ -9034,7 +9545,7 @@ document.addEventListener('DOMContentLoaded', function(){
 .rfv-fichas::-webkit-scrollbar,.rfv-barra::-webkit-scrollbar{ display:none; }
 .rfv-fichas > *,.rfv-barra > *{ flex:0 0 auto; }
 .rfv-caixa-filtros{ margin:10px 0 0; }
-#rfv-tela{ flex:0 0 auto; }
+:is(#rfv-tela,#es-tela){ flex:0 0 auto; }
 .rfv-caixa::before,.rfv-caixa::after{
   content:''; position:absolute; top:0; bottom:0; width:22px;
   pointer-events:none; opacity:0; transition:opacity .15s; z-index:2;
@@ -9107,7 +9618,7 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 .rfv-item .sub{ margin-left:auto; padding-left:10px; color:var(--text-3); font-size:11px;
                 white-space:nowrap; }
 .rfv-lista .vazio{ padding:14px 9px; color:var(--text-3); font-size:12.5px; text-align:center; }
-#rfv-busca{ width:170px; }
+:is(#rfv-busca,#es-busca){ width:170px; }
 .rfv-limpar{ font:inherit; font-size:12px; font-weight:600; cursor:pointer; background:none;
              border:0; color:var(--primary-2); padding:6px 4px; text-decoration:underline; }
 .rfv-tgl{ font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
@@ -9234,7 +9745,7 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
   .rfv-topo-in{ padding:8px 12px; gap:8px; }
   .rfv-quadro td.cli,.rfv-quadro th.cli{ min-width:130px; max-width:150px; padding-left:10px; }
   .rfv-quadro tbody td,.rfv-quadro thead th{ padding:6px; font-size:11.5px; }
-  #rfv-busca{ width:150px; }
+  :is(#rfv-busca,#es-busca){ width:150px; }
 }
 </style>
 
@@ -9861,104 +10372,104 @@ html.dark .painel-detalhada .estado-badge.aguardando{ color:var(--ds-atencao); }
 /* ══ 3 · RFV ════════════════════════════════════════════════════════════
    O mesmo quadro da tela de produtos: identidade e números em cima,
    abas e filtros numa fita, a tabela fechando embaixo. */
-#screen-rfv .rfv-topo{
+:is(#screen-rfv,#screen-es) .rfv-topo{
   margin:0; background:var(--ds-card);
   border:1px solid var(--ds-line); border-bottom:1px solid var(--ds-line-soft);
   border-radius:var(--ds-r-lg) var(--ds-r-lg) 0 0;
 }
-#screen-rfv .rfv-topo-in{ gap:14px; padding:10px 16px; }
-#screen-rfv .rfv-tit{ padding-right:16px; border-right:1px solid var(--ds-line-soft); }
-#screen-rfv .rfv-tit .logo-text{ font-size:15px; font-weight:600; letter-spacing:-.15px; }
-#screen-rfv .rfv-tit .logo-sub{
+:is(#screen-rfv,#screen-es) .rfv-topo-in{ gap:14px; padding:10px 16px; }
+:is(#screen-rfv,#screen-es) .rfv-tit{ padding-right:16px; border-right:1px solid var(--ds-line-soft); }
+:is(#screen-rfv,#screen-es) .rfv-tit .logo-text{ font-size:15px; font-weight:600; letter-spacing:-.15px; }
+:is(#screen-rfv,#screen-es) .rfv-tit .logo-sub{
   margin-top:3px; font-family:var(--ds-mono); font-size:10px; letter-spacing:.06em;
   text-transform:uppercase; color:var(--ds-ghost);
 }
-#screen-rfv .rfv-topo .btn-icon{
+:is(#screen-rfv,#screen-es) .rfv-topo .btn-icon{
   width:32px; height:32px; border-radius:var(--ds-r-md);
   background:var(--ds-card); border:1px solid var(--ds-line); box-shadow:none; color:var(--ds-muted);
 }
-#screen-rfv .rfv-topo .btn-icon:hover{ background:var(--ds-sunk); color:var(--ds-ink); transform:none; }
-#screen-rfv .rfv-caixa::after { background:linear-gradient(90deg, transparent, var(--ds-card)); }
-#screen-rfv .rfv-caixa::before{ background:linear-gradient(270deg, transparent, var(--ds-card)); }
+:is(#screen-rfv,#screen-es) .rfv-topo .btn-icon:hover{ background:var(--ds-sunk); color:var(--ds-ink); transform:none; }
+:is(#screen-rfv,#screen-es) .rfv-caixa::after { background:linear-gradient(90deg, transparent, var(--ds-card)); }
+:is(#screen-rfv,#screen-es) .rfv-caixa::before{ background:linear-gradient(270deg, transparent, var(--ds-card)); }
 
 /* fichas: leituras, não caixas — como os números da tela de produtos */
-#screen-rfv .rfv-fichas{ gap:0; }
-#screen-rfv .rfv-ficha{
+:is(#screen-rfv,#screen-es) .rfv-fichas{ gap:0; }
+:is(#screen-rfv,#screen-es) .rfv-ficha{
   position:relative; border:0; border-left:1px solid var(--ds-line-soft); border-radius:0;
   background:transparent; padding:4px 18px 4px 16px; gap:2px;
 }
-#screen-rfv .rfv-ficha:first-child{ border-left:0; padding-left:0; }
-#screen-rfv .rfv-ficha .n{
+:is(#screen-rfv,#screen-es) .rfv-ficha:first-child{ border-left:0; padding-left:0; }
+:is(#screen-rfv,#screen-es) .rfv-ficha .n{
   font-family:var(--ds-mono); font-size:9.5px; font-weight:500; letter-spacing:.12em;
   text-transform:uppercase; color:var(--ds-faint);
 }
-#screen-rfv .rfv-ficha .v{ font-size:21px; font-weight:600; letter-spacing:-.4px; color:var(--ds-ink); }
-#screen-rfv .rfv-ficha .pc{ font-family:var(--ds-mono); font-size:10px; font-weight:400; color:var(--ds-ghost); }
-#screen-rfv .rfv-ficha.pos .v{ color:var(--ds-faturado-ink); }
-#screen-rfv .rfv-ficha.neg .v{ color:var(--ds-erro); }
-html.dark #screen-rfv .rfv-ficha.pos .v{ color:var(--ds-faturado); }
-#screen-rfv .rfv-ficha.pos .n,
-#screen-rfv .rfv-ficha.neg .n{ color:var(--ds-faint); }
-#screen-rfv .rfv-ficha.pos .pc,
-#screen-rfv .rfv-ficha.neg .pc{ color:var(--ds-ghost); }
-#screen-rfv button.rfv-ficha{ border-radius:var(--ds-r-md); border-left-color:transparent; }
-#screen-rfv button.rfv-ficha:hover{ background:var(--ds-sunk); }
-#screen-rfv .rfv-ficha.on{ background:var(--ds-accent-bg); }
-#screen-rfv .rfv-ficha.on .n{ color:var(--ds-accent); }
+:is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:21px; font-weight:600; letter-spacing:-.4px; color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-ficha .pc{ font-family:var(--ds-mono); font-size:10px; font-weight:400; color:var(--ds-ghost); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.pos .v{ color:var(--ds-faturado-ink); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.neg .v{ color:var(--ds-erro); }
+html.dark :is(#screen-rfv,#screen-es) .rfv-ficha.pos .v{ color:var(--ds-faturado); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.pos .n,
+:is(#screen-rfv,#screen-es) .rfv-ficha.neg .n{ color:var(--ds-faint); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.pos .pc,
+:is(#screen-rfv,#screen-es) .rfv-ficha.neg .pc{ color:var(--ds-ghost); }
+:is(#screen-rfv,#screen-es) button.rfv-ficha{ border-radius:var(--ds-r-md); border-left-color:transparent; }
+:is(#screen-rfv,#screen-es) button.rfv-ficha:hover{ background:var(--ds-sunk); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.on{ background:var(--ds-accent-bg); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.on .n{ color:var(--ds-accent); }
 
 /* fita de abas e filtros */
-#screen-rfv .rfv-caixa-filtros{
+:is(#screen-rfv,#screen-es) .rfv-caixa-filtros{
   margin:0; background:var(--ds-card); padding:9px 16px;
   border-left:1px solid var(--ds-line); border-right:1px solid var(--ds-line);
 }
-#screen-rfv .rfv-barra{ gap:6px; }
-#screen-rfv .rfv-abas{ background:var(--ds-sunk); border:0; border-radius:var(--ds-r-md); padding:2px; gap:2px; margin-right:4px; }
-#screen-rfv .rfv-aba{ height:28px; padding:0 12px; border-radius:var(--ds-r-sm); font-size:12.5px; font-weight:500; color:var(--ds-muted); }
-#screen-rfv .rfv-aba:hover{ color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-barra{ gap:6px; }
+:is(#screen-rfv,#screen-es) .rfv-abas{ background:var(--ds-sunk); border:0; border-radius:var(--ds-r-md); padding:2px; gap:2px; margin-right:4px; }
+:is(#screen-rfv,#screen-es) .rfv-aba{ height:28px; padding:0 12px; border-radius:var(--ds-r-sm); font-size:12.5px; font-weight:500; color:var(--ds-muted); }
+:is(#screen-rfv,#screen-es) .rfv-aba:hover{ color:var(--ds-ink); }
 /* a aba escolhida volta a ser verde-água cheia, como sempre foi */
-#screen-rfv .rfv-aba.on{ background:var(--ds-accent); color:#fff; font-weight:600; box-shadow:none; }
-html.dark #screen-rfv .rfv-aba.on{ background:var(--ds-accent-2); color:#0F2A28; }
-#screen-rfv .rfv-campo,
-#screen-rfv .rfv-tgl{
+:is(#screen-rfv,#screen-es) .rfv-aba.on{ background:var(--ds-accent); color:#fff; font-weight:600; box-shadow:none; }
+html.dark :is(#screen-rfv,#screen-es) .rfv-aba.on{ background:var(--ds-accent-2); color:#0F2A28; }
+:is(#screen-rfv,#screen-es) .rfv-campo,
+:is(#screen-rfv,#screen-es) .rfv-tgl{
   height:32px; padding:0 11px; border:1px solid var(--ds-line); border-radius:var(--ds-r-md);
   background:var(--ds-card); color:var(--ds-ink-2); font-size:12.5px; font-weight:500;
 }
-#screen-rfv .rfv-dd::after{ border-width:3.5px; opacity:.55; }
-#screen-rfv .rfv-dd:hover,
-#screen-rfv .rfv-tgl:hover{ border-color:var(--ds-line-strong); color:var(--ds-ink); }
-#screen-rfv .rfv-dd.on,
-#screen-rfv .rfv-tgl.on{
+:is(#screen-rfv,#screen-es) .rfv-dd::after{ border-width:3.5px; opacity:.55; }
+:is(#screen-rfv,#screen-es) .rfv-dd:hover,
+:is(#screen-rfv,#screen-es) .rfv-tgl:hover{ border-color:var(--ds-line-strong); color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-dd.on,
+:is(#screen-rfv,#screen-es) .rfv-tgl.on{
   background:var(--ds-accent-bg); border-color:rgba(var(--ds-accent-rgb), .35); color:var(--ds-accent);
 }
-#screen-rfv .rfv-tgl i{ font-size:11px; color:var(--ds-ghost); }
-#screen-rfv .rfv-tgl.on i{ color:var(--ds-accent); }
-#screen-rfv #rfv-busca{ background:var(--ds-card-2); font-weight:400; }
-#screen-rfv #rfv-busca:focus{
+:is(#screen-rfv,#screen-es) .rfv-tgl i{ font-size:11px; color:var(--ds-ghost); }
+:is(#screen-rfv,#screen-es) .rfv-tgl.on i{ color:var(--ds-accent); }
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca){ background:var(--ds-card-2); font-weight:400; }
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{
   background:var(--ds-card); border-color:rgba(var(--ds-accent-rgb), .55);
   box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .12);
 }
-#screen-rfv .rfv-limpar{ color:var(--ds-muted); text-decoration:none; font-weight:500; }
-#screen-rfv .rfv-limpar:hover{ color:var(--ds-erro); }
+:is(#screen-rfv,#screen-es) .rfv-limpar{ color:var(--ds-muted); text-decoration:none; font-weight:500; }
+:is(#screen-rfv,#screen-es) .rfv-limpar:hover{ color:var(--ds-erro); }
 
 /* tabela e mapa fecham o quadro */
-#screen-rfv .rfv-quadro,
-#screen-rfv .rfv-mapa{
+:is(#screen-rfv,#screen-es) .rfv-quadro,
+:is(#screen-rfv,#screen-es) .rfv-mapa{
   margin:0; border:1px solid var(--ds-line); border-top:1px solid var(--ds-line-soft);
   border-radius:0 0 var(--ds-r-lg) var(--ds-r-lg);
 }
-#screen-rfv .rfv-quadro thead th{ background:var(--ds-card-2); box-shadow:inset 0 -1px 0 var(--ds-line); color:var(--ds-faint); }
-#screen-rfv .rfv-quadro thead th .tot{ color:var(--ds-ink); }
-#screen-rfv .rfv-quadro thead th.presa{ background:var(--ds-card-2); }
-#screen-rfv .rfv-quadro tbody td{ border-top-color:var(--ds-line-row); font-size:13px; padding:7px 6px; }
-#screen-rfv .rfv-quadro td.cli .nome{ font-weight:600; color:var(--ds-ink); }
-#screen-rfv .rfv-quadro td.cli .sub{ font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-ghost); letter-spacing:.02em; }
-#screen-rfv .rfv-quadro td.stot{ background:var(--ds-card-2); font-weight:700; }
-#screen-rfv .rfv-quadro .sem2{ border-left-color:var(--ds-line-strong); }
-#screen-rfv .rfv-fat{ color:var(--ds-faturado-ink); font-weight:600; }
-html.dark #screen-rfv .rfv-fat{ color:var(--ds-faturado); font-weight:700; }
-#screen-rfv .rfv-car{ font-weight:600; }
-html.dark #screen-rfv .rfv-car{ font-weight:700; }
-#screen-rfv .rfv-legenda{ border-radius:var(--ds-r-md); border-color:var(--ds-line); font-size:11.5px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th{ background:var(--ds-card-2); box-shadow:inset 0 -1px 0 var(--ds-line); color:var(--ds-faint); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot{ color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.presa{ background:var(--ds-card-2); }
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody td{ border-top-color:var(--ds-line-row); font-size:13px; padding:7px 6px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro td.cli .nome{ font-weight:600; color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-quadro td.cli .sub{ font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-ghost); letter-spacing:.02em; }
+:is(#screen-rfv,#screen-es) .rfv-quadro td.stot{ background:var(--ds-card-2); font-weight:700; }
+:is(#screen-rfv,#screen-es) .rfv-quadro .sem2{ border-left-color:var(--ds-line-strong); }
+:is(#screen-rfv,#screen-es) .rfv-fat{ color:var(--ds-faturado-ink); font-weight:600; }
+html.dark :is(#screen-rfv,#screen-es) .rfv-fat{ color:var(--ds-faturado); font-weight:700; }
+:is(#screen-rfv,#screen-es) .rfv-car{ font-weight:600; }
+html.dark :is(#screen-rfv,#screen-es) .rfv-car{ font-weight:700; }
+:is(#screen-rfv,#screen-es) .rfv-legenda{ border-radius:var(--ds-r-md); border-color:var(--ds-line); font-size:11.5px; }
 .rfv-lista{ border-color:var(--ds-line); border-radius:var(--ds-r-md); box-shadow:var(--ds-shadow-lift); }
 .rfv-item{ border-radius:var(--ds-r-sm); }
 .rfv-item .sub{ font-family:var(--ds-mono); font-size:10.5px; }
@@ -9968,19 +10479,19 @@ html.dark #screen-rfv .rfv-car{ font-weight:700; }
 .leaflet-popup-content-wrapper{ border-radius:var(--ds-r-md); box-shadow:var(--ds-shadow-lift); }
 
 @media (max-width:640px){
-  #screen-rfv .rfv-topo{ border-radius:var(--ds-r-md) var(--ds-r-md) 0 0; }
-  #screen-rfv .rfv-quadro,
-  #screen-rfv .rfv-mapa{ border-radius:0 0 var(--ds-r-md) var(--ds-r-md); }
-  #screen-rfv .rfv-tit{ border-right:0; padding-right:0; flex:1 1 auto; }
+  :is(#screen-rfv,#screen-es) .rfv-topo{ border-radius:var(--ds-r-md) var(--ds-r-md) 0 0; }
+  :is(#screen-rfv,#screen-es) .rfv-quadro,
+  :is(#screen-rfv,#screen-es) .rfv-mapa{ border-radius:0 0 var(--ds-r-md) var(--ds-r-md); }
+  :is(#screen-rfv,#screen-es) .rfv-tit{ border-right:0; padding-right:0; flex:1 1 auto; }
   /* no celular os três números descem para uma linha própria, inteiros —
      espremidos ao lado do título, só se via o começo do primeiro */
-  #screen-rfv .rfv-topo-in{ flex-wrap:wrap; row-gap:8px; }
-  #screen-rfv .rfv-topo-in .rfv-caixa{ order:3; flex:1 1 100%; }
-  #screen-rfv .rfv-fichas{ justify-content:space-between; }
-  #screen-rfv .rfv-caixa-filtros{ padding:8px 12px; }
-  #screen-rfv .rfv-ficha{ padding:3px 10px; }
-  #screen-rfv .rfv-ficha .n{ font-size:9px; letter-spacing:.05em; }
-  #screen-rfv .rfv-ficha .v{ font-size:17px; }
+  :is(#screen-rfv,#screen-es) .rfv-topo-in{ flex-wrap:wrap; row-gap:8px; }
+  :is(#screen-rfv,#screen-es) .rfv-topo-in .rfv-caixa{ order:3; flex:1 1 100%; }
+  :is(#screen-rfv,#screen-es) .rfv-fichas{ justify-content:space-between; }
+  :is(#screen-rfv,#screen-es) .rfv-caixa-filtros{ padding:8px 12px; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha{ padding:3px 10px; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .n{ font-size:9px; letter-spacing:.05em; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:17px; }
 }
 
 /* ══ 4 · ADMIN, LOGIN E JANELAS ═════════════════════════════════════════ */
@@ -10081,60 +10592,60 @@ html.dark .barra-selecao{ background:var(--ds-card-2); border-color:var(--ds-lin
    ───────────────────────────────────────────────────────────────────── */
 
 /* cabeçalho que é gráfico e ordena */
-#screen-rfv .rfv-quadro thead th{ cursor:pointer; vertical-align:bottom; padding-top:8px; }
-#screen-rfv .rfv-quadro thead th:hover .rot{ color:var(--ds-ink); }
-#screen-rfv .rfv-quadro thead th.ord-on .rot{ color:var(--ds-ink); }
-#screen-rfv .rfv-quadro thead .rot{ display:block; }
-#screen-rfv .rfv-quadro thead .ord-seta{ font-size:8px; margin-left:2px; }
-#screen-rfv .rfv-quadro thead th.cli{ cursor:pointer; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th{ cursor:pointer; vertical-align:bottom; padding-top:8px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th:hover .rot{ color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.ord-on .rot{ color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead .rot{ display:block; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead .ord-seta{ font-size:8px; margin-left:2px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.cli{ cursor:pointer; }
 
 
 /* faixas verticais: um mês sim, outro não, com um verde-água bem leve —
    o olho desce pela coluna sem escorregar para a do lado. A passagem do
    mouse e a linha escolhida continuam por cima delas. */
-#screen-rfv .rfv-quadro th.alt,
-#screen-rfv .rfv-quadro td.alt{ background:color-mix(in srgb, var(--ds-accent) 6%, var(--ds-card)); }
-#screen-rfv .rfv-quadro thead th.alt{ background:color-mix(in srgb, var(--ds-accent) 7%, var(--ds-card-2)); }
-html.dark #screen-rfv .rfv-quadro th.alt,
-html.dark #screen-rfv .rfv-quadro td.alt{ background:color-mix(in srgb, var(--ds-accent) 7%, var(--ds-card)); }
-#screen-rfv .rfv-quadro tbody tr:hover td{ background:var(--ds-card-2); }
-#screen-rfv .rfv-quadro tbody tr:hover td.alt{ background:color-mix(in srgb, var(--ds-accent) 11%, var(--ds-card)); }
-html.dark #screen-rfv .rfv-quadro tbody tr:hover td{ background:color-mix(in srgb, var(--ds-ink) 5%, var(--ds-card)); }
-html.dark #screen-rfv .rfv-quadro tbody tr:hover td.alt{ background:color-mix(in srgb, var(--ds-accent) 12%, var(--ds-card)); }
+:is(#screen-rfv,#screen-es) .rfv-quadro th.alt,
+:is(#screen-rfv,#screen-es) .rfv-quadro td.alt{ background:color-mix(in srgb, var(--ds-accent) 6%, var(--ds-card)); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.alt{ background:color-mix(in srgb, var(--ds-accent) 7%, var(--ds-card-2)); }
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro th.alt,
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro td.alt{ background:color-mix(in srgb, var(--ds-accent) 7%, var(--ds-card)); }
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr:hover td{ background:var(--ds-card-2); }
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr:hover td.alt{ background:color-mix(in srgb, var(--ds-accent) 11%, var(--ds-card)); }
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr:hover td{ background:color-mix(in srgb, var(--ds-ink) 5%, var(--ds-card)); }
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr:hover td.alt{ background:color-mix(in srgb, var(--ds-accent) 12%, var(--ds-card)); }
 /* o mês em curso continua mandando na cor da coluna dele */
-#screen-rfv .rfv-quadro th.agora,
-#screen-rfv .rfv-quadro td.agora{ background:var(--ds-atencao-bg); }
+:is(#screen-rfv,#screen-es) .rfv-quadro th.agora,
+:is(#screen-rfv,#screen-es) .rfv-quadro td.agora{ background:var(--ds-atencao-bg); }
 
 /* linha escolhida: tinha fundo quase branco e sumia. Agora é uma faixa
    verde de verdade, com a barra da marca na lateral, fios em cima e
    embaixo e o nome em destaque — dá para acompanhar rolando para o lado.
    As colunas de semestre, que têm fundo próprio, também tingem. */
-#screen-rfv .rfv-quadro tbody tr.sel td,
-#screen-rfv .rfv-quadro tbody tr.sel td.stot,
-#screen-rfv .rfv-quadro tbody tr.sel .presa{
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel td,
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel td.stot,
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel .presa{
   background:color-mix(in srgb, var(--ds-accent) 22%, var(--ds-card));
   border-top-color:color-mix(in srgb, var(--ds-accent) 60%, transparent);
 }
-#screen-rfv .rfv-quadro tbody tr.sel + tr td{
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel + tr td{
   border-top-color:color-mix(in srgb, var(--ds-accent) 55%, transparent);
 }
-#screen-rfv .rfv-quadro tbody tr.sel .presa{
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel .presa{
   box-shadow:inset 4px 0 0 var(--ds-accent), 1px 0 0 var(--ds-line);
 }
-#screen-rfv .rfv-quadro tbody tr.sel td.cli .nome{ color:var(--ds-accent-2); font-weight:700; }
-html.dark #screen-rfv .rfv-quadro tbody tr.sel td,
-html.dark #screen-rfv .rfv-quadro tbody tr.sel td.stot,
-html.dark #screen-rfv .rfv-quadro tbody tr.sel .presa{
+:is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel td.cli .nome{ color:var(--ds-accent-2); font-weight:700; }
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel td,
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel td.stot,
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr.sel .presa{
   background:color-mix(in srgb, var(--ds-accent) 36%, var(--ds-card));
 }
 
 /* mês em curso: a coluna inteira ganha o tom de atenção, de cima a baixo,
    no lugar do rótulo "em curso" */
-#screen-rfv .rfv-quadro th.agora,
-#screen-rfv .rfv-quadro td.agora{ background:var(--ds-atencao-bg); }
-#screen-rfv .rfv-quadro thead th.agora{ box-shadow:inset 0 -2px 0 var(--ds-atencao); }
-#screen-rfv .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao-ink); font-weight:600; }
-html.dark #screen-rfv .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao); }
+:is(#screen-rfv,#screen-es) .rfv-quadro th.agora,
+:is(#screen-rfv,#screen-es) .rfv-quadro td.agora{ background:var(--ds-atencao-bg); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora{ box-shadow:inset 0 -2px 0 var(--ds-atencao); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao-ink); font-weight:600; }
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao); }
 
 /* lista dos filtros com caixa de marcar */
 .rfv-item.multi .ck{ width:14px; flex:none; font-size:13px; color:var(--ds-ghost); }
@@ -10143,46 +10654,46 @@ html.dark #screen-rfv .rfv-quadro thead th.agora .rot{ color:var(--ds-atencao); 
 .rfv-item.multi:hover{ background:var(--ds-sunk); }
 
 /* situação do cliente num ponto: verde comprou no 2º, âmbar parou */
-#screen-rfv .rfv-quadro td.cli .st{
+:is(#screen-rfv,#screen-es) .rfv-quadro td.cli .st{
   display:inline-block; width:7px; height:7px; border-radius:2px;
   margin-right:8px; vertical-align:1px; background:var(--ds-line-strong);
 }
-#screen-rfv .rfv-quadro td.cli .st-ok{ background:var(--ds-faturado); }
-#screen-rfv .rfv-quadro td.cli .st-parou{ background:var(--ds-atencao); }
+:is(#screen-rfv,#screen-es) .rfv-quadro td.cli .st-ok{ background:var(--ds-faturado); }
+:is(#screen-rfv,#screen-es) .rfv-quadro td.cli .st-parou{ background:var(--ds-atencao); }
 
 /* variação 2º sobre 1º */
-#screen-rfv .rfv-quadro td.var,
-#screen-rfv .rfv-quadro thead .tot.v-pos,
-#screen-rfv .rfv-quadro thead .tot.v-neg{ font-family:var(--ds-mono); font-size:11.5px; }
-#screen-rfv .rfv-quadro td.var{ padding-right:12px; white-space:nowrap; }
-#screen-rfv .v-pos{ color:var(--ds-faturado-ink); }
-#screen-rfv .v-neg{ color:var(--ds-atencao-ink); }
-html.dark #screen-rfv .v-pos{ color:var(--ds-faturado); }
-html.dark #screen-rfv .v-neg{ color:var(--ds-atencao); }
-#screen-rfv .v-tag{
+:is(#screen-rfv,#screen-es) .rfv-quadro td.var,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead .tot.v-pos,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead .tot.v-neg{ font-family:var(--ds-mono); font-size:11.5px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro td.var{ padding-right:12px; white-space:nowrap; }
+:is(#screen-rfv,#screen-es) .v-pos{ color:var(--ds-faturado-ink); }
+:is(#screen-rfv,#screen-es) .v-neg{ color:var(--ds-atencao-ink); }
+html.dark :is(#screen-rfv,#screen-es) .v-pos{ color:var(--ds-faturado); }
+html.dark :is(#screen-rfv,#screen-es) .v-neg{ color:var(--ds-atencao); }
+:is(#screen-rfv,#screen-es) .v-tag{
   font-family:var(--ds-mono); font-size:10px; letter-spacing:.04em;
   padding:1px 6px; border-radius:5px;
 }
-#screen-rfv .v-parou{ background:var(--ds-atencao-bg); color:var(--ds-atencao-ink); }
-html.dark #screen-rfv .v-parou{ color:var(--ds-atencao); }
-#screen-rfv .v-novo{ background:var(--ds-carteira-bg); color:var(--ds-carteira-ink); }
+:is(#screen-rfv,#screen-es) .v-parou{ background:var(--ds-atencao-bg); color:var(--ds-atencao-ink); }
+html.dark :is(#screen-rfv,#screen-es) .v-parou{ color:var(--ds-atencao); }
+:is(#screen-rfv,#screen-es) .v-novo{ background:var(--ds-carteira-bg); color:var(--ds-carteira-ink); }
 
 /* ── mapa ── */
-#screen-rfv .rfv-mapa .leaflet-bar{
+:is(#screen-rfv,#screen-es) .rfv-mapa .leaflet-bar{
   border:1px solid var(--ds-line); border-radius:var(--ds-r-md); box-shadow:none; overflow:hidden;
 }
-#screen-rfv .rfv-mapa .leaflet-bar a{
+:is(#screen-rfv,#screen-es) .rfv-mapa .leaflet-bar a{
   width:30px; height:30px; line-height:30px; background:var(--ds-card); color:var(--ds-ink-2);
   border-bottom-color:var(--ds-line);
 }
-#screen-rfv .rfv-mapa .leaflet-bar a:hover{ background:var(--ds-sunk); color:var(--ds-ink); }
-#screen-rfv .rfv-mapa .leaflet-control-attribution{
+:is(#screen-rfv,#screen-es) .rfv-mapa .leaflet-bar a:hover{ background:var(--ds-sunk); color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-mapa .leaflet-control-attribution{
   background:color-mix(in srgb, var(--ds-card) 85%, transparent); color:var(--ds-faint);
   font-family:var(--ds-mono); font-size:9.5px;
 }
-#screen-rfv .rfv-legenda{ background:var(--ds-card); gap:14px; padding:7px 12px; }
-#screen-rfv .rfv-legenda i{ width:9px; height:9px; }
-#screen-rfv .rfv-legenda b{ font-family:var(--ds-mono); font-weight:500; color:var(--ds-ink); margin-left:2px; }
+:is(#screen-rfv,#screen-es) .rfv-legenda{ background:var(--ds-card); gap:14px; padding:7px 12px; }
+:is(#screen-rfv,#screen-es) .rfv-legenda i{ width:9px; height:9px; }
+:is(#screen-rfv,#screen-es) .rfv-legenda b{ font-family:var(--ds-mono); font-weight:500; color:var(--ds-ink); margin-left:2px; }
 .leaflet-tooltip{
   font-family:var(--ds-font); font-size:12px; color:var(--ds-ink); background:var(--ds-card);
   border:1px solid var(--ds-line); border-radius:var(--ds-r-sm); box-shadow:var(--ds-shadow-card);
@@ -10565,29 +11076,29 @@ html.dark .painel-detalhada .lista-head .col-ref{ color:#fff; }
    ───────────────────────────────────────────────────────────────────── */
 
 /* o quadro do RFV segue o da lista: cantos retos */
-#screen-rfv .rfv-topo{ border-radius:0; }
-#screen-rfv .rfv-quadro,
-#screen-rfv .rfv-mapa{ border-radius:0; }
+:is(#screen-rfv,#screen-es) .rfv-topo{ border-radius:0; }
+:is(#screen-rfv,#screen-es) .rfv-quadro,
+:is(#screen-rfv,#screen-es) .rfv-mapa{ border-radius:0; }
 
 /* ── 1 · identidade na cor da marca ── */
-#screen-rfv .rfv-topo-in{ background:var(--pv-marca); padding:12px 16px; gap:14px; }
-#screen-rfv .rfv-tit{ border-right:0; padding-right:0; margin-right:auto; }
-#screen-rfv .rfv-tit .logo-text{ color:#fff; }
-#screen-rfv .rfv-tit .logo-sub{ color:rgba(255,255,255,.72); }
-#screen-rfv .rfv-topo .btn-icon{
+:is(#screen-rfv,#screen-es) .rfv-topo-in{ background:var(--pv-marca); padding:12px 16px; gap:14px; }
+:is(#screen-rfv,#screen-es) .rfv-tit{ border-right:0; padding-right:0; margin-right:auto; }
+:is(#screen-rfv,#screen-es) .rfv-tit .logo-text{ color:#fff; }
+:is(#screen-rfv,#screen-es) .rfv-tit .logo-sub{ color:rgba(255,255,255,.72); }
+:is(#screen-rfv,#screen-es) .rfv-topo .btn-icon{
   background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); color:#fff;
 }
-#screen-rfv .rfv-topo .btn-icon:hover{ background:rgba(255,255,255,.16); color:#fff; }
-#screen-rfv .rfv-topo .btn-icon:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
+:is(#screen-rfv,#screen-es) .rfv-topo .btn-icon:hover{ background:rgba(255,255,255,.16); color:#fff; }
+:is(#screen-rfv,#screen-es) .rfv-topo .btn-icon:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
 
 /* ── 3 · faixa de números, com as divisórias em destaque ── */
-#screen-rfv .rfv-numeros{
+:is(#screen-rfv,#screen-es) .rfv-numeros{
   position:relative; background:var(--ds-band);
   border-top:1px solid var(--ds-accent);
 }
-#screen-rfv .rfv-numeros .rfv-caixa{ min-width:0; }
-#screen-rfv .rfv-fichas{ gap:0; padding:0 40px 0 0; align-items:stretch; }
-#screen-rfv .rfv-ficha{
+:is(#screen-rfv,#screen-es) .rfv-numeros .rfv-caixa{ min-width:0; }
+:is(#screen-rfv,#screen-es) .rfv-fichas{ gap:0; padding:0 40px 0 0; align-items:stretch; }
+:is(#screen-rfv,#screen-es) .rfv-ficha{
   position:relative; flex:1 1 0; min-width:128px;
   border:0; border-left:1px solid var(--ds-accent); border-radius:0;
   background:transparent; padding:11px 16px; gap:4px; justify-content:flex-start;
@@ -10595,51 +11106,51 @@ html.dark .painel-detalhada .lista-head .col-ref{ color:#fff; }
 }
 /* a regra antiga zerava o recuo da primeira ficha e o texto subia em
    cima do pontinho */
-#screen-rfv .rfv-ficha:first-child{ border-left:0; padding-left:16px; }
+:is(#screen-rfv,#screen-es) .rfv-ficha:first-child{ border-left:0; padding-left:16px; }
 /* o pontinho da cor do papel, como nos números da tela de produtos */
-#screen-rfv .rfv-ficha::before{
+:is(#screen-rfv,#screen-es) .rfv-ficha::before{
   content:''; position:absolute; left:16px; top:14px;
   width:6px; height:6px; border-radius:2px; background:var(--ds-line-strong);
 }
-#screen-rfv .rfv-ficha.pos::before{ background:var(--ds-faturado); }
-#screen-rfv .rfv-ficha.neg::before{ background:var(--ds-erro); }
-#screen-rfv .rfv-ficha .n{ font-size:10px; letter-spacing:.12em; color:var(--ds-faint); }
-#screen-rfv .rfv-ficha .v,
-#screen-rfv .rfv-ficha .pc{ text-indent:0; }
-#screen-rfv .rfv-ficha .v{ font-size:21px; }
-#screen-rfv button.rfv-ficha{ border-radius:0; border-left-color:var(--ds-accent); text-align:left; }
-#screen-rfv button.rfv-ficha:hover{ background:var(--ds-sunk); }
-#screen-rfv .rfv-ficha.on{ background:var(--ds-accent-bg); }
-#screen-rfv .rfv-numeros.recolhido .rfv-caixa{ display:none; }
-#screen-rfv .rfv-numeros.recolhido{ height:26px; }
-#screen-rfv .rfv-numeros.recolhido .kpi-toggle{ height:22px; }
+:is(#screen-rfv,#screen-es) .rfv-ficha.pos::before{ background:var(--ds-faturado); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.neg::before{ background:var(--ds-erro); }
+:is(#screen-rfv,#screen-es) .rfv-ficha .n{ font-size:10px; letter-spacing:.12em; color:var(--ds-faint); }
+:is(#screen-rfv,#screen-es) .rfv-ficha .v,
+:is(#screen-rfv,#screen-es) .rfv-ficha .pc{ text-indent:0; }
+:is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:21px; }
+:is(#screen-rfv,#screen-es) button.rfv-ficha{ border-radius:0; border-left-color:var(--ds-accent); text-align:left; }
+:is(#screen-rfv,#screen-es) button.rfv-ficha:hover{ background:var(--ds-sunk); }
+:is(#screen-rfv,#screen-es) .rfv-ficha.on{ background:var(--ds-accent-bg); }
+:is(#screen-rfv,#screen-es) .rfv-numeros.recolhido .rfv-caixa{ display:none; }
+:is(#screen-rfv,#screen-es) .rfv-numeros.recolhido{ height:26px; }
+:is(#screen-rfv,#screen-es) .rfv-numeros.recolhido .kpi-toggle{ height:22px; }
 
 /* ── 2 · botões com o contorno verde-água da lista ── */
-#screen-rfv .rfv-caixa-filtros{ border-top:1px solid var(--ds-accent); padding:9px 16px; }
-#screen-rfv .rfv-campo,
-#screen-rfv .rfv-tgl{ border-color:var(--ds-accent); color:var(--ds-ink); }
-#screen-rfv .rfv-tgl i,
-#screen-rfv .rfv-dd::after{ color:var(--ds-accent-2); opacity:1; }
-html.dark #screen-rfv .rfv-tgl i,
-html.dark #screen-rfv .rfv-dd::after{ color:var(--ds-accent); }
-#screen-rfv .rfv-dd::after{ border-top-color:currentColor; }
-#screen-rfv .rfv-dd:hover,
-#screen-rfv .rfv-tgl:hover{ border-color:var(--ds-accent-2); color:var(--ds-ink); }
-#screen-rfv .rfv-abas{ box-shadow:inset 0 0 0 1px var(--ds-accent); }
-#screen-rfv .rfv-aba{ color:var(--ds-ink-2); }
-#screen-rfv #rfv-busca{ border-color:var(--ds-accent); }
-#screen-rfv #rfv-busca::placeholder{ color:var(--ds-ghost); }
+:is(#screen-rfv,#screen-es) .rfv-caixa-filtros{ border-top:1px solid var(--ds-accent); padding:9px 16px; }
+:is(#screen-rfv,#screen-es) .rfv-campo,
+:is(#screen-rfv,#screen-es) .rfv-tgl{ border-color:var(--ds-accent); color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-tgl i,
+:is(#screen-rfv,#screen-es) .rfv-dd::after{ color:var(--ds-accent-2); opacity:1; }
+html.dark :is(#screen-rfv,#screen-es) .rfv-tgl i,
+html.dark :is(#screen-rfv,#screen-es) .rfv-dd::after{ color:var(--ds-accent); }
+:is(#screen-rfv,#screen-es) .rfv-dd::after{ border-top-color:currentColor; }
+:is(#screen-rfv,#screen-es) .rfv-dd:hover,
+:is(#screen-rfv,#screen-es) .rfv-tgl:hover{ border-color:var(--ds-accent-2); color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-abas{ box-shadow:inset 0 0 0 1px var(--ds-accent); }
+:is(#screen-rfv,#screen-es) .rfv-aba{ color:var(--ds-ink-2); }
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca){ border-color:var(--ds-accent); }
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca)::placeholder{ color:var(--ds-ghost); }
 
 @media (max-width:640px){
-  #screen-rfv .rfv-topo-in{ padding:10px 12px; }
+  :is(#screen-rfv,#screen-es) .rfv-topo-in{ padding:10px 12px; }
   /* os três números cabem na largura do aparelho, sem rolar de lado */
-  #screen-rfv .rfv-numeros .rfv-fichas{ padding-right:30px; }
-  #screen-rfv .rfv-ficha,
-  #screen-rfv .rfv-ficha:first-child{ min-width:0; padding:9px; text-indent:12px; }
-  #screen-rfv .rfv-ficha::before{ left:9px; top:12px; width:5px; height:5px; }
-  #screen-rfv .rfv-ficha .n{ font-size:9px; letter-spacing:.06em; }
-  #screen-rfv .rfv-ficha .v{ font-size:18px; }
-  #screen-rfv .rfv-caixa-filtros{ padding:8px 12px; }
+  :is(#screen-rfv,#screen-es) .rfv-numeros .rfv-fichas{ padding-right:30px; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha,
+  :is(#screen-rfv,#screen-es) .rfv-ficha:first-child{ min-width:0; padding:9px; text-indent:12px; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha::before{ left:9px; top:12px; width:5px; height:5px; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .n{ font-size:9px; letter-spacing:.06em; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:18px; }
+  :is(#screen-rfv,#screen-es) .rfv-caixa-filtros{ padding:8px 12px; }
 }
 </style>
 
@@ -10649,77 +11160,77 @@ html.dark #screen-rfv .rfv-dd::after{ color:var(--ds-accent); }
    ───────────────────────────────────────────────────────────────────── */
 
 /* a fita de abas e filtros gruda embaixo da barra de cima */
-#screen-rfv .rfv-caixa-filtros{
+:is(#screen-rfv,#screen-es) .rfv-caixa-filtros{
   position:sticky; top:calc(var(--rfv-topo-h, 60px) - 1px); z-index:11;
   background:var(--ds-card);
 }
 
 /* o cabeçalho da tabela: mesma faixa verde da lista de produtos */
-#screen-rfv .rfv-quadro thead th{
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th{
   background:var(--pv-marca); color:#fff; box-shadow:none;
   border-bottom:0; padding-top:8px;
 }
-#screen-rfv .rfv-quadro thead th .rot,
-#screen-rfv .rfv-quadro thead th .tot,
-#screen-rfv .rfv-quadro thead th .obs{ color:#fff; }
-#screen-rfv .rfv-quadro thead th:hover .rot,
-#screen-rfv .rfv-quadro thead th.ord-on .rot{ color:#fff; }
-#screen-rfv .rfv-quadro thead th.ord-on .rot{ font-weight:700; }
-#screen-rfv .rfv-quadro thead th .tot{ font-weight:600; }
-#screen-rfv .rfv-quadro thead th.presa{ background:var(--pv-marca); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .rot,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .obs{ color:#fff; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th:hover .rot,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.ord-on .rot{ color:#fff; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.ord-on .rot{ font-weight:700; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot{ font-weight:600; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.presa{ background:var(--pv-marca); }
 /* a divisória do semestre e a listra alternada aparecem por cima do verde */
-#screen-rfv .rfv-quadro thead th.alt{ background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(255,255,255,.07)), var(--pv-marca); }
-#screen-rfv .rfv-quadro thead th.sem2{ border-left-color:rgba(255,255,255,.5); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.alt{ background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(255,255,255,.07)), var(--pv-marca); }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.sem2{ border-left-color:rgba(255,255,255,.5); }
 /* mês em curso: fundo mais claro e o fio âmbar embaixo */
-#screen-rfv .rfv-quadro thead th.agora,
-#screen-rfv .rfv-quadro thead th.agora.alt{
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora.alt{
   background:linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.16)), var(--pv-marca);
   box-shadow:inset 0 -3px 0 var(--ds-atencao);
 }
-#screen-rfv .rfv-quadro thead th.agora .rot,
-html.dark #screen-rfv .rfv-quadro thead th.agora .rot{ color:#fff; font-weight:700; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora .rot,
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora .rot{ color:#fff; font-weight:700; }
 /* os totais do topo perdem a cor de carteira/faturado: sobre o verde,
    branco é o que se lê */
-#screen-rfv .rfv-quadro thead th .tot.rfv-fat,
-#screen-rfv .rfv-quadro thead th .tot.rfv-car,
-#screen-rfv .rfv-quadro thead th .tot.rfv-mix,
-#screen-rfv .rfv-quadro thead th .tot.v-pos,
-#screen-rfv .rfv-quadro thead th .tot.v-neg{ color:#fff; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot.rfv-fat,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot.rfv-car,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot.rfv-mix,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot.v-pos,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th .tot.v-neg{ color:#fff; }
 
 /* com a tabela rolando por dentro (celular ou coluna de cidade), o
    cabeçalho gruda na moldura dela, como antes */
 @media (min-width:1000px){
-  #screen-rfv .rfv-quadro thead th{
+  :is(#screen-rfv,#screen-es) .rfv-quadro thead th{
     top:calc(var(--rfv-topo-h, 60px) + var(--rfv-barra-h, 50px) - 2px);
   }
-  #screen-rfv .rfv-quadro.com-cidade thead th{ top:0; }
+  :is(#screen-rfv,#screen-es) .rfv-quadro.com-cidade thead th{ top:0; }
 }
 </style>
 
 <style id="ds-rfv-cliente">
 /* a coluna da cidade: título ao meio e clicável para ordenar */
-#screen-rfv .rfv-quadro th.cid{ text-align:center; padding-left:6px; cursor:pointer; }
+:is(#screen-rfv,#screen-es) .rfv-quadro th.cid{ text-align:center; padding-left:6px; cursor:pointer; }
 /* Cliente e Cidade não têm total embaixo, então ficavam pousados na base
    da faixa: agora centram na altura e ganham meio ponto de corpo. */
-#screen-rfv .rfv-quadro thead th.cli,
-#screen-rfv .rfv-quadro thead th.cid{ vertical-align:middle; font-size:11.5px; }
-#screen-rfv .rfv-quadro thead th.cli .rot,
-#screen-rfv .rfv-quadro thead th.cid .rot{ display:block; font-size:11.5px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.cli,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.cid{ vertical-align:middle; font-size:11.5px; }
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.cli .rot,
+:is(#screen-rfv,#screen-es) .rfv-quadro thead th.cid .rot{ display:block; font-size:11.5px; }
 </style>
 
 <style id="ds-rfv-gruda">
 /* ── só os números e os botões ficam congelados ── */
-#screen-rfv .rfv-topo{ position:static; border-bottom:0; }
-#screen-rfv .rfv-numeros{
+:is(#screen-rfv,#screen-es) .rfv-topo{ position:static; border-bottom:0; }
+:is(#screen-rfv,#screen-es) .rfv-numeros{
   position:sticky; top:0; z-index:12;
   border-left:1px solid var(--ds-line); border-right:1px solid var(--ds-line);
 }
-#screen-rfv .rfv-caixa-filtros{ top:calc(var(--rfv-num-h, 70px) - 1px); }
+:is(#screen-rfv,#screen-es) .rfv-caixa-filtros{ top:calc(var(--rfv-num-h, 70px) - 1px); }
 @media (min-width:1000px){
-  #screen-rfv .rfv-quadro thead th{
+  :is(#screen-rfv,#screen-es) .rfv-quadro thead th{
     top:calc(var(--rfv-num-h, 70px) + var(--rfv-barra-h, 50px) - 2px);
   }
-  #screen-rfv .rfv-quadro.com-cidade thead th{ top:0; }
+  :is(#screen-rfv,#screen-es) .rfv-quadro.com-cidade thead th{ top:0; }
 }
 </style>
 
@@ -10728,12 +11239,12 @@ html.dark #screen-rfv .rfv-quadro thead th.agora .rot{ color:#fff; font-weight:7
    Números e filtros continuam presos no alto, como na tabela. O mapa
    ganha altura de tela menos essas duas faixas: rolando o tanto da barra
    do título, ele encaixa certinho embaixo delas e ocupa o resto. */
-#screen-rfv.mapa-aberto .rfv-mapa{
+:is(#screen-rfv,#screen-es).mapa-aberto .rfv-mapa{
   height:calc(100dvh - var(--rfv-num-h, 70px) - var(--rfv-barra-h, 50px) - 14px);
   min-height:360px;
 }
 @supports not (height: 100dvh){
-  #screen-rfv.mapa-aberto .rfv-mapa{
+  :is(#screen-rfv,#screen-es).mapa-aberto .rfv-mapa{
     height:calc(100vh - var(--rfv-num-h, 70px) - var(--rfv-barra-h, 50px) - 14px);
   }
 }
@@ -10896,24 +11407,24 @@ html.dark .painel-detalhada .gci-cols .gr-tgl:hover{ background:rgba(255,255,255
 
 <style id="ds-it23">
 /* ── 2) busca do RFV na barra de cima ── */
-#screen-rfv .rfv-busca-cima{ flex:1 1 280px; max-width:420px; min-width:0; }
-#screen-rfv .rfv-busca-cima input{
+:is(#screen-rfv,#screen-es) .rfv-busca-cima{ flex:1 1 280px; max-width:420px; min-width:0; }
+:is(#screen-rfv,#screen-es) .rfv-busca-cima input{
   width:100%; height:36px; padding:0 36px 0 34px; font-size:13.5px;
   background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
   border-radius:var(--ds-r-md); color:#fff; box-shadow:none; outline:none;
 }
-#screen-rfv .rfv-busca-cima input::placeholder{ color:rgba(255,255,255,.82); }
-#screen-rfv .rfv-busca-cima .search-icon{ left:12px; font-size:12px; color:rgba(255,255,255,.9); }
-#screen-rfv .rfv-busca-cima .search-clear{ right:4px; width:28px; height:28px; border-radius:var(--ds-r-sm); color:rgba(255,255,255,.9); font-size:12px; }
-#screen-rfv .rfv-busca-cima input:focus{
+:is(#screen-rfv,#screen-es) .rfv-busca-cima input::placeholder{ color:rgba(255,255,255,.82); }
+:is(#screen-rfv,#screen-es) .rfv-busca-cima .search-icon{ left:12px; font-size:12px; color:rgba(255,255,255,.9); }
+:is(#screen-rfv,#screen-es) .rfv-busca-cima .search-clear{ right:4px; width:28px; height:28px; border-radius:var(--ds-r-sm); color:rgba(255,255,255,.9); font-size:12px; }
+:is(#screen-rfv,#screen-es) .rfv-busca-cima input:focus{
   background:#fff; border-color:#fff; color:var(--ds-ink);
   box-shadow:0 0 0 3px rgba(255,255,255,.25);
 }
-#screen-rfv .rfv-busca-cima input:focus::placeholder{ color:var(--ds-ghost); }
-#screen-rfv .rfv-busca-cima:focus-within .search-icon,
-#screen-rfv .rfv-busca-cima:focus-within .search-clear{ color:var(--ds-ghost); }
-html.dark #screen-rfv .rfv-busca-cima input:focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
-#screen-rfv .rfv-tit{ margin-right:4px; }
+:is(#screen-rfv,#screen-es) .rfv-busca-cima input:focus::placeholder{ color:var(--ds-ghost); }
+:is(#screen-rfv,#screen-es) .rfv-busca-cima:focus-within .search-icon,
+:is(#screen-rfv,#screen-es) .rfv-busca-cima:focus-within .search-clear{ color:var(--ds-ghost); }
+html.dark :is(#screen-rfv,#screen-es) .rfv-busca-cima input:focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) .rfv-tit{ margin-right:4px; }
 
 /* ── 3) flutuante laranja de limpar filtros ── */
 .fab-limpar{
@@ -10933,7 +11444,7 @@ html.dark #screen-rfv .rfv-busca-cima input:focus{ background:var(--ds-card); bo
 /* no tablet e no celular o da fita sai de cena */
 @media (max-width:1099.98px){
   .cab-trilho .filter-clear-btn,
-  #screen-rfv .rfv-limpar{ display:none !important; }
+  :is(#screen-rfv,#screen-es) .rfv-limpar{ display:none !important; }
 }
 </style>
 
@@ -10977,18 +11488,18 @@ html.dark .cab-trilho .tipo-chip.alerta.ativo{ background:var(--ds-accent-2); co
 html.dark .cab-trilho .tipo-chip.ativo .chip-n{ color:rgba(15,42,40,.7); }
 
 /* ── 3) a busca do RFV com a cor da busca da Detalhada ── */
-#screen-rfv #rfv-busca{
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca){
   height:38px; padding:0 38px 0 36px; font-size:13.5px; font-weight:400;
   background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
   border-radius:var(--ds-r-md); color:#fff; box-shadow:none;
 }
-#screen-rfv #rfv-busca::placeholder{ color:rgba(255,255,255,.82); }
-#screen-rfv #rfv-busca:focus{
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca)::placeholder{ color:rgba(255,255,255,.82); }
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{
   background:#fff; border-color:#fff; color:var(--ds-ink);
   box-shadow:0 0 0 3px rgba(255,255,255,.25);
 }
-#screen-rfv #rfv-busca:focus::placeholder{ color:var(--ds-ghost); }
-html.dark #screen-rfv #rfv-busca:focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
+:is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus::placeholder{ color:var(--ds-ghost); }
+html.dark :is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{ background:var(--ds-card); border-color:var(--ds-card); color:var(--ds-ink); }
 
 /* ── 4) celular: limpar filtros só com o ícone ── */
 @media (max-width:700px){
@@ -11037,6 +11548,152 @@ html.dark #screen-rfv #rfv-busca:focus{ background:var(--ds-card); border-color:
   .painel-detalhada #lista:has(.sel-chk) .gci-item.aberta .gci-destinos{ grid-column:2 / -1; }
 }
 </style>
+
+<style id="ds-es">
+/* ── Entradas e saídas: cabeçalho, números, abas e filtros vêm do RFV
+   (os seletores de lá valem para as duas telas); aqui só a tabela. ── */
+#screen-es .es-quadro table{ min-width:780px; }
+#screen-es .es-quadro thead th:not([data-ord]){ cursor:default; }
+#screen-es .es-quadro td{ vertical-align:middle; }
+#screen-es .es-quadro th.es-foto,
+#screen-es .es-quadro td.es-foto{ width:66px; padding:6px 8px 6px 14px; }
+.es-thumb{
+  position:relative; display:grid; place-items:center; width:44px; height:44px;
+  border:1px solid var(--ds-line); border-radius:var(--ds-r-sm); background:#fff; overflow:hidden;
+}
+.es-thumb img{ width:100%; height:100%; object-fit:contain; }
+.es-thumb i{ display:none; color:var(--ds-ghost); font-size:15px; }
+.es-thumb.failed{ background:var(--ds-card-2); }
+.es-thumb.failed img{ display:none; }
+.es-thumb.failed i{ display:block; }
+#screen-es .es-quadro th.es-prod,
+#screen-es .es-quadro td.es-prod{ text-align:left; padding-left:6px; }
+#screen-es .es-quadro td.es-prod{ max-width:260px; }
+#screen-es .es-quadro td.es-prod .nome{
+  display:block; font-weight:600; color:var(--ds-ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#screen-es .es-quadro td.es-prod .sub{
+  display:block; margin-top:1px; font-family:var(--ds-mono); font-size:10.5px;
+  color:var(--ds-ghost); letter-spacing:.02em;
+}
+#screen-es .es-quadro td.es-cor{ font-family:var(--ds-mono); font-size:11.5px; color:var(--ds-faint); white-space:nowrap; }
+#screen-es .es-quadro td.es-gci{ font-family:var(--ds-mono); font-size:12px; color:var(--ds-ink); white-space:nowrap; }
+#screen-es .es-quadro td.cli{ max-width:300px; }
+#screen-es .es-quadro td.es-qtde{ font-size:14px; font-weight:700; }
+#screen-es .es-quadro td.es-qtde.ent{ color:var(--ds-carteira); }
+#screen-es .es-quadro td.es-qtde.sai{ color:var(--ds-ink); }
+#screen-es .es-quadro td.es-prev{ font-family:var(--ds-mono); font-size:12px; color:var(--ds-atencao); white-space:nowrap; }
+/* o dia do movimento: a informação nova da linha, em tinta cheia */
+#screen-es .es-quadro td.es-dia{ font-family:var(--ds-mono); font-size:12px; font-weight:600; color:var(--ds-ink); white-space:nowrap; }
+.es-motivo.m-rep{ background:color-mix(in srgb, var(--ds-carteira) 13%, transparent); color:var(--ds-carteira); }
+#screen-es td.cli .es-motivo{ margin-left:6px; font-size:10px; padding:1px 7px; vertical-align:1px; }
+.es-motivo{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:600; white-space:nowrap;
+}
+.es-motivo.m-fat{ background:color-mix(in srgb, var(--ds-faturado) 14%, transparent); color:var(--ds-faturado); }
+.es-motivo.m-sem{ background:color-mix(in srgb, var(--ds-erro) 12%, transparent); color:var(--ds-erro); }
+.es-mais{
+  display:block; margin:12px auto 14px; padding:9px 18px; cursor:pointer;
+  font:inherit; font-size:13px; font-weight:600; color:var(--ds-accent-2);
+  background:var(--ds-card); border:1px solid var(--pv-fio, var(--ds-line)); border-radius:var(--ds-r-md);
+}
+.es-mais:hover{ border-color:var(--ds-accent); }
+/* as fichas daqui são botões: trocam de aba */
+#screen-es button.rfv-ficha{ font:inherit; text-align:left; cursor:pointer; }
+
+/* ── celular: cada movimento vira um cartão ──
+   foto | produto ........ qtde
+        | cliente ........ entrou 08/set
+        | cor · GCI ...... prev. 15/set
+        | motivo (saídas) */
+@media (max-width:700px){
+  #screen-es .es-quadro table{ min-width:0; }
+  #screen-es .es-quadro thead{ display:none; }
+  #screen-es .es-quadro tbody tr{
+    display:grid; grid-template-columns:48px minmax(0,1fr) auto;
+    column-gap:10px; row-gap:3px; align-items:center;
+    padding:10px 12px; border-top:1px solid var(--ds-line);
+  }
+  #screen-es .es-quadro tbody tr:first-child{ border-top:0; }
+  #screen-es .es-quadro tbody td{ border:0; padding:0; text-align:left; min-width:0; max-width:none; }
+  #screen-es .es-quadro td.es-foto{ grid-column:1; grid-row:1 / span 3; width:auto; padding:0; align-self:start; }
+  #screen-es .es-quadro td.es-prod{ grid-column:2; grid-row:1; }
+  #screen-es .es-quadro td.es-prod .sub{ display:none; }
+  #screen-es .es-quadro td.es-qtde{ grid-column:3; grid-row:1; text-align:right; }
+  #screen-es .es-quadro td.cli{ grid-column:2; grid-row:2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #screen-es .es-quadro td.cli .sub{ display:none; }
+  #screen-es .es-quadro td.es-dia{ grid-column:3; grid-row:2; text-align:right; }
+  #screen-es .es-quadro td.es-dia::before{ content:attr(data-rot) ' '; font-weight:400; color:var(--ds-ghost); }
+  #screen-es .es-quadro td.es-prev{ grid-column:3; grid-row:3; text-align:right; }
+  #screen-es .es-quadro td.es-prev::before{ content:'prev. '; color:var(--ds-ghost); }
+  #screen-es .es-quadro td.es-cor{ grid-column:2; grid-row:3; overflow:hidden; text-overflow:ellipsis; }
+  #screen-es .es-quadro td.es-cor::after{ content:' · ' attr(data-gci); }
+  #screen-es .es-quadro td.es-gci{ display:none; }
+  #screen-es .es-quadro td.es-mot{ grid-column:2 / -1; grid-row:4; margin-top:3px; }
+}
+/* o cabeçalho gruda inteiro e o verde é pintado na linha, não em cada
+   título: um degradê só de ponta a ponta, e sem a emenda clara que as
+   larguras fracionadas deixavam aparecer entre duas colunas */
+#screen-es .es-quadro thead{ position:sticky; top:0; z-index:3; }
+#screen-es .es-quadro thead tr{ background:var(--pv-marca); }
+#screen-es .es-quadro thead th{ position:static; background:transparent; }
+@media (min-width:1000px){
+  #screen-es .es-quadro thead{ top:calc(var(--rfv-num-h, 70px) + var(--rfv-barra-h, 50px) - 2px); }
+}
+/* títulos todos na mesma altura e no mesmo corpo (o RFV aumenta só o de
+   Cliente; aqui ele destoaria); o total da Qtde fica embaixo do nome */
+#screen-es .es-quadro thead th{ vertical-align:middle; padding-top:7px; padding-bottom:7px; }
+#screen-es .es-quadro thead th .rot,
+#screen-es .es-quadro thead th.cli .rot{ font-size:11px; }
+/* larguras: as colunas curtas na medida, Produto e Cliente dividem o resto */
+#screen-es .es-quadro th.es-cor{ width:110px; }
+#screen-es .es-quadro th.es-gci{ width:100px; }
+#screen-es .es-quadro th.es-qtde{ width:96px; }
+#screen-es .es-quadro th.es-dia{ width:104px; }
+#screen-es .es-quadro th.es-prev{ width:110px; }
+#screen-es .es-quadro th.es-mot{ width:116px; }
+#screen-es .es-quadro th.es-prod{ width:28%; }
+
+/* tablet: tudo cabe na moldura, sem rolar de lado */
+@media (min-width:701px) and (max-width:1099.98px){
+  #screen-es .es-quadro table{ min-width:0; }
+  #screen-es .es-quadro th.es-foto,
+  #screen-es .es-quadro td.es-foto{ width:56px; padding-left:10px; }
+  #screen-es .es-quadro th.es-cor{ width:84px; }
+  #screen-es .es-quadro th.es-gci{ width:82px; }
+  #screen-es .es-quadro th.es-qtde{ width:70px; }
+  #screen-es .es-quadro th.es-dia{ width:76px; }
+  #screen-es .es-quadro th.es-prev{ width:78px; }
+  #screen-es .es-quadro th.es-mot{ width:92px; }
+  #screen-es .es-quadro td.es-prod{ max-width:170px; }
+  #screen-es .es-quadro td.cli,
+  #screen-es .es-quadro th.cli{ min-width:0; max-width:210px; padding-left:8px; }
+}
+
+/* celular: os quatro números rolam de lado sem se atropelar; o período
+   encolhe com reticências para o botão de tema ficar na linha do título */
+@media (max-width:700px){
+  #screen-es .rfv-tit{ flex:1 1 0; min-width:0; }
+  #screen-es #es-periodo{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #screen-es .rfv-ficha{ min-width:128px; flex:0 0 auto; }
+  #screen-es .rfv-ficha .pc{ white-space:nowrap; }
+  #screen-es .es-quadro td.es-prod{ padding-left:0; }
+}
+
+/* cabeçalho do app com seis ícones (admin): cabe na mesma linha do nome */
+@media (max-width:420px){
+  .cab-acoes .btn-icon{ width:30px; }
+  .cab-acoes .cab-div{ margin:0 1px; }
+  /* o nome cede o espaço (base zero): senão ele reserva a largura inteira
+     do subtítulo e empurra os ícones para a linha de baixo */
+  .cab-ident .cab-titulo{ flex:1 1 0; min-width:0; }
+  .cab-ident .cab-titulo .logo-text,
+  .cab-ident .cab-titulo .logo-sub{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+}
+</style>
+
 
 </body>
 </html>
