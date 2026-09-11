@@ -2558,6 +2558,7 @@ const APP = {
   busca: '',
   // Abre em Carteira: é o que ainda dá para agir. O faturado já foi.
   status: 'CART',      // TUDO | CART | FAT
+  statusAntesDaBusca: null,   // aba de onde a busca saiu, para voltar ao limpar
   // Cada filtro guarda um Set de valores marcados. Set vazio = sem filtro.
   filtros: { cliente: new Set(), preposto: new Set(), faixa: new Set(), marca: new Set(), fabrica: new Set(), filial: new Set(), oc: new Set(), mes: new Set(),
              // usados só na revisão de repasses
@@ -4287,6 +4288,31 @@ function atualizarVeuRolagem() {
   veuDe($('filter-row-rep'));
 }
 
+/** Quem procura, procura na base inteira.
+ *
+ *  A tela abre em Carteira, que é o que ainda dá para agir. Mas procurar
+ *  um cliente ou um GCI dentro só da carteira faz o app responder "nada
+ *  encontrado" para coisa que existe — só que já faturada. Então a busca
+ *  passa para Tudo sozinha e, ao limpar, devolve a aba de onde se veio.
+ *
+ *  Transferências fica de fora: lá a busca é dentro da fila, e sair dela
+ *  no meio do trabalho seria pior. */
+function ajustarStatusDaBusca(termo) {
+  const tem = !!String(termo || '').trim();
+  if (tem) {
+    if (APP.status === 'MARCADAS' || APP.status === 'TUDO') return;
+    APP.statusAntesDaBusca = APP.status;
+    APP.status = 'TUDO';
+    renderStatusChips();
+    return;
+  }
+  if (APP.statusAntesDaBusca) {
+    APP.status = APP.statusAntesDaBusca;
+    APP.statusAntesDaBusca = null;
+    renderStatusChips();
+  }
+}
+
 function renderStatusChips() {
   const { todas, pend, feitos, cancelar } = APP.base
     ? marcasDeRepasse()
@@ -4323,6 +4349,8 @@ function renderStatusChips() {
     b.addEventListener('click', () => {
       APP.status = b.dataset.status;
       APP.pagina = 1;
+      // Escolheu a aba na mão: limpar a busca não muda mais nada sozinho.
+      APP.statusAntesDaBusca = null;
       renderStatusChips();
       render();
     });
@@ -7830,6 +7858,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       APP.busca = val;
       APP.pagina = 1;
       APP.abertos.clear();
+      ajustarStatusDaBusca(val);
       render();
     }, 200);
   });
@@ -10533,9 +10562,9 @@ html.dark .painel-detalhada .gci-cols .gr-tgl:hover{ background:rgba(255,255,255
 </style>
 
 <style id="ds-mobile-card">
-/* o selinho de lupa sai do celular: ele só cobre um pedaço da foto.
-   Tocar na miniatura continua ampliando, como antes. */
-@media (max-width:700px){
+/* o selinho de lupa sai do celular e do tablet: ele só cobre um pedaço da
+   foto. Tocar na miniatura continua ampliando, como antes. */
+@media (max-width:1099.98px){
   .painel-detalhada .product-zoom{ display:none !important; }
 }
 
