@@ -8051,7 +8051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // depois, filtro com nome comprido, tela girada). Medir só no render
   // deixava a conta velha e o cabeçalho grudava no lugar errado.
   if ('ResizeObserver' in window && $('frozen-header')) {
-    new ResizeObserver(() => medirTopoCongelado()).observe($('frozen-header'));
+    new ResizeObserver(() => medirTopoCongelado()).observe($('frozen-header'), { box: 'border-box' });
   }
 
   // Produto recém-aberto: o cabeçalho dele nasce com o estado de agora.
@@ -10999,40 +10999,5 @@ html.dark #screen-rfv #rfv-busca:focus{ background:var(--ds-card); border-color:
 .painel-detalhada .pdf-btn{ width:24px; height:24px; padding:0; display:inline-grid; place-items:center; }
 .painel-detalhada .pdf-btn .ico-pdf{ display:block; width:17px; height:17px; }
 </style>
-
-<style id="ds-tablet-gruda">
-/* ── 3b) tablet e celular: a linha do produto aberto deixa de grudar ──
-   Grudada, ela subia junto com o fim das encomendas e ficava meio
-   escondida atrás do cabeçalho verde — parecia o filtro "comendo" o
-   produto ao subir e descer a tela. Na tela estreita a linha do produto
-   já é curta; rolando, ela passa normal. No computador continua grudando,
-   junto com o cabeçalho das encomendas. */
-@media (max-width:1099.98px){
-  .painel-detalhada .product-card.expanded .product-main{ position:static; }
-}
-</style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </body>
 </html>
