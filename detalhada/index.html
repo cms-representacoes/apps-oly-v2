@@ -7045,12 +7045,24 @@ function medirTopoCongelado() {
 // da lista sem mostrar nada — nem barra de rolagem, nem aviso.
 function abrirDetalhes(det) {
   const inner = det.querySelector('.product-details-inner');
-  det.style.maxHeight = inner.scrollHeight + 'px';
+  const alvo = inner.scrollHeight;
+  // Parte sempre do zero. Quem abre mede a barra de filtros logo antes, e
+  // essa medida já aplicava o "none" do CSS aberto: de "none" até um número
+  // não há animação, o transitionend nunca vinha e o teto ficava para
+  // sempre — abrir um cliente (a setinha do tablet e do celular) crescia a
+  // lista e os últimos sumiam cortados.
+  det.style.maxHeight = '0px';
+  void det.offsetHeight;
+  det.style.maxHeight = alvo + 'px';
+  const soltar = () => { det.style.maxHeight = ''; };   // volta ao CSS, que agora e "none"
   det.addEventListener('transitionend', function solta(e) {
     if (e.propertyName !== 'max-height') return;
     det.removeEventListener('transitionend', solta);
-    det.style.maxHeight = '';   // volta ao CSS, que agora e "none"
+    soltar();
   });
+  // rede de segurança: sem animação (movimento reduzido, aba em segundo
+  // plano) o transitionend não vem, e o teto não pode ficar.
+  setTimeout(soltar, 450);
 }
 
 // Fechar precisa sair de um numero, senao nao ha o que animar: o CSS aberto
@@ -10999,5 +11011,32 @@ html.dark #screen-rfv #rfv-busca:focus{ background:var(--ds-card); border-color:
 .painel-detalhada .pdf-btn{ width:24px; height:24px; padding:0; display:inline-grid; place-items:center; }
 .painel-detalhada .pdf-btn .ico-pdf{ display:block; width:17px; height:17px; }
 </style>
+
+<style id="ds-sel-compacta">
+/* ── caixas de seleção no cartão compacto (tablet e celular) ──
+   As regras de seleção com #lista (feitas para as colunas do computador)
+   venciam o cartão compacto: a grade ganhava uma coluna de 19px e o nome
+   do cliente caía nela ("I..."), com a caixa sobrando lá na direita — no
+   celular ela descia para uma linha sozinha. Aqui a caixa ganha a primeira
+   coluna e tudo do cartão anda uma casa para a direita. */
+@media (max-width:1099.98px){
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item{
+    grid-template-columns:20px minmax(0,1fr) auto 30px;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item > .sel-chk,
+  .painel-detalhada #lista:has(.sel-chk) .gci-item:not(:has(> .sel-chk))::before{
+    grid-column:1; grid-row:1; align-self:center; margin:0;
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item .gci-info{ grid-column:2; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item .gci-dir{ grid-column:3; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item .gci-exp{ grid-column:4; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item.aberta .gci-cli{ grid-column:2; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item.aberta .gci-meta{ grid-column:2 / -1; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item.aberta .acao-pills{ grid-column:2; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item.aberta .gci-grade{ grid-column:3 / -1; }
+  .painel-detalhada #lista:has(.sel-chk) .gci-item.aberta .gci-destinos{ grid-column:2 / -1; }
+}
+</style>
+
 </body>
 </html>
