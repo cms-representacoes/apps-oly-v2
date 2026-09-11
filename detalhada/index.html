@@ -2830,14 +2830,21 @@ async function carregarBase({ silencioso = false } = {}) {
   if (!silencioso) syncShow('Carregando base…');
   const atual = APP.base?.gerado || '';
 
-  try {
-    const r = await baseDoWorker(atual);
-    if (r === 'igual') { syncHide(); return 'igual'; }
-    if (r) {
-      instalarBase(r); cacheSalvar(r); syncHide(); return 'nova';
+  // O worker às vezes devolve 503 ("Worker exceeded resource limits") ao
+  // montar a base inteira. É passageiro: uma segunda tentativa costuma
+  // trazer. Sem isso, o app caía na cópia do repositório — que é reserva,
+  // e vive atrasada.
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    try {
+      const r = await baseDoWorker(atual);
+      if (r === 'igual') { syncHide(); return 'igual'; }
+      if (r) { instalarBase(r); cacheSalvar(r); syncHide(); return 'nova'; }
+      break;                       // respondeu, mas não tem base publicada
+    } catch (e) {
+      console.warn(`worker falhou na tentativa ${tentativa}`, e);
+      if (tentativa === 1) { if (!silencioso) syncShow('Carregando base…'); await new Promise(ok => setTimeout(ok, 1500)); }
+      else console.warn('worker sem a base, tentando o arquivo do repositório');
     }
-  } catch (e) {
-    console.warn('worker sem a base, tentando o arquivo do repositório', e);
   }
 
   try {
@@ -2845,7 +2852,12 @@ async function carregarBase({ silencioso = false } = {}) {
     if (r.ok) {
       const base = await r.json();
       if (base && base.v === VERSAO_BASE && Array.isArray(base.l)) {
-        if (base.gerado !== atual) {
+        // A cópia do repositório é reserva e pode estar velha: ela só entra
+        // se for mais nova que a base já instalada. Antes, qualquer data
+        // diferente valia, e uma reserva de dez dias atrás substituía a
+        // base do dia que já estava no aparelho.
+        const maisNova = !atual || new Date(base.gerado) > new Date(atual);
+        if (base.gerado !== atual && maisNova) {
           instalarBase(base);
           cacheSalvar(base);
           syncHide();
