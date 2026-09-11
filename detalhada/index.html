@@ -2303,6 +2303,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
           <button class="rfv-aba on" data-es="ent" role="tab">Entradas</button>
           <button class="rfv-aba" data-es="sai" role="tab">Saídas</button>
         </div>
+        <div class="es-periodos" id="es-periodos" role="radiogroup" aria-label="Período"></div>
         <button type="button" class="rfv-campo rfv-dd es-dd" data-f="vend" id="es-dd-vend">Prepostos</button>
         <button type="button" class="rfv-campo rfv-dd es-dd" data-f="marca">Marca</button>
         <button type="button" class="rfv-campo rfv-dd es-dd" data-f="linha">Faixa</button>
@@ -2574,7 +2575,8 @@ const PREPOSTOS = [
 // Nomes que a planilha usa e que precisam virar o nome oficial acima.
 const PREPOSTO_MAP = { 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'CMS': 'C M S', 'C': 'C M S' };
 
-const STORAGE = { sessao: 'detalhada.sessao', tema: 'detalhada.tema', acoes: 'detalhada.acoes' };
+const STORAGE = { sessao: 'detalhada.sessao', tema: 'detalhada.tema', acoes: 'detalhada.acoes',
+                  pendentes: 'detalhada.acoesPendentes' };
 
 // Ações possíveis para uma linha que ainda está em carteira.
 // MANTER é o padrão: toda linha em aberto nasce assim e não é gravada.
@@ -4132,7 +4134,7 @@ function logout() {
   if (buscaRfv) { buscaRfv.value = ''; $('rfv-search-wrap')?.classList.remove('has-value'); }
   // Entradas e saídas: o movimento é recortado por quem está vendo.
   for (const k of Object.keys(ES.f)) ES.f[k] = '';
-  Object.assign(ES, { aba: 'ent', ordem: 'mes_proximo', sel: '', mov: null, movDe: '', limite: 500 });
+  Object.assign(ES, { aba: 'ent', periodo: 'mes', ordem: 'mes_proximo', sel: '', mov: null, movDe: '', limite: 500 });
   const buscaEs = $('es-busca');
   if (buscaEs) { buscaEs.value = ''; $('es-search-wrap')?.classList.remove('has-value'); }
   APP.busca = '';
@@ -4603,7 +4605,8 @@ async function rfvExportPdf() {
      entrou = encomenda (GCI · produto · cor · cliente) com mais pares em
               carteira do que tinha;
      saiu   = a que ficou com menos: "Faturou" quando a nota apareceu,
-              "Sem nota" quando não (cancelada, ou ainda faturando),
+              "Transferido" quando saiu sem nota — quase sempre a
+              encomenda foi transferida (98% nunca voltam nem faturam),
               "Repassada" quando trocou de preposto.
    A data é o dia do movimento: a base da manhã traz o dia útil anterior.
    ============================================================ */
@@ -4611,7 +4614,7 @@ async function rfvExportPdf() {
 // lê um registro gerado à parte, do mesmo formato.
 const ES_MOV_LOCAL = 'dados/movimento.json';
 const ES = {
-  aba: 'ent', mov: null, movDe: '', fonte: null,
+  aba: 'ent', periodo: 'mes', mov: null, movDe: '', fonte: null,
   f: { vend: '', marca: '', linha: '', prod: '', motivo: '' },
   ordem: 'mes_proximo', aberto: null, sel: '', limite: 500,
   carregando: '', erro: '', pedido: 0,
@@ -4624,7 +4627,7 @@ const ES_FILTRO = {
   motivo: { nome: 'Motivo',    todos: 'Todos' },
 };
 const ES_MULTI = new Set(['vend', 'marca', 'linha']);
-const ES_MOTIVO = { fat: 'Faturou', sem: 'Sem nota', rep: 'Repassada' };
+const ES_MOTIVO = { fat: 'Faturou', trf: 'Transferido', rep: 'Repassada' };
 
 /** "2026-09" do fuso da empresa: o mês que está valendo agora. */
 function esMesAtual() {
@@ -4633,6 +4636,38 @@ function esMesAtual() {
 function esNomeMes(mes) {
   const m = /^(\d{4})-(\d{2})$/.exec(mes || '');
   return m ? NOMES_MES[Number(m[2]) - 1] : '';
+}
+
+/** Os períodos que já cabem no mês. Eles vão aparecendo com os dias:
+ *  "7 dias" só quando os sete dias cabem inteiros dentro do mês, e assim
+ *  por diante — senão "7 dias" no dia 3 seria o mesmo que o mês todo.
+ *  "Ontem" é o último dia útil: segunda-feira ele mostra a sexta, que é o
+ *  dia em que a base da segunda põe o movimento do fim de semana. */
+function esPeriodos() {
+  const hoje = hojeEmDias();
+  const [a, m] = esMesAtual().split('-').map(Number);
+  const ini = Math.floor(Date.UTC(a, m - 1, 1) / 86400000);
+  let ontem = hoje - 1;
+  while ([0, 6].includes(new Date(ontem * 86400000).getUTCDay())) ontem--;
+  const out = [];
+  if (ontem >= ini) out.push({ id: 'ontem', rot: 'Ontem', de: ontem, ate: ontem,
+    dica: ontem === hoje - 1 ? 'Movimento de ontem, ' + diaParaCurto(ontem) : 'Último dia útil, ' + diaParaCurto(ontem) });
+  if (hoje - 7 >= ini)  out.push({ id: '7',  rot: '7 dias',  de: hoje - 7,  ate: hoje, dica: 'Desde ' + diaParaCurto(hoje - 7) });
+  if (hoje - 15 >= ini) out.push({ id: '15', rot: '15 dias', de: hoje - 15, ate: hoje, dica: 'Desde ' + diaParaCurto(hoje - 15) });
+  out.push({ id: 'mes', rot: 'Desde o início do mês', curto: 'Mês', de: ini, ate: hoje, dica: 'Desde ' + diaParaCurto(ini) });
+  return out;
+}
+/** O período escolhido — ou o mês, se o escolhido ainda não existe (virou o mês). */
+function esPeriodo() {
+  const ps = esPeriodos();
+  return ps.find(x => x.id === ES.periodo) || ps[ps.length - 1];
+}
+function esPintarPeriodos() {
+  const atual = esPeriodo().id;
+  $('es-periodos').innerHTML = esPeriodos().map(x =>
+    `<button type="button" class="es-per ${x.id === atual ? 'on' : ''}" data-per="${x.id}" role="radio"
+       aria-checked="${x.id === atual}" title="${escAttr(x.dica)}">${x.curto
+         ? `<span class="longo">${x.rot}</span><span class="curto">${x.curto}</span>` : x.rot}</button>`).join('');
 }
 
 /** O registro do mês: o que veio na base ou, no protótipo, o arquivo à parte. */
@@ -4739,7 +4774,11 @@ function esPintarBotoes() {
  *  oferecer uma marca que não entrou nem saiu. */
 function esOpcoes(f, busca) {
   const q = normalizar(busca || '').trim();
-  if (f === 'motivo') return Object.keys(ES_MOTIVO).map(v => ({ v, rot: ES_MOTIVO[v] }));
+  if (f === 'motivo') {
+    const pares = {};
+    for (const o of (ES.mov ? ES.mov.sai : [])) if (esPassa(o)) pares[o.motivo] = (pares[o.motivo] || 0) + o.qtde;
+    return Object.keys(ES_MOTIVO).map(v => ({ v, rot: ES_MOTIVO[v], n: pares[v] || 0, sub: formatarNumero(pares[v] || 0) }));
+  }
   const todos = ES.mov ? [...ES.mov.ent, ...ES.mov.sai] : [];
   if (f === 'vend')  return [...new Set(todos.map(o => o.prep).filter(Boolean))].sort().map(v => ({ v, rot: v }));
   if (f === 'marca') return [...new Set(todos.map(o => rfvMarcaGrupo(o.marca)))].sort().map(v => ({ v, rot: v }));
@@ -4790,8 +4829,11 @@ function esPintarLista() {
     return;
   }
   const atual = ES.f[f];
+  // No Motivo o "Todos" também leva o total, para as partes somarem à vista.
+  const total = f === 'motivo'
+    ? `<span class="sub">${formatarNumero(itens.reduce((t, o) => t + o.n, 0))}</span>` : '';
   $('es-lista-itens').innerHTML =
-    `<button type="button" class="rfv-item ${atual ? '' : 'on'}" data-v="">${ES_FILTRO[f].todos}</button>` +
+    `<button type="button" class="rfv-item ${atual ? '' : 'on'}" data-v=""><span>${ES_FILTRO[f].todos}</span>${total}</button>` +
     (itens.length
       ? itens.map(o => `<button type="button" class="rfv-item ${o.v === atual ? 'on' : ''}" data-v="${escHtml(o.v)}">
           <span>${escHtml(o.rot)}</span>${sub(o)}</button>`).join('')
@@ -4803,6 +4845,8 @@ function esFecharLista() { ES.aberto = null; $('es-lista').hidden = true; }
 /** Filtros e busca. O Motivo fica de fora daqui: ele só recorta a aba de
  *  saídas, e os números de cima continuam contando as duas. */
 function esPassa(o) {
+  const per = esPeriodo();
+  if (o.dia < per.de || o.dia > per.ate) return false;
   const vend = esSel('vend'), marca = esSel('marca'), linha = esSel('linha');
   if (vend.length && !vend.includes(o.prep)) return false;
   if (marca.length && !marca.includes(rfvMarcaGrupo(o.marca))) return false;
@@ -4839,7 +4883,6 @@ function esFichas(ent, sai) {
   const soma = ls => ls.reduce((t, o) => t + o.qtde, 0);
   const pe = soma(ent), ps = soma(sai);
   const pf = soma(sai.filter(o => o.motivo === 'fat'));
-  const saldo = pe - ps;
   const enc = n => `${formatarNumero(n)} encomenda${n === 1 ? '' : 's'}`;
   const on = (aba, mot) => ES.aba === aba && (mot === undefined || ES.f.motivo === mot) ? 'on' : '';
   $('es-fichas').innerHTML = `
@@ -4854,18 +4897,17 @@ function esFichas(ent, sai) {
     <button class="rfv-ficha pos ${on('sai', 'fat')}" type="button" data-aba="sai" data-mot="fat" title="ver só o que saiu faturado">
       <span class="n">faturaram</span>
       <span class="v">${formatarNumero(pf)}</span>
-      <span class="pc">${ps ? Math.round(100 * pf / ps) + '% do que saiu' : '—'}</span></button>
-    <div class="rfv-ficha" title="entraram menos saíram, no mês">
-      <span class="n">saldo do mês</span>
-      <span class="v">${saldo > 0 ? '+' : saldo < 0 ? '−' : ''}${formatarNumero(Math.abs(saldo))}</span>
-      <span class="pc">pares</span></div>`;
+      <span class="pc">${ps ? Math.round(100 * pf / ps) + '% do que saiu' : '—'}</span></button>`;
 }
 
 function esTabela(lista) {
-  const mes = esNomeMes(esMesAtual()).toLowerCase();
+  const per = esPeriodo();
+  const quando = per.id === 'ontem' ? (per.de === hojeEmDias() - 1 ? 'ontem' : 'no último dia útil')
+    : per.id === 'mes' ? 'em ' + esNomeMes(esMesAtual()).toLowerCase()
+    : `nos últimos ${per.id} dias`;
   if (!lista.length) {
     return `<div class="rfv-quadro es-quadro"><div class="rfv-vazio">${ES.aba === 'ent' ? 'Nada entrou' : 'Nada saiu'}
-      da carteira em ${mes}${esTemFiltro() ? ' com esses filtros' : ' até agora'}.</div></div>`;
+      da carteira ${quando}${esTemFiltro() ? ' com esses filtros' : per.id === 'mes' ? ' até agora' : ''}.</div></div>`;
   }
   const seta = (on, sobe) => on ? ` <i class="fa-solid fa-arrow-${sobe ? 'up' : 'down'} ord-seta" aria-hidden="true"></i>` : '';
   const th = (ord, rot, cls, dica, on, extra = '', sobe = false) =>
@@ -4914,13 +4956,14 @@ function esTabela(lista) {
 function esPintar() {
   if (!APP.base) return;
   document.querySelectorAll('#screen-es .rfv-aba').forEach(b => b.classList.toggle('on', b.dataset.es === ES.aba));
+  esPintarPeriodos();
   const mes = esMesAtual();
   const ate = ES.reg && ES.reg.mes === mes && ES.reg.diaAte >= 0 ? ' · até ' + diaParaCurto(ES.reg.diaAte) : '';
   const quem = APP.sessao ? APP.sessao.nome : '';
   $('es-periodo').textContent = esNomeMes(mes) + ate
     + (quem ? ' · ' + quem + (APP.veTudo ? ' · Admin' : '') : '');
   if (!ES.mov || ES.carregando || ES.erro) {
-    $('es-fichas').innerHTML = ['entraram', 'saíram', 'faturaram', 'saldo do mês'].map(n =>
+    $('es-fichas').innerHTML = ['entraram', 'saíram', 'faturaram'].map(n =>
       `<div class="rfv-ficha"><span class="n">${n}</span><span class="v">—</span><span class="pc">&nbsp;</span></div>`).join('');
     $('es-tela').innerHTML = `<div class="rfv-quadro es-quadro"><div class="rfv-vazio">${ES.erro
       ? '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' + escHtml(ES.erro)
@@ -5668,9 +5711,24 @@ async function chamarWorker(action, extra = {}, ms = 12000) {
  *  três linhas seguidas não deve virar três commits no GitHub. */
 let _envioTimer = null;
 let _pendentes = new Set();
+// Acabou de ir: por alguns minutos o servidor ainda pode responder com a
+// versão de antes, e isso não pode apagar daqui o que acabou de ser marcado.
+const _enviadasEm = new Map();
+
+// A fila do que ainda não chegou ao servidor fica guardada no aparelho.
+// Só ela pode vencer o servidor na hora de juntar as duas cópias: o resto
+// o servidor já viu, e o que ele diz é o que vale (ver baixarAcoes).
+function guardarPendentes() {
+  try { localStorage.setItem(STORAGE.pendentes, JSON.stringify([..._pendentes])); } catch (_) {}
+}
+function carregarPendentes() {
+  try { for (const k of JSON.parse(localStorage.getItem(STORAGE.pendentes) || '[]')) _pendentes.add(k); }
+  catch (_) {}
+}
 
 function agendarEnvio(chaves) {
   for (const k of chaves) _pendentes.add(k);
+  guardarPendentes();
   if (_envioTimer) clearTimeout(_envioTimer);
   _envioTimer = setTimeout(enviarAcoes, 2500);
 }
@@ -5682,9 +5740,9 @@ async function enviarAcoes() {
   const chaves = [..._pendentes];
   const itens = chaves.map(key => {
     const reg = APP.acoes[key];
-    // apagada localmente = voltou para MANTER; precisa viajar assim para
-    // a reversão chegar aos outros dispositivos
-    if (!reg) return { key, acao: 'MANTER', repasse: null };
+    // apagada localmente = voltou para MANTER; precisa viajar assim, e com
+    // data, para a reversão chegar aos outros aparelhos
+    if (!reg) return { key, acao: 'MANTER', repasse: { app: APP_ORIGEM, atualizadoEm: Date.now() } };
     return {
       key,
       acao: reg.acao,
@@ -5695,7 +5753,9 @@ async function enviarAcoes() {
   try {
     syncShow('Salvando…');
     await chamarWorker('saveAcaoCarteira', { itens, por: APP.sessao ? APP.sessao.nome : '' });
-    _pendentes.clear();
+    // só sai da fila o que foi: o que entrou durante o envio segue nela
+    for (const k of chaves) { _pendentes.delete(k); _enviadasEm.set(k, Date.now()); }
+    guardarPendentes();
     syncHide();
     return true;
   } catch (e) {
@@ -5707,8 +5767,11 @@ async function enviarAcoes() {
 }
 
 /** Traz o que está no servidor e funde com o que há aqui.
- *  Na dúvida vence o mais recente; sem data, vence o local — quem está
- *  com o app aberto acabou de decidir. */
+ *  O que ainda está na fila de envio vence (acabou de ser decidido aqui);
+ *  no resto vale o servidor. Antes, "sem data, vence o local" fazia a
+ *  exclusão — que viajava como MANTER sem data — nunca chegar aos outros
+ *  aparelhos: quem abria pouco o app (o celular) seguia mostrando
+ *  transferências e cancelamentos que já tinham sido apagados. */
 async function baixarAcoes() {
   let dados;
   try { dados = await chamarWorker('getAcoesCarteira'); }
@@ -5723,6 +5786,9 @@ async function baixarAcoes() {
     const chaveDaqui = key.split('|').length === 4;
     if (!meu && !chaveDaqui) continue;
 
+    // na fila, ou acabou de ir: o que o servidor diz agora pode ser a
+    // versão de antes do envio (uma exclusão recém-feita voltaria)
+    if (_pendentes.has(key) || Date.now() - (_enviadasEm.get(key) || 0) < 5 * 60000) continue;
     const local = APP.acoes[key];
     if (!local) {
       if (reg.acao && reg.acao !== ACAO_PADRAO) { APP.acoes[key] = { ...reg, visto: 'ABERTO' }; novas++; }
@@ -5740,6 +5806,19 @@ async function baixarAcoes() {
       if (!reg.acao || reg.acao === ACAO_PADRAO) delete APP.acoes[key];
       else APP.acoes[key] = { ...reg, visto: local.visto };
       novas++;
+    }
+  }
+
+  // Marcação que só existe aqui, fora da fila: o servidor já a teve e ela
+  // foi apagada lá (por outro aparelho, pelo escritório ou num teste), ou
+  // ele diz MANTER. Sai daqui também. Resposta vazia não apaga nada — pode
+  // ser falha de leitura, e não vale o risco de limpar tudo.
+  if (Object.keys(remotas).length) {
+    for (const key of Object.keys(APP.acoes)) {
+      if (_pendentes.has(key)) continue;
+      if (Date.now() - (_enviadasEm.get(key) || 0) < 5 * 60000) continue;
+      const reg = remotas[key];
+      if (!reg || !reg.acao || reg.acao === ACAO_PADRAO) { delete APP.acoes[key]; novas++; }
     }
   }
 
@@ -8505,11 +8584,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderBarraSelecao();
   });
   carregarAcoes();
+  carregarPendentes();
 
   // O local abre a tela; a rede só complementa depois. Assim o app não
-  // fica refém do worker para funcionar.
+  // fica refém do worker para funcionar. O que ficou na fila da última vez
+  // (sem internet, app fechado antes do envio) sai agora.
   baixarAcoes().then(novas => {
     if (novas) { renderStatusChips(); if (APP.base) render(); }
+    if (_pendentes.size) enviarAcoes();
   });
 
   // Sair com marca pendente perderia o envio agendado. `visibilitychange`
@@ -8725,6 +8807,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     scrollTo(0, 0);
     esRepintar();
   }));
+  ligar('es-periodos', 'click', (e) => {
+    const b = e.target.closest('.es-per');
+    if (!b || b.dataset.per === esPeriodo().id) return;
+    ES.periodo = b.dataset.per;
+    esRepintar();
+  });
   ligar('es-fichas', 'click', (e) => {
     const b = e.target.closest('button.rfv-ficha');
     if (!b) return;
@@ -11593,13 +11681,34 @@ html.dark :is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{ backgroun
   font-size:11px; font-weight:600; white-space:nowrap;
 }
 .es-motivo.m-fat{ background:color-mix(in srgb, var(--ds-faturado) 14%, transparent); color:var(--ds-faturado); }
-.es-motivo.m-sem{ background:color-mix(in srgb, var(--ds-erro) 12%, transparent); color:var(--ds-erro); }
+.es-motivo.m-trf{ background:color-mix(in srgb, var(--ds-atencao) 15%, transparent); color:var(--ds-atencao); }
 .es-mais{
   display:block; margin:12px auto 14px; padding:9px 18px; cursor:pointer;
   font:inherit; font-size:13px; font-weight:600; color:var(--ds-accent-2);
   background:var(--ds-card); border:1px solid var(--pv-fio, var(--ds-line)); border-radius:var(--ds-r-md);
 }
 .es-mais:hover{ border-color:var(--ds-accent); }
+/* o período: trilho em pílula, a opção escolhida cheia no verde da marca */
+.es-periodos{
+  flex:none; display:inline-flex; align-items:center; gap:2px; padding:3px;
+  background:var(--ds-card); border:1px solid var(--pv-fio, var(--ds-line)); border-radius:999px;
+}
+.es-per{
+  font:inherit; font-size:12.5px; font-weight:600; white-space:nowrap; cursor:pointer;
+  padding:5px 14px; border:0; border-radius:999px; background:transparent; color:var(--ds-muted);
+  transition:background .15s ease, color .15s ease;
+}
+.es-per:hover{ background:var(--ds-sunk); color:var(--ds-ink); }
+.es-per.on{ background:var(--ds-accent); color:#fff; box-shadow:0 1px 3px rgba(13,148,136,.35); }
+html.dark .es-per.on{ background:var(--ds-accent-2); color:#0F2A28; box-shadow:none; }
+.es-per:focus-visible{ outline:2px solid var(--ds-accent); outline-offset:1px; }
+.es-per .curto{ display:none; }
+@media (max-width:700px){
+  .es-per{ padding:5px 11px; }
+  .es-per .longo{ display:none; }
+  .es-per .curto{ display:inline; }
+}
+@media (prefers-reduced-motion: reduce){ .es-per{ transition:none; } }
 /* as fichas daqui são botões: trocam de aba */
 #screen-es button.rfv-ficha{ font:inherit; text-align:left; cursor:pointer; }
 
@@ -11631,6 +11740,13 @@ html.dark :is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{ backgroun
   #screen-es .es-quadro td.es-cor{ grid-column:2; grid-row:3; overflow:hidden; text-overflow:ellipsis; }
   #screen-es .es-quadro td.es-cor::after{ content:' · ' attr(data-gci); }
   #screen-es .es-quadro td.es-gci{ display:none; }
+  /* toque e linha escolhida acendem o cartão inteiro, não célula por
+     célula (no toque o :hover fica preso e deixava retalhos cinza) */
+  #screen-es .es-quadro tbody tr:hover td,
+  html.dark #screen-es .es-quadro tbody tr:hover td,
+  #screen-es .es-quadro tbody tr.sel td{ background:transparent; }
+  #screen-es .es-quadro tbody tr:hover{ background:var(--ds-card-2); }
+  #screen-es .es-quadro tbody tr.sel{ background:var(--ds-accent-bg); }
   #screen-es .es-quadro td.es-mot{ grid-column:2 / -1; grid-row:4; margin-top:3px; }
 }
 /* o cabeçalho gruda inteiro e o verde é pintado na linha, não em cada
