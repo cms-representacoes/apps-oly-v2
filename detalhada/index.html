@@ -4055,6 +4055,15 @@ function logout() {
   // Quem entrar depois pode ter outro papel: o filtro de vendedor do RFV
   // é montado uma vez, e precisa ser montado de novo para a pessoa certa.
   RFV.montado = false;
+  // Os filtros do RFV também saem: quem entra depois não pode abrir o
+  // relatório já recortado pelo que o anterior deixou (um "sem compra",
+  // ou pior, o preposto de outra pessoa).
+  for (const k of Object.keys(RFV.f)) RFV.f[k] = '';
+  RFV.ordem = '';
+  RFV.sel = '';
+  RFV.aberto = null;
+  const buscaRfv = $('rfv-busca');
+  if (buscaRfv) { buscaRfv.value = ''; $('rfv-search-wrap')?.classList.remove('has-value'); }
   APP.busca = '';
   $('busca').value = '';
   limparFiltros();
@@ -4396,10 +4405,30 @@ function rfvTabelaExport() {
   return { cab, corpo, primeiroNumero };
 }
 
+/** O nome do arquivo conta o recorte: quem abre a pasta de downloads
+ *  reconhece "RFV da carteira - SEM COMPRA NO 2S26 - JORGE" sem precisar abrir. */
 function rfvNomeArquivo(ext) {
   const hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-  const quem = rfvSel('vend').length === 1 ? ' ' + rfvSel('vend')[0] : '';
-  return 'RFV da carteira' + quem + ' ' + hoje + '.' + ext;
+  const ano = RFV.meses.length ? RFV.meses[RFV.meses.length - 1].slice(5) : '';
+  const SIT = {
+    sem2: 'SEM COMPRA NO 2S' + ano,
+    so1:  'COMPROU NO 1S' + ano,
+    so2:  'COMPROU NO 2S' + ano,
+    dois: 'COMPROU NOS DOIS SEMESTRES',
+  };
+  const lista = (vals, max = 2) => vals.length <= max ? vals.join(', ')
+    : vals.slice(0, max).join(', ') + ' +' + (vals.length - max);
+  const partes = ['RFV da carteira'];
+  if (RFV.f.sit && SIT[RFV.f.sit]) partes.push(SIT[RFV.f.sit]);
+  if (rfvSel('vend').length) partes.push(lista(rfvSel('vend')));
+  if (rfvSel('marca').length) partes.push(lista(rfvSel('marca')));
+  if (rfvSel('linha').length) partes.push(lista(rfvSel('linha').map(v => String((APP.dic.faixa || [])[Number(v)] || v))));
+  if (RFV.f.prod) partes.push(rfvRotulo('prod'));
+  const busca = $('rfv-busca').value.trim();
+  if (busca) partes.push('busca ' + busca);
+  partes.push(hoje);
+  // nada de caractere que o Windows recusa em nome de arquivo
+  return partes.join(' - ').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() + '.' + ext;
 }
 
 /** Planilha: cabeçalho com os filtros, números com separador de milhar,
@@ -4909,7 +4938,7 @@ function cardProduto(g, idx) {
         </div>
         <div class="product-info">
           <p class="product-name">${escHtml(descricao || referencia)}</p>
-          <p class="product-meta">${escHtml(cor)} · <span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` <span class="p-mes">${escHtml(mesCurtoRotulo(mesProx))}</span>` : ''}</p>
+          <p class="product-meta"><span class="p-cor">${escHtml(cor)}</span><span class="p-sep"> · </span><span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` <span class="p-mes">${escHtml(mesCurtoRotulo(mesProx))}</span>` : ''}</p>
         </div>
         <span class="col-cor">${escHtml(cor)}</span>
         <span class="col-ref">${escHtml(referencia)}</span>
@@ -6385,9 +6414,19 @@ function temExtensao() {
   return !!document.documentElement.dataset.cmsEbm;
 }
 
+/** Ícone de PDF desenhado aqui — ver botaoPdfHTML. */
+const ICONE_PDF = `<svg class="ico-pdf" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+  <path d="M6.2 2.6h7.4L19.4 8.4V21a1.8 1.8 0 0 1-1.8 1.8H6.2A1.8 1.8 0 0 1 4.4 21V4.4a1.8 1.8 0 0 1 1.8-1.8Z"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M13.4 2.8v5.4h5.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="11.9" y="18.8" text-anchor="middle" font-size="8.2" font-weight="700"
+        fill="currentColor" font-family="'Instrument Sans', Arial, sans-serif">PDF</text>
+</svg>`;
+
 function botaoPdfHTML(r) {
   if (!temExtensao() || !r[C.GCI]) return '';
-  return `<button class="pdf-btn" data-pdf="${escAttr(r[C.GCI])}" data-pdf-cli="${escAttr(APP.dic.cli[r[C.CLI]][1])}" data-pdf-st="${r[C.CART] > 0 ? 'A' : 'F'}" title="Gerar o PDF do pedido"><i class="fa-solid fa-file-pdf"></i></button>`;
+  // O fa-file-pdf do Font Awesome 6.5 desenha "PNG": o ícone é desenhado aqui.
+  return `<button class="pdf-btn" data-pdf="${escAttr(r[C.GCI])}" data-pdf-cli="${escAttr(APP.dic.cli[r[C.CLI]][1])}" data-pdf-st="${r[C.CART] > 0 ? 'A' : 'F'}" title="Gerar o PDF do pedido">${ICONE_PDF}</button>`;
 }
 
 /* ============================================================
@@ -8007,6 +8046,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const item = b.closest('.gci-item');
     if (item) item.classList.toggle('aberta');
   });
+
+  // A barra de filtros muda de altura sem avisar (letra que carrega
+  // depois, filtro com nome comprido, tela girada). Medir só no render
+  // deixava a conta velha e o cabeçalho grudava no lugar errado.
+  if ('ResizeObserver' in window && $('frozen-header')) {
+    new ResizeObserver(() => medirTopoCongelado()).observe($('frozen-header'));
+  }
 
   // Produto recém-aberto: o cabeçalho dele nasce com o estado de agora.
   new MutationObserver(() => pintarGrade(document.documentElement.classList.contains('grades-on')))
@@ -10782,7 +10828,7 @@ html.dark .painel-detalhada .gci-cols .gr-tgl:hover{ background:rgba(255,255,255
 /* na tela larga a encomenda já mostra tudo em colunas: sem botão */
 .painel-detalhada .gci-exp{ display:none; }
 
-@media (max-width:700px){
+@media (max-width:1099.98px){
   /* ── uma linha só: cliente · pares · previsão · seta ── */
   .painel-detalhada .product-card.expanded .gci-item{
     grid-template-columns:minmax(0,1fr) auto 30px;
@@ -10939,6 +10985,34 @@ html.dark #screen-rfv #rfv-busca:focus{ background:var(--ds-card); border-color:
   .fab-limpar i{ font-size:17px; }
 }
 </style>
+
+<style id="ds-tres">
+/* ── 3) no celular o cartão do produto mostra cor e previsão lado a lado;
+   a referência sai (ela continua na busca e na tela larga) ── */
+@media (max-width:700px){
+  .painel-detalhada .product-meta{ white-space:nowrap; }
+  .painel-detalhada .product-meta .p-ref,
+  .painel-detalhada .product-meta .p-sep{ display:none; }
+  .painel-detalhada .product-meta .p-mes{ margin-left:8px; }
+}
+/* o ícone de PDF ao lado do código: grande o bastante para ler "PDF" */
+.painel-detalhada .pdf-btn{ width:24px; height:24px; padding:0; display:inline-grid; place-items:center; }
+.painel-detalhada .pdf-btn .ico-pdf{ display:block; width:17px; height:17px; }
+</style>
+
+<style id="ds-tablet-gruda">
+/* ── 3b) tablet e celular: a linha do produto aberto deixa de grudar ──
+   Grudada, ela subia junto com o fim das encomendas e ficava meio
+   escondida atrás do cabeçalho verde — parecia o filtro "comendo" o
+   produto ao subir e descer a tela. Na tela estreita a linha do produto
+   já é curta; rolando, ela passa normal. No computador continua grudando,
+   junto com o cabeçalho das encomendas. */
+@media (max-width:1099.98px){
+  .painel-detalhada .product-card.expanded .product-main{ position:static; }
+}
+</style>
+
+
 
 
 
