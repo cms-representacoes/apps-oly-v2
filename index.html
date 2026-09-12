@@ -69,10 +69,11 @@
     #btnOpenCart            { order: 2; }
     #btnMeusPedidos         { order: 3; }
     #btnRefresh             { order: 4; }
-    #btnLayout              { order: 5; }
-    #btnClear               { order: 6; }
-    #btnOpenDrawerFilters   { order: 7; }
-    #btnDark                { order: 8; }
+    #btnBackToHome          { order: 5; }
+    #btnLayout              { order: 6; }
+    #btnClear               { order: 7; }
+    #btnOpenDrawerFilters   { order: 8; }
+    #btnDark                { order: 9; }
     :root{
       --bg: #F4F6FA;
       --text:#0F172A;
@@ -617,15 +618,6 @@
     .home-cat-img.loaded + .home-cat-placeholder { display: none !important; }
     .home-cat-arrow { font-size: 12px; color: var(--muted, #9CA3AF); margin-left: 4px; flex-shrink: 0; }
 
-    /* Botão "Voltar à home" no header do catálogo */
-    #btnBackToHome {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; font-weight: 700; color: var(--primary);
-      background: rgba(var(--primary-rgb),0.07); border: 1px solid rgba(var(--primary-rgb),0.18);
-      border-radius: 999px; padding: 5px 12px 5px 8px;
-      cursor: pointer; transition: background 0.15s; white-space: nowrap; flex-shrink: 0;
-    }
-    #btnBackToHome:hover { background: rgba(var(--primary-rgb),0.13); }
 
     /* ══════════════════════════════
        CORREÇÕES DE UX — BOTÕES
@@ -1462,8 +1454,6 @@
     .dark-mode .tier-bar-divider { background: #374151; }
 
     /* ── BOTÃO VOLTAR ── */
-    #btnBackToHome { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--primary); background:rgba(var(--primary-rgb),0.07); border:1px solid rgba(var(--primary-rgb),0.18); border-radius:999px; padding:5px 12px 5px 8px; cursor:pointer; transition:background 0.15s; white-space:nowrap; flex-shrink:0; }
-    #btnBackToHome:hover { background:rgba(var(--primary-rgb),0.13); }
 
     /* ── LABELS MOBILE NOS BOTÕES DA ACTION BAR ── */
     .action-btn-wrap { display:inline-flex; flex-direction:column; align-items:center; gap:1px; }
@@ -1485,6 +1475,23 @@
 
     .action-btn-mobile-label { font-size:9px; font-weight:700; color:var(--primary); line-height:1; display:block; pointer-events:none; }
     @media(min-width:640px){ .action-btn-mobile-label { display:none; } }
+
+    /* ── a fita de botões ──
+       Mesma altura para todos: com o rótulo embaixo do ícone, uns ficavam
+       mais altos que os outros e a fita parecia desalinhada. A altura vem
+       daqui, e não do padding de cada botão. */
+    #actionBar { --act-h: 46px; align-items: center; }
+    @media(min-width:640px){ #actionBar { --act-h: 38px; } }
+    #actionBar > button,
+    #actionBar > a,
+    #actionBar > #searchWrap,
+    #actionBar > #btnLayout,
+    #actionBar > #favsActions,
+    #actionBar > #favsActions > button {
+      height: var(--act-h); padding-top: 0; padding-bottom: 0;
+    }
+    #actionBar > #searchWrap { padding-top:0; padding-bottom:0; }
+    #actionBar > #btnLayout .lay-opt { height: calc(var(--act-h) - 8px); }
 
 
     /* ── Modal Imagens Categorias ── */
@@ -2142,22 +2149,21 @@
         <div class="flex items-center justify-between gap-3">
           <!-- Left: logo only -->
           <div class="flex items-center gap-3 min-w-0">
-            <button id="btnGoHome" title="Voltar ao início" class="focus-ring h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-white border border-oly-border flex items-center justify-center overflow-hidden shrink-0">
-              <img id="brandLogo" src="./logo-olympikus.png" alt="Olympikus" class="h-full w-full object-contain" onerror="this.style.display='none'">
-            </button>
+            <!-- A logo troca de marca, como na vitrine. A setinha embaixo é
+                 o que conta isso: sem ela a logo parece só enfeite. -->
+            <div class="relative shrink-0">
+              <button id="btnGoHome" title="Trocar de marca" aria-label="Trocar de marca" class="focus-ring h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-white border border-oly-border flex items-center justify-center overflow-hidden shrink-0">
+                <img id="brandLogo" src="./logo-olympikus.png" alt="Olympikus" class="h-full w-full object-contain" onerror="this.style.display='none'">
+              </button>
+              <span class="pointer-events-none absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-white border border-oly-border flex items-center justify-center shadow-sm" style="color:var(--primary)">
+                <i class="fa-solid fa-right-left" style="font-size:8px"></i>
+              </span>
+            </div>
             <!-- status invisível mas mantido para compatibilidade com JS -->
             <div id="headerStatus" class="hidden"></div>
             <div id="headerStatusMobile" class="hidden"></div>
           </div>
 
-          <!-- Botão Voltar à Home (visível ao entrar pelo seletor de categorias) -->
-          <button id="btnBackToHome" class="hidden" title="Voltar à seleção de categorias" aria-label="Voltar à seleção de categorias">
-            <i class="fa-solid fa-arrow-left" style="font-size:11px"></i>
-            Categorias
-          </button>
-          <button id="btnBackToHome" style="display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--primary);background:rgba(var(--primary-rgb),0.07);border:1px solid rgba(var(--primary-rgb),0.18);border-radius:999px;padding:5px 12px 5px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0" title="Voltar à seleção de categorias">
-            <i class="fa-solid fa-arrow-left" style="font-size:11px"></i> Categorias
-          </button>
           <div class="actionbar-wrap" id="actionBarWrap">
           <div id="actionBar" class="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap scroll-smooth -mx-1 px-1 overscroll-x-contain">
             <!-- Search: icon-only -> expands -->
@@ -2201,6 +2207,13 @@
             <button id="btnRefresh" class="focus-ring inline-flex items-center justify-center gap-2 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-4 text-sm font-semibold hover:bg-oly-bg" title="Recarregar catálogo">
               <span class="action-btn-wrap"><i id="icoRefresh" class="fa-solid fa-arrows-rotate text-oly-blue"></i><span class="action-btn-mobile-label">Atualizar</span></span>
               <span id="lblRefresh" class="hidden sm:inline">Atualizar</span>
+            </button>
+            <!-- Voltar à seleção de categorias. Ficava fora da fita, preso
+                 entre a logo e a busca: era o único botão que não rolava, e
+                 comia a largura de todos os outros. -->
+            <button id="btnBackToHome" class="focus-ring inline-flex items-center justify-center gap-2 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-4 text-sm font-semibold hover:bg-oly-bg" style="display:none" title="Voltar à seleção de categorias">
+              <span class="action-btn-wrap"><i class="fa-solid fa-house text-oly-blue"></i><span class="action-btn-mobile-label">Início</span></span>
+              <span class="hidden sm:inline">Início</span>
             </button>
             <!-- Layout (agora vem depois de Limpar e Atualizar) -->
             <!-- As duas densidades ficam à vista, com a ativa destacada.
@@ -3323,6 +3336,8 @@ const DATA_CONFIG = { xlsxPath: MARCA_ATUAL.xlsx, imagesBasePath: "./imagens_oly
   if(tmLogo){ tmLogo.src = outra.logo; tmLogo.alt = outra.nome; }
   if(tmLabel) tmLabel.textContent = outra.nome;
   if(tmBtn) tmBtn.title = "Trocar para " + outra.nome;
+  var logoBtn = document.getElementById("btnGoHome");
+  if(logoBtn){ logoBtn.title = "Trocar para " + outra.nome; logoBtn.setAttribute("aria-label", "Trocar para " + outra.nome); }
   var xlsxNome = MARCA_ATUAL.xlsx.replace(/^\.\//,"");
   var hp = document.getElementById("hintXlsxPath");
   if(hp) hp.textContent = "/" + xlsxNome;
@@ -3403,6 +3418,14 @@ const ADMIN_TOKEN = "1b489c97-7bc7-466a-a675-f559e1226371d9bea53d-a920-4059-a31c
 const CAT_IMG_BASE = "https://cms-representacoes.github.io/apps-oly/imagens_olympikus/categorias/"
   + (MARCA_ATUAL.id === "ua" ? "ua/" : "");
 
+/** Celular e tablet abrem em 2 colunas; computador, em 3. O que separa os
+ *  dois é o dedo, não a largura: um tablet deitado passa de 1000px e um
+ *  computador pode ter a janela estreita. */
+function ehTelaDeToque(){
+  try{ return window.matchMedia("(pointer:coarse)").matches; }
+  catch(_){ return Math.min(window.innerWidth, window.innerHeight) <= 820; }
+}
+
 const state = {
   productsRaw: [],
   productsView: [],
@@ -3410,7 +3433,7 @@ const state = {
   viewMode: "all", // all | favs
   // No celular 3 colunas espremem demais o card — abre em 2. Em telas maiores
   // segue em 3. O botão de layout continua alternando livremente depois disso.
-  cardLayout: (typeof window !== "undefined" && window.matchMedia("(max-width:640px)").matches) ? "duo" : "trio",
+  cardLayout: ehTelaDeToque() ? "duo" : "trio",
   filters: { category:"", segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"" },
   pagination: { pageSize: 24, shown: 0 },
   ui: { lastScrollY: 0, view: 'main' },
@@ -4321,7 +4344,7 @@ function clearAllFilters(){
 $("btnClear").addEventListener("click", ()=>{
   clearAllFilters();
   // "Limpar" volta ao padrão da tela: 2 colunas no celular, 3 no resto
-  state.cardLayout = window.matchMedia("(max-width:640px)").matches ? "duo" : "trio";
+  state.cardLayout = ehTelaDeToque() ? "duo" : "trio";
   updateLayoutBtn();
   if(typeof syncColecaoCards === "function") syncColecaoCards();
   if(typeof syncTierBar === "function") syncTierBar();
@@ -10135,20 +10158,11 @@ function initSwipeModal(sheetId, modalId, closeFn){
   if(btn) btn.addEventListener("click",()=>{ dark=!dark; apply(dark); });
 })();
 
-// ── Logo → home (limpa filtros e scroll topo) ─────
-(function initLogoHome(){
-  const btn = document.getElementById("btnGoHome");
-  if(!btn) return;
-  btn.addEventListener("click",()=>{
-    clearAllFilters();
-    window.scrollTo({top:0, behavior:"smooth"});
-    if(state.viewMode==="favs"){
-      state.viewMode="all";
-      updateFavHeaderUI();
-    }
-    refreshView(true);
-  });
-})();
+// ── Logo → troca de marca ─────────────────────────
+// Antes o clique na logo limpava os filtros e voltava ao topo. Agora ela
+// troca de marca (o tratador fica junto do #btnTrocarMarca), e era este
+// ouvinte que apagava a categoria bem na hora da troca — quem volta ao
+// início é o botão da fita.
 
 // ── Refresh button spinner ────────────────────────
 (function patchRefresh(){
@@ -10286,8 +10300,8 @@ function updateSliderLabel(){
   // Botão logo já existente: mantém comportamento original mas também pode voltar
   const btnGoHome = document.getElementById("btnGoHome");
   if(btnGoHome){
-    // Duplo clique no logo volta para a home screen
-    btnGoHome.addEventListener("dblclick", ()=> goHome());
+    // (o clique na logo troca de marca; para voltar às categorias, o botão
+    // Início da fita de ações)
   }
 
   // Atualiza badge de filtros ativos na action bar
@@ -10429,7 +10443,9 @@ function injectHomeCategoryImages(){
   function enterCatalog(cat){
     if(homeScreen){ homeScreen.style.display="none"; }
     if(appDiv)    { appDiv.style.display=""; }
-    if(btnBack)   { btnBack.style.display="inline-flex"; }
+    // a classe some junto: o outro trecho que também cuida desta tela a
+    // deixa marcada, e aí o botão do Início ficava escondido
+    if(btnBack)   { btnBack.style.display="inline-flex"; btnBack.classList.remove("hidden"); }
     window.scrollTo({ top:0, behavior:"instant" });
     if(state.productsRaw && state.productsRaw.length > 0){
       _applyCategory(cat);
@@ -10443,7 +10459,38 @@ function injectHomeCategoryImages(){
     if(appDiv)    { appDiv.style.display="none"; }
     if(btnBack)   { btnBack.style.display="none"; }
     window.scrollTo({ top:0, behavior:"instant" });
+    try{ sessionStorage.removeItem("cat_voltaVitrine"); }catch(_){}
   }
+
+  // Voltou de uma troca de marca estando na vitrine: reabre a vitrine na
+  // mesma categoria, em vez de começar de novo pelas categorias. A lista da
+  // outra marca pode ficar pronta antes ou depois daqui — por isso a
+  // categoria é aplicada quando os produtos aparecem.
+  // Duas partes do código cuidam destas telas: uma esconde pelo style, a
+  // outra pela classe. Ao reabrir a vitrine mexe-se nas duas, senão a que
+  // roda por último manda de volta para as categorias.
+  function _mostrarVitrine(){
+    if(homeScreen){ homeScreen.style.display="none"; homeScreen.classList.add("hidden"); }
+    if(appDiv)    { appDiv.style.display="";        appDiv.classList.remove("hidden"); }
+    if(btnBack)   { btnBack.style.display="inline-flex"; btnBack.classList.remove("hidden"); }
+  }
+  try{
+    var _volta = sessionStorage.getItem("cat_voltaVitrine");
+    if(_volta !== null){
+      sessionStorage.removeItem("cat_voltaVitrine");
+      // A lista da outra marca pode ficar pronta antes ou depois daqui: a
+      // categoria entra assim que os produtos aparecem.
+      var _espera = setInterval(function(){
+        _mostrarVitrine();
+        if(state.productsRaw && state.productsRaw.length){
+          clearInterval(_espera);
+          _applyCategory(_volta);
+        }
+      }, 150);
+      setTimeout(function(){ clearInterval(_espera); }, 8000);
+      _mostrarVitrine();
+    }
+  }catch(_){}
 
   document.querySelectorAll(".home-cat-card").forEach(function(card){
     card.addEventListener("click", function(){
@@ -10465,8 +10512,7 @@ function injectHomeCategoryImages(){
     });
   }
 
-  var btnGoHome = document.getElementById("btnGoHome");
-  if(btnGoHome) btnGoHome.addEventListener("dblclick", goHome);
+  // a logo agora troca de marca; voltar às categorias é o botão Início
 
   function _updateFilterBadge(){
     var badge = document.getElementById("filterActiveBadge");
@@ -12485,8 +12531,17 @@ function togglePref(name){
 }
 // Eventos
 document.addEventListener("click", (e) => {
-  if(e.target.closest("#btnTrocarMarca")){
+  if(e.target.closest("#btnTrocarMarca") || e.target.closest("#btnGoHome")){
     var outraId = MARCA_ATUAL.id === "oly" ? "ua" : "oly";
+    // A troca recarrega a página (a marca vem por ?marca=). Quem estava na
+    // vitrine volta para ela, na mesma categoria — antes caía na tela de
+    // categorias toda vez que trocava.
+    try{
+      var appEl = document.getElementById("app");
+      var naVitrine = appEl && appEl.style.display !== "none" && !appEl.classList.contains("hidden");
+      if(naVitrine) sessionStorage.setItem("cat_voltaVitrine", state.filters.category || "");
+      else sessionStorage.removeItem("cat_voltaVitrine");
+    }catch(_){}
     window.location.href = window.location.pathname + "?marca=" + outraId;
     return;
   }
