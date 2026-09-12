@@ -1,71 +1,71 @@
 {
-  "generatedAt": "2026-09-11T05:42:47.233945-03:00",
+  "generatedAt": "2026-09-12T07:32:38.170723-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 500019,
+    "total": 488358,
     "meses": [
       {
         "label": "SET",
-        "v": 117399
+        "v": 99857
       },
       {
         "label": "OUT",
-        "v": 156911
+        "v": 156933
       },
       {
         "label": "NOV",
-        "v": 173386
+        "v": 177019
       },
       {
         "label": "DEZ",
-        "v": 49507
+        "v": 51775
       }
     ],
     "horizonte": "ate dez/26"
   },
   "mes": {
     "label": "SETEMBRO",
-    "dia": 9,
-    "faturado": 20500,
+    "dia": 11,
+    "faturado": 47582,
     "anterior": 122688,
     "anteriorLabel": "agosto",
-    "falta": 117399,
-    "diasUteis": 15,
-    "paresDia": 7827,
-    "projecao": 64429,
-    "barW": 15,
-    "markW": 89
+    "falta": 99857,
+    "diasUteis": 13,
+    "paresDia": 7681,
+    "projecao": 116312,
+    "barW": 32,
+    "markW": 83
   },
   "novHoje": {
-    "total": 10316,
+    "total": 6812,
     "linhas": [
       [
         "Jorge",
         [
-          966,
+          6,
           0,
           0,
-          30,
+          0,
           0
         ]
       ],
       [
         "Willame",
         [
-          1392,
           0,
-          33,
           0,
-          36
+          0,
+          0,
+          120
         ]
       ],
       [
         "Leandro",
         [
-          1140,
+          0,
           0,
           0,
           0,
@@ -75,27 +75,27 @@
       [
         "Rafael",
         [
-          2148,
+          60,
           0,
-          40,
           0,
-          408
-        ]
-      ],
-      [
-        "Mariana",
-        [
-          966,
-          182,
-          35,
           0,
           0
         ]
       ],
       [
+        "Mariana",
+        [
+          0,
+          144,
+          38,
+          0,
+          12
+        ]
+      ],
+      [
         "Cms",
         [
-          2940,
+          6432,
           0,
           0,
           0,
@@ -105,12 +105,12 @@
     ]
   },
   "novMes": {
-    "total": 38120,
+    "total": 44932,
     "linhas": [
       [
         "Jorge",
         [
-          2970,
+          2976,
           460,
           10,
           66,
@@ -124,7 +124,7 @@
           1374,
           107,
           0,
-          444
+          564
         ]
       ],
       [
@@ -140,7 +140,7 @@
       [
         "Rafael",
         [
-          4740,
+          4800,
           1357,
           262,
           0,
@@ -151,16 +151,16 @@
         "Mariana",
         [
           2508,
-          1380,
-          210,
+          1524,
+          248,
           21,
-          204
+          216
         ]
       ],
       [
         "Cms",
         [
-          16781,
+          23213,
           0,
           0,
           0,
@@ -172,29 +172,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 117.399 pares para zerar a carteira de setembro"
+      "t": "faltam 99.857 pares para zerar a carteira de setembro"
     },
     {
       "c": "#2BC48A",
-      "t": "+10.316 pares novos entraram na carteira hoje"
+      "t": "+6.812 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "setembro acumula 38.120 pares novos na carteira"
+      "t": "setembro acumula 44.932 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 500.019 pares"
+      "t": "carteira aberta do periodo: 488.358 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 173.386 pares"
+      "t": "NOV e o maior mes da carteira: 177.019 pares"
     },
     {
       "c": "#9B6BF0",
       "t": "proximo grande faturamento: 01/10 - CASA PIO (19.284 pares)"
     }
   ],
-  "publicadoEm": "2026-09-11T08:42:48.182Z",
+  "publicadoEm": "2026-09-12T10:32:38.969Z",
   "por": "script diario"
 }
