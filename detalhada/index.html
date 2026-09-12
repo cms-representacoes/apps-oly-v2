@@ -4604,10 +4604,13 @@ async function rfvExportPdf() {
    recomeça do zero.
      entrou = encomenda (GCI · produto · cor · cliente) com mais pares em
               carteira do que tinha;
-     saiu   = a que ficou com menos: "Faturou" quando a nota apareceu,
-              "Transferido" quando saiu sem nota — quase sempre a
-              encomenda foi transferida (98% nunca voltam nem faturam),
-              "Repassada" quando trocou de preposto.
+     saiu   = a que ficou com menos. A base às vezes é tirada no meio do
+              faturamento — a encomenda já saiu da carteira e a nota ainda
+              não foi lançada —, então a saída nasce "A confirmar" e a
+              atualização seguinte decide: "Faturou" se a nota apareceu,
+              "Transferido" se não apareceu. Se a encomenda voltar para a
+              carteira, a saída e a volta se anulam e somem das duas abas.
+              "Repassada" é quando trocou de preposto.
    A data é o dia do movimento: a base da manhã traz o dia útil anterior.
    ============================================================ */
 // Enquanto o script diário não publica o `mov` dentro da base, o protótipo
@@ -4627,7 +4630,13 @@ const ES_FILTRO = {
   motivo: { nome: 'Motivo',    todos: 'Todos' },
 };
 const ES_MULTI = new Set(['vend', 'marca', 'linha']);
-const ES_MOTIVO = { fat: 'Faturou', trf: 'Transferido', rep: 'Repassada' };
+const ES_MOTIVO = { fat: 'Faturou', chk: 'A confirmar', trf: 'Transferido', rep: 'Repassada' };
+const ES_MOTIVO_DICA = {
+  fat: 'a nota fiscal apareceu',
+  chk: 'saiu da carteira ontem e a nota ainda não foi lançada; a próxima atualização confirma',
+  trf: 'saiu da carteira e a nota não apareceu — a encomenda foi transferida',
+  rep: 'a encomenda trocou de preposto',
+};
 
 /** "2026-09" do fuso da empresa: o mês que está valendo agora. */
 function esMesAtual() {
@@ -4778,6 +4787,7 @@ function esOpcoes(f, busca) {
     const pares = {};
     for (const o of (ES.mov ? ES.mov.sai : [])) if (esPassa(o)) pares[o.motivo] = (pares[o.motivo] || 0) + o.qtde;
     return Object.keys(ES_MOTIVO).map(v => ({ v, rot: ES_MOTIVO[v], n: pares[v] || 0, sub: formatarNumero(pares[v] || 0) }));
+    // (a ordem é a do ES_MOTIVO: faturou, a confirmar, transferido, repassada)
   }
   const todos = ES.mov ? [...ES.mov.ent, ...ES.mov.sai] : [];
   if (f === 'vend')  return [...new Set(todos.map(o => o.prep).filter(Boolean))].sort().map(v => ({ v, rot: v }));
@@ -4943,7 +4953,8 @@ function esTabela(lista) {
       <td class="es-dia" data-rot="${ES.aba === 'ent' ? 'entrou' : 'saiu'}" title="${escAttr(diaParaBR(x.dia))}">${diaParaCurto(x.dia)}</td>
       <td class="es-qtde ${x.tipo}">${formatarNumero(x.qtde)}</td>
       <td class="es-prev" title="${escAttr(diaParaBR(x.prev))}">${x.prev >= 0 ? diaParaCurto(x.prev) : '—'}</td>
-      ${x.tipo === 'sai' ? `<td class="es-mot"><span class="es-motivo m-${x.motivo}">${ES_MOTIVO[x.motivo] || ''}</span></td>` : ''}
+      ${x.tipo === 'sai' ? `<td class="es-mot"><span class="es-motivo m-${x.motivo}"
+          title="${escAttr(ES_MOTIVO_DICA[x.motivo] || '')}">${ES_MOTIVO[x.motivo] || ''}</span></td>` : ''}
     </tr>`).join('');
   const resto = lista.length - ES.limite;
   const mais = resto > 0
@@ -11682,6 +11693,8 @@ html.dark :is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{ backgroun
 }
 .es-motivo.m-fat{ background:color-mix(in srgb, var(--ds-faturado) 14%, transparent); color:var(--ds-faturado); }
 .es-motivo.m-trf{ background:color-mix(in srgb, var(--ds-atencao) 15%, transparent); color:var(--ds-atencao); }
+/* ainda sem veredito: fica discreto, sem cor de bom nem de ruim */
+.es-motivo.m-chk{ background:var(--ds-sunk); color:var(--ds-faint); }
 .es-mais{
   display:block; margin:12px auto 14px; padding:9px 18px; cursor:pointer;
   font:inherit; font-size:13px; font-weight:600; color:var(--ds-accent-2);
