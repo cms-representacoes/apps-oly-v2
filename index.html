@@ -618,6 +618,32 @@
     .home-cat-img.loaded + .home-cat-placeholder { display: none !important; }
     .home-cat-arrow { font-size: 12px; color: var(--muted, #9CA3AF); margin-left: 4px; flex-shrink: 0; }
 
+    /* ── a tela inicial no celular ──
+       O nome da marca quebrava em duas linhas, os quatro botões do topo não
+       cabiam e, nos cards, o nome da categoria saía cortado ("Tên", "Chi"):
+       o enfeite colorido, o texto e a foto disputavam 160px. */
+    .home-acoes{ min-width:0; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+    .home-acoes::-webkit-scrollbar{ display:none; }
+    .home-acoes > *{ flex:none; }
+    @media(max-width:640px){
+      .home-titulo #brandName{ font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .home-titulo{ flex:0 1 auto; }
+      .home-acoes{ gap:6px; }
+      .home-acoes > a{ width:52px; }
+      /* o enfeite sai: quem ilustra a categoria é a foto do lado */
+      #homeScreen .home-cat-grid > .home-cat-card .home-cat-icon{ display:none; }
+      #homeScreen .home-cat-grid > .home-cat-card{ padding:12px; gap:8px; border-radius:16px; }
+      #homeScreen .home-cat-grid > .home-cat-card .home-cat-name{ font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      /* a descrição ganha duas linhas em vez de sair pela metade */
+      #homeScreen .home-cat-grid > .home-cat-card .home-cat-sub{ font-size:10px; -webkit-line-clamp:2; line-height:1.25; white-space:normal; }
+      /* coleção e classificação no tamanho da tela */
+      #homeScreen .colecao-pill{ padding:5px 12px; font-size:12px; }
+      #homeScreen .tier-toggle-btn{ padding:5px 10px; font-size:11.5px; }
+      #homeScreen .home-filters-group-label{ font-size:9.5px; }
+      #homeScreen .home-cat-grid > .home-cat-card .home-cat-img-wrap{ width:52px; height:40px; }
+      #homeScreen .home-cat-grid{ gap:8px; }
+    }
+
 
     /* ══════════════════════════════
        CORREÇÕES DE UX — BOTÕES
@@ -813,6 +839,40 @@
       .card-preco-valor{ font-size:14px; }
       /* imagem mais alta: era 4/3, passa a quadrada e ganha altura real */
       #cards > article .card-img-duo{ aspect-ratio:1/1 !important; }
+
+      /* ── o conteúdo do card no tamanho da tela ──
+         Em duas colunas sobram uns 170px por card: com os corpos de letra e
+         os botões do computador, "Adicionar" quase encostava no botão da
+         grade e a etiqueta de lançamento tomava metade da foto. */
+      #cards > article .font-extrabold.line-clamp-2{ font-size:12.5px; line-height:1.25; }
+      #cards > article .card-preco-valor{ font-size:12.5px; }
+      /* preço e cor sempre na mesma linha: a cor quebrava para baixo quando
+         o nome dela era comprido, e o card ficava com uma linha só de chip */
+      #cards > article .card-preco-linha{ gap:5px; margin-top:0; flex-wrap:nowrap; }
+      #cards > article .card-preco-valor{ flex:0 1 auto; min-width:0; }
+      #cards > article .cardchip-cor{ flex:1 1 auto; min-width:0; }
+      #cards > article .card-color-chip{ max-width:100%; }
+    }
+    /* telas bem estreitas: o chip perde a paleta e aperta, senão o nome da
+       cor sai com reticências */
+    @media(max-width:380px){
+      #cards > article .card-color-chip{ padding:3px 6px; font-size:9px; gap:3px; }
+      #cards > article .card-color-chip i{ display:none; }
+      #cards > article .card-preco-valor{ font-size:12px; }
+      #cards > article .card-color-chip{ padding:3px 8px; font-size:9.5px; gap:4px; }
+      #cards > article .card-color-chip i{ font-size:9px; }
+      #cards > article .badge-lanc,
+      #cards > article .badge-novo,
+      #cards > article .badge-novacor{ font-size:8px; padding:1px 6px; letter-spacing:.02em; }
+      /* os dois botões: mais baixos, letra menor e o ícone do carrinho fora —
+         com o rótulo já se sabe o que é, e o espaço vai para a palavra */
+      #cards > article .btnAdd{ height:34px; font-size:12px; gap:5px; padding:0 6px; }
+      #cards > article .btnAdd i{ display:none; }
+      #cards > article .btnGradeCard{ height:34px; width:34px; font-size:12.5px; }
+      #cards > article .btnGradeCard i{ font-size:13px; }
+      /* as bolinhas da foto encolhem junto */
+      #cards > article .btnZoomCard{ height:28px; width:28px; }
+      #cards > article .card-img-duo > .absolute.top-2.left-2{ height:28px; width:28px; }
     }
 
     .card-color-chip{
@@ -1989,29 +2049,29 @@
   <div id="homeScreen" class="min-h-full flex flex-col safe-top">
     <header class="sticky top-0 z-40 border-b border-oly-border bg-white/90 backdrop-blur">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3">
-        <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-white border border-oly-border flex items-center justify-center overflow-hidden shrink-0">
-          <img id="brandLogoHome" src="./logo-olympikus.png" alt="Olympikus" class="h-full w-full object-contain" onerror="this.style.display='none'">
+        <!-- A logo troca de marca, como na vitrine; a setinha é o que conta isso. -->
+        <div class="relative shrink-0">
+          <button id="btnMarcaLogoHome" class="focus-ring h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-white border border-oly-border flex items-center justify-center overflow-hidden shrink-0" title="Trocar de marca" aria-label="Trocar de marca">
+            <img id="brandLogoHome" src="./logo-olympikus.png" alt="Olympikus" class="h-full w-full object-contain" onerror="this.style.display='none'">
+          </button>
+          <span class="pointer-events-none absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-white border border-oly-border flex items-center justify-center shadow-sm" style="color:var(--primary)">
+            <i class="fa-solid fa-right-left" style="font-size:8px"></i>
+          </span>
         </div>
-        <div>
+        <div class="home-titulo min-w-0">
           <div class="text-[10px] font-bold text-oly-muted leading-none">Catálogo Digital</div>
           <div id="brandName" class="text-base font-extrabold leading-tight text-oly-text">Olympikus</div>
         </div>
-        <div class="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div class="home-acoes ml-auto flex items-center gap-1.5 sm:gap-2">
           <a href="https://cms-representacoes.github.io/apps-oly/" class="focus-ring flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Voltar ao Portal" aria-label="Voltar ao Portal">
             <i class="fa-solid fa-arrow-left text-oly-muted text-sm"></i>
             <span class="text-[9.5px] sm:text-[10px] font-bold text-oly-muted leading-none">Portal</span>
           </a>
-          <button id="btnTrocarMarca" class="focus-ring flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Trocar de marca">
-            <img id="btnTrocarMarcaLogo" src="" alt="" class="h-4 w-auto max-w-[26px] object-contain">
-            <span id="btnTrocarMarcaLabel" class="text-[9.5px] sm:text-[10px] font-bold text-oly-muted leading-none whitespace-nowrap"></span>
+          <button id="btnPreferences" class="focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Minhas preferências" aria-label="Preferências do vendedor">
+            <i class="fa-solid fa-sliders text-oly-muted text-base"></i>
           </button>
-          <button id="btnPreferences" class="focus-ring flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Minhas preferências" aria-label="Preferências do vendedor">
-            <i class="fa-solid fa-sliders text-oly-muted text-sm"></i>
-            <span class="text-[9.5px] sm:text-[10px] font-bold text-oly-muted leading-none">Preferências</span>
-          </button>
-          <button id="btnCatImagesConfig" class="focus-ring flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Configurar imagens das categorias" aria-label="Configurações de imagens">
-            <i class="fa-solid fa-gear text-oly-muted text-sm"></i>
-            <span class="text-[9.5px] sm:text-[10px] font-bold text-oly-muted leading-none">Categorias</span>
+          <button id="btnCatImagesConfig" class="focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Configurar imagens das categorias" aria-label="Configurações de imagens">
+            <i class="fa-solid fa-gear text-oly-muted text-base"></i>
           </button>
         </div>
       </div>
@@ -2129,7 +2189,7 @@
       <button class="home-cat-card home-cat-all focus-ring" data-cat="">
         <div class="home-cat-info">
           <div class="home-cat-icon home-cat-icon-grad" style="background:linear-gradient(140deg,#F4FAFE 0%,#F0F9FF 55%,#BAE6FD 100%);"><svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22"><rect x="3" y="3" width="13" height="13" rx="2" fill="#7c3aed" opacity="0.2" stroke="#7c3aed" stroke-width="1.8"/><rect x="20" y="3" width="13" height="13" rx="2" fill="#7c3aed" opacity="0.2" stroke="#7c3aed" stroke-width="1.8"/><rect x="3" y="20" width="13" height="13" rx="2" fill="#7c3aed" opacity="0.2" stroke="#7c3aed" stroke-width="1.8"/><rect x="20" y="20" width="13" height="13" rx="2" fill="#7c3aed" opacity="0.2" stroke="#7c3aed" stroke-width="1.8"/></svg></div>
-          <div class="home-cat-label"><span class="home-cat-name" style="color:var(--primary)">Ver todos os produtos</span><span class="home-cat-sub">Catálogo completo</span></div>
+          <div class="home-cat-label"><span class="home-cat-name" style="color:var(--primary)">Ver todos<span class="hidden sm:inline"> os produtos</span></span><span class="home-cat-sub">Catálogo completo</span></div>
         </div>
         <i class="fa-solid fa-chevron-right home-cat-arrow" style="color:var(--primary)"></i>
       </button>
@@ -3267,7 +3327,7 @@
             </button>
             <button id="btnConfirmGrade" class="focus-ring flex-1 min-w-0 inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-3.5 text-sm font-extrabold text-white hover:opacity-95">
               <i class="fa-solid fa-bag-shopping"></i>
-              <span class="truncate">Adicionar à Sacola</span>
+              <span class="truncate">Adicionar</span>
             </button>
           </div>
         </div>
@@ -3330,14 +3390,12 @@ const DATA_CONFIG = { xlsxPath: MARCA_ATUAL.xlsx, imagesBasePath: "./imagens_oly
   // Botão de troca de marca: mostra a logo + nome da OUTRA marca
   var outraId = MARCA_ATUAL.id === "oly" ? "ua" : "oly";
   var outra = MARCAS[outraId];
-  var tmLogo = document.getElementById("btnTrocarMarcaLogo");
-  var tmLabel = document.getElementById("btnTrocarMarcaLabel");
-  var tmBtn = document.getElementById("btnTrocarMarca");
-  if(tmLogo){ tmLogo.src = outra.logo; tmLogo.alt = outra.nome; }
-  if(tmLabel) tmLabel.textContent = outra.nome;
-  if(tmBtn) tmBtn.title = "Trocar para " + outra.nome;
-  var logoBtn = document.getElementById("btnGoHome");
-  if(logoBtn){ logoBtn.title = "Trocar para " + outra.nome; logoBtn.setAttribute("aria-label", "Trocar para " + outra.nome); }
+  ["btnGoHome", "btnMarcaLogoHome"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.title = "Trocar para " + outra.nome;
+    el.setAttribute("aria-label", "Trocar para " + outra.nome);
+  });
   var xlsxNome = MARCA_ATUAL.xlsx.replace(/^\.\//,"");
   var hp = document.getElementById("hintXlsxPath");
   if(hp) hp.textContent = "/" + xlsxNome;
@@ -9055,7 +9113,7 @@ function openGradeModal(item, opts={}){
   // Restore confirm button label in case it was changed by bulk mode
   const confirmBtn = document.getElementById("btnConfirmGrade");
   const confirmSpan = confirmBtn?.querySelector("span");
-  if(confirmSpan && !opts.keepBulk) confirmSpan.textContent = "Adicionar Grade à Sacola";
+  if(confirmSpan && !opts.keepBulk) confirmSpan.textContent = "Adicionar";
   // Controle de Caixas: visível no fluxo normal; escondido no modo lote e
   // ao editar via régua (régua altera só a grade base — caixas se ajusta na sacola)
   if(!opts.keepBulk){
@@ -12531,7 +12589,7 @@ function togglePref(name){
 }
 // Eventos
 document.addEventListener("click", (e) => {
-  if(e.target.closest("#btnTrocarMarca") || e.target.closest("#btnGoHome")){
+  if(e.target.closest("#btnTrocarMarca") || e.target.closest("#btnGoHome") || e.target.closest("#btnMarcaLogoHome")){
     var outraId = MARCA_ATUAL.id === "oly" ? "ua" : "oly";
     // A troca recarrega a página (a marca vem por ?marca=). Quem estava na
     // vitrine volta para ela, na mesma categoria — antes caía na tela de
