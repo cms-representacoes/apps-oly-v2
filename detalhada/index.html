@@ -11559,10 +11559,12 @@ html.dark :is(#screen-rfv,#screen-es) .rfv-busca-cima input:focus{ background:va
   display:grid; place-items:center; font-size:17px; color:#fff; cursor:pointer;
   box-shadow:0 6px 18px rgba(20,24,20,.28);
 }
-#btn-exp-xlsx{ background:#1D7044; }
-#btn-exp-xlsx:hover{ background:#175A37; }
-#btn-exp-pdf{ background:#B3352B; }
-#btn-exp-pdf:hover{ background:#932A22; }
+/* verde de planilha e vermelho de PDF, vivos: no canto da tela os tons
+   escuros sumiam contra o fundo */
+#btn-exp-xlsx{ background:#12A150; box-shadow:0 6px 18px rgba(18,161,80,.38); }
+#btn-exp-xlsx:hover{ background:#0E8A44; }
+#btn-exp-pdf{ background:#E8382B; box-shadow:0 6px 18px rgba(232,56,43,.38); }
+#btn-exp-pdf:hover{ background:#C92A1F; }
 .fab-export button:focus-visible{ outline:3px solid rgba(255,255,255,.6); outline-offset:2px; }
 /* o "voltar ao topo" sobe para não brigar com eles */
 body:has(#fab-export:not([hidden])) .btn-topo{ bottom:74px; }
