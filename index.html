@@ -1019,25 +1019,62 @@
     #gradeModal.open .grade-sheet {
       transform: translateY(0);
     }
-    .grade-size-row {
+    /* A grade de tamanhos: caixinhas lado a lado, o mesmo jeito da vitrine.
+       Era uma linha por tamanho, com − e +: doze tamanhos passavam da altura
+       da tela e um par de 12 custava doze toques. As colunas se ajustam
+       sozinhas à largura — no celular cabem menos, e nenhuma caixa encolhe
+       a ponto de não dar para tocar. */
+    .grade-grade {
       display: grid;
-      grid-template-columns: 52px 1fr 36px 44px 36px;
-      align-items: center;
+      grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
       gap: 8px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
+      padding: 2px 0 6px;
     }
-    .grade-size-row:last-child { border-bottom: none; }
-    .grade-size-label {
-      font-weight: 800;
-      font-size: 13px;
-      color: var(--text);
-      text-align: center;
-      background: var(--card-chip, #F3F4F6);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 6px 4px;
+    @media (max-width: 420px){
+      .grade-grade { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 7px; }
     }
+    @media (min-width: 640px){
+      .grade-grade { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+    }
+    .grade-cx { text-align: center; min-width: 0; }
+    .grade-cx .gt {
+      display: block; font-size: 10.5px; font-weight: 900; letter-spacing: .02em;
+      color: var(--primary); margin-bottom: 3px;
+    }
+    .grade-cx input {
+      width: 100%; height: 44px; text-align: center;
+      font: inherit; font-size: 16px; font-weight: 800;
+      border: 2px solid var(--border); border-radius: 12px;
+      background: var(--input-bg, #fff); color: var(--text, #111827);
+      outline: none; -moz-appearance: textfield;
+    }
+    @media (max-width: 420px){ .grade-cx input { height: 40px; font-size: 15px; } }
+    .grade-cx input::-webkit-inner-spin-button,
+    .grade-cx input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .grade-cx input::placeholder { color: var(--muted); font-weight: 600; opacity: .55; }
+    /* o que já tem quantidade fica marcado: a caixa inteira se confere de relance */
+    .grade-cx input:not(:placeholder-shown) {
+      border-color: rgba(var(--primary-rgb), .55);
+      background: rgba(var(--primary-rgb), .07);
+    }
+    .grade-cx input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(var(--primary-rgb), .18);
+    }
+    .grade-dica {
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+      margin: 0 0 10px; padding: 8px 11px; border-radius: 12px;
+      background: var(--card-chip, #F3F4F6); color: var(--muted);
+      font-size: 11.5px; font-weight: 700;
+    }
+    .grade-dica .tec {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px;
+      border: 1.5px solid var(--border); background: var(--card-bg, #fff);
+      color: var(--text); font-size: 11px; font-weight: 900;
+    }
+    /* no celular a dica das setas não serve: fica só a do Enter */
+    @media (max-width: 640px){ .grade-dica .so-teclado { display: none; } }
     .grade-qty-input {
       width: 44px;
       text-align: center;
@@ -3199,10 +3236,6 @@
             <span class="font-bold text-oly-muted">Total acumulado (todas as grades)</span>
             <span id="gradeTotalAcumulado" class="font-extrabold text-sm" style="color:var(--primary)">0</span>
           </div>
-          <button id="btnAddAnotherGrade" class="hidden focus-ring w-full inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-extrabold border-2 border-dashed transition" style="border-color:#C4B5FD;background:rgba(var(--primary-rgb),.06);color:var(--primary)">
-            <i class="fa-solid fa-plus"></i>
-            <span>Adicionar à sacola e abrir outra grade</span>
-          </button>
           <!-- Resumo do lote (visível só em modo lote) -->
           <div id="gradeBulkSummary" class="hidden rounded-xl px-3 py-2.5 text-[12px] font-bold" style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);color:var(--text)">
             <div class="flex items-center gap-2">
@@ -3210,14 +3243,20 @@
               <span id="gradeBulkSummaryText">—</span>
             </div>
           </div>
-          <button id="btnConfirmGrade" class="focus-ring w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-5 py-4 text-sm font-extrabold text-white hover:opacity-95">
-            <i class="fa-solid fa-bag-shopping"></i>
-            <span>Adicionar Grade à Sacola</span>
-          </button>
-          <button id="btnGradeLater" class="focus-ring w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-oly-border bg-white px-5 py-3 text-sm font-bold text-oly-muted hover:bg-oly-bg" title="Fechar sem salvar a grade de tamanhos">
-            <i class="fa-regular fa-xmark-circle"></i>
-            <span>Cancelar <span class="text-xs font-normal">(não salva)</span></span>
-          </button>
+          <!-- Os três lado a lado: empilhados, o rodapé comia 231px e empurrava
+               a grade e o "repetir última grade" para fora da tela no celular. -->
+          <div class="flex items-stretch gap-2">
+            <button id="btnGradeLater" class="focus-ring shrink-0 inline-flex items-center justify-center rounded-2xl border border-oly-border bg-white px-4 py-3 text-base font-bold text-oly-muted hover:bg-oly-bg" title="Cancelar — fecha sem salvar a grade" aria-label="Cancelar sem salvar">
+              <i class="fa-regular fa-xmark-circle"></i>
+            </button>
+            <button id="btnAddAnotherGrade" class="hidden focus-ring shrink-0 inline-flex items-center justify-center rounded-2xl px-4 py-3 text-base font-extrabold border-2 border-dashed transition" style="border-color:#C4B5FD;background:rgba(var(--primary-rgb),.06);color:var(--primary)" title="Adicionar à sacola e abrir outra grade deste produto" aria-label="Adicionar e abrir outra grade">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+            <button id="btnConfirmGrade" class="focus-ring flex-1 min-w-0 inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-3.5 text-sm font-extrabold text-white hover:opacity-95">
+              <i class="fa-solid fa-bag-shopping"></i>
+              <span class="truncate">Adicionar à Sacola</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -5533,9 +5572,16 @@ function renderCards(){
           ${_cardInfoLine(base)}
           ${badgesHtml}
           <div class="mt-1.5">${renderCardColorChip(isGrp ? v : base, { isGroup:isGrp, size:"sm" })}</div>
-          <button class="btnAdd focus-ring mt-2 h-9 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
-            <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
-          </button>
+          <div class="mt-2 flex items-stretch gap-2">
+            <button class="btnAdd focus-ring h-9 flex-1 min-w-0 inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
+              <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
+            </button>
+            <button class="btnGradeCard focus-ring h-9 px-3 shrink-0 inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold hover:bg-oly-bg"
+                    style="border:2px solid var(--primary);color:var(--primary);background:var(--card-bg,#fff)"
+                    type="button" title="Montar a grade e mandar para a sacola" aria-label="Montar grade">
+              <i class="fa-solid fa-layer-group"></i><span class="hidden sm:inline">Grade</span>
+            </button>
+          </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <div class="h-9 w-9 rounded-full bg-oly-bg border border-oly-border flex items-center justify-center pointer-events-none">
@@ -5548,6 +5594,7 @@ function renderCards(){
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
+      card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
       wrap.appendChild(card);
       continue;
@@ -5584,15 +5631,23 @@ function renderCards(){
         <div class="px-2.5 py-2 flex flex-col gap-1.5">
           <div class="font-extrabold text-sm sm:text-[15px] leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
           ${_cardPrecoLinha(v, base, isGrp, { artigo:true, categoria:false, tamanho:true, cor:true })}
-          <button class="btnAdd focus-ring mt-1 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
-            <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
-          </button>
+          <div class="mt-1 flex items-stretch gap-2">
+            <button class="btnAdd focus-ring h-10 flex-1 min-w-0 inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
+              <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
+            </button>
+            <button class="btnGradeCard focus-ring h-10 w-10 shrink-0 inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold hover:bg-oly-bg"
+                    style="border:2px solid var(--primary);color:var(--primary);background:var(--card-bg,#fff)"
+                    type="button" title="Montar a grade e mandar para a sacola" aria-label="Montar grade">
+              <i class="fa-solid fa-layer-group"></i>
+            </button>
+          </div>
         </div>
       `;
       card.addEventListener("click", ()=> _openCardZoom(base));
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
+      card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
       wrap.appendChild(card);
       continue;
@@ -5629,15 +5684,23 @@ function renderCards(){
         <div class="px-2 py-1.5 flex flex-col gap-1">
           <div class="font-extrabold text-[11px] sm:text-xs leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
           ${_cardPrecoLinha(v, base, isGrp, { artigo:false, categoria:false, tamanho:true, cor:true })}
-          <button class="btnAdd focus-ring mt-0.5 h-8 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold text-white hover:opacity-95" type="button">
-            <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
-          </button>
+          <div class="mt-0.5 flex items-stretch gap-2">
+            <button class="btnAdd focus-ring h-8 flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold text-white hover:opacity-95" type="button">
+              <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
+            </button>
+            <button class="btnGradeCard focus-ring h-8 w-8 shrink-0 inline-flex items-center justify-center gap-1.5 rounded-full text-[11px] font-extrabold hover:bg-oly-bg"
+                    style="border:2px solid var(--primary);color:var(--primary);background:var(--card-bg,#fff)"
+                    type="button" title="Montar a grade e mandar para a sacola" aria-label="Montar grade">
+              <i class="fa-solid fa-layer-group"></i>
+            </button>
+          </div>
         </div>
       `;
       card.addEventListener("click", ()=> _openCardZoom(base));
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
+      card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
       wrap.appendChild(card);
       continue;
@@ -5681,9 +5744,16 @@ function renderCards(){
           <div class="font-extrabold text-[15px] sm:text-base leading-snug">${escapeHtml(v.produto||base?.produto||"—")}</div>
           ${_cardPrecoLinha(v, base, isGrp, { artigo:false, categoria:false, tamanho:true, cor:true })}
           ${_cardInfoLine(base, { tamanho:false })}
-          <button class="btnAdd focus-ring mt-2 h-10 w-full inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
-            <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
-          </button>
+          <div class="mt-2 flex items-stretch gap-2">
+            <button class="btnAdd focus-ring h-10 flex-1 min-w-0 inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold text-white hover:opacity-95" type="button">
+              <i class="fa-solid fa-bag-shopping"></i><span>Adicionar</span>
+            </button>
+            <button class="btnGradeCard focus-ring h-10 px-3 shrink-0 inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold hover:bg-oly-bg"
+                    style="border:2px solid var(--primary);color:var(--primary);background:var(--card-bg,#fff)"
+                    type="button" title="Montar a grade e mandar para a sacola" aria-label="Montar grade">
+              <i class="fa-solid fa-layer-group"></i><span class="hidden sm:inline">Grade</span>
+            </button>
+          </div>
         </div>
       `;
 
@@ -5692,6 +5762,7 @@ function renderCards(){
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
+      card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
 
       // Swipe de ângulos — arrasta esq/dir para trocar, tap NO CENTRO (30% central) abre modal
@@ -8756,6 +8827,14 @@ function _viewerAddToCart(){
 }
 
 // Botão "Grade" da lupa — fecha o zoom e abre o modal de grade
+/** Grade direto do card: o vendedor monta os tamanhos e manda para a sacola
+ *  sem abrir o produto nem ir à sacola. É o mesmo modal do botão Grade da
+ *  foto ampliada. */
+function abrirGradeDoCard(item){
+  if(!item || typeof openGradeModal !== "function"){ toast("Produto inválido ⚠️"); return; }
+  openGradeModal(item, { fromCart:false });
+}
+
 function _viewerAddGrade(){
   let item = null;
   if(viewerState.mode === 'angles') item = viewerState.angleItem;
@@ -9037,7 +9116,13 @@ function openGradeModal(item, opts={}){
   const modal = $("gradeModal");
   modal.classList.remove("hidden");
   requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{ modal.classList.add("open"); });
+    requestAnimationFrame(()=>{
+      modal.classList.add("open");
+      // O cursor já espera no primeiro tamanho: abrir e digitar, sem tocar
+      // no campo antes. (Em grade oculta — modo lote — não há onde pôr.)
+      const p1 = $("gradeSizeList")?.querySelector(".grade-qty-input");
+      if(p1 && p1.offsetParent !== null){ p1.focus({ preventScroll:true }); p1.select(); }
+    });
   });
   document.body.style.overflow = "hidden";
 }
@@ -9362,67 +9447,102 @@ function renderGradeSizeList(){
   const list = oldList.cloneNode(false);
   oldList.parentNode.replaceChild(list, oldList);
 
-  for(let i = 0; i < gradeState.sizes.length; i++){
-    const s = gradeState.sizes[i];
-    const row = document.createElement("div");
-    row.className = "grade-size-row";
-    row.innerHTML = `
-      <div class="grade-size-label">${escapeHtml(s.tam)}</div>
-      <div></div>
-      <button class="grade-btn-sm" data-gm="true" data-idx="${i}" aria-label="Diminuir">
-        <i class="fa-solid fa-minus" style="font-size:12px"></i>
-      </button>
-      <input type="number" class="grade-qty-input" min="0" max="999" value="${s.qty}" data-idx="${i}" inputmode="numeric"/>
-      <button class="grade-btn-sm" data-gp="true" data-idx="${i}" aria-label="Aumentar">
-        <i class="fa-solid fa-plus" style="font-size:12px"></i>
-      </button>
-    `;
-    list.appendChild(row);
-  }
+  const dica = document.createElement("div");
+  dica.className = "grade-dica";
+  dica.innerHTML = `
+    <span class="so-teclado"><span class="tec">←</span> <span class="tec">→</span> trocam de campo</span>
+    <span class="so-teclado"><span class="tec">↑</span> <span class="tec">↓</span> mudam de linha</span>
+    <span><span class="tec">Enter</span> vai para a data</span>`;
+  list.appendChild(dica);
+
+  const grade = document.createElement("div");
+  grade.className = "grade-grade";
+  grade.innerHTML = gradeState.sizes.map((s, i) => `
+    <label class="grade-cx"><span class="gt">${escapeHtml(s.tam)}</span>
+      <input type="number" class="grade-qty-input" min="0" max="999" inputmode="numeric"
+             placeholder="0" value="${s.qty || ""}" data-idx="${i}"
+             aria-label="Tamanho ${escapeHtml(s.tam)}"></label>`).join("");
+  list.appendChild(grade);
 
   updateGradeTotal();
 
-  // Evento único de click delegado no novo elemento (sem acúmulo)
-  list.addEventListener("click", (e)=>{
-    const minus = e.target?.closest?.("[data-gm='true']");
-    const plus  = e.target?.closest?.("[data-gp='true']");
-    if(minus){
-      const idx = parseInt(minus.dataset.idx, 10);
-      gradeState.sizes[idx].qty = Math.max(0, gradeState.sizes[idx].qty - 1);
-      const input = list.querySelector(`input[data-idx="${idx}"]`);
-      if(input) input.value = gradeState.sizes[idx].qty;
-      updateGradeTotal();
-    }
-    if(plus){
-      const idx = parseInt(plus.dataset.idx, 10);
-      gradeState.sizes[idx].qty = Math.min(999, gradeState.sizes[idx].qty + 1);
-      const input = list.querySelector(`input[data-idx="${idx}"]`);
-      if(input) input.value = gradeState.sizes[idx].qty;
-      updateGradeTotal();
-    }
+  // O total acompanha a digitação: com as caixinhas lado a lado, esperar o
+  // blur deixava o total atrasado em relação ao que está na tela.
+  const valor = el => Math.max(0, Math.min(999, parseInt(el.value, 10) || 0));
+  // O que havia no campo ANTES da tecla: é isso que decide o pulo automático.
+  list.addEventListener("keydown", (e)=>{
+    if(e.target.classList.contains("grade-qty-input")) e.target.dataset.antes = e.target.value;
+  }, true);
+  list.addEventListener("input", (e)=>{
+    if(!e.target.classList.contains("grade-qty-input")) return;
+    gradeState.sizes[parseInt(e.target.dataset.idx, 10)].qty = valor(e.target);
+    updateGradeTotal();
+    /* Preencheu um campo vazio: o próximo tamanho já recebe o foco — a grade
+       se digita de uma vez, sem tecla nenhuma entre um número e outro. No
+       último tamanho o pulo vai para a data e abre o calendário.
+       Campo que já tinha número não pula: ali a pessoa está corrigindo, e é
+       assim que se digita 10, 12, 24 — o segundo número entra no mesmo
+       campo. */
+    const eraVazio = (e.target.dataset.antes || "") === "";
+    e.target.dataset.antes = e.target.value;
+    if(!eraVazio || !e.target.value) return;
+    const campos = [...list.querySelectorAll(".grade-qty-input")];
+    const prox = campos[campos.indexOf(e.target) + 1];
+    if(prox){ prox.focus(); prox.select(); }
+    else { e.target.blur(); irParaDataDesejada(); }
   });
-
-  // Input direto: só aplica ao sair do campo (blur) ou Enter
   list.addEventListener("blur", (e)=>{
     if(!e.target.classList.contains("grade-qty-input")) return;
-    const idx = parseInt(e.target.dataset.idx, 10);
-    const v = Math.max(0, Math.min(999, parseInt(e.target.value, 10) || 0));
-    gradeState.sizes[idx].qty = v;
-    e.target.value = v;
+    const v = valor(e.target);
+    gradeState.sizes[parseInt(e.target.dataset.idx, 10)].qty = v;
+    e.target.value = v || "";
     updateGradeTotal();
   }, true);
 
+  /* Teclado: as setas andam pelos campos e o Enter fecha a grade indo para a
+     data, que é o próximo passo obrigatório — e já abre o calendário.
+     Campo de número não diz onde está o cursor (selectionStart é nulo), e são
+     caixas de um ou dois dígitos: esquerda e direita sempre trocam de campo.
+     Cima e baixo vão para a linha vizinha, na coluna mais próxima, e param o
+     passo do type=number, que mexeria no valor. */
   list.addEventListener("keydown", (e)=>{
     if(!e.target.classList.contains("grade-qty-input")) return;
     if(e.key === "Enter"){
-      const idx = parseInt(e.target.dataset.idx, 10);
-      const v = Math.max(0, Math.min(999, parseInt(e.target.value, 10) || 0));
-      gradeState.sizes[idx].qty = v;
-      e.target.value = v;
-      updateGradeTotal();
+      e.preventDefault();
       e.target.blur();
+      irParaDataDesejada();
+      return;
     }
+    if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) return;
+    const campos = [...list.querySelectorAll(".grade-qty-input")];
+    const i = campos.indexOf(e.target);
+    const linha = c => Math.round(c.getBoundingClientRect().top);
+    let alvo;
+    if(e.key === "ArrowLeft") alvo = campos[i - 1];
+    else if(e.key === "ArrowRight") alvo = campos[i + 1];
+    else{
+      const acima = e.key === "ArrowUp";
+      const y = linha(e.target), x = e.target.getBoundingClientRect().left;
+      const vizinhos = campos.filter(c => acima ? linha(c) < y : linha(c) > y);
+      if(vizinhos.length){
+        const yAlvo = acima ? Math.max(...vizinhos.map(linha)) : Math.min(...vizinhos.map(linha));
+        const perto = (m, c) => Math.abs(c.getBoundingClientRect().left - x) < Math.abs(m.getBoundingClientRect().left - x) ? c : m;
+        alvo = vizinhos.filter(c => linha(c) === yAlvo).reduce(perto);
+      }
+    }
+    e.preventDefault();
+    if(alvo){ alvo.focus(); alvo.select(); }
   });
+}
+
+/** Terminou a grade: o campo da data recebe o foco e o calendário abre.
+ *  showPicker só existe nos navegadores novos e só funciona logo depois de
+ *  um toque ou tecla — daí o try e o foco garantido antes. */
+function irParaDataDesejada(){
+  const data = $("gradeDataDesejada");
+  if(!data) return;
+  data.focus();
+  try{ data.showPicker?.(); }catch(_){ /* o toque no campo abre do mesmo jeito */ }
 }
 
 function updateGradeTotal(){
@@ -9532,6 +9652,14 @@ $("gradeBoxPlus")?.addEventListener("click", ()=>{
   setGradeBoxValue(cur + 1);
 });
 // Atualiza a faixa-resumo do modo lote quando a data muda
+/* Preencheu a data e apertou Enter: é o fim do caminho da grade — some o
+   teclado e a grade vai para a sacola, como se tivesse tocado no botão. */
+$("gradeDataDesejada")?.addEventListener("keydown", (e)=>{
+  if(e.key !== "Enter") return;
+  e.preventDefault();
+  e.target.blur();
+  $("btnConfirmGrade")?.click();
+});
 $("gradeDataDesejada")?.addEventListener("change", _renderBulkSummary);
 $("gradeDataDesejada")?.addEventListener("input", _renderBulkSummary);
 
