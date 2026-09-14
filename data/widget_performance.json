@@ -5,15 +5,15 @@
  "resumo": "3 de 6 elegíveis · meta 15,0%",
  "empresa": {
   "nome": "CMS",
-  "ftw": 33051075,
-  "demais": 5186972,
+  "ftw": 33054076,
+  "demais": 5190021,
   "ratio": 15.7,
   "elegivel": true
  },
  "vendedores": [
   {
    "nome": "Leandro",
-   "ftw": 6623988,
+   "ftw": 6623990,
    "demais": 1488684,
    "ratio": 22.5,
    "elegivel": true
@@ -27,16 +27,16 @@
   },
   {
    "nome": "Jorge",
-   "ftw": 4045834,
-   "demais": 647504,
+   "ftw": 4048834,
+   "demais": 648334,
    "ratio": 16,
    "elegivel": true
   },
   {
    "nome": "Willame",
    "ftw": 6481905,
-   "demais": 767120,
-   "ratio": 11.8,
+   "demais": 769339,
+   "ratio": 11.9,
    "elegivel": false
   },
   {
@@ -58,9 +58,9 @@
   "Leandro 22,5% ✓",
   "Núcleo 18% ✓",
   "Jorge 16% ✓",
-  "Willame 11,8% ✗",
+  "Willame 11,9% ✗",
   "Rafael 10,4% ✗",
   "Mariana 6,9% ✗"
  ],
- "atualizado": "12/09 11:10"
+ "atualizado": "14/09 08:39"
 }
