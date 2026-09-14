@@ -852,13 +852,6 @@
       #cards > article .card-preco-valor{ flex:0 1 auto; min-width:0; }
       #cards > article .cardchip-cor{ flex:1 1 auto; min-width:0; }
       #cards > article .card-color-chip{ max-width:100%; }
-    }
-    /* telas bem estreitas: o chip perde a paleta e aperta, senão o nome da
-       cor sai com reticências */
-    @media(max-width:380px){
-      #cards > article .card-color-chip{ padding:3px 6px; font-size:9px; gap:3px; }
-      #cards > article .card-color-chip i{ display:none; }
-      #cards > article .card-preco-valor{ font-size:12px; }
       #cards > article .card-color-chip{ padding:3px 8px; font-size:9.5px; gap:4px; }
       #cards > article .card-color-chip i{ font-size:9px; }
       #cards > article .badge-lanc,
@@ -874,6 +867,27 @@
       #cards > article .btnZoomCard{ height:28px; width:28px; }
       #cards > article .card-img-duo > .absolute.top-2.left-2{ height:28px; width:28px; }
     }
+    /* telas bem estreitas: o chip perde a paleta e aperta, senão o nome da
+       cor sai com reticências. Fica DEPOIS do bloco de 640px, para vencê-lo
+       — dentro dele, metade das regras do celular passava a valer só até
+       380px. */
+    @media(max-width:380px){
+      #cards > article .card-color-chip{ padding:3px 6px; font-size:9px; gap:3px; }
+      #cards > article .card-color-chip i{ display:none; }
+      #cards > article .card-preco-valor{ font-size:12px; }
+    }
+
+    /* ── etiquetas e botões do card ──
+       A etiqueta (Lançamento, Nova cor) vem antes do nome, fora da foto.
+       O corpo do card estica até o fim e os botões descem para o pé: numa
+       mesma linha, um nome de duas linhas ou um card com etiqueta deixava
+       o "Adicionar" de um mais baixo que o do vizinho. */
+    #cards > article{ height:100%; }
+    #cards > article .card-corpo{ flex:1 1 auto; }
+    /* preço, cor e botões descem juntos: o espaço que sobra fica entre o nome
+       e o preço, e toda a parte de baixo fica na mesma altura na linha */
+    #cards > article .card-corpo > .card-preco-linha{ margin-top:auto; }
+    .card-etis{ margin-bottom:-1px; }
 
     .card-color-chip{
       display:inline-flex; align-items:center; gap:6px; max-width:100%;
@@ -2039,6 +2053,85 @@
       line-height:1.45;
     }
     .dark-mode .order-modal-note { background: rgba(255,255,255,.03); }
+
+    /* ══════════════════════════════════════════════════════════════════
+       SACOLA COMPACTA
+       Os itens e o resumo usavam os tamanhos de um cartão de vitrine: foto
+       de 80px, chips e botões de 36px, grade com números de 14px. Com dois
+       ou três itens a sacola já passava da tela. Os tamanhos saem daqui,
+       e não das classes de cada elemento, para ficarem num lugar só.
+       ══════════════════════════════════════════════════════════════════ */
+    #cartItems.space-y-3 > * + *{ margin-top:8px; }
+    #cartItems .cart-item{ padding:12px; border-radius:18px; }
+    #cartItems .cart-item > .flex{ gap:10px; }
+    #cartItems .cart-thumb{ height:64px; width:64px; border-radius:12px; }
+    #cartItems .cart-nome{ font-size:14px; line-height:1.25; }
+    #cartItems .cart-chips{ gap:4px; margin-top:4px; }
+    #cartItems .cart-chips > *{ padding:2px 8px; font-size:10.5px; line-height:1.35; }
+    #cartItems .cart-chips i{ font-size:9px !important; }
+    #cartItems .cart-acoes{ gap:4px; }
+    #cartItems .cart-acoes > button{ height:30px; min-width:30px; }
+    #cartItems .cart-acoes > button:not(.btn-ruler-pending){ width:30px; }
+    #cartItems .cart-acoes i{ font-size:11px !important; }
+    #cartItems .cart-grade-rot{ font-size:10px; margin-bottom:4px; letter-spacing:.02em; }
+    #cartItems .cart-grade{ gap:4px; }
+    #cartItems .cart-grade > div{ min-width:32px; padding:3px 5px; border-radius:8px; }
+    #cartItems .cart-grade > div > span:first-child{ font-size:9px; }
+    #cartItems .cart-grade > div > span:last-child{ font-size:12.5px; margin-top:2px; }
+    #cartItems .cart-caixas{ margin-top:6px; }
+    #cartItems .cart-caixas button{ height:28px; width:28px; }
+    #cartItems .cart-caixas button i{ font-size:10px !important; }
+    #cartItems .cart-caixas .text-sm{ font-size:13px; min-width:26px; }
+    #cartItems .cart-caixas .text-xs{ font-size:11px; }
+
+    /* celular e tablet em pé: a foto encolhe mais e os botões ficam em 28px */
+    @media (max-width:640px){
+      #cartItems .cart-item{ padding:10px; border-radius:16px; }
+      #cartItems .cart-thumb{ height:52px; width:52px; }
+      #cartItems .cart-nome{ font-size:13px; }
+      #cartItems .cart-acoes > button{ height:28px; min-width:28px; }
+      #cartItems .cart-acoes > button:not(.btn-ruler-pending){ width:28px; }
+      #cartItems .cart-grade > div{ min-width:30px; padding:2px 4px; }
+      #cartItems .cart-grade > div > span:last-child{ font-size:12px; }
+      /* os botões ficam na linha do nome e os chips descem para a largura
+         inteira: ao lado dos botões eles quebravam em três linhas */
+      #cartItems .cart-topo{ display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:6px; align-items:center; }
+      #cartItems .cart-topo-texto{ display:contents; }
+      #cartItems .cart-nome{ grid-column:1; grid-row:1; }
+      #cartItems .cart-acoes{ grid-column:2; grid-row:1; }
+      #cartItems .cart-chips{ grid-column:1 / -1; grid-row:2; }
+    }
+    #cartGradesSummaryToggle > span{ font-size:9.5px; letter-spacing:.06em; }
+
+    /* ── o resumo ── */
+    #cartSidebar > .rounded-3xl{ padding:10px 12px; border-radius:18px; }
+    /* só o título "Resumo" — sem o caminho completo a regra pegava também o
+       "Pares por grade" e o deixava do tamanho do título */
+    #cartSidebar > .rounded-3xl:first-child > .flex:first-child > .font-extrabold{ font-size:13px; }
+    #cartSidebar > .rounded-3xl > .mt-3{ margin-top:6px; padding:8px 10px; border-radius:12px; }
+    /* total de pares numa linha só, como as de gênero logo abaixo:
+       rótulo à esquerda, número à direita */
+    #cartSidebar .flex:has(> #cartTotalValueWrap.hidden) > div:first-child{
+      flex:1; display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+    }
+    #cartTotalQty{ font-size:16px; margin-top:0; line-height:1.2; }
+    #cartSidebar div:has(> #cartTotalQty) > .text-xs{ font-size:11px; }
+    #cartTotalValue{ font-size:16px; margin-top:0; line-height:1.2; }
+    #cartSidebar .mt-4.space-y-2{ margin-top:4px; font-size:11.5px; }
+    #cartSidebar .mt-4.space-y-2 > * + *{ margin-top:1px; }
+    #cartSidebar .mt-4.space-y-2 > *{ line-height:1.4; }
+    #cartGradesSummary{ margin-top:6px; padding-top:6px; }
+    #cartGradesSummaryToggle{ margin-bottom:4px; }
+    #cartGradesSummaryList.space-y-2 > * + *{ margin-top:6px; }
+    #cartGradesSummaryList > div{ padding:7px 8px; border-radius:10px; }
+    #cartGradesSummaryList > div > .mt-2{ margin-top:5px; }
+    /* o cartão das ações de fechar o pedido também aperta */
+    #cartSidebar > .mt-4.rounded-3xl{ margin-top:8px; padding:10px; }
+    #btnExportXlsx{ padding-top:11px; padding-bottom:11px; font-size:14px; border-radius:14px; }
+    #btnExportXlsx i{ font-size:16px; }
+    #cartSidebar .grid.grid-cols-3 > button,
+    #cartSidebar .grid.grid-cols-3 > div > button{ padding-top:7px; padding-bottom:7px; gap:3px; border-radius:12px; }
+    #cartSidebar .grid.grid-cols-3 i.text-lg{ font-size:14px; }
 
   </style>
 </head>
@@ -5689,7 +5782,7 @@ function renderCards(){
       const g      = genderIcon(base?.genero || "");
       const badgesHtml = renderBadges(isGrp
         ? {isLanc:v.items?.some(i=>i.isLanc), isNewColor:v.items?.some(i=>i.isNewColor)}
-        : base, {abs:true});
+        : base, {cls:"card-etis"});
 
       const cardKey = cartKeyFor(base);
       card.className = "flex flex-col bg-white border border-oly-border rounded-2xl overflow-hidden shadow-sm cursor-pointer active:scale-[.98] transition-transform";
@@ -5707,9 +5800,9 @@ function renderCards(){
           <button class="btnZoomCard focus-ring absolute top-2 right-2 h-8 w-8 rounded-full border border-oly-border bg-white/95 hover:bg-oly-bg flex items-center justify-center" type="button" aria-label="Ampliar imagem">
             <i class="fa-solid fa-magnifying-glass-plus text-oly-blue" style="font-size:12px"></i>
           </button>
-          ${badgesHtml}
         </div>
-        <div class="px-2.5 py-2 flex flex-col gap-1.5">
+        <div class="card-corpo px-2.5 py-2 flex flex-col gap-1.5">
+          ${badgesHtml}
           <div class="font-extrabold text-sm sm:text-[15px] leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
           ${_cardPrecoLinha(v, base, isGrp, { artigo:true, categoria:false, tamanho:true, cor:true })}
           <div class="mt-1 flex items-stretch gap-2">
@@ -5742,7 +5835,7 @@ function renderCards(){
       const g      = genderIcon(base?.genero || "");
       const badgesHtml = renderBadges(isGrp
         ? {isLanc:v.items?.some(i=>i.isLanc), isNewColor:v.items?.some(i=>i.isNewColor)}
-        : base, {abs:true});
+        : base, {cls:"card-etis"});
 
       const cardKey = cartKeyFor(base);
       card.className = "flex flex-col bg-white border border-oly-border rounded-2xl overflow-hidden shadow-sm cursor-pointer active:scale-[.98] transition-transform";
@@ -5760,9 +5853,9 @@ function renderCards(){
           <button class="btnZoomCard focus-ring absolute top-1.5 right-1.5 h-6 w-6 rounded-full border border-oly-border bg-white/95 hover:bg-oly-bg flex items-center justify-center" type="button" aria-label="Ampliar imagem">
             <i class="fa-solid fa-magnifying-glass-plus text-oly-blue" style="font-size:10px"></i>
           </button>
-          ${badgesHtml}
         </div>
-        <div class="px-2 py-1.5 flex flex-col gap-1">
+        <div class="card-corpo px-2 py-1.5 flex flex-col gap-1">
+          ${badgesHtml}
           <div class="font-extrabold text-[11px] sm:text-xs leading-snug line-clamp-2">${escapeHtml(v.produto||base?.produto||"—")}</div>
           ${_cardPrecoLinha(v, base, isGrp, { artigo:false, categoria:false, tamanho:true, cor:true })}
           <div class="mt-0.5 flex items-stretch gap-2">
@@ -5794,7 +5887,7 @@ function renderCards(){
       const imgSrc    = (angleSrcs[0]&&angleSrcs[0][0]) ? angleSrcs[0][0] : "";
       const badgesHtml = renderBadges(isGrp
         ? {isLanc:v.items?.some(i=>i.isLanc), isNewColor:v.items?.some(i=>i.isNewColor)}
-        : base, {abs:true});
+        : base, {cls:"card-etis"});
 
       const gInfo = genderIcon(base?.genero || "");
       const cardKey = cartKeyFor(base);
@@ -5818,10 +5911,10 @@ function renderCards(){
               <i class="fa-solid ${segIco} text-oly-blue" style="font-size:11px"></i>
             </div>
           </div>
-          ${badgesHtml}
         </div>
         <div class="grid-thumbs flex gap-1 px-2 pt-1.5 pb-0.5 overflow-x-auto" style="min-height:44px;scrollbar-width:none"></div>
-        <div class="px-3 py-2 cursor-pointer" data-gridopen="1">
+        <div class="card-corpo px-3 py-2 cursor-pointer flex flex-col" data-gridopen="1">
+          ${badgesHtml}
           <div class="font-extrabold text-[15px] sm:text-base leading-snug">${escapeHtml(v.produto||base?.produto||"—")}</div>
           ${_cardPrecoLinha(v, base, isGrp, { artigo:false, categoria:false, tamanho:true, cor:true })}
           ${_cardInfoLine(base, { tamanho:false })}
@@ -7004,21 +7097,21 @@ function renderCartUI(){
 
     const row = document.createElement("div");
     row.dataset.cartKey = it.key;
-    row.className = "rounded-3xl border border-oly-border bg-white p-4" + (isPending ? " border-amber-300 cart-row-pending" : "") + ((bulkSelected || dateBulkSelected || qtyBulkSelected) ? " cart-bulk-row-on" : "");
+    row.className = "cart-item rounded-3xl border border-oly-border bg-white p-4" + (isPending ? " border-amber-300 cart-row-pending" : "") + ((bulkSelected || dateBulkSelected || qtyBulkSelected) ? " cart-bulk-row-on" : "");
     row.innerHTML = `
       <div class="flex gap-3">
         ${state.cartBulkSelectMode && eligibleForBulk ? `<button class="cart-bulk-pick ${bulkSelected ? "on" : ""}" data-bulk-pick="true" aria-label="${bulkSelected ? "Desmarcar" : "Selecionar"} produto" title="${bulkSelected ? "Desmarcar" : "Selecionar"} produto"><i class="fa-solid ${bulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
         ${state.cartDateBulkMode && eligibleForDateBulk ? `<button class="cart-bulk-pick ${dateBulkSelected ? "on" : ""}" data-date-pick="true" aria-label="${dateBulkSelected ? "Desmarcar" : "Selecionar"} item" title="${dateBulkSelected ? "Desmarcar" : "Selecionar"} item"><i class="fa-solid ${dateBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
         ${state.cartQtyBulkMode && eligibleForQtyBulk ? `<button class="cart-bulk-pick ${qtyBulkSelected ? "on" : ""}" data-qty-pick="true" aria-label="${qtyBulkSelected ? "Desmarcar" : "Selecionar"} item" title="${qtyBulkSelected ? "Desmarcar" : "Selecionar"} item"><i class="fa-solid ${qtyBulkSelected ? "fa-circle-check" : "fa-circle"}"></i></button>` : ""}
-        <div class="h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0" data-open-details="true" role="button" tabindex="0" title="Ver/editar item">
+        <div class="cart-thumb h-20 w-20 cursor-pointer rounded-2xl border border-oly-border bg-oly-bg overflow-hidden flex items-center justify-center shrink-0" data-open-details="true" role="button" tabindex="0" title="Ver/editar item">
           ${it.imgSrc ? `<img loading="lazy" decoding="async" src="${it.imgSrc}" alt="${escapeHtml(it.produto)}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none';">`
             : `<i class="fa-solid fa-image text-oly-blue text-xl"></i>`}
         </div>
         <div class="min-w-0 flex-1">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0 flex-1">
-              <div class="font-extrabold leading-snug truncate">${escapeHtml(it.produto || "Produto")}</div>
-              <div class="mt-1 flex flex-wrap gap-1.5">
+          <div class="cart-topo flex items-start justify-between gap-2">
+            <div class="cart-topo-texto min-w-0 flex-1">
+              <div class="cart-nome font-extrabold leading-snug truncate">${escapeHtml(it.produto || "Produto")}</div>
+              <div class="cart-chips mt-1 flex flex-wrap gap-1.5">
                 <span class="inline-flex items-center gap-1 rounded-full bg-oly-blue/10 px-2.5 py-1 text-xs font-extrabold text-oly-blue">
                   <i class="fa-solid fa-palette" style="font-size:10px"></i>
                   <span>${escapeHtml(it.cor || "—")}</span>
@@ -7032,12 +7125,12 @@ function renderCartUI(){
                   const idx = ordemNoBase.get(it.key) || 1;
                   return total > 1 ? `<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD"><i class="fa-solid fa-layer-group" style="font-size:10px"></i> Grade ${idx}/${total}</span>` : "";
                 })()}
-                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="Clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataBR(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : ((isAccessoryCategory(it.categoria) || it.pendingDate) ? `<label class="cart-date-pill cart-date-pill-pulse inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="" aria-label="Definir data do pedido"></label>` : "")}
-                ${it.pedidoCliente ? `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:rgba(59,130,246,.10);color:#1d4ed8;border:1px solid rgba(59,130,246,.35)" title="Clique para editar o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> ${escapeHtml(it.pedidoCliente)}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>` : `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:transparent;color:var(--muted);border:1px dashed var(--oly-border,#d4d4d8)" title="Clique para definir o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> Definir pedido</button>`}
+                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="${escapeHtml(_formatDataBR(it.dataDesejada))} · clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataDiaMes(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : ((isAccessoryCategory(it.categoria) || it.pendingDate) ? `<label class="cart-date-pill cart-date-pill-pulse inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="" aria-label="Definir data do pedido"></label>` : "")}
+                ${it.pedidoCliente ? `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:rgba(59,130,246,.10);color:#1d4ed8;border:1px solid rgba(59,130,246,.35)" title="Clique para editar o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> ${escapeHtml(it.pedidoCliente)}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>` : `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:transparent;color:var(--muted);border:1px dashed var(--oly-border,#d4d4d8)" title="Clique para definir o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> Pedido<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>`}
                 ${isPending ? `<span class="grade-pending-badge"><i class="fa-solid fa-triangle-exclamation"></i> Grade pendente</span>` : ""}
               </div>
             </div>
-            <div class="flex items-center gap-1 shrink-0">
+            <div class="cart-acoes flex items-center gap-1 shrink-0">
               <button class="focus-ring h-9 rounded-full border ${isPending ? "btn-ruler-pending" : "w-9 border-oly-border hover:bg-oly-bg"}" data-edit-grade="true" aria-label="Editar grade" title="${needsGrade ? "Editar grade de tamanhos" : "Tamanhos"}">
                 ${isPending ? `
                   <span class="ruler-cf-frame">
@@ -7060,15 +7153,15 @@ function renderCartUI(){
 
           ${hasGrade ? `
           <div class="mt-2">
-            <div class="text-xs font-bold text-oly-muted mb-1.5">Grade</div>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="cart-grade-rot text-xs font-bold text-oly-muted mb-1.5">Grade</div>
+            <div class="cart-grade flex flex-wrap gap-1.5">
               ${Object.entries(it.grade).map(([tam, qty]) => `
                 <div class="flex flex-col items-center rounded-xl border border-oly-border bg-white min-w-[40px] px-2 py-1.5">
                   <span class="text-[10px] font-bold text-oly-muted leading-none">${escapeHtml(tam)}</span>
                   <span class="text-sm font-extrabold text-oly-blue leading-none mt-1">${qty}</span>
                 </div>`).join("")}
             </div>
-            <div class="mt-2 flex items-center justify-between gap-2 flex-wrap">
+            <div class="cart-caixas mt-2 flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-bold text-oly-muted">Caixas</span>
                 <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg disabled:opacity-40 disabled:cursor-not-allowed" data-box-minus="true" aria-label="Diminuir caixas" title="Diminuir caixas" ${(it.boxes||1) <= 1 ? "disabled" : ""}>
@@ -7082,7 +7175,7 @@ function renderCartUI(){
               <div class="text-xs font-bold text-oly-muted"><span class="font-extrabold text-oly-blue">${it.qty}</span> pares no total</div>
             </div>
           </div>` : needsGrade ? `
-          <div class="mt-2 flex items-center gap-1.5">
+          <div class="cart-caixas mt-2 flex items-center gap-1.5">
             <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-minus="true" aria-label="Diminuir quantidade" title="Diminuir quantidade">
               <i class="fa-solid fa-minus text-oly-blue" style="font-size:12px"></i>
             </button>
@@ -7091,7 +7184,7 @@ function renderCartUI(){
               <i class="fa-solid fa-plus text-oly-blue" style="font-size:12px"></i>
             </button>
           </div>` : `
-          <div class="mt-2 flex items-center gap-1.5">
+          <div class="cart-caixas mt-2 flex items-center gap-1.5">
             <button class="focus-ring h-9 w-9 rounded-full border border-oly-border hover:bg-oly-bg" data-minus="true" aria-label="Diminuir quantidade" title="Diminuir quantidade">
               <i class="fa-solid fa-minus text-oly-blue" style="font-size:12px"></i>
             </button>
@@ -9236,6 +9329,14 @@ function _formatDataBR(iso){
   if(!iso) return "—";
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+/** "16/09": o chip da data na sacola não precisa do ano — o pedido é para
+ *  os próximos meses — e o espaço faz falta na linha dos chips. A data
+ *  inteira continua na dica do chip. */
+function _formatDataDiaMes(iso){
+  if(!iso) return "—";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}` : iso;
 }
 
 /**
