@@ -9857,6 +9857,39 @@ function _updateGradeUIVisibility(){
   }
 }
 
+// ── Teclado por cima da grade (celular e tablet) ──
+// A folha fica presa ao pé da tela, e o teclado virtual encolhe só a área
+// visível: os tamanhos, a data e o "Adicionar" ficavam embaixo dele e o
+// vendedor tinha que rolar na mão. Com o teclado aberto a folha sobe até a
+// borda de cima dele e cabe no que sobrou; o campo em uso vem para a vista,
+// junto com a linha de tamanhos em que está.
+(function gradeAcimaDoTeclado(){
+  const vv = window.visualViewport;
+  const modal = $("gradeModal"), sheet = $("gradeSheet");
+  if(!vv || !modal || !sheet) return;
+  function ajustar(){
+    const aberto = !modal.classList.contains("hidden");
+    const cobre = aberto ? Math.round(window.innerHeight - (vv.height + vv.offsetTop)) : 0;
+    if(cobre > 60){                          // abaixo disso é barra do navegador, não teclado
+      sheet.style.bottom = cobre + "px";
+      sheet.style.maxHeight = Math.round(vv.height - 8) + "px";
+    }else{
+      sheet.style.bottom = "";
+      sheet.style.maxHeight = "";
+    }
+    const el = document.activeElement;
+    if(aberto && cobre > 60 && el && sheet.contains(el) && el.matches("input, select, textarea")){
+      const bloco = el.closest(".grade-grade") || el;
+      bloco.scrollIntoView({ block:"nearest" });
+      el.scrollIntoView({ block:"nearest" });
+    }
+  }
+  vv.addEventListener("resize", ajustar);
+  vv.addEventListener("scroll", ajustar);
+  // o teclado termina de subir depois do foco; confere de novo quando assenta
+  sheet.addEventListener("focusin", () => { setTimeout(ajustar, 60); setTimeout(ajustar, 400); });
+})();
+
 function closeGradeModal(){
   const modal = $("gradeModal");
   const keepProductLocked = !!state.productModal.open;
