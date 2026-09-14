@@ -6949,7 +6949,9 @@ function renderCartUI(){
   $("miniCartFab").classList.toggle("hidden", cartSize === 0);
   $("miniCartCount").textContent = String(cartSize);
 
-  $("btnOpenCart").classList.toggle("pulse-soft", cartSize > 0);
+  // o botão da sacola no menu de cima não pulsa: o número no selo já avisa
+  // que há itens, e o movimento constante incomodava (pedido de 14/09/2026)
+  $("btnOpenCart").classList.remove("pulse-soft");
 
   $("cartEmpty").classList.toggle("hidden", cartSize !== 0);
   $("cartContent").classList.toggle("hidden", cartSize === 0);
