@@ -2066,6 +2066,132 @@
     .dark-mode .order-modal-note { background: rgba(255,255,255,.03); }
 
     /* ══════════════════════════════════════════════════════════════════
+       VISUALIZADOR DE FOTO — fundo claro, foto grande, nada por cima de nada
+       Computador e tablet deitado: foto à esquerda com a altura toda, painel
+       à direita. Celular e tablet em pé: uma coluna (nome · artigo e cor ·
+       foto · cores · botões).
+       ══════════════════════════════════════════════════════════════════ */
+    #imageViewer{
+      --vw-fundo:#fff; --vw-borda:rgba(15,23,42,.08); --vw-texto:#0f172a; --vw-suave:#64748b;
+      --vw-pdv:#6d28d9; --vw-botao:#f1f5f9; --vw-botao-hover:#e2e8f0; --vw-linha:#e2e8f0;
+      --vw-painel:#f8fafc; --vw-painel-borda:#eef2f6; --vw-mini:#e5e7eb;
+    }
+    .dark-mode #imageViewer{
+      --vw-fundo:#11141b; --vw-borda:rgba(255,255,255,.08); --vw-texto:#fff; --vw-suave:rgba(255,255,255,.6);
+      --vw-pdv:#c4b5fd; --vw-botao:rgba(255,255,255,.10); --vw-botao-hover:rgba(255,255,255,.18); --vw-linha:rgba(255,255,255,.18);
+      --vw-painel:rgba(255,255,255,.04); --vw-painel-borda:rgba(255,255,255,.08); --vw-mini:rgba(255,255,255,.15);
+    }
+    #imageViewer .viewer-caixa{
+      position:relative; display:flex; gap:14px; padding:12px;
+      width:min(1240px,100%); height:min(96vh,860px);
+      background:var(--vw-fundo); color:var(--vw-texto);
+      border:1px solid var(--vw-borda); border-radius:22px; overflow:hidden;
+      box-shadow:0 24px 60px rgba(15,23,42,.35);
+    }
+
+    /* palco: a moldura é o retângulo entre as setas; a foto dentro dela é
+       posicionada pelo script */
+    #imageViewer .viewer-palco{
+      flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; gap:12px;
+      container-type:size;
+    }
+    #imageViewer .viewer-foto{
+      position:relative; flex:none; overflow:hidden; background:#fff;
+      width:calc(100cqw - 104px); height:100cqh;
+    }
+    /* no escuro as fotos levam brightness(.88) contrast(1.05) (regra geral lá
+       em cima): o branco vira ~229 e a moldura acompanha */
+    .dark-mode #imageViewer .viewer-foto{ border-radius:12px; background:rgb(229,229,229); }
+    #imageViewer #viewerImg{ position:absolute; left:0; top:0; max-width:none; max-height:none; }
+    #imageViewer #viewerImg.carregando{ visibility:hidden; }
+    #imageViewer .viewer-seta{
+      flex:none; width:40px; height:40px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center;
+      background:var(--vw-botao); color:var(--vw-texto); border:1px solid var(--vw-linha); font-size:14px;
+    }
+    #imageViewer .viewer-seta:hover{ background:var(--vw-botao-hover); }
+
+    /* painel */
+    #imageViewer .viewer-painel{
+      flex:none; width:250px; min-height:0; display:flex; flex-direction:column; gap:12px;
+      padding:14px; background:var(--vw-painel); border:1px solid var(--vw-painel-borda); border-radius:16px;
+    }
+    #imageViewer .viewer-cab{ display:flex; align-items:flex-start; gap:8px; }
+    #imageViewer .viewer-info{ flex:1 1 auto; min-width:0; }
+    #imageViewer .viewer-titulo{ font-weight:800; font-size:15px; line-height:1.25; overflow-wrap:anywhere; }
+    #imageViewer .viewer-pdv{ color:var(--vw-pdv); font-weight:800; font-size:20px; line-height:1.2; letter-spacing:-.01em; }
+    #imageViewer .viewer-fechar{
+      flex:none; width:34px; height:34px; border-radius:999px; font-size:14px;
+      background:var(--vw-botao); color:var(--vw-texto); border:1px solid var(--vw-linha);
+    }
+    #imageViewer .viewer-fechar:hover{ background:var(--vw-botao-hover); }
+    #imageViewer .viewer-artcor{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    #imageViewer .viewer-codigo{ font-size:12px; font-weight:700; white-space:nowrap; }
+    #imageViewer .viewer-chip{
+      display:inline-flex; align-items:center; gap:4px; max-width:100%; border-radius:999px; padding:3px 9px;
+      font-size:11px; font-weight:800; line-height:1.3; background:#fff; color:#0f172a; border:1px solid #e2e8f0;
+    }
+    #imageViewer .viewer-chip i{ font-size:9px; color:var(--primary); }
+    #imageViewer .viewer-rotulo{ font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--vw-suave); }
+    #imageViewer .viewer-miniaturas{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:6px; align-content:start;
+      min-height:0; overflow-y:auto; padding:2px; scrollbar-width:thin;
+    }
+    #imageViewer .viewer-miniaturas.hidden{ display:none; }
+    #imageViewer .viewer-thumb{
+      width:100%; height:auto; aspect-ratio:1; border-radius:9px; background:#fff;
+      border:2px solid var(--vw-mini); transform:none;
+    }
+    #imageViewer .viewer-thumb:hover{ border-color:#a78bfa; transform:none; }
+    #imageViewer .viewer-thumb.active{ border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,.18); }
+    #imageViewer .viewer-acoes{ margin-top:auto; display:flex; align-items:center; gap:8px; }
+    #imageViewer .viewer-acao{
+      flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      height:38px; padding:0 14px; border-radius:999px; color:#fff; font-size:13px; font-weight:800; white-space:nowrap;
+    }
+    #imageViewer .viewer-acao.grade{ background:var(--primary); }
+    #imageViewer .viewer-acao.sacola{ background:#0f172a; border:1px solid #0f172a; }
+    .dark-mode #imageViewer .viewer-acao.sacola{ border-color:rgba(255,255,255,.25); }
+    #imageViewer .viewer-acao:hover{ opacity:.92; }
+    #imageViewer .viewer-nav-mob{ display:none; }
+    #imageViewer .viewer-indice{ font-size:12px; font-weight:800; color:var(--vw-suave); }
+
+    /* celular e tablet em pé: uma coluna */
+    @media (max-width:899.98px), (orientation:portrait){
+      #imageViewer .viewer-caixa{ flex-direction:column; height:auto; max-height:100%; overflow-y:auto; padding:14px; gap:10px; }
+      #imageViewer .viewer-painel{ display:contents; }
+      #imageViewer .viewer-cab{ order:1; }
+      #imageViewer .viewer-titulo{ font-size:17px; }
+      #imageViewer .viewer-pdv{ font-size:22px; }
+      #imageViewer .viewer-artcor{ order:2; margin-top:-4px; }
+      #imageViewer .viewer-palco{ order:3; flex:none; height:min(78vw,58vh); }
+      #imageViewer .viewer-rotulo{ display:none; }
+      #imageViewer .viewer-miniaturas{ order:4; display:flex; overflow-x:auto; overflow-y:hidden; gap:8px; }
+      #imageViewer .viewer-thumb{ flex:none; width:64px; }
+      #imageViewer .viewer-acoes{ order:5; margin-top:2px; }
+      #imageViewer .viewer-acao{ flex:none; padding:0 18px; }
+      #imageViewer .viewer-nav-mob{ display:flex; align-items:center; gap:8px; margin-right:auto; }
+      #imageViewer .viewer-nav-mob .viewer-seta{ display:none; }
+    }
+    /* celular: setas junto dos botões, foto com a largura toda */
+    @media (max-width:639.98px){
+      #imageViewer .viewer-caixa{ padding:12px; gap:8px; border-radius:18px; }
+      #imageViewer .viewer-titulo{ font-size:14px; }
+      #imageViewer .viewer-pdv{ font-size:18px; }
+      #imageViewer .viewer-codigo{ font-size:11px; }
+      #imageViewer .viewer-chip{ font-size:10px; padding:2px 8px; }
+      #imageViewer .viewer-palco{ height:min(86vw,54vh); gap:0; }
+      #imageViewer .viewer-palco .viewer-seta{ display:none !important; }
+      #imageViewer .viewer-foto{ width:100cqw; }
+      #imageViewer .viewer-miniaturas{ gap:6px; }
+      #imageViewer .viewer-thumb{ width:50px; border-radius:8px; }
+      #imageViewer .viewer-acoes{ gap:6px; }
+      #imageViewer .viewer-acao{ height:36px; padding:0 12px; font-size:12px; }
+      #imageViewer .viewer-nav-mob{ gap:4px; }
+      #imageViewer .viewer-nav-mob .viewer-seta{ display:inline-flex; width:34px; height:34px; font-size:12px; }
+      #imageViewer .viewer-nav-mob .viewer-indice{ min-width:28px; text-align:center; font-size:11px; }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
        SACOLA COMPACTA
        Os itens e o resumo usavam os tamanhos de um cartão de vitrine: foto
        de 80px, chips e botões de 36px, grade com números de 14px. Com dois
@@ -3005,8 +3131,10 @@
         <div class="order-sheet">
           <div class="order-sheet-header flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border">
             <div class="min-w-0">
-              <div class="text-xs font-extrabold text-oly-muted uppercase tracking-[0.12em]">Pedido no layout operacional</div>
-              <div class="text-lg sm:text-xl font-black text-oly-text">Gerar xlsx para o EBM</div>
+              <!-- o arquivo vira o ícone de planilha; "xlsx" continua para leitores de tela -->
+              <div class="text-lg sm:text-xl font-black text-oly-text inline-flex items-center gap-2">
+                Gerar <i class="fa-solid fa-file-excel text-xl sm:text-2xl" style="color:#12A150" aria-hidden="true"></i><span class="sr-only">xlsx</span> para o EBM
+              </div>
             </div>
             <button id="btnCloseOrderExport" class="focus-ring h-11 w-11 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0" aria-label="Fechar modal de exportação">
               <i class="fa-solid fa-xmark text-oly-blue"></i>
@@ -3136,71 +3264,67 @@
     <!-- Fullscreen Image Viewer -->
     <div id="imageViewer" class="hidden fixed inset-0 z-[70]">
       <div class="backdrop absolute inset-0" data-close-viewer="true"></div>
-      <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-8">
-        <div class="w-full max-w-5xl h-full max-h-[92vh] bg-black/90 border border-white/10 rounded-3xl overflow-hidden relative flex items-center justify-center">
-          <button class="focus-ring absolute right-6 top-6 z-30 h-12 w-12 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 text-white" data-close-viewer="true" aria-label="Fechar imagem">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+      <div class="absolute inset-0 flex items-center justify-center p-2">
+        <!-- Fundo claro, como o das fotos: a borda do quadrado some e o produto
+             aparece solto. No computador (tela deitada) a foto ocupa a altura
+             toda e as informações vão para um painel ao lado; no celular e no
+             tablet em pé tudo vira uma coluna. A foto é ampliada pelo contorno
+             do produto (enquadrarFotoViewer), cortando só o branco em volta. -->
+        <div class="viewer-caixa">
 
-          <!-- ── Header (topo): produto + cor + gênero + PDV ── -->
-          <!-- Faixa com gradiente escuro garante contraste contra imagens de fundo branco -->
-          <div class="absolute left-0 right-0 top-0 z-20 pointer-events-none" style="background:linear-gradient(180deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,.35) 60%, rgba(0,0,0,0) 100%); height:120px;"></div>
-          <div class="absolute left-4 top-4 right-20 z-30 flex flex-col gap-1.5">
-            <div class="flex items-baseline gap-3 flex-wrap">
-              <div id="viewerTitle" class="truncate font-extrabold text-base sm:text-lg text-white" style="text-shadow:0 1px 4px rgba(0,0,0,.5)">—</div>
-              <div id="viewerPdv" class="font-extrabold tabular-nums tracking-tight text-xl sm:text-2xl leading-none" style="color:#c4b5fd;text-shadow:0 1px 8px rgba(0,0,0,.6)">—</div>
+          <!-- ── Palco: seta · foto · seta ── -->
+          <div class="viewer-palco">
+            <button id="viewerPrev" class="viewer-seta focus-ring" aria-label="Cor anterior"><i class="fa-solid fa-arrow-left"></i></button>
+            <div class="viewer-foto">
+              <img id="viewerImg" alt="Imagem do produto em tela cheia" />
+              <div id="swipeHint" class="pointer-events-none absolute inset-0 flex items-center justify-center hidden">
+                <div class="rounded-full px-5 py-3 text-white text-sm font-extrabold flex items-center gap-3" style="background:rgba(15,23,42,.75)">
+                  <i class="fa-regular fa-hand-pointer text-lg"></i>
+                  <span>Arraste para trocar →</span>
+                </div>
+              </div>
             </div>
-            <div id="viewerCodigo" class="text-[11px] font-bold text-white/80" style="text-shadow:0 1px 3px rgba(0,0,0,.5)">
-              <span class="opacity-70">Art.</span> <span id="viewerCodigoVal">—</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span id="viewerColor" class="inline-flex items-center gap-1.5 rounded-full bg-white/95 border border-white/30 px-2.5 py-1 text-[11px] font-extrabold text-oly-text">
-                <i class="fa-solid fa-palette text-oly-blue" style="font-size:10px"></i>
-                <span>—</span>
-              </span>
-              <span id="viewerGender" class="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white" style="backdrop-filter:blur(4px)">
-                <i class="fa-solid fa-user" style="font-size:10px"></i>
-                <span>—</span>
-              </span>
-              <span id="viewerTam" class="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white" style="backdrop-filter:blur(4px)">
-                <i class="fa-solid fa-ruler" style="font-size:10px"></i>
-                <span>—</span>
-              </span>
-            </div>
+            <button id="viewerNext" class="viewer-seta focus-ring" aria-label="Próxima cor"><i class="fa-solid fa-arrow-right"></i></button>
           </div>
 
-          <!-- ✅ Setas simples e sempre visíveis quando houver +1 variante -->
-          <button id="viewerPrev" class="focus-ring absolute left-6 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full bg-white/85 border border-black/10 hover:bg-white text-black text-xl font-extrabold shadow-md" aria-label="Cor anterior">←</button>
-          <button id="viewerNext" class="focus-ring absolute right-6 top-1/2 -translate-y-1/2 z-30 h-12 w-12 rounded-full bg-white/85 border border-black/10 hover:bg-white text-black text-xl font-extrabold shadow-md" aria-label="Próxima cor">→</button>
-
-          <!-- ── Rodapé (enxuto): index + thumbs + ações ── -->
-          <div class="absolute left-4 bottom-4 right-4 z-30 flex items-end justify-between gap-3 text-white/90">
-            <div class="text-xs text-white/70 flex-shrink-0">
-              <span id="viewerIndex">—</span>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <!-- Miniaturas das cores (só visível no modo cores) -->
-              <div id="viewerThumbs" class="hidden flex items-center gap-1.5 overflow-x-auto max-w-[55vw] sm:max-w-md pb-1" style="scrollbar-width:thin"></div>
-              <!-- Botão Grade -->
-              <button id="viewerAddGrade" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full hover:opacity-90 text-white text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 shadow-lg" style="background:var(--primary)" aria-label="Abrir modal de grade">
-                <i class="fa-solid fa-layer-group"></i>
-                <span class="hidden sm:inline">Grade</span>
+          <!-- ── Painel: produto, artigo e cor, cores, botões ── -->
+          <div class="viewer-painel">
+            <div class="viewer-cab">
+              <div class="viewer-info">
+                <div id="viewerTitle" class="viewer-titulo">—</div>
+                <div id="viewerPdv" class="viewer-pdv tabular-nums">—</div>
+              </div>
+              <button class="viewer-fechar focus-ring" data-close-viewer="true" aria-label="Fechar imagem">
+                <i class="fa-solid fa-xmark"></i>
               </button>
-              <!-- Botão Adicionar à Sacola (1 unidade) -->
-              <button id="viewerAddCart" class="focus-ring inline-flex items-center justify-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 shadow-lg" style="background:#0f172a" aria-label="Adicionar à sacola">
-                <i class="fa-solid fa-bag-shopping"></i>
-                <span class="hidden sm:inline">Sacola</span>
+            </div>
+            <!-- gênero e grade saíram (o código que os preenche usa ?. e segue sem eles) -->
+            <div class="viewer-artcor">
+              <div id="viewerCodigo" class="viewer-codigo">
+                <span class="opacity-60">Art.</span> <span id="viewerCodigoVal">—</span>
+              </div>
+              <span id="viewerColor" class="viewer-chip">
+                <i class="fa-solid fa-palette"></i>
+                <span>—</span>
+              </span>
+            </div>
+            <div id="viewerRotulo" class="viewer-rotulo">Cores · <span id="viewerIndex">—</span></div>
+            <div id="viewerThumbs" class="hidden viewer-miniaturas"></div>
+            <div class="viewer-acoes">
+              <!-- no celular as setas descem para cá e a foto fica com a largura toda -->
+              <div id="viewerNavMob" class="viewer-nav-mob">
+                <button class="viewer-seta focus-ring" data-viewer-nav="-1" aria-label="Cor anterior"><i class="fa-solid fa-arrow-left"></i></button>
+                <span id="viewerIndexMob" class="viewer-indice">—</span>
+                <button class="viewer-seta focus-ring" data-viewer-nav="1" aria-label="Próxima cor"><i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+              <button id="viewerAddGrade" class="viewer-acao grade focus-ring" aria-label="Abrir modal de grade">
+                <i class="fa-solid fa-layer-group"></i><span>Grade</span>
+              </button>
+              <button id="viewerAddCart" class="viewer-acao sacola focus-ring" aria-label="Adicionar à sacola">
+                <i class="fa-solid fa-bag-shopping"></i><span>Sacola</span>
               </button>
             </div>
           </div>
-
-          <div id="swipeHint" class="pointer-events-none absolute inset-0 flex items-center justify-center hidden">
-  <div class="rounded-full bg-white/25 border border-white/40 px-5 py-3 text-white text-sm font-extrabold flex items-center gap-3">
-    <i class="fa-regular fa-hand-pointer text-lg"></i>
-    <span>Arraste para trocar →</span>
-  </div>
-</div>
-<img id="viewerImg" alt="Imagem do produto em tela cheia" class="max-h-full max-w-full object-contain" />
         </div>
       </div>
     </div>
@@ -8806,6 +8930,64 @@ function _showSwipeHint(){
     }
   }catch(e){}
 }
+// Enquadra a foto pelo contorno do produto. As fotos têm fundo branco e o
+// calçado ocupa só uma faixa no meio do quadrado; aqui ele é ampliado até
+// ~88% da largura ou ~92% da altura da moldura, o que vier primeiro, e o
+// corte cai no branco. Roupa de corpo inteiro e bota já ocupam a altura e
+// ficam como estão: a foto nunca fica menor que inteira na moldura.
+const _contornoFotoViewer = new Map();
+function _contornoDaFoto(img){
+  const chave = img.currentSrc || img.src;
+  if(_contornoFotoViewer.has(chave)) return _contornoFotoViewer.get(chave);
+  let r = null;
+  try{
+    const N = 160, c = document.createElement("canvas"); c.width = c.height = N;
+    const g = c.getContext("2d", { willReadFrequently:true });
+    g.drawImage(img, 0, 0, N, N);
+    const d = g.getImageData(0, 0, N, N).data;
+    let x0 = N, y0 = N, x1 = -1, y1 = -1;
+    for(let y = 0; y < N; y++) for(let x = 0; x < N; x++){
+      const i = (y * N + x) * 4;
+      if(d[i] < 240 || d[i+1] < 240 || d[i+2] < 240){
+        if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y;
+      }
+    }
+    if(x1 >= 0) r = { x0:x0/N, y0:y0/N, x1:(x1+1)/N, y1:(y1+1)/N };
+  }catch(_){ /* sem leitura dos pixels: mostra a foto inteira */ }
+  r = r || { x0:0, y0:0, x1:1, y1:1 };
+  _contornoFotoViewer.set(chave, r);
+  return r;
+}
+function enquadrarFotoViewer(){
+  const img = $("viewerImg"), moldura = img?.parentElement;
+  if(!img || !moldura || !img.complete || !img.naturalWidth) return;
+  const W = moldura.clientWidth, H = moldura.clientHeight;
+  if(!W || !H) return;
+  const prop = img.naturalHeight / img.naturalWidth;          // fotos quadradas: 1
+  const b = _contornoDaFoto(img), bw = b.x1 - b.x0, bh = (b.y1 - b.y0) * prop;
+  const inteira = Math.min(W, H / prop);
+  const largura = Math.max(inteira, Math.min(W * .88 / bw, H * .92 / bh));
+  img.style.width = largura + "px";
+  img.style.height = (largura * prop) + "px";
+  img.style.left = (W / 2 - (b.x0 + bw / 2) * largura) + "px";
+  img.style.top = (H / 2 - (b.y0 + (b.y1 - b.y0) / 2) * largura * prop) + "px";
+  img.classList.remove("carregando");
+}
+function _trocarFotoViewer(src){
+  const img = $("viewerImg");
+  if(!img) return;
+  const abs = src ? new URL(src, location.href).href : "";
+  if(abs && img.src === abs && img.complete){ enquadrarFotoViewer(); return; }
+  img.classList.add("carregando");
+  if(src) img.src = src; else img.removeAttribute("src");
+}
+(function(){
+  const img = $("viewerImg"), moldura = img?.parentElement;
+  if(!img || !moldura) return;
+  img.addEventListener("load", enquadrarFotoViewer);
+  if(window.ResizeObserver) new ResizeObserver(enquadrarFotoViewer).observe(moldura);
+})();
+
 function closeImageViewer(){
   // Se está em modo "cores", lembra qual variante estava sendo vista
   const wasColors = viewerState.mode === 'colors';
@@ -8866,7 +9048,7 @@ function renderImageViewer(){
       let ti = 0;
       const tryNext = () => {
         imgEl.onerror = () => { ti++; if(ti < srcs.length) tryNext(); else imgEl.removeAttribute("src"); };
-        imgEl.src = srcs[ti];
+        _trocarFotoViewer(srcs[ti]);
       };
       tryNext();
     } else {
@@ -8917,15 +9099,13 @@ function renderImageViewer(){
         tamWrap?.classList.add("hidden");
       }
     }
-    $("viewerIndex").textContent = total > 1 ? `${idx+1}/${total}` : "";
-    $("viewerPrev").style.display = total > 1 ? "inline-flex" : "none";
-    $("viewerNext").style.display = total > 1 ? "inline-flex" : "none";
+    _viewerPosicao(idx, total);
     // Modo ângulos: esconde thumbs de cores
     $("viewerThumbs")?.classList.add("hidden");
   } else {
     const it = viewerState.variants[viewerState.index];
     if(!it) return;
-    $("viewerImg").src = resolveImageSrc(it.imagem);
+    _trocarFotoViewer(resolveImageSrc(it.imagem));
     $("viewerTitle").textContent = it.produto || "Produto";
     {
       const corTxt = `${it.cor || "—"}${it.corCodigo ? " ("+it.corCodigo+")" : ""}`;
@@ -8970,12 +9150,21 @@ function renderImageViewer(){
         tamWrap?.classList.add("hidden");
       }
     }
-    $("viewerIndex").textContent = viewerState.variants.length > 1 ? `${viewerState.index+1}/${viewerState.variants.length}` : "";
-    $("viewerPrev").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
-    $("viewerNext").style.display = viewerState.variants.length > 1 ? "inline-flex" : "none";
+    _viewerPosicao(viewerState.index, viewerState.variants.length);
     // Modo cores: renderiza thumbs
     _renderViewerThumbs();
   }
+}
+
+// "2/5" no painel e junto das setas do celular; com uma cor só, nada disso aparece
+function _viewerPosicao(idx, total){
+  const txt = total > 1 ? `${idx+1}/${total}` : "";
+  $("viewerIndex").textContent = txt;
+  const mob = $("viewerIndexMob"); if(mob) mob.textContent = txt;
+  $("viewerRotulo")?.classList.toggle("hidden", total <= 1);
+  { const nav = $("viewerNavMob"); if(nav) nav.style.visibility = total > 1 ? "" : "hidden"; }
+  $("viewerPrev").style.visibility = total > 1 ? "" : "hidden";
+  $("viewerNext").style.visibility = total > 1 ? "" : "hidden";
 }
 
 function _renderViewerThumbs(){
@@ -9077,6 +9266,9 @@ $("imageViewer").addEventListener("click", (e)=>{
 });
 $("viewerPrev").addEventListener("click", (e)=>{ e.stopPropagation(); viewerPrev(); });
 $("viewerNext").addEventListener("click", (e)=>{ e.stopPropagation(); viewerNext(); });
+document.querySelectorAll("#imageViewer [data-viewer-nav]").forEach(b => b.addEventListener("click", (e)=>{
+  e.stopPropagation(); (b.dataset.viewerNav === "-1" ? viewerPrev : viewerNext)();
+}));
 $("viewerAddCart")?.addEventListener("click", (e)=>{ e.stopPropagation(); _viewerAddToCart(); });
 $("viewerAddGrade")?.addEventListener("click", (e)=>{ e.stopPropagation(); _viewerAddGrade(); });
 
