@@ -11792,6 +11792,44 @@ function nomeClientePorCodigo(codigo){
   return c ? String(c.nome || "") : "";
 }
 
+// ── Nome fantasia (aba Pedidos) ──
+// O vendedor acha o cliente pelo nome da loja, não pela razão social. A lista
+// código → fantasia sai da Detalhada: o Worker a atualiza a cada publicação
+// e ela só cresce (cliente que sai da carteira continua). Arquivo pequeno,
+// guardado no aparelho por 12 horas.
+const FANT_URL = "https://cms-representacoes.github.io/apps-oly/data/clientes-fantasia.json";
+const FANT_CACHE_KEY = "catalogo_fantasia_v1";
+const FANT = { porCodigo:null, carregando:false };
+(function(){
+  try{
+    const e = JSON.parse(localStorage.getItem(FANT_CACHE_KEY) || "null");
+    if(e && e.clientes && Date.now() - (e.ts || 0) < CLI_TTL_MS) FANT.porCodigo = e.clientes;
+  }catch(_){}
+})();
+async function fantCarregar(){
+  if(FANT.porCodigo || FANT.carregando) return false;
+  FANT.carregando = true;
+  try{
+    const r = await fetch(FANT_URL + "?h=" + Math.floor(Date.now() / 3600000), { cache:"no-store" });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    FANT.porCodigo = (j && j.clientes && typeof j.clientes === "object") ? j.clientes : {};
+    try{ localStorage.setItem(FANT_CACHE_KEY, JSON.stringify({ ts:Date.now(), clientes:FANT.porCodigo })); }catch(_){}
+    return true;
+  }catch(err){
+    console.warn("Nomes fantasia indisponíveis:", err);
+    FANT.porCodigo = {};          // sem a lista, fica a razão social; tenta de novo ao reabrir o app
+    return false;
+  }finally{
+    FANT.carregando = false;
+  }
+}
+// Fantasia primeiro; sem ela, a razão social da base de clientes.
+function nomeFantasiaPorCodigo(codigo){
+  const cod = String(codigo ?? "").trim();
+  return (FANT.porCodigo && FANT.porCodigo[cod]) || nomeClientePorCodigo(cod);
+}
+
 function cliBuscar(termo){
   const q = normalizeName(termo);
   if(!q){ CLI.total = 0; return []; }
@@ -12227,7 +12265,7 @@ function _mpFiltrarPedidos(lista){
     // Busca
     if(q){
       const hay = [
-        p.clientCode, nomeClientePorCodigo(p.clientCode), p.pedidoCliente, p.id,
+        p.clientCode, nomeFantasiaPorCodigo(p.clientCode), nomeClientePorCodigo(p.clientCode), p.pedidoCliente, p.id,
         ...(p.items||[]).map(i => `${i.codigo} ${i.produto} ${i.cor}`)
       ].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
@@ -12251,6 +12289,7 @@ function _mpGarantirClientes(){
 
 function renderListaPedidos(){
   _mpGarantirClientes();
+  if(!FANT.porCodigo && !FANT.carregando) fantCarregar().then(ok => { if(ok) renderListaPedidos(); });
   // Atualiza contadores das abas
   const rascCache = MP.rascunhosCache[MP.filtroComissionista] || [];
   const finCache = MP.pedidosCache[MP.filtroComissionista] || [];
@@ -12296,7 +12335,7 @@ function _mpRenderFinalizados(){
   const sacolaVazia = state.cart.size === 0;
 
   ul.innerHTML = filtrados.map(p => {
-    const _nomeCli = nomeClientePorCodigo(p.clientCode);
+    const _nomeCli = nomeFantasiaPorCodigo(p.clientCode);
     const cliente = p.clientCode
       ? `Cliente ${_mpEscape(p.clientCode)}${_nomeCli ? " · " + _mpEscape(_nomeCli) : ""}`
       : "Cliente —";
@@ -12347,7 +12386,7 @@ function _mpRenderRascunhos(){
   // Aplica busca (rascunho não tem filtro de período — sempre mostra todos)
   const q = (MP.filtroBusca || "").toLowerCase().trim();
   const filtrados = q ? lista.filter(r => {
-    const hay = [r.clientCode, nomeClientePorCodigo(r.clientCode), r.pedidoCliente, r.id,
+    const hay = [r.clientCode, nomeFantasiaPorCodigo(r.clientCode), nomeClientePorCodigo(r.clientCode), r.pedidoCliente, r.id,
       ...(r.items||[]).map(i => `${i.codigo} ${i.produto} ${i.cor}`)].join(" ").toLowerCase();
     return hay.includes(q);
   }) : lista;
@@ -12372,7 +12411,7 @@ function _mpRenderRascunhos(){
   $("mpStatsTotal").textContent = "";
 
   ul.innerHTML = filtrados.map(r => {
-    const _nomeCli = nomeClientePorCodigo(r.clientCode);
+    const _nomeCli = nomeFantasiaPorCodigo(r.clientCode);
     const cliente = r.clientCode
       ? `Cliente ${_mpEscape(r.clientCode)}${_nomeCli ? " · " + _mpEscape(_nomeCli) : ""}`
       : "Cliente não informado";
