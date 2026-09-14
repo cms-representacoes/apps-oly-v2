@@ -1797,6 +1797,14 @@
       padding: 3px 8px; border-radius: 6px;
     }
     .fp-limpar:hover { background: var(--primary-bg); }
+    .fp-topo-acoes { display: flex; align-items: center; gap: 2px; }
+    .fp-tudo {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 700; color: var(--primary-2);
+      padding: 3px 8px; border-radius: 6px;
+    }
+    .fp-tudo i { font-size: 10px; }
+    .fp-tudo:hover { background: var(--primary-bg); }
     .fp-lista { padding: 4px; }
     .fo-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .fo-extra { font-size: 11px; color: var(--text-3); white-space: nowrap; }
@@ -7995,7 +8003,10 @@ function abrirPopoverFiltro(filtroId, btnEl) {
   };
 
   pop.innerHTML =
-    (ehOrdem ? '' : `<div class="fp-topo"><span class="fp-contador"></span><button class="fp-limpar">Limpar</button></div>`) +
+    (ehOrdem ? '' : `<div class="fp-topo"><span class="fp-contador"></span>` +
+      `<span class="fp-topo-acoes"><button type="button" class="fp-tudo" title="Marcar todos os que aparecem na lista">` +
+      `<i class="fa-solid fa-check-double" aria-hidden="true"></i> Tudo</button>` +
+      `<button class="fp-limpar">Limpar</button></span></div>`) +
     (comBusca
       ? `<div class="fp-busca"><input type="search" placeholder="Filtrar…" autocomplete="off">` +
         `<button type="button" class="search-clear" title="Limpar (ESC)" aria-label="Limpar o filtro"><i class="fa-solid fa-xmark"></i></button></div>`
@@ -8069,6 +8080,17 @@ function abrirPopoverFiltro(filtroId, btnEl) {
     if (e.target.closest('.fp-limpar')) {
       sel.clear();
       desenhar(pop.querySelector('.fp-busca input')?.value || '');
+      reaplicar();
+      return;
+    }
+
+    // Tudo: marca de uma vez o que a busca deixou na lista. Sem busca, a
+    // lista inteira. Quem já estava marcado continua marcado.
+    if (e.target.closest('.fp-tudo')) {
+      const termo = pop.querySelector('.fp-busca input')?.value || '';
+      for (const o of casam(termo)) sel.add(valorDaOpcao(o));
+      autoMarcado = null;   // marcou de propósito: a busca não desfaz mais
+      desenhar(termo);
       reaplicar();
       return;
     }
