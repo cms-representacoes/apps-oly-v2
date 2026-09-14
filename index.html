@@ -12,6 +12,17 @@
   <meta name="theme-color"                           content="var(--primary)">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Catálogo Olympikus</title>
+  <!-- Troca de marca feita dentro da vitrine: a página recarrega com ?marca=
+       e, até o código perceber que deve voltar para a vitrine, a tela de
+       categorias aparecia por um instante. Aqui, antes de qualquer pintura,
+       a página já nasce na vitrine; a marca sai quando a vitrine assume. -->
+  <script>
+    try{ if(sessionStorage.getItem("cat_voltaVitrine") !== null) document.documentElement.classList.add("volta-vitrine"); }catch(_){}
+  </script>
+  <style>
+    html.volta-vitrine #homeScreen{ display:none !important; }
+    html.volta-vitrine #app{ display:block !important; }
+  </style>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10614,7 +10625,8 @@ function injectHomeCategoryImages(){
   }
 
   function goHome(){
-    if(homeScreen){ homeScreen.style.display=""; }
+    document.documentElement.classList.remove("volta-vitrine");
+    if(homeScreen){ homeScreen.style.display=""; homeScreen.classList.remove("hidden"); }
     if(appDiv)    { appDiv.style.display="none"; }
     if(btnBack)   { btnBack.style.display="none"; }
     window.scrollTo({ top:0, behavior:"instant" });
@@ -10639,14 +10651,16 @@ function injectHomeCategoryImages(){
       sessionStorage.removeItem("cat_voltaVitrine");
       // A lista da outra marca pode ficar pronta antes ou depois daqui: a
       // categoria entra assim que os produtos aparecem.
+      var _soltar = function(){ document.documentElement.classList.remove("volta-vitrine"); };
       var _espera = setInterval(function(){
         _mostrarVitrine();
         if(state.productsRaw && state.productsRaw.length){
           clearInterval(_espera);
           _applyCategory(_volta);
+          _soltar();
         }
       }, 150);
-      setTimeout(function(){ clearInterval(_espera); }, 8000);
+      setTimeout(function(){ clearInterval(_espera); _soltar(); }, 8000);
       _mostrarVitrine();
     }
   }catch(_){}
