@@ -1585,7 +1585,7 @@
 
     /* ── Modal Imagens Categorias ── */
     #catImgModal .ci-sheet {
-      width:min(560px, calc(100vw - 24px));
+      width:min(600px, calc(100vw - 24px));
       max-height: 92vh;
       max-height: 92dvh;
       background: var(--card-bg, #fff);
@@ -1599,8 +1599,54 @@
     #catImgModal .ci-body {
       flex:1 1 auto;
       overflow-y:auto;
-      padding: 12px 14px;
-      padding-bottom:env(safe-area-inset-bottom);
+      padding: 14px 16px 18px;
+      padding-bottom:max(18px, env(safe-area-inset-bottom));
+      display:flex; flex-direction:column; gap:18px;
+    }
+    /* ── Imagens da tela inicial: banner + categorias ── */
+    #catImgModal .ci-cab{ display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); }
+    #catImgModal .ci-eyebrow{ display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--primary); }
+    #catImgModal .ci-marca{ display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:800;
+      letter-spacing:0; text-transform:none; background:rgba(var(--primary-rgb),.12); color:var(--primary); }
+    #catImgModal .ci-titulo{ font-size:19px; font-weight:900; color:var(--text); line-height:1.2; }
+    #catImgModal .ci-secao{ display:flex; align-items:baseline; gap:8px; margin:0 0 8px; }
+    #catImgModal .ci-secao h3{ margin:0; font-size:13px; font-weight:800; color:var(--text); }
+    #catImgModal .ci-secao span{ font-size:11px; color:var(--muted); }
+    #catImgModal .ci-previa-cab{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    #catImgModal .ci-previa-cab small{ font-size:11px; color:var(--muted); }
+    #catImgModal .ci-seg{ display:inline-flex; padding:3px; border-radius:999px; background:var(--bg); border:1px solid var(--border); }
+    #catImgModal .ci-seg button{ border:0; background:transparent; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:800;
+      color:var(--muted); display:inline-flex; align-items:center; gap:5px; font-family:inherit; }
+    #catImgModal .ci-seg button.on{ background:var(--card-bg,#fff); color:var(--primary); box-shadow:0 1px 3px rgba(15,23,42,.12); }
+    #catImgModal .ci-banner{ position:relative; width:100%; overflow:hidden; border-radius:0 0 16px 16px; background:#111; container-type:inline-size; }
+    #catImgModal .ci-banner.pc{ aspect-ratio:1366/130; }
+    #catImgModal .ci-banner.cel{ aspect-ratio:390/90; max-width:390px; margin:0 auto; border-radius:0 0 14px 14px; }
+    #catImgModal .ci-banner-grade{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px; height:100%; }
+    #catImgModal .ci-banner-cel{ position:relative; overflow:hidden; background:#1a1a2e; }
+    #catImgModal .ci-banner-cel img{ width:100%; height:100%; object-fit:cover; object-position:center 20%; display:block; }
+    #catImgModal .ci-banner-cel.nova{ outline:2px solid #22c55e; outline-offset:-2px; }
+    #catImgModal .ci-banner-sombra{ position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.10) 38%, rgba(0,0,0,.72) 100%); }
+    #catImgModal .ci-banner-txt{ position:absolute; left:10px; bottom:6px; color:#fff; pointer-events:none; }
+    #catImgModal .ci-banner-txt b{ display:block; font-size:15px; font-weight:900; letter-spacing:-.3px; text-shadow:0 2px 8px rgba(0,0,0,.5); }
+    #catImgModal .ci-banner-txt i{ font-style:normal; font-size:8px; font-weight:600; opacity:.92; }
+    #catImgModal .ci-banner.pc .ci-banner-txt{ left:1.2cqw; bottom:.7cqw; }
+    #catImgModal .ci-banner.pc .ci-banner-txt b{ font-size:clamp(6px, 1.9cqw, 13px); }
+    #catImgModal .ci-banner.pc .ci-banner-txt i{ font-size:clamp(4px, .9cqw, 8px); }
+    #catImgModal .ci-num{ position:absolute; top:4px; right:4px; width:16px; height:16px; border-radius:999px; background:rgba(255,255,255,.92);
+      color:#0f172a; font-size:9px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+    #catImgModal .ci-thumb.larga{ width:84px; }
+    #catImgModal .ci-dica{ display:flex; gap:8px; align-items:flex-start; font-size:11px; color:var(--muted); line-height:1.45;
+      background:var(--bg); border:1px dashed var(--border); border-radius:12px; padding:9px 12px; margin-top:8px; }
+    #catImgModal .ci-dica i{ color:var(--primary); margin-top:2px; }
+    @media (max-width:520px){
+      #catImgModal .ci-cab{ padding:12px 14px; }
+      #catImgModal .ci-titulo{ font-size:17px; }
+      #catImgModal .ci-body{ padding:12px; }
+      #catImgModal .ci-previa-cab small{ display:none; }
+      #catImgModal .ci-previa-cab{ justify-content:flex-end; }
+      #catImgModal .ci-thumb.larga{ width:64px; }
+      #catImgModal .ci-btn{ padding:8px 10px; }
     }
     .ci-row {
       display:flex;
@@ -2304,7 +2350,7 @@
           <button id="btnPreferences" class="focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Minhas preferências" aria-label="Preferências do vendedor">
             <i class="fa-solid fa-sliders text-oly-muted text-base"></i>
           </button>
-          <button id="btnCatImagesConfig" class="focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Configurar imagens das categorias" aria-label="Configurações de imagens">
+          <button id="btnCatImagesConfig" class="hidden focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Configurações" aria-label="Configurações">
             <i class="fa-solid fa-gear text-oly-muted text-base"></i>
           </button>
         </div>
@@ -2312,9 +2358,9 @@
     </header>
     <div class="home-hero">
       <div class="home-hero-grid">
-        <div class="home-hero-cell"><img id="heroImg1" src="./hero1.webp" alt="" class="home-hero-cell-img" loading="eager" onerror="this.parentElement.style.background='#1a1a2e'"></div>
-        <div class="home-hero-cell"><img id="heroImg2" src="./hero2.webp" alt="" class="home-hero-cell-img" loading="eager" onerror="this.parentElement.style.background='#1a1a2e'"></div>
-        <div class="home-hero-cell"><img id="heroImg3" src="./hero3.webp" alt="" class="home-hero-cell-img" loading="eager" onerror="this.parentElement.style.background='#1a1a2e'"></div>
+        <div class="home-hero-cell"><img id="heroImg1" alt="" class="home-hero-cell-img" loading="eager" onerror="this.parentElement.style.background='#1a1a2e'"></div>
+        <div class="home-hero-cell"><img id="heroImg2" alt="" class="home-hero-cell-img" loading="eager" onerror="this.parentElement.style.background='#1a1a2e'"></div>
+        <div class="home-hero-cell"><img id="heroImg3" alt="" class="home-hero-cell-img" loading="eager" onerror="this.parentElement.style.background='#1a1a2e'"></div>
       </div>
       <div class="home-hero-overlay"></div>
       <div class="home-hero-content">
@@ -3606,6 +3652,10 @@ const MARCA_ATUAL = (function(){
   p = (p || "").toLowerCase();
   return MARCAS[p] || MARCAS.oly;
 })();
+// Fotos do banner enviadas pelo modal (Worker saveHeroImage). Mesmo repo das
+// imagens de categoria; a Under Armour fica na subpasta ua/.
+const HERO_IMG_BASE = "https://cms-representacoes.github.io/apps-oly/imagens_olympikus/hero/"
+  + (MARCA_ATUAL.id === "ua" ? "ua/" : "");
 
 const DATA_CONFIG = { xlsxPath: MARCA_ATUAL.xlsx, imagesBasePath: "./imagens_olympikus/", cacheBustOnRefresh: true };
 
@@ -3657,24 +3707,27 @@ const DATA_CONFIG = { xlsxPath: MARCA_ATUAL.xlsx, imagesBasePath: "./imagens_oly
     if(tc) tc.setAttribute("content", t.light.primary);
   }
 
-  // Hero por marca: troca as imagens e esconde o bloco se faltar alguma
+  // Hero por marca. Primeiro a foto enviada pelo modal "Imagens da tela
+  // inicial" (fica no repo apps-oly, uma pasta por marca); sem ela, a do
+  // próprio catálogo. O ?t= é o mesmo das categorias: foto trocada aparece
+  // na hora, sem esperar o cache. Se nem a de reserva existir, some o bloco.
   var hero = MARCA_ATUAL.hero;
   if(hero && hero.length === 3){
     var ids = ["heroImg1","heroImg2","heroImg3"];
-    var falhou = false;
-    var carregadas = 0;
-    function checaHero(){
-      if(falhou){
-        var bloco = document.querySelector(".home-hero");
-        if(bloco) bloco.style.display = "none";
-      }
-    }
+    var bust = "?t=" + Date.now();
     ids.forEach(function(id, i){
       var img = document.getElementById(id);
       if(!img) return;
-      img.onerror = function(){ falhou = true; checaHero(); };
-      img.onload  = function(){ carregadas++; if(carregadas === 3) checaHero(); };
-      img.src = hero[i];
+      img.onerror = function(){
+        if(img.dataset.reserva) {
+          var bloco = document.querySelector(".home-hero");
+          if(bloco) bloco.style.display = "none";
+          return;
+        }
+        img.dataset.reserva = "1";
+        img.src = hero[i];
+      };
+      img.src = HERO_IMG_BASE + "hero" + (i+1) + ".jpg" + bust;
     });
   }
 })();
@@ -10950,7 +11003,6 @@ function injectHomeCategoryImages(){
 // ═══════════════════════════════════════════════════════════════════
 // CONFIGURAÇÃO DE IMAGENS DAS CATEGORIAS (admin)
 // ═══════════════════════════════════════════════════════════════════
-const CAT_IMG_PWD = "cmscatalogo"; // senha simples de configurações
 const CAT_IMG_CATEGORIES = [
   { id: "FTW",  nome: "Tênis",        icone: "👟", sub: "Corrida, treino e lifestyle" },
   { id: "CHI",  nome: "Chinelos",     icone: "👡", sub: "Conforto pra o dia a dia" },
@@ -10959,30 +11011,17 @@ const CAT_IMG_CATEGORIES = [
   { id: "MEIA", nome: "Meias",        icone: "🧦", sub: "Performance e casual" },
 ];
 
-function abrirSenhaCategorias(){
-  const m = $("catImgPwdModal");
-  if(!m) return;
-  m.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  setTimeout(() => $("catImgPwdInput")?.focus(), 50);
-  $("catImgPwdInput").value = "";
-  $("catImgPwdError").classList.add("hidden");
+// Configurações (imagens da tela inicial e prepostos) são do CMS: a
+// engrenagem só aparece para essa sessão, e abrir confere de novo.
+function ehSessaoCMS(){
+  const s = (typeof getPortalSession === "function") ? getPortalSession() : null;
+  return !!(s && s.nome === "CMS");
 }
-function fecharSenhaCategorias(){
-  $("catImgPwdModal").classList.add("hidden");
-  document.body.style.overflow = "";
+function mostrarEngrenagemCMS(){
+  const b = $("btnCatImagesConfig");
+  if(b) b.classList.toggle("hidden", !ehSessaoCMS());
 }
-function validarSenhaCategorias(){
-  const v = $("catImgPwdInput").value.trim();
-  if(v === CAT_IMG_PWD){
-    fecharSenhaCategorias();
-    abrirMenuConfiguracoes();
-  } else {
-    $("catImgPwdError").classList.remove("hidden");
-    $("catImgPwdInput").value = "";
-    $("catImgPwdInput").focus();
-  }
-}
+document.addEventListener("DOMContentLoaded", mostrarEngrenagemCMS);
 
 // ────── Menu de Configurações ──────
 function abrirMenuConfiguracoes(){
@@ -11266,9 +11305,126 @@ function abrirModalImagensCategorias(){
       </button>
     </div>`;
   }).join("");
+  _montarBannerNoModal();
   $("catImgModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
+
+// ────── Banner do topo (3 fotos) ──────
+const HERO_SLOTS = [
+  { slot:1, nome:"Foto 1 · esquerda", sub:"Fica atrás do “Bem-vindo”" },
+  { slot:2, nome:"Foto 2 · centro",   sub:"Meio do banner" },
+  { slot:3, nome:"Foto 3 · direita",  sub:"Canto direito" },
+];
+// O modal mostra o que a tela inicial está mostrando agora: a foto enviada
+// ou, se ainda não houver, a de reserva do catálogo.
+const _srcDoHero = n => $("heroImg" + n)?.currentSrc || $("heroImg" + n)?.src || "";
+function _montarBannerNoModal(){
+  const marca = $("ciMarca")?.querySelector("span");
+  if(marca) marca.textContent = MARCA_ATUAL.nome;
+  // no celular a prévia já abre como celular
+  _mudarPreviaBanner(window.innerWidth < 640 ? "cel" : "pc");
+  for(const { slot } of HERO_SLOTS){
+    const cel = document.querySelector(`#ciBanner [data-hero-cel="${slot}"]`);
+    if(cel){ cel.classList.remove("nova"); cel.querySelector("img").src = _srcDoHero(slot); }
+  }
+  $("heroImgList").innerHTML = HERO_SLOTS.map(h => `<div class="ci-row" data-hero-row="${h.slot}">
+      <div class="ci-thumb larga"><img src="${_srcDoHero(h.slot)}" alt="${h.nome}"></div>
+      <div class="ci-info">
+        <div class="ci-name">${h.nome}</div>
+        <div class="ci-meta">${h.sub}</div>
+        <div class="ci-status text-[10px] font-bold mt-1" style="color:var(--muted);min-height:14px"></div>
+      </div>
+      <input type="file" accept="image/*" class="hidden" data-hero-input="${h.slot}">
+      <button class="ci-btn" data-hero-trocar="${h.slot}">
+        <i class="fa-solid fa-upload"></i> Trocar
+      </button>
+    </div>`).join("");
+}
+function _mudarPreviaBanner(disp){
+  const b = $("ciBanner"); if(!b) return;
+  b.classList.toggle("pc", disp === "pc");
+  b.classList.toggle("cel", disp === "cel");
+  document.querySelectorAll("#ciSeg [data-ci-disp]").forEach(x => x.classList.toggle("on", x.dataset.ciDisp === disp));
+}
+
+// Foto do banner vai em JPG: é foto, não ícone. 1400px no lado maior cobre a
+// faixa de um monitor largo e fica em ~150 KB.
+function _comprimirFotoJpegBase64(file, maxDim = 1400, qualidade = 0.85){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Imagem inválida")); };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        if(width >= height){ height = Math.round(height * maxDim / width); width = maxDim; }
+        else { width = Math.round(width * maxDim / height); height = maxDim; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", qualidade).split(",")[1]);
+    };
+    img.src = url;
+  });
+}
+
+async function uploadImagemHero(slot, file){
+  const row = document.querySelector(`.ci-row[data-hero-row="${slot}"]`);
+  const btn = row?.querySelector("[data-hero-trocar]");
+  const thumb = row?.querySelector(".ci-thumb");
+  const status = row?.querySelector(".ci-status");
+  const nome = `Foto ${slot} do banner`;
+  if(!file) return;
+  if(!file.type.startsWith("image/")){
+    if(status){ status.textContent = "❌ Arquivo precisa ser imagem"; status.style.color = "#dc2626"; }
+    toast("Arquivo precisa ser uma imagem ⚠️");
+    return;
+  }
+  if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...'; }
+  if(thumb) thumb.classList.add("loading");
+  if(status){ status.textContent = "⏳ Comprimindo..."; status.style.color = "var(--muted)"; }
+  try{
+    const base64 = await _comprimirFotoJpegBase64(file);
+    if(status) status.textContent = "📤 Enviando...";
+    const res = await fetch(WORKER_URL, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-Admin-Token": (typeof ADMIN_TOKEN !== "undefined" ? ADMIN_TOKEN : "") },
+      body: JSON.stringify({ action: "saveHeroImage", slot, base64, marca: MARCA_ATUAL.id })
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0,120)}`);
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || "Worker retornou success:false");
+
+    // O GitHub leva um ou dois minutos para publicar: até lá a foto nova vem
+    // do próprio arquivo escolhido, no modal e na tela inicial.
+    const local = "data:image/jpeg;base64," + base64;
+    const thumbImg = row?.querySelector(".ci-thumb img");
+    if(thumbImg) thumbImg.src = local;
+    const cel = document.querySelector(`#ciBanner [data-hero-cel="${slot}"]`);
+    if(cel){ cel.querySelector("img").src = local; cel.classList.add("nova"); }
+    const home = $("heroImg" + slot);
+    if(home){ home.dataset.reserva = "1"; home.src = local; }
+    if(status){
+      status.textContent = `✅ Atualizada às ${new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
+      status.style.color = "#16a34a";
+    }
+    toast(`${nome}: imagem atualizada ✅`);
+  }catch(err){
+    console.error("[HeroImg] ❌ Erro:", err);
+    if(status){ status.textContent = `❌ Erro: ${err.message || "tente novamente"}`; status.style.color = "#dc2626"; }
+    toast(`${nome}: falha no envio ⚠️`);
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-upload"></i> Trocar'; }
+    if(thumb) thumb.classList.remove("loading");
+  }
+}
+
 function fecharModalImagensCategorias(){
   $("catImgModal").classList.add("hidden");
   document.body.style.overflow = "";
@@ -11385,13 +11541,19 @@ async function uploadImagemCategoria(catId, file){
 // Event delegation (modal pode não estar no DOM ainda quando JS carrega)
 document.addEventListener("click", (e) => {
   // Engrenagem
-  if(e.target.closest("#btnCatImagesConfig")){ abrirSenhaCategorias(); return; }
-  // Modal senha
-  if(e.target.closest("#catImgPwdOk")){ validarSenhaCategorias(); return; }
-  if(e.target.closest("#catImgPwdCancel")){ fecharSenhaCategorias(); return; }
+  if(e.target.closest("#btnCatImagesConfig")){ if(ehSessaoCMS()) abrirMenuConfiguracoes(); return; }
   // Modal categorias
   if(e.target.closest("#btnCloseCatImg")){ fecharModalImagensCategorias(); return; }
   if(e.target.id === "catImgBackdrop"){ fecharModalImagensCategorias(); return; }
+  // Prévia do banner: computador / celular
+  const disp = e.target.closest("#ciSeg [data-ci-disp]");
+  if(disp){ _mudarPreviaBanner(disp.dataset.ciDisp); return; }
+  // Banner: "Trocar" abre o seletor da própria linha
+  const btnHero = e.target.closest("[data-hero-trocar]");
+  if(btnHero){
+    btnHero.parentElement.querySelector("[data-hero-input]")?.click();
+    return;
+  }
   // Botão "Trocar" → dispara o input file da row
   const btnTrocar = e.target.closest("[data-cat-trocar]");
   if(btnTrocar){
@@ -11402,6 +11564,12 @@ document.addEventListener("click", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
+  if(e.target.dataset && e.target.dataset.heroInput){
+    const file = e.target.files[0];
+    if(file) uploadImagemHero(Number(e.target.dataset.heroInput), file);
+    e.target.value = "";
+    return;
+  }
   if(e.target.dataset && e.target.dataset.catInput){
     const catId = e.target.dataset.catInput;
     const file = e.target.files[0];
@@ -11410,14 +11578,7 @@ document.addEventListener("change", (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
-  if(e.key === "Enter" && !$("catImgPwdModal")?.classList.contains("hidden")){
-    e.preventDefault();
-    validarSenhaCategorias();
-  }
-  if(e.key === "Escape"){
-    if(!$("catImgPwdModal")?.classList.contains("hidden")){ fecharSenhaCategorias(); return; }
-    if(!$("catImgModal")?.classList.contains("hidden")){ fecharModalImagensCategorias(); return; }
-  }
+  if(e.key === "Escape" && !$("catImgModal")?.classList.contains("hidden")){ fecharModalImagensCategorias(); }
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -13097,26 +13258,6 @@ loadCatalog({ cacheBust:false });
   </div>
 </div>
 
-<!-- ═══════════ MODAL SENHA (configuração de imagens) ═══════════ -->
-<div id="catImgPwdModal" class="hidden fixed inset-0 z-[92]">
-  <div class="absolute inset-0 bg-black/60"></div>
-  <div class="absolute inset-0 flex items-center justify-center p-4">
-    <div class="rounded-2xl p-5 max-w-sm w-full" style="background:var(--card-bg, #fff);border:1px solid var(--border)">
-      <div class="text-3xl mb-2">🔒</div>
-      <div class="text-lg font-black mb-1" style="color:var(--text)">Acesso protegido</div>
-      <div class="text-sm mb-4" style="color:var(--muted)">Digite a senha de administrador para configurar as imagens das categorias.</div>
-      <input id="catImgPwdInput" type="password" placeholder="Senha" autocomplete="current-password"
-             class="w-full rounded-xl border border-oly-border px-4 py-2.5 text-sm font-bold mb-3 focus:outline-none focus:ring-2"
-             style="background:var(--input-bg, #fff);color:var(--text);">
-      <div id="catImgPwdError" class="hidden text-xs font-bold mb-3" style="color:#dc2626">Senha incorreta</div>
-      <div class="flex gap-2">
-        <button id="catImgPwdCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Cancelar</button>
-        <button id="catImgPwdOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white" style="background:var(--primary)">Entrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ═══════════ MODAL DE PREFERÊNCIAS DO VENDEDOR ═══════════ -->
 <div id="prefModal" class="hidden fixed inset-0 z-[90]">
   <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="prefBackdrop"></div>
@@ -13175,8 +13316,8 @@ loadCatalog({ cacheBust:false });
           <div class="h-12 w-12 rounded-2xl flex items-center justify-center mb-3" style="background:linear-gradient(140deg,#F8FAFC 0%,#EFF6FF 55%,#DBEAFE 100%);box-shadow:0 1px 2px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.6);">
             <i class="fa-solid fa-images" style="color:#1d4ed8;font-size:20px"></i>
           </div>
-          <div class="font-extrabold text-oly-text text-[15px]">Imagens de Categorias</div>
-          <div class="text-xs text-oly-muted mt-1 leading-relaxed">Trocar as imagens exibidas nos cards de categoria da home.</div>
+          <div class="font-extrabold text-oly-text text-[15px]">Imagens da tela inicial</div>
+          <div class="text-xs text-oly-muted mt-1 leading-relaxed">Trocar as fotos do banner do topo e dos cards de categoria.</div>
         </button>
         <button id="btnCfgPrepostos" type="button" class="focus-ring text-left rounded-2xl border border-oly-border bg-white hover:bg-oly-bg p-5 transition">
           <div class="h-12 w-12 rounded-2xl flex items-center justify-center mb-3" style="background:linear-gradient(140deg,#FBF6FE 0%,#FDF4FF 55%,#F0ABFC 100%);box-shadow:0 1px 2px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.6);">
@@ -13237,21 +13378,45 @@ loadCatalog({ cacheBust:false });
 <div id="catImgModal" class="hidden fixed inset-0 z-[91]">
   <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="catImgBackdrop"></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-    <div class="ci-sheet">
-      <div class="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border">
-        <div class="min-w-0">
-          <div class="text-xs font-extrabold uppercase tracking-[0.12em]" style="color:var(--primary)">Personalizar</div>
-          <div class="text-lg sm:text-xl font-black text-oly-text">⚙️ Imagens das Categorias</div>
+    <div class="ci-sheet" role="dialog" aria-label="Imagens da tela inicial">
+      <div class="ci-cab">
+        <div class="min-w-0 flex-1">
+          <div class="ci-eyebrow">Personalizar <span class="ci-marca" id="ciMarca"><i class="fa-solid fa-tag"></i><span></span></span></div>
+          <div class="ci-titulo">Imagens da tela inicial</div>
         </div>
-        <button id="btnCloseCatImg" class="focus-ring h-11 w-11 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0" aria-label="Fechar">
+        <button id="btnCloseCatImg" class="focus-ring h-10 w-10 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0" aria-label="Fechar">
           <i class="fa-solid fa-xmark text-oly-blue"></i>
         </button>
       </div>
-      <div class="px-5 sm:px-6 py-4 text-xs" style="background:var(--bg);border-bottom:1px solid var(--border);color:var(--muted)">
-        💡 As imagens são salvas no GitHub e ficam visíveis pra todos os vendedores. Formato recomendado: PNG ou JPG quadrado, ~600×600px.
-      </div>
-      <div class="ci-body" id="catImgList">
-        <!-- preenchido por JS -->
+      <div class="ci-body">
+        <!-- ── Banner do topo ── -->
+        <section>
+          <div class="ci-secao"><h3>Banner do topo</h3><span>3 fotos lado a lado</span></div>
+          <div class="ci-previa-cab">
+            <small>Como aparece para o vendedor</small>
+            <div class="ci-seg" id="ciSeg">
+              <button type="button" class="on" data-ci-disp="pc"><i class="fa-solid fa-display"></i>Computador</button>
+              <button type="button" data-ci-disp="cel"><i class="fa-solid fa-mobile-screen"></i>Celular</button>
+            </div>
+          </div>
+          <div class="ci-banner pc" id="ciBanner">
+            <div class="ci-banner-grade">
+              <div class="ci-banner-cel" data-hero-cel="1"><img alt=""><span class="ci-num">1</span></div>
+              <div class="ci-banner-cel" data-hero-cel="2"><img alt=""><span class="ci-num">2</span></div>
+              <div class="ci-banner-cel" data-hero-cel="3"><img alt=""><span class="ci-num">3</span></div>
+            </div>
+            <div class="ci-banner-sombra"></div>
+            <div class="ci-banner-txt"><b>Bem-vindo 👋</b><i>Escolha uma categoria para começar</i></div>
+          </div>
+          <div id="heroImgList" class="mt-2.5"></div>
+          <div class="ci-dica"><i class="fa-solid fa-lightbulb"></i>
+            <span>Use foto deitada (por exemplo 1200×800) com o produto no meio. No computador cada foto vira uma faixa bem larga e baixa; no celular, quase quadrada. As bordas de cima e de baixo são cortadas.</span></div>
+        </section>
+        <!-- ── Cards das categorias ── -->
+        <section>
+          <div class="ci-secao"><h3>Cards das categorias</h3><span>quadradas, ~600×600</span></div>
+          <div id="catImgList"></div>
+        </section>
       </div>
     </div>
   </div>
