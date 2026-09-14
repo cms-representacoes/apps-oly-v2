@@ -9869,40 +9869,51 @@ function _updateGradeUIVisibility(){
   if(!vv || !modal || !sheet) return;
   let alturaAtual = 0;          // quanto a folha está erguida agora (0 = no pé)
   let descer = null;
-  /* Ao digitar um tamanho o foco pula para o próximo campo, e nesse pulo o
-     teclado some e volta por um instante. Descer a folha e subir de novo a
-     cada número era o que fazia o modal piscar. Subir é na hora; descer
-     espera o teclado ficar fechado de verdade. */
+  /* Ao digitar um tamanho o foco pula para o próximo campo. Nesse pulo o
+     teclado pode sumir por um instante e o navegador rola a área visível
+     alguns pixels: qualquer uma das duas coisas baixava a folha e a subia de
+     novo, a cada número. Regra: subir é na hora; descer — tudo ou só um
+     pouco — espera a tela ficar parada. */
+  const medir = () => modal.classList.contains("hidden") ? 0
+    : Math.round(window.innerHeight - (vv.height + vv.offsetTop));
   function aplicar(cobre){
     if(Math.abs(cobre - alturaAtual) < 3) return;       // nada mudou: não mexe no layout
     alturaAtual = cobre;
     sheet.style.bottom = cobre ? cobre + "px" : "";
     sheet.style.maxHeight = cobre ? Math.round(vv.height - 8) + "px" : "";
   }
+  // Rola só a área de dentro da folha, e só se o campo estiver escondido:
+  // scrollIntoView também rola a página, e isso mexia na área visível.
   function mostrarCampo(){
     const el = document.activeElement;
     if(!el || !sheet.contains(el) || !el.matches("input, select, textarea")) return;
-    const alvo = el.closest(".grade-grade") || el;
-    const r = alvo.getBoundingClientRect(), s = sheet.getBoundingClientRect();
-    const limite = Math.min(s.bottom, vv.height + vv.offsetTop);
-    // só rola quando está escondido: rolar à toa também dá o tranco na tela
-    if(r.top < s.top || r.bottom > limite) alvo.scrollIntoView({ block:"nearest" });
-    const e = el.getBoundingClientRect();
-    if(e.top < s.top || e.bottom > limite) el.scrollIntoView({ block:"nearest" });
+    const caixa = el.closest(".overflow-y-auto");
+    if(!caixa) return;
+    const c = caixa.getBoundingClientRect();
+    const fundo = Math.min(c.bottom, vv.height + vv.offsetTop);
+    const alvo = (el.closest(".grade-grade") || el).getBoundingClientRect();
+    const campo = el.getBoundingClientRect();
+    let delta = 0;
+    if(alvo.top < c.top) delta = alvo.top - c.top - 6;
+    else if(alvo.bottom > fundo) delta = Math.min(alvo.bottom - fundo + 6, campo.top - c.top - 6);
+    if(campo.top - delta < c.top) delta = campo.top - c.top - 6;
+    if(campo.bottom - delta > fundo) delta = campo.bottom - fundo + 6;
+    if(Math.abs(delta) > 1) caixa.scrollTop += delta;
   }
   function ajustar(){
-    const aberto = !modal.classList.contains("hidden");
-    const cobre = aberto ? Math.round(window.innerHeight - (vv.height + vv.offsetTop)) : 0;
-    if(cobre > 60){                          // abaixo disso é barra do navegador, não teclado
+    const cobre = medir();
+    const alvo = cobre > 60 ? cobre : 0;                 // abaixo de 60px é barra do navegador
+    if(alvo >= alturaAtual - 2){
       clearTimeout(descer); descer = null;
-      aplicar(cobre);
-      mostrarCampo();
-    }else if(alturaAtual && !descer){
+      aplicar(alvo);
+      if(alvo) mostrarCampo();
+    }else if(!descer){
+      const aberto = !modal.classList.contains("hidden");
       descer = setTimeout(() => {
         descer = null;
-        const ainda = modal.classList.contains("hidden") ? 0
-          : Math.round(window.innerHeight - (vv.height + vv.offsetTop));
-        if(ainda <= 60) aplicar(0);
+        const c = medir();
+        aplicar(c > 60 ? c : 0);
+        if(c > 60) mostrarCampo();
       }, aberto ? 450 : 0);
     }
   }
@@ -9987,7 +9998,9 @@ function renderGradeSizeList(){
     if(!eraVazio || !e.target.value) return;
     const campos = [...list.querySelectorAll(".grade-qty-input")];
     const prox = campos[campos.indexOf(e.target) + 1];
-    if(prox){ prox.focus(); prox.select(); }
+    // preventScroll: o navegador rolava a página para mostrar o campo, a área
+    // visível andava e a folha descia um pouco em cada tamanho (o "piscar")
+    if(prox){ prox.focus({ preventScroll:true }); prox.select(); }
     else { e.target.blur(); irParaDataDesejada(); }
   });
   list.addEventListener("blur", (e)=>{
@@ -10030,7 +10043,7 @@ function renderGradeSizeList(){
       }
     }
     e.preventDefault();
-    if(alvo){ alvo.focus(); alvo.select(); }
+    if(alvo){ alvo.focus({ preventScroll:true }); alvo.select(); }
   });
 }
 
