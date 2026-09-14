@@ -9867,21 +9867,43 @@ function _updateGradeUIVisibility(){
   const vv = window.visualViewport;
   const modal = $("gradeModal"), sheet = $("gradeSheet");
   if(!vv || !modal || !sheet) return;
+  let alturaAtual = 0;          // quanto a folha está erguida agora (0 = no pé)
+  let descer = null;
+  /* Ao digitar um tamanho o foco pula para o próximo campo, e nesse pulo o
+     teclado some e volta por um instante. Descer a folha e subir de novo a
+     cada número era o que fazia o modal piscar. Subir é na hora; descer
+     espera o teclado ficar fechado de verdade. */
+  function aplicar(cobre){
+    if(Math.abs(cobre - alturaAtual) < 3) return;       // nada mudou: não mexe no layout
+    alturaAtual = cobre;
+    sheet.style.bottom = cobre ? cobre + "px" : "";
+    sheet.style.maxHeight = cobre ? Math.round(vv.height - 8) + "px" : "";
+  }
+  function mostrarCampo(){
+    const el = document.activeElement;
+    if(!el || !sheet.contains(el) || !el.matches("input, select, textarea")) return;
+    const alvo = el.closest(".grade-grade") || el;
+    const r = alvo.getBoundingClientRect(), s = sheet.getBoundingClientRect();
+    const limite = Math.min(s.bottom, vv.height + vv.offsetTop);
+    // só rola quando está escondido: rolar à toa também dá o tranco na tela
+    if(r.top < s.top || r.bottom > limite) alvo.scrollIntoView({ block:"nearest" });
+    const e = el.getBoundingClientRect();
+    if(e.top < s.top || e.bottom > limite) el.scrollIntoView({ block:"nearest" });
+  }
   function ajustar(){
     const aberto = !modal.classList.contains("hidden");
     const cobre = aberto ? Math.round(window.innerHeight - (vv.height + vv.offsetTop)) : 0;
     if(cobre > 60){                          // abaixo disso é barra do navegador, não teclado
-      sheet.style.bottom = cobre + "px";
-      sheet.style.maxHeight = Math.round(vv.height - 8) + "px";
-    }else{
-      sheet.style.bottom = "";
-      sheet.style.maxHeight = "";
-    }
-    const el = document.activeElement;
-    if(aberto && cobre > 60 && el && sheet.contains(el) && el.matches("input, select, textarea")){
-      const bloco = el.closest(".grade-grade") || el;
-      bloco.scrollIntoView({ block:"nearest" });
-      el.scrollIntoView({ block:"nearest" });
+      clearTimeout(descer); descer = null;
+      aplicar(cobre);
+      mostrarCampo();
+    }else if(alturaAtual && !descer){
+      descer = setTimeout(() => {
+        descer = null;
+        const ainda = modal.classList.contains("hidden") ? 0
+          : Math.round(window.innerHeight - (vv.height + vv.offsetTop));
+        if(ainda <= 60) aplicar(0);
+      }, aberto ? 450 : 0);
     }
   }
   vv.addEventListener("resize", ajustar);
