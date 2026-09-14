@@ -1577,6 +1577,10 @@
     }
     #actionBar > #searchWrap { padding-top:0; padding-bottom:0; }
     #actionBar > #btnLayout .lay-opt { height: calc(var(--act-h) - 8px); }
+    /* Celular e tablet ficam sempre em 2 colunas: o seletor só existe no
+       computador. Mesmo critério (pointer:coarse) de ehTelaDeToque(), que
+       escolhe o layout inicial. */
+    @media (pointer:coarse){ #actionBar > #btnLayout { display:none !important; } }
 
 
     /* ── Modal Imagens Categorias ── */
