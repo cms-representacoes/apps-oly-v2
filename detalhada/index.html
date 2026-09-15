@@ -7687,8 +7687,24 @@ function configurarCopiaAoSelecionar() {
  *  Fecha em vez de redesenhar a lista: redesenhar reconstruiria 120 cartoes
  *  e jogaria a pagina para outro ponto da rolagem — quem clica aqui quer se
  *  reencontrar, nao mudar de lugar. */
+/* Abrir o primeiro produto some com os outros; fechar o último os traz de
+ *  volta. As duas coisas mudam a altura da página por cima do cartão, e o
+ *  cartão pularia para outro ponto da tela: aqui ele volta para onde estava. */
+function manterNoLugar(card, acao) {
+  if (!card || !card.isConnected) { acao(); return; }
+  const antes = card.getBoundingClientRect().top;
+  acao();
+  const depois = card.getBoundingClientRect().top;
+  if (Math.abs(depois - antes) > 1) window.scrollTo({ top: window.scrollY + depois - antes, behavior: 'instant' });
+}
+
 function recolherTudo() {
   if (!APP.abertos.size) return;
+  const abertos = [...document.querySelectorAll('#lista .product-card.expanded')];
+  const ancora = abertos.find(c => c.getBoundingClientRect().bottom > 0) || abertos[0];
+  manterNoLugar(ancora, recolherTudoAgora);
+}
+function recolherTudoAgora() {
   document.querySelectorAll('#lista .product-card.expanded').forEach(card => {
     const det = card.querySelector('.product-details');
     if (det) fecharDetalhes(det);
@@ -7886,6 +7902,11 @@ function ligarLista() {
     if (!card) return;
     const chave = Number(card.dataset.chave);
     const det = card.querySelector('.product-details');
+    manterNoLugar(card, () => alternarProduto(card, chave, det));
+  });
+}
+
+function alternarProduto(card, chave, det) {
     if (APP.abertos.has(chave)) {
       APP.abertos.delete(chave);
       APP.verTudo.delete(chave);
@@ -7904,7 +7925,6 @@ function ligarLista() {
         atualizarBotaoRecolher();
       }
     }
-  });
 }
 
 function abrirZoom(chave) {
@@ -12502,10 +12522,13 @@ html.vn .painel-detalhada .product-card.expanded .product-main{
 #lista .product-card,
 #lista .lista-total,
 #rodape{ transition:opacity .22s ease; }
+/* Saem de vez (e não só ficam invisíveis): invisíveis, eles continuavam
+   ocupando a rolagem, e subindo ou descendo a tela o produto aberto sumia
+   num mar de espaço vazio. A posição na tela é mantida por manterNoLugar. */
 #lista:has(.product-card.expanded) .product-card:not(.expanded),
 #lista:has(.product-card.expanded) .lista-total,
 .painel-detalhada:has(#lista .product-card.expanded) #rodape{
-  opacity:0; pointer-events:none;
+  display:none;
 }
 @media (prefers-reduced-motion:reduce){
   #lista .product-card, #lista .lista-total, #rodape{ transition:none; }
