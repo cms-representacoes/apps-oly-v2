@@ -2924,6 +2924,14 @@ function marcarGrudados() {
     const topo = fh.getBoundingClientRect().top;
     fh.classList.toggle('grudado', window.scrollY > 0 && topo <= 0.5);
   }
+  // RFV e Entradas e saídas: números grudam no alto, filtros logo abaixo
+  const tela = document.querySelector('#screen-rfv.active, #screen-es.active');
+  if (tela) {
+    const num = tela.querySelector('.rfv-numeros'), fil = tela.querySelector('.rfv-caixa-filtros');
+    const hNum = num ? num.getBoundingClientRect().height : 0;
+    if (num) num.classList.toggle('grudado', window.scrollY > 0 && num.getBoundingClientRect().top <= 0.5);
+    if (fil) fil.classList.toggle('grudado', window.scrollY > 0 && fil.getBoundingClientRect().top <= hNum + 0.5);
+  }
   const lh = document.querySelector('#lista .lista-head');
   if (lh) {
     const alvo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topo-congelado')) || 0;
@@ -12580,6 +12588,231 @@ html.vn .painel-detalhada .product-card.expanded .product-main{
   html.vn .painel-detalhada .product-card.expanded .product-main{ top:calc(var(--topo-congelado, 60px) - 1px); }
   html.vn .painel-detalhada .product-main{ padding-left:12px; padding-right:12px; border-radius:16px; }
   html.vn .painel-detalhada .product-card.expanded .product-details-inner{ padding:8px 8px 12px; }
+}
+</style>
+
+<style id="vn-rfv">
+/* ═════════════════════════════════════════════════════════════════════
+   VISUAL NOVO · fase 2 — RFV (e Entradas e saídas, que usa as mesmas
+   peças). Só aparência, como na tela de produtos: congelamentos, filtros,
+   abas, mapa e ordenação continuam os de sempre.
+   ═════════════════════════════════════════════════════════════════════ */
+html.vn :is(#screen-rfv,#screen-es){ --rfv-raio:18px; }
+
+/* ── topo: cartão na cor da marca ── */
+html.vn :is(#screen-rfv,#screen-es) .rfv-topo{
+  background:transparent; border:0; border-radius:0; margin:0 0 12px; box-shadow:none;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-topo-in{
+  background:var(--pv-marca); border-radius:var(--rfv-raio); box-shadow:var(--ds-shadow-card);
+  padding:10px 14px; gap:14px;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-tit{ border-right:0; padding-right:4px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-tit .logo-text{ color:#fff; font-size:17px; font-weight:800; letter-spacing:-.01em; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-tit .logo-sub{
+  color:rgba(255,255,255,.8); font-family:var(--ds-font); font-size:10.5px; font-weight:600;
+  letter-spacing:.02em; text-transform:none;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-topo .btn-icon{
+  width:var(--vn-pilula); height:var(--vn-pilula); border-radius:999px;
+  background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.35); color:#fff;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-topo .btn-icon:hover{ background:rgba(255,255,255,.24); border-color:rgba(255,255,255,.5); color:#fff; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-busca-cima input{
+  height:42px; border-radius:999px; padding-left:40px; font-size:14px;
+  background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.32);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-busca-cima .search-icon{ left:15px; font-size:14px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-busca-cima .search-clear{ border-radius:999px; right:6px; }
+
+/* ── números: cartões com ícone, como na tela de produtos ── */
+html.vn :is(#screen-rfv,#screen-es) .rfv-numeros{
+  display:flex; align-items:center; gap:10px; margin:0 0 4px; padding:2px 0 8px;
+  background:transparent; border:0; box-shadow:none;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-numeros .rfv-caixa{ flex:1 1 auto; min-width:0; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-caixa::before,
+html.vn :is(#screen-rfv,#screen-es) .rfv-caixa::after{ display:none; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-fichas{ gap:12px; padding:2px; margin:-2px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha,
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha:first-child,
+html.vn :is(#screen-rfv,#screen-es) button.rfv-ficha{
+  position:relative; flex:1 1 0; min-width:170px; min-height:72px; justify-content:center; gap:1px;
+  padding:10px 16px 10px 68px; text-indent:0; text-align:left;
+  background:var(--ds-card); border:1px solid var(--ds-line); border-radius:var(--rfv-raio);
+  box-shadow:var(--ds-shadow-card); font-family:var(--ds-font); color:var(--ds-ink);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha::before{
+  left:16px; top:50%; width:40px; height:40px; margin-top:-20px; border-radius:12px;
+  background:rgba(var(--ds-accent-rgb), .10); color:var(--ds-accent);
+  font-family:'Font Awesome 6 Free'; font-weight:900; font-size:15px; line-height:40px; text-align:center;
+  content:'\f0c0';
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha.pos::before{ content:'\f07a'; background:var(--ds-faturado-bg); color:var(--ds-faturado); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha.neg::before{ content:'\f05e'; background:color-mix(in srgb, var(--ds-erro) 12%, var(--ds-card)); color:var(--ds-erro); }
+html.vn #screen-es .rfv-ficha::before{ content:'\f090'; }
+html.vn #screen-es .rfv-ficha.neg::before{ content:'\f08b'; }
+html.vn #screen-es .rfv-ficha.pos::before{ content:'\f058'; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .n{
+  font-family:var(--ds-font); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ds-muted);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-family:var(--ds-font); font-size:23px; font-weight:800; letter-spacing:-.02em; color:var(--ds-ink); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .pc{ font-family:var(--ds-font); font-size:11px; font-weight:600; color:var(--ds-muted); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha.pos .v{ color:var(--ds-faturado); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha.neg .v{ color:var(--ds-erro); }
+html.vn :is(#screen-rfv,#screen-es) button.rfv-ficha:hover{ background:var(--ds-card-2); border-color:var(--ds-line-strong); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-ficha.on{
+  background:var(--vn-aberto); border-color:var(--vn-borda-marca);
+  box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .12), var(--ds-shadow-card);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-numeros .kpi-toggle{
+  position:static; transform:none; flex:none; width:30px; height:30px; border-radius:999px;
+  background:var(--ds-card); border:1px solid var(--ds-line); color:var(--ds-muted);
+}
+/* números recolhidos: só a setinha, encostada no topo, sem abrir faixa vazia */
+html.vn :is(#screen-rfv,#screen-es) .rfv-numeros.recolhido{ height:24px; justify-content:flex-end; margin:-10px 0 0; padding:0; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-numeros.recolhido .kpi-toggle{ width:24px; height:24px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-numeros.recolhido + .rfv-caixa-filtros{ padding-top:0; }
+
+/* ── abas e filtros em pílula ── */
+html.vn :is(#screen-rfv,#screen-es) .rfv-caixa-filtros{
+  background:transparent; border:0; padding:6px 0 10px; margin:0;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-barra{ gap:8px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-abas{ background:transparent; box-shadow:none; border:0; padding:0; gap:6px; margin-right:2px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-aba{
+  height:var(--vn-pilula); padding:0 16px; border-radius:999px;
+  background:var(--ds-card); border:1px solid var(--ds-line); color:var(--ds-ink);
+  font-family:var(--ds-font); font-size:13px; font-weight:800;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-aba:hover{ border-color:var(--ds-line-strong); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-aba.on,
+html.vn.dark :is(#screen-rfv,#screen-es) .rfv-aba.on{
+  background:var(--ds-accent); border-color:var(--ds-accent); color:#fff;
+  box-shadow:0 6px 14px -8px rgba(var(--ds-accent-rgb), .85);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-campo,
+html.vn :is(#screen-rfv,#screen-es) .rfv-tgl{
+  height:var(--vn-pilula); padding:0 14px; border-radius:999px;
+  background:var(--ds-card); border:1px solid var(--ds-line); color:var(--ds-ink);
+  font-family:var(--ds-font); font-size:13px; font-weight:700;
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-dd::after{ color:var(--ds-faint); opacity:1; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-tgl i{ color:var(--ds-accent); font-size:13px; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-dd:hover,
+html.vn :is(#screen-rfv,#screen-es) .rfv-tgl:hover{ background:var(--ds-card-2); border-color:var(--ds-line-strong); color:var(--ds-ink); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-dd.on,
+html.vn :is(#screen-rfv,#screen-es) .rfv-tgl.on{
+  background:var(--vn-tinta-2); border-color:var(--vn-borda-marca); color:var(--ds-accent-2);
+}
+html.vn.dark :is(#screen-rfv,#screen-es) .rfv-dd.on,
+html.vn.dark :is(#screen-rfv,#screen-es) .rfv-tgl.on{ color:var(--ds-accent); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-limpar:not([hidden]){
+  height:var(--vn-pilula); padding:0 16px; border-radius:999px; flex:none;
+  background:#EA7A21; border:1px solid #EA7A21; color:#fff; text-decoration:none;
+  font-family:var(--ds-font); font-size:13px; font-weight:800;
+  box-shadow:0 6px 14px -8px rgba(234,122,33,.75);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-limpar:not([hidden]):hover{ background:#D86C16; border-color:#D86C16; color:#fff; }
+
+/* faixas que grudam: transparentes paradas, desfocadas ao grudar */
+html.vn :is(#screen-rfv,#screen-es) :is(.rfv-numeros,.rfv-caixa-filtros){ transition:background-color .15s; }
+html.vn :is(#screen-rfv,#screen-es) :is(.rfv-numeros,.rfv-caixa-filtros).grudado{
+  background:color-mix(in srgb, var(--ds-page) 80%, transparent);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+}
+
+/* ── tabela e mapa em cartão arredondado ── */
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro,
+html.vn :is(#screen-rfv,#screen-es) .rfv-mapa{
+  margin:0; background:var(--ds-card); border:1px solid var(--ds-line); border-radius:var(--rfv-raio);
+  box-shadow:var(--ds-shadow-card);
+}
+html.vn :is(#screen-rfv,#screen-es) .rfv-mapa{ overflow:hidden; }
+/* no computador a tabela não rola por dentro (o cabeçalho gruda na página),
+   então os cantos arredondados vêm das próprias células das pontas */
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro thead tr:first-child th:first-child{ border-top-left-radius:calc(var(--rfv-raio) - 1px); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro thead tr:first-child th:last-child{ border-top-right-radius:calc(var(--rfv-raio) - 1px); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr:last-child td:first-child{ border-bottom-left-radius:calc(var(--rfv-raio) - 1px); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro tbody tr:last-child td:last-child{ border-bottom-right-radius:calc(var(--rfv-raio) - 1px); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro thead th{ font-family:var(--ds-font); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro thead th .rot{ font-weight:800; letter-spacing:.05em; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro tbody td{ font-family:var(--ds-font); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro td.cli .nome{ font-weight:700; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-quadro td.cli .st{ border-radius:50%; }
+html.vn :is(#screen-rfv,#screen-es) .rfv-legenda{ border-radius:999px; font-family:var(--ds-font); }
+html.vn :is(#screen-rfv,#screen-es) .rfv-mapa .leaflet-bar{ border-radius:12px; }
+html.vn .rfv-lista{ border-radius:16px; box-shadow:var(--ds-shadow-lift); font-family:var(--ds-font); padding:6px; }
+html.vn .rfv-lista-busca{ border-radius:999px; }
+html.vn .rfv-item{ border-radius:10px; }
+
+/* período das Entradas e saídas: trilho em pílula, escolhido cheio */
+html.vn .es-periodos{
+  height:var(--vn-pilula); padding:3px; gap:2px; border-radius:999px;
+  background:var(--ds-card); border:1px solid var(--ds-line); box-shadow:none;
+}
+html.vn .es-per{ height:100%; border-radius:999px; padding:0 14px; font-family:var(--ds-font); font-size:13px; font-weight:700; }
+html.vn .es-per.on,
+html.vn.dark .es-per.on{ background:var(--ds-accent); color:#fff; box-shadow:0 4px 10px -6px rgba(var(--ds-accent-rgb), .8); }
+
+/* no escuro o título das colunas alternadas perdia a cor da marca
+   (a listra do corpo tinha mais força que a do cabeçalho) */
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro thead th.alt{
+  background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(255,255,255,.07)), var(--pv-marca);
+}
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora,
+html.dark :is(#screen-rfv,#screen-es) .rfv-quadro thead th.agora.alt{
+  background:linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.16)), var(--pv-marca);
+}
+
+/* ── números no celular: nada sai do cartão (nos dois visuais) ──
+   Os três cartões dividem a largura; o rótulo e a linha de baixo quebram
+   em duas linhas em vez de passar da borda ou virar reticências. */
+@media (max-width:640px){
+  :is(#screen-rfv,#screen-es) .rfv-fichas > .rfv-ficha{ flex:1 1 0; min-width:0; overflow:hidden; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .n,
+  :is(#screen-rfv,#screen-es) .rfv-ficha .pc{
+    white-space:normal; overflow-wrap:anywhere; max-width:100%; line-height:1.15;
+  }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .n{ font-size:9px; letter-spacing:.02em; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:17px; white-space:nowrap; }
+  :is(#screen-rfv,#screen-es) .rfv-ficha .pc{ font-size:9.5px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:18px; }
+}
+@media (max-width:380px){
+  :is(#screen-rfv,#screen-es) .rfv-ficha .v,
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:15.5px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha,
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha:first-child,
+  html.vn :is(#screen-rfv,#screen-es) button.rfv-ficha{ padding:7px 8px; }
+}
+
+/* ── tablet e celular ── */
+@media (max-width:1099.98px){
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha,
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha:first-child,
+  html.vn :is(#screen-rfv,#screen-es) button.rfv-ficha{ min-width:190px; }
+}
+@media (max-width:640px){
+  html.vn :is(#screen-rfv,#screen-es) .rfv-topo-in{ padding:10px 12px; border-radius:16px; gap:10px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-topo .btn-icon{ width:36px; height:36px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-busca-cima input{ height:40px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-fichas{ gap:8px; }
+  /* os três números cabem na largura do celular, sem rolar: sai o ícone */
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha,
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha:first-child,
+  html.vn :is(#screen-rfv,#screen-es) button.rfv-ficha{
+    min-width:0; min-height:60px; padding:8px 10px; border-radius:14px;
+  }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha::before{ display:none; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-fichas{ gap:6px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-numeros{ gap:6px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-numeros .kpi-toggle{ width:26px; height:26px; }
+
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .v{ font-size:19px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-ficha .pc{ font-size:10px; }
+  html.vn :is(#screen-rfv,#screen-es) .rfv-quadro,
+  html.vn :is(#screen-rfv,#screen-es) .rfv-mapa{ border-radius:16px; }
 }
 </style>
 
