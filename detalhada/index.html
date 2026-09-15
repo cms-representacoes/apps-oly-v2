@@ -16,6 +16,14 @@
     (function () {
       try {
         var d = document.documentElement;
+        // Lançamento do visual novo (16/09/2026): quem tinha testado o atual
+        // ou o roxo volta uma vez para o padrão — novo, verde-água. Depois
+        // disso a escolha feita no modal da logo é respeitada.
+        if (localStorage.getItem('detalhada.aparenciaV') !== '2') {
+          localStorage.removeItem('detalhada.visual');
+          localStorage.removeItem('detalhada.cor');
+          localStorage.setItem('detalhada.aparenciaV', '2');
+        }
         if (localStorage.getItem('detalhada.visual') !== 'atual') d.classList.add('vn');
         if (localStorage.getItem('detalhada.cor') === 'roxo') d.setAttribute('data-cor', 'roxo');
         if (localStorage.getItem('detalhada.tema') === 'dark') d.classList.add('dark');
@@ -12539,6 +12547,43 @@ html.vn .painel-detalhada .product-card.expanded .product-main{
    menos se usava ali; sai para os outros quatro caberem melhor. */
 @media (max-width:1099.98px){
   #summary .summary-chip.s-conv{ display:none; }
+}
+
+/* ── Transferências: cada marcação é um cartão ──
+   No visual atual elas são linhas dentro do quadro branco; aqui o quadro não
+   existe e a linha transparente sumia no fundo em figuras. A faixa colorida
+   da situação continua na lateral. */
+html.vn .painel-detalhada .marca-card{
+  background:var(--ds-card); border:1px solid var(--ds-line); border-left:4px solid var(--ds-line-strong);
+  border-radius:var(--ds-r-lg); box-shadow:var(--ds-shadow-card);
+  margin:0 0 10px; padding:14px 14px 14px 16px;
+}
+html.vn .painel-detalhada .marca-card.estado-aguardando{ border-left-color:var(--acao-repassar); }
+html.vn .painel-detalhada .marca-card.estado-faturou{ border-left-color:var(--acao-cancelar); }
+html.vn .painel-detalhada .marca-card.estado-saiu,
+html.vn .painel-detalhada .marca-card.estado-confirmado{ border-left-color:var(--acao-manter); }
+html.vn .painel-detalhada .marca-card:hover{ background:var(--ds-card); border-color:var(--ds-line-strong); }
+html.vn .painel-detalhada .marca-card.novidade{
+  background:var(--vn-aberto); box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .12), var(--ds-shadow-card);
+}
+html.vn .painel-detalhada .marca-titulo{ font-family:var(--ds-font); font-weight:800; }
+html.vn .painel-detalhada .marca-titulo .m-prod{ font-weight:800; }
+html.vn .painel-detalhada .marca-card .selo-acao,
+html.vn .painel-detalhada .marca-card .estado-badge{ border-radius:999px; font-family:var(--ds-font); }
+/* aviso de lista vazia num cartão, para ler sobre as figuras */
+html.vn .painel-detalhada .empty-state{
+  background:var(--ds-card); border:1px solid var(--ds-line); border-radius:var(--ds-r-lg);
+  box-shadow:var(--ds-shadow-card); margin:6px 0 0; padding:28px 18px;
+}
+/* o rodapé da lista ("Fim da lista") num selo, para ler sobre as figuras */
+html.vn .painel-detalhada #rodape:not(:empty){
+  width:max-content; max-width:100%; margin:6px auto 0; padding:6px 14px; border-radius:999px;
+  background:var(--ds-card); border:1px solid var(--ds-line); box-shadow:var(--ds-shadow-card);
+}
+html.vn .painel-detalhada #rodape:has(.gci-mais){ background:transparent; border:0; box-shadow:none; padding:0; }
+html.vn #fonte-info:not(:empty){
+  width:max-content; max-width:calc(100% - 24px); margin:10px auto; padding:5px 12px; border-radius:999px;
+  background:color-mix(in srgb, var(--ds-card) 85%, transparent);
 }
 
 /* ═════════ tela larga: células já existentes, só o acabamento ═════════ */
