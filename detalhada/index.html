@@ -4778,6 +4778,359 @@ async function rfvExportPdf() {
 }
 
 /* ============================================================
+   CATÁLOGO DA CARTEIRA DO CLIENTE — PDF e XLSX
+   Filtrou UM cliente, os dois botões redondos aparecem no canto. O que
+   vai é exatamente o que a lista mostra: os mesmos filtros (mês, marca,
+   faixa...), a mesma busca e a mesma ordem — sem caixa de seleção, o
+   filtro já é a escolha. Foto do mesmo tamanho do catálogo da vitrine.
+   ============================================================ */
+function catClienteFiltrado() {
+  if (!APP.base || APP.status === 'MARCADAS') return -1;
+  if (!document.querySelector('#screen-produtos.active')) return -1;
+  const sel = APP.filtros.cliente;
+  return sel && sel.size === 1 ? Number([...sel][0]) : -1;
+}
+
+/** O que a lista mostra agora, com as encomendas de cada produto na ordem
+ *  da tela (carteira primeiro, pela previsão; depois o faturado recente). */
+function catDados() {
+  const { grupos, totCart, totFat, totLinhas } = agregar();
+  const produtos = grupos.map(g => {
+    const [ref, desc] = APP.dic.ref[g.ref];
+    const cor = APP.dic.cor[g.cor];
+    const linhas = g.linhas.slice().sort((ia, ib) => {
+      const a = APP.L[ia], b = APP.L[ib];
+      const ca = a[C.CART] > 0 ? 0 : 1, cb = b[C.CART] > 0 ? 0 : 1;
+      if (ca !== cb) return ca - cb;
+      return ca === 0 ? a[C.PREV] - b[C.PREV] : b[C.DFAT] - a[C.DFAT];
+    }).map(i => APP.L[i]);
+    const gen = [...new Set(linhas.map(generoDaLinha).filter(Boolean))].join('/');
+    return { ref: String(ref), desc: String(desc || ref), cor: String(cor), gen, linhas,
+             cart: g.cart, fat: g.fat, prev: g.prevMin === Infinity ? -1 : g.prevMin };
+  });
+  return { produtos, totCart, totFat, totLinhas };
+}
+
+function catResumoFiltros() {
+  const nomes = { mes: 'Mês', preposto: 'Preposto', marca: 'Marca', faixa: 'Faixa',
+                  fabrica: 'Fábrica', filial: 'Filial', oc: 'OC' };
+  const partes = [];
+  for (const [id, nome] of Object.entries(nomes)) {
+    const sel = APP.filtros[id];
+    if (!sel || !sel.size) continue;
+    let ops = [];
+    try { ops = opcoesDoFiltro(id); } catch (_) { /* rótulo cru */ }
+    const rot = [...sel].map(v => {
+      const o = ops.find(x => String(x.id) === String(v));
+      return o ? o.label : String(v);
+    });
+    partes.push(`${nome}: ${rot.join(', ')}`);
+  }
+  if ((APP.busca || '').trim()) partes.push(`Busca: ${APP.busca.trim()}`);
+  return partes.join(' · ');
+}
+
+function catNomeArquivo(cli, ext) {
+  const [cod, nome] = APP.dic.cli[cli];
+  const hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+  const limpo = String(nome || cod).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return `Catalogo ${limpo} ${cod} ${hoje}.${ext}`;
+}
+
+function catPrevOuFat(r) {
+  return r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : (r[C.DFAT] >= 0 ? diaParaBR(r[C.DFAT]) : '');
+}
+
+function catExportXlsx() {
+  const cli = catClienteFiltrado();
+  if (cli < 0) return;
+  const { produtos, totCart, totFat, totLinhas } = catDados();
+  if (!produtos.length) { toast('Nada na lista para exportar'); return; }
+  const [cod, nome] = APP.dic.cli[cli];
+
+  // Os tamanhos viram colunas: a união do que aparece, em ordem de número.
+  const ord = t => parseInt(String(t), 10) || 0;
+  const tams = new Set();
+  for (const p of produtos) for (const r of p.linhas) {
+    const g = gradeDaLinha(r);
+    if (g) Object.keys(g.tam || {}).forEach(t => tams.add(t));
+  }
+  const colTam = [...tams].sort((a, b) => ord(a) - ord(b) || String(a).localeCompare(String(b)));
+
+  const cab = ['Referência', 'Descrição', 'Cor', 'Gênero', 'Marca', 'Faixa', 'Fábrica', 'Filial',
+               'Preposto', 'GCI', 'OC', 'NF', 'Prev. fat.', 'Carteira (pares)', 'Faturado (pares)',
+               'Data fat.', 'Grade', ...colTam];
+  const corpo = [];
+  for (const p of produtos) for (const r of p.linhas) {
+    const g = gradeDaLinha(r);
+    const faixa = (APP.dic.faixa && r[C.FAIXA] != null && r[C.FAIXA] >= 0) ? APP.dic.faixa[r[C.FAIXA]] : '';
+    const gradeTxt = !g ? '' : (Array.isArray(g.caixas) && g.caixas.length
+      ? g.caixas.map(c => Object.keys(c.tam || {}).sort((a, b) => ord(a) - ord(b)).map(t => `${t}:${c.tam[t]}`).join(' ')
+          + (c.solto ? ` (${c.pares} pares)` : ` × ${Number(c.caixas) || 1} cx`)).join(' | ')
+      : Object.keys(g.tam).sort((a, b) => ord(a) - ord(b)).map(t => `${t}:${g.tam[t]}`).join(' '));
+    corpo.push([
+      p.ref, p.desc, p.cor, generoDaLinha(r) || '',
+      APP.dic.marca[r[C.MARCA]] || '', faixa || '',
+      APP.dic.fab ? (APP.dic.fab[r[C.FAB]] || '') : '', APP.dic.fil ? (APP.dic.fil[r[C.FIL]] || '') : '',
+      APP.dic.prep[r[C.PREP]] || '', r[C.GCI] || '',
+      r[C.OC] >= 0 ? APP.dic.oc[r[C.OC]] : '', r[C.NF] || '',
+      r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : '',
+      r[C.CART] || 0, r[C.FAT] || 0,
+      r[C.DFAT] >= 0 && r[C.FAT] ? diaParaBR(r[C.DFAT]) : '',
+      gradeTxt,
+      ...colTam.map(t => (g && g.tam && g.tam[t]) ? Number(g.tam[t]) : ''),
+    ]);
+  }
+
+  const resumo = catResumoFiltros();
+  const aoa = [
+    [`Catálogo da carteira · ${nome || cod} (${cod})`],
+    [`${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`],
+    [`${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`],
+    [],
+    cab,
+    ...corpo,
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = cab.map((h, i) => ({ wch: i === 1 ? 32 : i === 16 ? 36 : i >= 17 ? 6 : Math.max(9, String(h).length + 2) }));
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 4, c: 0 }, e: { r: 4 + corpo.length, c: cab.length - 1 } }) };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Carteira');
+  XLSX.writeFile(wb, catNomeArquivo(cli, 'xlsx'));
+  toast(`Planilha gerada · ${produtos.length} produtos`);
+}
+
+/** Foto reduzida para o PDF: a original chega a 3000 px e o arquivo
+ *  ficaria enorme; 360 px sobra para a caixa de 88 pt. */
+const _catFotos = new Map();
+function catFoto(ref, cor) {
+  const chave = ref + '_' + corParaArquivo(cor);
+  if (_catFotos.has(chave)) return _catFotos.get(chave);
+  const pr = new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const k = Math.min(1, 360 / Math.max(img.naturalWidth, img.naturalHeight));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(img.naturalWidth * k));
+        cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+        const cx = cv.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+        cx.drawImage(img, 0, 0, cv.width, cv.height);
+        res({ url: cv.toDataURL('image/jpeg', 0.84), w: cv.width, h: cv.height });
+      } catch (_) { res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = `${IMG_PATH}${chave}.jpg`;
+  });
+  _catFotos.set(chave, pr);
+  return pr;
+}
+
+async function catExportPdf() {
+  const cli = catClienteFiltrado();
+  if (cli < 0) return;
+  const { produtos, totCart, totFat, totLinhas } = catDados();
+  if (!produtos.length) { toast('Nada na lista para exportar'); return; }
+  syncShow('Montando o catálogo…');
+  if (!await rfvGarantirPdf()) { syncHide(); toast('Não consegui carregar o gerador de PDF'); return; }
+
+  // fotos primeiro, de oito em oito
+  const fotos = new Array(produtos.length);
+  for (let i = 0; i < produtos.length; i += 8) {
+    syncShow(`Buscando as fotos · ${Math.min(i + 8, produtos.length)} de ${produtos.length}`);
+    const lote = await Promise.all(produtos.slice(i, i + 8).map(p => catFoto(p.ref, p.cor)));
+    lote.forEach((f, j) => { fotos[i + j] = f; });
+  }
+  syncShow('Montando o catálogo…');
+
+  const [codCli, nomeCli] = APP.dic.cli[cli];
+  const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const K = { verde: [15, 118, 110], verdeClaro: [204, 236, 232], texto: [15, 23, 42], fraco: [100, 116, 139],
+              linha: [226, 232, 240], fundo: [248, 250, 252], branco: [255, 255, 255],
+              cart: [37, 99, 235], fat: [22, 163, 74], alerta: [217, 119, 6] };
+  const cor = (c, t = 'text') => t === 'fill' ? doc.setFillColor(...c) : t === 'draw' ? doc.setDrawColor(...c) : doc.setTextColor(...c);
+  const fonte = (peso, tam) => { doc.setFont('helvetica', peso); doc.setFontSize(tam); };
+  const nf = n => formatarNumero(n);
+  const M = 32, LARG = W - M * 2;
+  const FOTO = 88, PAD = 12, CEL_W = 24, CEL_H = 18, CEL_GAP = 3;
+  const TOPO1 = 112, TOPO = 56, BASE = H - 40;
+  const prepostos = [...new Set(produtos.flatMap(p => p.linhas.map(r => APP.dic.prep[r[C.PREP]])))].filter(Boolean);
+  const resumo = catResumoFiltros();
+  const quando = new Date().toLocaleDateString('pt-BR');
+
+  function cabecalhoGrande() {
+    cor(K.verde, 'fill'); doc.rect(0, 0, W, 84, 'F');
+    cor(K.verdeClaro); fonte('normal', 8.5);
+    doc.text('CATÁLOGO DA CARTEIRA', M, 22);
+    doc.text(quando, W - M, 22, { align: 'right' });
+    doc.setTextColor(255, 255, 255); fonte('bold', 16);
+    doc.text(doc.splitTextToSize(String(nomeCli || codCli), LARG - 90)[0], M, 44);
+    fonte('normal', 8.5); cor(K.verdeClaro);
+    const linha2 = [`Código ${codCli}`, prepostos.length ? 'Preposto ' + prepostos.join(', ') : '', resumo]
+      .filter(Boolean).join('  ·  ');
+    doc.splitTextToSize(linha2, LARG).slice(0, 2).forEach((t, i) => doc.text(t, M, 60 + i * 11));
+    // números do que está no catálogo
+    const fichas = [[nf(produtos.length), 'produtos', K.texto], [nf(totLinhas), 'encomendas', K.texto],
+                    [nf(totCart), 'pares em carteira', K.cart], [nf(totFat), 'pares faturados', K.fat]];
+    let x = M;
+    for (const [v, rot, c] of fichas) {
+      cor(c); fonte('bold', 11); doc.text(v, x, 102);
+      const wv = doc.getTextWidth(v);
+      cor(K.fraco); fonte('normal', 8); doc.text(rot, x + wv + 4, 102);
+      x += wv + 4 + doc.getTextWidth(rot) + 18;
+    }
+  }
+  function cabecalhoPequeno() {
+    cor(K.verde, 'fill'); doc.rect(0, 0, W, 38, 'F');
+    doc.setTextColor(255, 255, 255); fonte('bold', 10);
+    doc.text(doc.splitTextToSize(`${nomeCli || codCli} · ${codCli}`, LARG - 90)[0], M, 24);
+    cor(K.verdeClaro); fonte('normal', 8.5);
+    doc.text('Catálogo da carteira · ' + quando, W - M, 24, { align: 'right' });
+  }
+
+  // As células de uma grade, quebrando linha quando não cabe.
+  function grade(r, x, y, w, desenhar) {
+    const g = gradeDaLinha(r);
+    if (!g) return y;
+    const ord = t => parseInt(String(t), 10) || 0;
+    const grupos = Array.isArray(g.caixas) && g.caixas.length
+      ? g.caixas.map(c => ({ tam: c.tam || {}, rot: c.solto ? `${nf(c.pares)} pares` : `${Number(c.caixas) || 1} cx` }))
+      : [{ tam: g.tam || {}, rot: '' }];
+    let cx = x, cy = y;
+    for (const gr of grupos) {
+      const tams = Object.keys(gr.tam).sort((a, b) => ord(a) - ord(b));
+      fonte('bold', 7);
+      const wRot = gr.rot ? doc.getTextWidth(gr.rot) + 8 : 0;
+      const wGrupo = tams.length * (CEL_W + CEL_GAP) + wRot;
+      if (cx > x && cx + wGrupo > x + w) { cx = x; cy += CEL_H + 5; }
+      for (const t of tams) {
+        if (cx + CEL_W > x + w) { cx = x; cy += CEL_H + 5; }
+        if (desenhar) {
+          cor(K.verde, 'draw'); doc.setLineWidth(0.5); cor(K.branco, 'fill');
+          doc.roundedRect(cx, cy, CEL_W, CEL_H, 3, 3, 'FD');
+          cor(K.verde); fonte('bold', 5.8); doc.text(String(t), cx + CEL_W / 2, cy + 7, { align: 'center' });
+          cor(K.texto); fonte('bold', 7.6); doc.text(nf(gr.tam[t]), cx + CEL_W / 2, cy + 15, { align: 'center' });
+        }
+        cx += CEL_W + CEL_GAP;
+      }
+      if (gr.rot) {
+        if (desenhar) { cor(K.fraco); fonte('bold', 7); doc.text(gr.rot, cx + 2, cy + 12); }
+        cx += wRot + 6;
+      }
+    }
+    return cy + CEL_H + 6;
+  }
+
+  // Colunas das encomendas, dentro do lado direito do card.
+  function colunas(tx, tw) {
+    const w = [0.2, 0.26, 0.17, 0.17, 0.2].map(k => k * tw);
+    const x = []; let acc = tx;
+    for (const v of w) { x.push(acc); acc += v; }
+    return x;
+  }
+
+  function card(p, foto, y0, desenhar) {
+    const tx = M + PAD + FOTO + 14, tw = M + LARG - PAD - tx;
+    let y = y0 + PAD;
+    if (desenhar) {
+      // foto
+      cor(K.linha, 'draw'); doc.setLineWidth(0.5); cor(K.branco, 'fill');
+      doc.roundedRect(M + PAD, y, FOTO, FOTO, 5, 5, 'FD');
+      if (foto) {
+        const box = FOTO - 8, k = Math.min(box / foto.w, box / foto.h);
+        const iw = foto.w * k, ih = foto.h * k;
+        try { doc.addImage(foto.url, 'JPEG', M + PAD + (FOTO - iw) / 2, y + (FOTO - ih) / 2, iw, ih); } catch (_) {}
+      } else {
+        cor(K.fraco); fonte('normal', 7); doc.text('sem foto', M + PAD + FOTO / 2, y + FOTO / 2 + 3, { align: 'center' });
+      }
+      // nome e totais
+      cor(K.texto); fonte('bold', 11);
+      doc.text(doc.splitTextToSize(p.desc, tw - 150)[0], tx, y + 10);
+      fonte('bold', 11); cor(K.fat); doc.text(nf(p.fat), M + LARG - PAD, y + 10, { align: 'right' });
+      const wf = doc.getTextWidth(nf(p.fat));
+      cor(K.fraco); fonte('normal', 7.5); doc.text('faturado', M + LARG - PAD - wf - 4, y + 10, { align: 'right' });
+      const wfr = doc.getTextWidth('faturado');
+      cor(K.cart); fonte('bold', 11);
+      doc.text(nf(p.cart), M + LARG - PAD - wf - 4 - wfr - 12, y + 10, { align: 'right' });
+      const wc = doc.getTextWidth(nf(p.cart));
+      cor(K.fraco); fonte('normal', 7.5);
+      doc.text('carteira', M + LARG - PAD - wf - 4 - wfr - 12 - wc - 4, y + 10, { align: 'right' });
+      // referência, cor, gênero, mês
+      const meta = [p.ref, p.cor, p.gen, p.prev >= 0 ? 'prev. fat. ' + mesCurtoRotulo(diaParaMes(p.prev)) : '']
+        .filter(Boolean).join('  ·  ');
+      cor(K.fraco); fonte('normal', 8); doc.text(meta, tx, y + 23);
+    }
+    y += 36;
+    // encomendas
+    const cx = colunas(tx, tw);
+    if (desenhar) {
+      cor(K.fraco); fonte('bold', 6.3);
+      ['GCI', 'OC / NF', 'CARTEIRA', 'FATURADO', 'PREV. / FAT.'].forEach((h, i) => doc.text(h, cx[i], y));
+      cor(K.linha, 'draw'); doc.setLineWidth(0.4); doc.line(tx, y + 3, tx + tw, y + 3);
+    }
+    y += 13;
+    for (const r of p.linhas) {
+      const emCart = r[C.CART] > 0;
+      if (desenhar) {
+        cor(K.texto); fonte('bold', 8.3);
+        doc.text(String(r[C.GCI] || '—'), cx[0], y);
+        fonte('normal', 8.3);
+        const oc = r[C.OC] >= 0 ? APP.dic.oc[r[C.OC]] : '';
+        doc.text(doc.splitTextToSize([oc, r[C.NF] ? 'NF ' + r[C.NF] : ''].filter(Boolean).join(' · ') || '—', cx[2] - cx[1] - 6)[0], cx[1], y);
+        if (emCart) { cor(K.cart); fonte('bold', 8.3); doc.text(nf(r[C.CART]) + ' pares', cx[2], y); }
+        else { cor(K.fraco); fonte('normal', 8.3); doc.text('—', cx[2], y); }
+        if (r[C.FAT]) { cor(K.fat); fonte('bold', 8.3); doc.text(nf(r[C.FAT]) + ' pares', cx[3], y); }
+        else { cor(K.fraco); fonte('normal', 8.3); doc.text('—', cx[3], y); }
+        cor(emCart ? K.texto : K.fat); fonte('normal', 8.3);
+        doc.text((emCart ? '' : 'fat. ') + (catPrevOuFat(r) || '—'), cx[4], y);
+        if (APP.veTudo && prepostos.length > 1) {
+          cor(K.fraco); fonte('normal', 7); doc.text(String(APP.dic.prep[r[C.PREP]] || ''), tx + tw, y, { align: 'right' });
+        }
+      }
+      y += 6;
+      y = grade(r, tx, y, tw, desenhar);
+      y += 5;
+    }
+    return Math.max(y - y0 + PAD - 5, FOTO + PAD * 2);
+  }
+
+  cabecalhoGrande();
+  let pag = 1, y = TOPO1;
+  const rodape = () => {
+    cor(K.linha, 'draw'); doc.setLineWidth(0.4); doc.line(M, H - 28, W - M, H - 28);
+    cor(K.fraco); fonte('normal', 7);
+    doc.text('CMS Representações · Detalhada', M, H - 16);
+    doc.text('pág. ' + pag, W - M, H - 16, { align: 'right' });
+  };
+  for (let i = 0; i < produtos.length; i++) {
+    const h = card(produtos[i], fotos[i], y, false);
+    if (y + h > BASE && y > (pag === 1 ? TOPO1 : TOPO)) {
+      rodape(); doc.addPage(); pag++; cabecalhoPequeno(); y = TOPO;
+    }
+    cor(K.linha, 'draw'); doc.setLineWidth(0.5); cor(K.branco, 'fill');
+    doc.roundedRect(M, y, LARG, h, 7, 7, 'FD');
+    card(produtos[i], fotos[i], y, true);
+    y += h + 10;
+  }
+  rodape();
+  doc.save(catNomeArquivo(cli, 'pdf'));
+  syncHide();
+  toast(`Catálogo gerado · ${produtos.length} produtos`);
+}
+
+// Os mesmos dois botões servem ao RFV e ao catálogo: quem manda é a tela.
+function exportarXlsxDaTela() {
+  if (document.querySelector('#screen-rfv.active')) return rfvExportXlsx();
+  return catExportXlsx();
+}
+function exportarPdfDaTela() {
+  if (document.querySelector('#screen-rfv.active')) return rfvExportPdf();
+  return catExportPdf();
+}
+
+/* ============================================================
    ENTRADAS E SAÍDAS DA CARTEIRA — o movimento do mês
    Quem faz a conta é quem publica a base: a cada atualização ela é
    comparada com a anterior e o que mudou vira evento num registro do mês,
@@ -5262,7 +5615,14 @@ function atualizarFabLimpar() {
   fab.hidden = !ligado;
   fab.dataset.tela = noRfv ? 'rfv' : noEs ? 'es' : 'produtos';
   const exp = $('fab-export');
-  if (exp) exp.hidden = !(noRfv && ligado);
+  if (exp) {
+    const cliCat = catClienteFiltrado();
+    exp.hidden = !((noRfv && ligado) || cliCat >= 0);
+    // o mesmo botão, dois assuntos: a dica diz o que vai sair
+    const quem = cliCat >= 0 ? ' o catálogo de ' + (APP.dic.cli[cliCat][1] || APP.dic.cli[cliCat][0]) : '';
+    $('btn-exp-xlsx').title = cliCat >= 0 ? 'Baixar' + quem + ' em Excel' : 'Baixar em Excel (.xlsx)';
+    $('btn-exp-pdf').title = cliCat >= 0 ? 'Baixar' + quem + ' em PDF' : 'Baixar em PDF';
+  }
 }
 
 function renderStatusChips() {
@@ -5625,6 +5985,7 @@ function render() {
   }));
   pintarParciais();
   atualizarBotaoRecolher();
+  atualizarFabLimpar();
 
   $('rodape').innerHTML = ate < grupos.length
     ? `<button class="gci-mais" id="btn-mais">Carregar mais · ${formatarNumero(grupos.length - ate)} produtos restantes</button>`
@@ -9038,8 +9399,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // A busca do RFV mora na barra de cima e tem o X de limpar, como a da
   // tela de produtos.
   configurarBuscaComX('rfv-busca', 'rfv-search-wrap', () => rfvPintar());
-  ligar('btn-exp-xlsx', 'click', rfvExportXlsx);
-  ligar('btn-exp-pdf', 'click', rfvExportPdf);
+  ligar('btn-exp-xlsx', 'click', exportarXlsxDaTela);
+  ligar('btn-exp-pdf', 'click', exportarPdfDaTela);
   ligar('fab-limpar', 'click', () => {
     const fab = $('fab-limpar');
     if (fab.dataset.tela === 'rfv') $('rfv-limpar').click();
