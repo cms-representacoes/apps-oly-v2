@@ -4339,7 +4339,8 @@ function rfvVeu() {
    aquele cliente já tem produto vindo. Aqui ele aparece no RFV, na coluna
    do mês de faturamento, só com a quantidade; o balão mostra os produtos.
    "Ainda não feito" = pedido não cancelado cujo produto e cor ainda não
-   existem na base para aquele cliente (nem em carteira, nem faturado).
+   existem na base para aquele cliente (nem em carteira, nem faturado), com
+   faturamento previsto no semestre em vigência.
    ============================================================ */
 const RFV_REP = { porCli: null, fora: new Map(), carregando: false, em: 0 };
 
@@ -4370,6 +4371,10 @@ async function rfvCarregarRepasses(forcar) {
   const eu = APP.veTudo ? '' : soLetras(APP.sessao ? APP.sessao.nome : '');
   const naBase = new Set(APP.dic.cli.map(c => String(c[0])));
   const fora = new Map();
+  // Só o semestre em vigência: repasse de meses que já fecharam e nunca
+  // apareceu na carteira é caso para o admin, não aviso para o vendedor.
+  const hojeDt = new Date(hojeEmDias() * 86400000);
+  const anoSem = hojeDt.getUTCFullYear(), semAtual = hojeDt.getUTCMonth() < 6 ? 1 : 2;
   const porCli = new Map();
   for (const ped of pedidos) {
     if (!ped || ped.archived || normalizar(ped.status || '') === 'cancelado') continue;
@@ -4380,6 +4385,7 @@ async function rfvCarregarRepasses(forcar) {
       if (tem.has(cli + '|' + it.codigo + '|' + cor)) continue;
       const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(it.prevFaturamento || '').trim());
       if (!m) continue;
+      if (Number(m[3]) !== anoSem || (Number(m[2]) <= 6 ? 1 : 2) !== semAtual) continue;
       const mes = `${m[2]}/${m[3]}`;
       // Cliente que ainda não tem nada na Detalhada: entra no RFV mesmo assim,
       // com o nome que o pedido trouxe.
