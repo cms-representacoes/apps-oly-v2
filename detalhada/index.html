@@ -3873,6 +3873,23 @@ function rfvLinhas(A) {
     out.push({ cod: String(cli[0]), nome: String(cli[1]), ...e,
                parou: e.p1 > 0 && e.p2 === 0, total: e.p1 + e.p2, ci });
   }
+  // Clientes com repasse que ainda não estão na Detalhada. Sem compra por
+  // definição: saem quando o filtro de Compra está ligado. Respeitam a busca
+  // e os prepostos; não entram no placar do topo.
+  if (!RFV.f.sit && RFV_REP.fora.size) {
+    const sVend = new Set(rfvSel('vend'));
+    const busca = $('rfv-busca').value.trim().toLowerCase();
+    const nMes = RFV.meses.length;
+    for (const [cod, f] of RFV_REP.fora) {
+      const meses = RFV_REP.porCli && RFV_REP.porCli.get(cod);
+      if (!meses || ![...meses.keys()].some(m => RFV.meses.includes(m))) continue;
+      const nome = f.nome || 'Cliente ' + cod;
+      if (sVend.size && !sVend.has(f.prep)) continue;
+      if (busca && !nome.toLowerCase().includes(busca) && !cod.includes(busca)) continue;
+      out.push({ cod, nome, fora: true, prepNome: f.prep, mf: new Array(nMes).fill(0), mc: new Array(nMes).fill(0),
+                 p1: 0, p2: 0, car: 0, ult: -1, prep: new Map(), parou: false, total: 0, ci: -1 });
+    }
+  }
   out.sort((x, y) => y.total - x.total);
   return out;
 }
@@ -4014,7 +4031,7 @@ function rfvTelaMes(A) {
   const vTot = s1 ? (s2 - s1) / s1 : 0;
 
   const corpo = linhas.map(l => {
-    const vend = rfvVend(l);
+    const vend = rfvVend(l) || (l.fora && APP.veTudo ? l.prepNome : '');
     const st = l.p2 > 0 ? 'ok' : l.p1 > 0 ? 'parou' : 'nada';
     const stTit = st === 'ok' ? 'comprou no 2º semestre' : st === 'parou' ? 'comprou no 1º e parou no 2º' : 'sem compra no ano';
     // O código sai da linha e vive na dica: passando o cursor pelo nome
@@ -4023,7 +4040,8 @@ function rfvTelaMes(A) {
     const dica = `${l.nome} · ${l.cod}${cidNome ? ' · ' + cidNome : ''}${vend ? ' · ' + vend : ''}`;
     return `<tr data-cod="${escHtml(l.cod)}" class="${RFV.sel === l.cod ? 'sel' : ''}">
       <td class="cli presa" title="${escHtml(dica)}">
-        <i class="st st-${st}" title="${stTit}"></i><span class="nome">${escHtml(l.nome)}</span>
+        <i class="st st-${st}" title="${stTit}"></i><span class="nome">${escHtml(l.nome)}</span>${l.fora
+          ? ' <span class="rfv-fora" title="Cliente sem carteira na Detalhada: só o repasse que a fábrica ainda não fez">fora da Detalhada</span>' : ''}
         ${vend ? `<span class="sub"> · ${escHtml(vend)}</span>` : ''}</td>
       ${verCid ? celulaCidade(l.cod) : ''}
       ${RFV.meses.map((m, i) => {
@@ -4269,7 +4287,7 @@ function rfvPintar() {
     if (RFV_REP.porCli) {
       const naTabela = new Set([...A.porCli.keys()].map(ci => String(APP.dic.cli[ci][0])));
       for (const [cod, meses] of RFV_REP.porCli)
-        if (naTabela.has(cod) && [...meses.keys()].some(m => RFV.meses.includes(m))) n++;
+        if ((naTabela.has(cod) || RFV_REP.fora.has(cod)) && [...meses.keys()].some(m => RFV.meses.includes(m))) n++;
     }
     btRep.hidden = RFV.visao === 'mapa' || (!n && !RFV.soRep);
     btRep.classList.toggle('on', !!RFV.soRep);
@@ -4323,7 +4341,7 @@ function rfvVeu() {
    "Ainda não feito" = pedido não cancelado cujo produto e cor ainda não
    existem na base para aquele cliente (nem em carteira, nem faturado).
    ============================================================ */
-const RFV_REP = { porCli: null, carregando: false, em: 0 };
+const RFV_REP = { porCli: null, fora: new Map(), carregando: false, em: 0 };
 
 async function rfvCarregarRepasses(forcar) {
   if (RFV_REP.carregando) return;
@@ -4350,6 +4368,8 @@ async function rfvCarregarRepasses(forcar) {
   }
   const soLetras = v => normalizar(v).replace(/[^a-z0-9]/g, '');
   const eu = APP.veTudo ? '' : soLetras(APP.sessao ? APP.sessao.nome : '');
+  const naBase = new Set(APP.dic.cli.map(c => String(c[0])));
+  const fora = new Map();
   const porCli = new Map();
   for (const ped of pedidos) {
     if (!ped || ped.archived || normalizar(ped.status || '') === 'cancelado') continue;
@@ -4361,6 +4381,10 @@ async function rfvCarregarRepasses(forcar) {
       const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(it.prevFaturamento || '').trim());
       if (!m) continue;
       const mes = `${m[2]}/${m[3]}`;
+      // Cliente que ainda não tem nada na Detalhada: entra no RFV mesmo assim,
+      // com o nome que o pedido trouxe.
+      if (!naBase.has(cli) && !fora.has(cli))
+        fora.set(cli, { nome: String(ped.clienteNome || '').trim(), prep: String((ped.preposto && ped.preposto.nome) || '') });
       if (!porCli.has(cli)) porCli.set(cli, new Map());
       const meses = porCli.get(cli);
       if (!meses.has(mes)) meses.set(mes, []);
@@ -4368,14 +4392,24 @@ async function rfvCarregarRepasses(forcar) {
         prev: it.prevFaturamento, pares: Number(it.totalUnits) || 0, pedido: ped.id, criado: ped.createdAt });
     }
   }
+  // Pedido sem nome: procura nas bases de clientes dos vendedores.
+  if ([...fora.values()].some(f => !f.nome)) {
+    const bases = await Promise.all(['114611', '109839', '1333497', '25471'].map(c =>
+      fetch(`https://cms-representacoes.github.io/apps-oly/data/clientes/${c}.json`, { cache: 'no-cache' })
+        .then(r => r.ok ? r.json() : []).catch(() => [])));
+    const nomes = new Map();
+    for (const l of bases) for (const c of (Array.isArray(l) ? l : [])) if (c && c.nome) nomes.set(String(c.codigo), String(c.nome));
+    for (const [cod, f] of fora) if (!f.nome) f.nome = nomes.get(cod) || '';
+  }
   RFV_REP.porCli = porCli;
+  RFV_REP.fora = fora;
   RFV_REP.em = Date.now();
 }
 
 /** Filtro "Aguardando fábrica": só quem tem repasse que ainda não virou
  *  carteira. Vale na tabela por mês e na por faixa; o mapa não usa. */
 function rfvPassaRepasse(ci) {
-  if (!RFV.soRep) return true;
+  if (!RFV.soRep || ci < 0) return true;
   return !!(RFV_REP.porCli && RFV_REP.porCli.has(String(APP.dic.cli[ci][0])));
 }
 
@@ -4824,6 +4858,7 @@ function rfvResumoFiltros() {
 }
 
 function rfvSituacaoTexto(l) {
+  if (l.fora) return 'Fora da Detalhada';
   if (l.p2 > 0) return l.p1 > 0 ? 'Comprou nos dois' : 'Entrou no 2º sem.';
   return l.p1 > 0 ? 'Parou no 2º sem.' : 'Sem compra no ano';
 }
@@ -12976,6 +13011,10 @@ html.dark .prob-chip.g1{ --c:#E0B341; }
 html.dark .prob-resumo{ color:#6EE7A0; }
 .prob-vazio{ padding:40px 20px; text-align:center; color:var(--ds-muted); }
 /* ── RFV: repasse aguardando a fábrica ── */
+.rfv-fora{ display:inline-block; margin-left:6px; padding:0 7px; border-radius:999px; vertical-align:1px;
+  font-size:10px; font-weight:700; line-height:16px; white-space:nowrap;
+  color:#6D28D9; background:rgba(124,58,237,.10); border:1px dashed rgba(124,58,237,.45); }
+html.dark .rfv-fora{ color:#C4B5FD; }
 .rfv-tgl-rep .n{ margin-left:4px; padding:0 6px; border-radius:999px; font-size:10.5px; font-weight:800;
   background:rgba(124,58,237,.12); color:#6D28D9; }
 .rfv-tgl-rep.on{ background:#7C3AED !important; border-color:#7C3AED !important; color:#fff !important; }
