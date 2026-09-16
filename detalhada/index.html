@@ -2277,6 +2277,10 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
                 title="Mostrar ou ocultar a coluna de cidade">
           <i class="fa-solid fa-location-dot"></i> Cidade
         </button>
+        <button class="rfv-tgl rfv-tgl-rep" id="rfv-repasse" type="button" hidden
+                title="Mostrar só os clientes com repasse aguardando a fábrica">
+          <i class="fa-solid fa-right-left"></i> Aguardando fábrica <span class="n" id="rfv-repasse-n"></span>
+        </button>
         <button type="button" class="rfv-campo rfv-dd" data-f="vend" id="rfv-dd-vend">Prepostos</button>
         <button type="button" class="rfv-campo rfv-dd" data-f="marca">Marca</button>
         <button type="button" class="rfv-campo rfv-dd" data-f="linha">Faixa</button>
@@ -3864,6 +3868,7 @@ function rfvLinhas(A) {
   const out = [];
   for (const [ci, e] of A.porCli) {
     if (!rfvPassaSit(e)) continue;
+    if (!rfvPassaRepasse(ci)) continue;
     const cli = APP.dic.cli[ci];
     out.push({ cod: String(cli[0]), nome: String(cli[1]), ...e,
                parou: e.p1 > 0 && e.p2 === 0, total: e.p1 + e.p2, ci });
@@ -3968,12 +3973,17 @@ function rfvTelaMes(A) {
 
   const hoje = diaParaMes(hojeEmDias());
   const cor = m => m.fat && m.car ? 'rfv-mix' : m.car ? 'rfv-car' : 'rfv-fat';
-  const cel = (f, c, extra) => {
+  const cel = (f, c, extra, rep) => {
     const t = f + c;
-    if (!t) return `<td class="${extra}rfv-zero">·</td>`;
+    // repasse que a fábrica ainda não fez: só a quantidade, num selo
+    const pr = rep ? rep.itens.reduce((s, x) => s + x.pares, 0) : 0;
+    const selo = pr ? `<span class="rfv-rep" data-rep="${escAttr(rep.chave)}" tabindex="0"
+        aria-label="${escAttr(formatarNumero(pr) + ' pares de repasse aguardando a fábrica')}">${formatarNumero(pr)}</span>` : '';
+    if (!t) return `<td class="${extra}${selo ? 'com-rep' : 'rfv-zero'}">${selo || '·'}</td>`;
     const titulo = f && c ? `${formatarNumero(f)} faturado · ${formatarNumero(c)} em carteira`
                           : c ? 'em carteira' : 'faturado';
-    return `<td class="${extra}${cor({ fat: f, car: c })}" title="${escHtml(titulo)}">${formatarNumero(t)}</td>`;
+    // com selo, a dica nativa da célula brigaria com o balão
+    return `<td class="${extra}${cor({ fat: f, car: c })}${selo ? ' com-rep' : ''}"${selo ? '' : ` title="${escHtml(titulo)}"`}>${formatarNumero(t)}${selo}</td>`;
   };
 
   // Título que ordena: o mesmo gesto da lista de produtos. Clicar de novo
@@ -4016,7 +4026,11 @@ function rfvTelaMes(A) {
         <i class="st st-${st}" title="${stTit}"></i><span class="nome">${escHtml(l.nome)}</span>
         ${vend ? `<span class="sub"> · ${escHtml(vend)}</span>` : ''}</td>
       ${verCid ? celulaCidade(l.cod) : ''}
-      ${RFV.meses.map((m, i) => cel(l.mf[i], l.mc[i], (i === RFV.corte ? 'sem2 ' : '') + (i % 2 ? 'alt ' : '') + (m === hoje ? 'agora ' : ''))).join('')}
+      ${RFV.meses.map((m, i) => {
+        const itens = rfvRepassesDe(l.cod, m);
+        return cel(l.mf[i], l.mc[i], (i === RFV.corte ? 'sem2 ' : '') + (i % 2 ? 'alt ' : '') + (m === hoje ? 'agora ' : ''),
+                   itens ? { itens, chave: l.cod + '#' + m } : null);
+      }).join('')}
       <td class="stot">${l.p1 ? formatarNumero(l.p1) : '—'}</td>
       <td class="stot ${l.parou ? 'rfv-zero' : ''}">${l.p2 ? formatarNumero(l.p2) : '—'}</td>
       ${celVar(l)}
@@ -4050,6 +4064,7 @@ function rfvTelaFaixa(A) {
   const linhas = [];
   for (const [ci, e] of A.porCli) {
     if (!rfvPassaSit(e)) continue;
+    if (!rfvPassaRepasse(ci)) continue;
     const est = new Array(nFx);
     let perdidas = 0, parados = 0;
     for (let j = 0; j < nFx; j++) {
@@ -4247,8 +4262,21 @@ function rfvPintar() {
   const bt = $('rfv-cidade');
   if (bt) { bt.hidden = !CIDADES.mapa || RFV.visao === 'mapa'; bt.classList.toggle('on', RFV.verCidade); }
   rfvPintarBotoes();
+  const btRep = $('rfv-repasse');
+  if (btRep) {
+    // conta quem de fato aparece: cliente da tabela, com repasse num mês que ela mostra
+    let n = 0;
+    if (RFV_REP.porCli) {
+      const naTabela = new Set([...A.porCli.keys()].map(ci => String(APP.dic.cli[ci][0])));
+      for (const [cod, meses] of RFV_REP.porCli)
+        if (naTabela.has(cod) && [...meses.keys()].some(m => RFV.meses.includes(m))) n++;
+    }
+    btRep.hidden = RFV.visao === 'mapa' || (!n && !RFV.soRep);
+    btRep.classList.toggle('on', !!RFV.soRep);
+    $('rfv-repasse-n').textContent = n ? formatarNumero(n) : '';
+  }
   $('rfv-limpar').hidden = !(RFV.f.vend || RFV.f.marca || RFV.f.linha || RFV.f.sit ||
-                             RFV.f.prod || $('rfv-busca').value.trim());
+                             RFV.f.prod || RFV.soRep || $('rfv-busca').value.trim());
   atualizarFabLimpar();
   rfvMedirTopo();
   rfvVeu();
@@ -4286,6 +4314,112 @@ function rfvVeu() {
   veuDe($('rfv-barra'));
 }
 
+/* ============================================================
+   RFV × REPASSES — o que a fábrica ainda não fez
+   Pedido de repasse aprovado no admin só vira carteira do cliente quando
+   a fábrica transfere. Até lá o vendedor não enxerga na Detalhada que
+   aquele cliente já tem produto vindo. Aqui ele aparece no RFV, na coluna
+   do mês de faturamento, só com a quantidade; o balão mostra os produtos.
+   "Ainda não feito" = pedido não cancelado cujo produto e cor ainda não
+   existem na base para aquele cliente (nem em carteira, nem faturado).
+   ============================================================ */
+const RFV_REP = { porCli: null, carregando: false, em: 0 };
+
+async function rfvCarregarRepasses(forcar) {
+  if (RFV_REP.carregando) return;
+  if (RFV_REP.porCli && !forcar && Date.now() - RFV_REP.em < 5 * 60000) return;
+  RFV_REP.carregando = true;
+  let pedidos = null;
+  try {
+    const r = await fetch(WORKER_URL, { cache: 'no-store' });
+    if (r.ok) pedidos = await r.json();
+  } catch (_) { /* cai no arquivo publicado */ }
+  if (!Array.isArray(pedidos)) {
+    try {
+      const r = await fetch('https://cms-representacoes.github.io/apps-oly/data/pedidos.json?t=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) pedidos = await r.json();
+    } catch (_) {}
+  }
+  RFV_REP.carregando = false;
+  if (!Array.isArray(pedidos)) return;
+
+  // O que cada cliente já tem na base, em qualquer situação.
+  const tem = new Set();
+  for (const r of APP.L) {
+    tem.add(APP.dic.cli[r[C.CLI]][0] + '|' + APP.dic.ref[r[C.REF]][0] + '|' + String(APP.dic.cor[r[C.COR]]).toUpperCase());
+  }
+  const soLetras = v => normalizar(v).replace(/[^a-z0-9]/g, '');
+  const eu = APP.veTudo ? '' : soLetras(APP.sessao ? APP.sessao.nome : '');
+  const porCli = new Map();
+  for (const ped of pedidos) {
+    if (!ped || ped.archived || normalizar(ped.status || '') === 'cancelado') continue;
+    if (eu && soLetras(ped.preposto && ped.preposto.nome) !== eu) continue;
+    const cli = String(ped.clienteCodigo || '').trim();
+    for (const it of (ped.items || [])) {
+      const cor = String(it.cor || '').toUpperCase();
+      if (tem.has(cli + '|' + it.codigo + '|' + cor)) continue;
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(it.prevFaturamento || '').trim());
+      if (!m) continue;
+      const mes = `${m[2]}/${m[3]}`;
+      if (!porCli.has(cli)) porCli.set(cli, new Map());
+      const meses = porCli.get(cli);
+      if (!meses.has(mes)) meses.set(mes, []);
+      meses.get(mes).push({ ref: String(it.codigo), desc: String(it.produto || it.codigo), cor: String(it.cor || ''),
+        prev: it.prevFaturamento, pares: Number(it.totalUnits) || 0, pedido: ped.id, criado: ped.createdAt });
+    }
+  }
+  RFV_REP.porCli = porCli;
+  RFV_REP.em = Date.now();
+}
+
+/** Filtro "Aguardando fábrica": só quem tem repasse que ainda não virou
+ *  carteira. Vale na tabela por mês e na por faixa; o mapa não usa. */
+function rfvPassaRepasse(ci) {
+  if (!RFV.soRep) return true;
+  return !!(RFV_REP.porCli && RFV_REP.porCli.has(String(APP.dic.cli[ci][0])));
+}
+
+function rfvRepassesDe(cod, mes) {
+  const m = RFV_REP.porCli && RFV_REP.porCli.get(String(cod));
+  return (m && m.get(mes)) || null;
+}
+
+/* ── o balão ── */
+function rfvBalao() {
+  let b = $('rfv-balao');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'rfv-balao'; b.className = 'rfv-balao'; b.hidden = true;
+    b.setAttribute('role', 'tooltip');
+    document.body.appendChild(b);
+    b.addEventListener('mouseleave', () => rfvFecharBalao());
+  }
+  return b;
+}
+function rfvAbrirBalao(chip) {
+  const [cod, mes] = chip.dataset.rep.split('#');
+  const itens = rfvRepassesDe(cod, mes);
+  if (!itens) return;
+  const b = rfvBalao();
+  const total = itens.reduce((t, x) => t + x.pares, 0);
+  b.innerHTML = `<div class="rb-cab"><b>Repasse aguardando a fábrica</b><span>${formatarNumero(total)} pares · ${escHtml(mesCurtoRotulo(mes))}</span></div>` +
+    itens.map(x => `<div class="rb-item">
+      <span class="es-thumb rb-foto"><img src="${IMG_PATH}${escAttr(x.ref + '_' + corParaArquivo(x.cor))}.jpg" alt="" loading="lazy"
+        onerror="this.parentNode.classList.add('failed')"><i class="fa-solid fa-image" aria-hidden="true"></i></span>
+      <span class="rb-tx"><b>${escHtml(x.desc)}</b><small>${escHtml(x.ref)} · ${escHtml(x.cor)}</small><small>prev. fat. ${escHtml(x.prev)}</small></span>
+      <span class="rb-n">${formatarNumero(x.pares)}</span></div>`).join('');
+  b.hidden = false;
+  b.dataset.dono = chip.dataset.rep;
+  b.dataset.em = String(Date.now());
+  // perto do selo, sem sair da tela
+  const r = chip.getBoundingClientRect(), w = b.offsetWidth, h = b.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.bottom + 6;
+  if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 6);
+  x = Math.max(8, Math.min(x, innerWidth - w - 8));
+  b.style.left = Math.round(x) + 'px'; b.style.top = Math.round(y) + 'px';
+}
+function rfvFecharBalao() { const b = $('rfv-balao'); if (b) { b.hidden = true; b.dataset.dono = ''; } }
+
 function rfvAbrir() {
   if (!APP.base) { toast('A base ainda não carregou'); return; }
   if (!RFV.montado) { rfvMontarMeses(); RFV.montado = true; }
@@ -4300,6 +4434,8 @@ function rfvAbrir() {
   }
   show('screen-rfv');
   rfvPintar();
+  // Os repasses vêm do admin e demoram: a tabela também não espera.
+  rfvCarregarRepasses().then(() => { if (RFV_REP.porCli && document.querySelector('#screen-rfv.active')) rfvPintar(); });
   // As cidades vêm do RFV e demoram: a tabela não espera por elas.
   if (!CIDADES.mapa) rfvBuscarCidades().then(m => { if (m) rfvPintar(); });
 }
@@ -4681,6 +4817,7 @@ function rfvResumoFiltros() {
     const tem = RFV_MULTI.has(f) ? rfvSel(f).length : !!RFV.f[f];
     if (tem) partes.push(RFV_FILTRO[f].nome + ': ' + rfvRotulo(f));
   }
+  if (RFV.soRep) partes.push('Só com repasse aguardando a fábrica');
   const busca = $('rfv-busca').value.trim();
   if (busca) partes.push('Busca: ' + busca);
   return partes.join(' · ');
@@ -9902,7 +10039,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   ligar('btn-tema-3', 'click', toggleTema);
   // Clicar na linha marca; clicar de novo desmarca. Só troca as classes —
   // repintar a tabela para acender uma linha seria caro e piscaria.
+  ligar('rfv-tela', 'mouseover', (e) => {
+    const chip = e.target.closest('.rfv-rep');
+    if (chip && $('rfv-balao')?.dataset.dono !== chip.dataset.rep) rfvAbrirBalao(chip);
+  });
+  ligar('rfv-tela', 'mouseout', (e) => {
+    const chip = e.target.closest('.rfv-rep');
+    const para = e.relatedTarget;
+    if (chip && !(para && (para.closest('#rfv-balao') || para.closest('.rfv-rep') === chip))) rfvFecharBalao();
+  });
+  ligar('rfv-tela', 'focusin', (e) => { const chip = e.target.closest('.rfv-rep'); if (chip) rfvAbrirBalao(chip); });
+  ligar('rfv-tela', 'focusout', (e) => { if (e.target.closest('.rfv-rep')) rfvFecharBalao(); });
+  addEventListener('scroll', rfvFecharBalao, { passive: true });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.rfv-rep') && !e.target.closest('#rfv-balao')) rfvFecharBalao();
+  });
   ligar('rfv-tela', 'click', (e) => {
+    // no toque não há "passar por cima": tocar no selo abre e fecha o balão
+    const chip = e.target.closest('.rfv-rep');
+    if (chip) {
+      e.stopPropagation();
+      // o toque dispara o "passar por cima" logo antes do clique: o balão
+      // que acabou de abrir não pode fechar no mesmo gesto
+      const bl = $('rfv-balao');
+      const aberto = bl && !bl.hidden && bl.dataset.dono === chip.dataset.rep;
+      if (aberto && Date.now() - Number(bl.dataset.em || 0) > 500) rfvFecharBalao();
+      else if (!aberto) rfvAbrirBalao(chip);
+      return;
+    }
     const th = e.target.closest('th[data-ord]');
     if (th) {
       RFV.ordem = RFV.ordem === th.dataset.ord ? '' : th.dataset.ord;
@@ -9947,6 +10111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   ligar('rfv-limpar', 'click', () => {
     for (const k of Object.keys(RFV.f)) RFV.f[k] = '';
+    RFV.soRep = false;
     $('rfv-busca').value = '';
     rfvFecharLista();
     rfvPintar();
@@ -9982,6 +10147,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('click', () => { if (RFV.aberto) rfvFecharLista(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && RFV.aberto) rfvFecharLista(); });
+  ligar('rfv-repasse', 'click', () => {
+    RFV.soRep = !RFV.soRep;
+    scrollTo(0, 0);
+    rfvPintar();
+  });
   ligar('rfv-cidade', 'click', () => {
     RFV.verCidade = !RFV.verCidade;
     scrollTo(0, 0);   // a tabela passa a rolar por dentro; medir de cima
@@ -12805,6 +12975,35 @@ html.dark .prob-chip.g1{ --c:#E0B341; }
   color:#15803D; font-size:12.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px; }
 html.dark .prob-resumo{ color:#6EE7A0; }
 .prob-vazio{ padding:40px 20px; text-align:center; color:var(--ds-muted); }
+/* ── RFV: repasse aguardando a fábrica ── */
+.rfv-tgl-rep .n{ margin-left:4px; padding:0 6px; border-radius:999px; font-size:10.5px; font-weight:800;
+  background:rgba(124,58,237,.12); color:#6D28D9; }
+.rfv-tgl-rep.on{ background:#7C3AED !important; border-color:#7C3AED !important; color:#fff !important; }
+.rfv-tgl-rep.on i{ color:#fff !important; }
+.rfv-tgl-rep.on .n{ background:rgba(255,255,255,.25); color:#fff; }
+html.dark .rfv-tgl-rep .n{ color:#C4B5FD; }
+.rfv-rep{ display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; cursor:help;
+  font-size:10.5px; font-weight:800; line-height:16px; vertical-align:1px; white-space:nowrap;
+  color:#fff; background:#7C3AED; box-shadow:0 2px 6px -2px rgba(124,58,237,.55); }
+.rfv-rep:hover, .rfv-rep:focus-visible{ background:#6D28D9; outline:none; box-shadow:0 0 0 3px rgba(124,58,237,.25); }
+td.com-rep:not(.rfv-car):not(.rfv-fat):not(.rfv-mix) .rfv-rep{ margin-left:0; }
+@media (max-width:700px){ .rfv-rep{ display:block; width:max-content; margin:3px auto 0; } }
+.rfv-balao{ position:fixed; z-index:1300; width:300px; max-width:calc(100vw - 16px); max-height:min(380px, 70vh); overflow:auto;
+  background:var(--ds-card); color:var(--ds-ink); border:1px solid var(--ds-line); border-radius:14px;
+  box-shadow:0 18px 40px -14px rgba(15,23,42,.35); padding:8px; font-family:var(--ds-font, inherit); }
+.rfv-balao[hidden]{ display:none; }
+.rfv-balao .rb-cab{ display:flex; flex-direction:column; padding:4px 6px 8px; border-bottom:1px solid var(--ds-line-soft, var(--ds-line)); margin-bottom:4px; }
+.rfv-balao .rb-cab b{ font-size:12px; color:#6D28D9; }
+html.dark .rfv-balao .rb-cab b{ color:#C4B5FD; }
+.rfv-balao .rb-cab span{ font-size:11px; color:var(--ds-muted); }
+.rfv-balao .rb-item{ display:flex; align-items:center; gap:8px; padding:5px 6px; border-radius:10px; }
+.rfv-balao .rb-item + .rb-item{ border-top:1px solid var(--ds-line-soft, var(--ds-line)); }
+.rfv-balao .rb-foto{ width:40px; height:40px; flex:none; }
+.rfv-balao .rb-tx{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.25; }
+.rfv-balao .rb-tx b{ font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rfv-balao .rb-tx small{ font-size:10.5px; color:var(--ds-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rfv-balao .rb-n{ flex:none; font-size:12px; font-weight:800; color:#6D28D9; }
+html.dark .rfv-balao .rb-n{ color:#C4B5FD; }
 /* ── modal de pergunta ── */
 .pg-card{ max-width:420px; }
 .pg-corpo{ display:flex; flex-direction:column; gap:10px; padding:4px 18px 16px; }
