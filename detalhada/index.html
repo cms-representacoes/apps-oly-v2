@@ -4811,11 +4811,16 @@ const ES_FILTRO = {
   motivo: { nome: 'Motivo',    todos: 'Todos' },
 };
 const ES_MULTI = new Set(['vend', 'marca', 'linha']);
-const ES_MOTIVO = { fat: 'Faturou', chk: 'A confirmar', trf: 'Transferido', rep: 'Repassada' };
+// trf, sem e can nascem do mesmo "saiu sem nota" do registro; o que separa
+// os três é a marcação feita na Detalhada (esCruzarMarcacoes).
+const ES_MOTIVO = { fat: 'Faturou', chk: 'A confirmar', trf: 'Transferido', sem: 'Transferido sem marcação',
+                    can: 'Cancelada', rep: 'Repassada' };
 const ES_MOTIVO_DICA = {
   fat: 'a nota fiscal apareceu',
   chk: 'saiu da carteira ontem e a nota ainda não foi lançada; a próxima atualização confirma',
-  trf: 'saiu da carteira e a nota não apareceu — a encomenda foi transferida',
+  trf: 'saiu sem nota e estava marcada para transferir na Detalhada',
+  sem: 'saiu sem nota e ninguém marcou transferir nem cancelar na Detalhada',
+  can: 'saiu sem nota e estava marcada para cancelar na Detalhada',
   rep: 'a encomenda trocou de preposto',
 };
 
@@ -4884,10 +4889,67 @@ function esMontar(reg) {
                 refCod: String(ref[0]), refNome: String(ref[1] || ref[0]), cor: String(d.cor[iCor] || ''),
                 cliCod: String(cli[0]), cliNome: String(cli[1] || cli[0]), prep,
                 marca: String(d.marca[iMarca] || ''), faixa: String(d.faixa[iFaixa] || ''),
-                prev, qtde, motivo: motivo || '' };
+                prev, qtde, motivo: motivo || '', motivoBase: motivo || '' };
     (o.tipo === 'ent' ? ent : sai).push(o);
   });
   return { ent, sai };
+}
+
+/** Cruza cada saída com a marcação feita na Detalhada para a mesma
+ *  encomenda (cliente · GCI · referência · cor). O registro só sabe que saiu
+ *  sem nota; a marcação diz se foi transferência combinada, cancelamento ou
+ *  algo que ninguém marcou. Refeito a cada pintura: marcações mudam sem a
+ *  base mudar.
+ *
+ *  A chave da Carteira tem seis partes e a da Detalhada quatro; as quatro
+ *  primeiras são as mesmas nas duas. */
+function esCruzarMarcacoes() {
+  if (!ES.mov) return;
+  const marcas = new Map();
+  // Carteira primeiro: a marcação feita na Detalhada vence na mesma encomenda.
+  for (const fonte of [ES.acoesCarteira || {}, APP.acoes || {}]) {
+    for (const [k, reg] of Object.entries(fonte)) {
+      const p = k.split('|');
+      const k4 = p.slice(0, 4).join('|');
+      if (!reg || (reg.acao !== 'REPASSAR' && reg.acao !== 'CANCELAR')) {
+        if (fonte === APP.acoes) marcas.delete(k4);   // desmarcada aqui
+        continue;
+      }
+      // A marcação da Carteira não guarda referência e cor no repasse; a
+      // conferência do destino precisa delas, e a chave já as tem.
+      marcas.set(k4, { ...reg, repasse: reg.repasse && { ref: p[2], cor: p[3], ...reg.repasse } });
+    }
+  }
+  const chegou = new Map();     // um destino só é procurado uma vez na base
+  for (const x of ES.mov.sai) {
+    const reg = x.motivoBase === 'rep' ? null : marcas.get([x.cliCod, x.gci, x.refCod, x.cor].join('|'));
+    x.marcada = reg ? reg.acao : '';
+    x.destinos = [];
+    if (reg && reg.acao === 'REPASSAR' && reg.repasse) {
+      for (const d of (reg.repasse.destinos || [])) {
+        const ck = x.cliCod + '|' + x.gci + '|' + d.codigo;
+        if (!chegou.has(ck)) chegou.set(ck, destinoConfirmado({ repasse: reg.repasse }, d));
+        x.destinos.push({ nome: d.nome || d.codigo, codigo: d.codigo, gci: chegou.get(ck) });
+      }
+    }
+    x.motivo = x.motivoBase !== 'trf' ? x.motivoBase
+      : x.marcada === 'CANCELAR' ? 'can'
+      : x.marcada === 'REPASSAR' ? 'trf' : 'sem';
+  }
+}
+
+/** O que a marcação acrescenta ao motivo, embaixo do selo. */
+function esDetalheMarcacao(x) {
+  if (x.motivo === 'sem') return '';
+  if (x.destinos && x.destinos.length) {
+    return `<span class="es-dest">${x.destinos.map(d => d.gci
+      ? `<span class="ok" title="${escAttr('chegou na carteira de ' + d.nome + ' · GCI ' + d.gci)}"><i class="fa-solid fa-check" aria-hidden="true"></i> ${escHtml(d.nome)}</span>`
+      : `<span title="${escAttr('marcada para ' + d.nome + '; ainda não apareceu na carteira dele')}">→ ${escHtml(d.nome)}</span>`).join('')}</span>`;
+  }
+  if (x.motivo === 'fat' && x.marcada) {
+    return `<span class="es-dest div" title="faturou, mas estava marcada na Detalhada">estava marcada p/ ${x.marcada === 'CANCELAR' ? 'cancelar' : 'transferir'}</span>`;
+  }
+  return '';
 }
 
 /** Busca o registro e repinta quando chega. */
@@ -4908,6 +4970,13 @@ async function esCarregar() {
     ES.reg = mov;
     ES.mov = mov.mes === esMesAtual() ? esMontar(mov) : { ent: [], sai: [] };
     ES.movDe = chave;
+    // As marcações do app da Carteira ficam fora do APP.acoes (a Detalhada
+    // não as edita), mas "Transferir" lá quer dizer o mesmo: entram só no
+    // cruzamento das saídas. Sem elas o relatório abre do mesmo jeito.
+    try {
+      const d = await chamarWorker('getAcoesCarteira');
+      if (pedido === ES.pedido) ES.acoesCarteira = (d && d.acoes) || {};
+    } catch (_) { ES.acoesCarteira = ES.acoesCarteira || {}; }
   } catch (e) {
     if (pedido !== ES.pedido) return;
     ES.carregando = '';
@@ -4968,7 +5037,7 @@ function esOpcoes(f, busca) {
     const pares = {};
     for (const o of (ES.mov ? ES.mov.sai : [])) if (esPassa(o)) pares[o.motivo] = (pares[o.motivo] || 0) + o.qtde;
     return Object.keys(ES_MOTIVO).map(v => ({ v, rot: ES_MOTIVO[v], n: pares[v] || 0, sub: formatarNumero(pares[v] || 0) }));
-    // (a ordem é a do ES_MOTIVO: faturou, a confirmar, transferido, repassada)
+    // (a ordem é a do ES_MOTIVO: faturou, a confirmar, transferido, sem marcação, cancelada, repassada)
   }
   const todos = ES.mov ? [...ES.mov.ent, ...ES.mov.sai] : [];
   if (f === 'vend')  return [...new Set(todos.map(o => o.prep).filter(Boolean))].sort().map(v => ({ v, rot: v }));
@@ -5135,7 +5204,8 @@ function esTabela(lista) {
       <td class="es-qtde ${x.tipo}">${formatarNumero(x.qtde)}</td>
       <td class="es-prev" title="${escAttr(diaParaBR(x.prev))}">${x.prev >= 0 ? diaParaCurto(x.prev) : '—'}</td>
       ${x.tipo === 'sai' ? `<td class="es-mot"><span class="es-motivo m-${x.motivo}"
-          title="${escAttr(ES_MOTIVO_DICA[x.motivo] || '')}">${ES_MOTIVO[x.motivo] || ''}</span></td>` : ''}
+          title="${escAttr(ES_MOTIVO_DICA[x.motivo] || '')}">${x.motivo === 'sem' ? 'Transferido' : (ES_MOTIVO[x.motivo] || '')}</span>${x.motivo === 'sem'
+          ? '<span class="es-dest sem" title="saiu sem nota e ninguém marcou na Detalhada">sem marcação</span>' : esDetalheMarcacao(x)}</td>` : ''}
     </tr>`).join('');
   const resto = lista.length - ES.limite;
   const mais = resto > 0
@@ -5161,6 +5231,7 @@ function esPintar() {
       ? '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' + escHtml(ES.erro)
       : '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> ' + escHtml(ES.carregando || 'Carregando…')}</div></div>`;
   } else {
+    esCruzarMarcacoes();
     const ent = ES.mov.ent.filter(esPassa), sai = ES.mov.sai.filter(esPassa);
     esFichas(ent, sai);
     const lista = ES.aba === 'ent' ? ent : sai.filter(o => !ES.f.motivo || o.motivo === ES.f.motivo);
@@ -7527,6 +7598,10 @@ async function publicarBase() {
   estado.textContent = `${formatarNumero(APP.baseNova.l.length)} linhas a caminho…`;
 
   try {
+    // O registro de entradas e saídas vem do script diário, que compara as
+    // bases. Publicando por aqui, a base nova leva o registro da que está no
+    // ar: o relatório não volta para trás, e o script remonta o que faltar.
+    if (APP.base && APP.base.mov && !APP.baseNova.mov) APP.baseNova.mov = APP.base.mov;
     const r = await chamarWorker('saveDetalhada', {
       data: APP.baseNova,
       por: APP.sessao ? APP.sessao.nome : '',
@@ -11912,6 +11987,13 @@ html.dark :is(#screen-rfv,#screen-es) :is(#rfv-busca,#es-busca):focus{ backgroun
   font-size:11px; font-weight:600; white-space:nowrap;
 }
 .es-motivo.m-fat{ background:color-mix(in srgb, var(--ds-faturado) 14%, transparent); color:var(--ds-faturado); }
+.es-motivo.m-sem{ background:color-mix(in srgb, var(--ds-atencao) 15%, transparent); color:var(--ds-atencao); }
+.es-motivo.m-can{ background:color-mix(in srgb, #DC2626 12%, transparent); color:#B91C1C; }
+#screen-es td.es-mot .es-dest{ display:flex; flex-wrap:wrap; gap:2px 8px; margin-top:3px;
+  font-size:10.5px; font-weight:600; color:var(--ds-muted, #6B7280); line-height:1.25; }
+#screen-es td.es-mot .es-dest .ok{ color:#15803D; }
+#screen-es td.es-mot .es-dest.sem{ color:var(--ds-atencao); }
+#screen-es td.es-mot .es-dest.div{ color:#B45309; }
 .es-motivo.m-trf{ background:color-mix(in srgb, var(--ds-atencao) 15%, transparent); color:var(--ds-atencao); }
 /* ainda sem veredito: fica discreto, sem cor de bom nem de ruim */
 .es-motivo.m-chk{ background:var(--ds-sunk); color:var(--ds-faint); }
