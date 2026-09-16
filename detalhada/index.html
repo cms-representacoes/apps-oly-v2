@@ -2552,6 +2552,23 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
 
   <!-- Aparência: abre na logo CMS. Visual novo ou atual, cor da marca e
        tema. Tudo guardado no aparelho e aplicado na hora. -->
+  <!-- Pergunta curta com botões: com ou sem imagens, compartilhar... -->
+  <div class="modal-fundo" id="modal-pergunta">
+    <div class="modal-card pg-card" role="dialog" aria-modal="true" aria-labelledby="pg-titulo">
+      <div class="modal-topo">
+        <div class="modal-linha1">
+          <div>
+            <p class="modal-titulo" id="pg-titulo">—</p>
+            <p class="modal-sub" id="pg-sub"></p>
+          </div>
+          <button class="modal-fechar" id="pg-fechar" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="modal-corpo pg-corpo" id="pg-corpo"></div>
+      <div class="modal-rodape" id="pg-rodape"></div>
+    </div>
+  </div>
+
   <div class="modal-fundo" id="modal-aparencia">
     <div class="modal-card ap-card" role="dialog" aria-modal="true" aria-labelledby="ap-titulo">
       <div class="modal-topo">
@@ -4884,12 +4901,25 @@ function catPrevOuFat(r) {
   return r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : (r[C.DFAT] >= 0 ? diaParaBR(r[C.DFAT]) : '');
 }
 
-function catExportXlsx() {
+async function catExportXlsx() {
   const cli = catClienteFiltrado();
   if (cli < 0) return;
+  if (!catDados().produtos.length) { toast('Nada na lista para exportar'); return; }
+  const r = await perguntar({
+    titulo: 'Gerar planilha',
+    sub: APP.dic.cli[cli][1] || APP.dic.cli[cli][0],
+    opcoes: [
+      { id: 'com', rot: 'Com imagens', ic: 'fa-solid fa-image', dica: 'Miniatura do produto em cada linha · arquivo maior' },
+      { id: 'sem', rot: 'Sem imagens', ic: 'fa-solid fa-table', dica: 'Só os dados · mais leve e rápido' },
+    ],
+  });
+  if (r === 'com') return catExportXlsxComImagens(cli);
+  if (r === 'sem') return catExportXlsxSemImagens(cli);
+}
+
+/** Linhas da planilha, as mesmas com ou sem imagens. */
+function catLinhasPlanilha() {
   const { produtos, totCart, totFat, totLinhas } = catDados();
-  if (!produtos.length) { toast('Nada na lista para exportar'); return; }
-  const [cod, nome] = APP.dic.cli[cli];
 
   // Os tamanhos viram colunas: a união do que aparece, em ordem de número.
   const ord = t => parseInt(String(t), 10) || 0;
@@ -4903,8 +4933,9 @@ function catExportXlsx() {
   const cab = ['Referência', 'Descrição', 'Cor', 'Gênero', 'Marca', 'Faixa', 'Fábrica', 'Filial',
                'Preposto', 'GCI', 'OC', 'NF', 'Prev. fat.', 'Carteira (pares)', 'Faturado (pares)',
                'Data fat.', 'Grade', ...colTam];
-  const corpo = [];
+  const corpo = [], fotos = [];
   for (const p of produtos) for (const r of p.linhas) {
+    fotos.push([p.ref, p.cor]);
     const g = gradeDaLinha(r);
     const faixa = (APP.dic.faixa && r[C.FAIXA] != null && r[C.FAIXA] >= 0) ? APP.dic.faixa[r[C.FAIXA]] : '';
     const gradeTxt = !g ? '' : (Array.isArray(g.caixas) && g.caixas.length
@@ -4925,6 +4956,12 @@ function catExportXlsx() {
     ]);
   }
 
+  return { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam };
+}
+
+function catExportXlsxSemImagens(cli) {
+  const { produtos, totCart, totFat, totLinhas, cab, corpo } = catLinhasPlanilha();
+  const [cod, nome] = APP.dic.cli[cli];
   const resumo = catResumoFiltros();
   const aoa = [
     [`Catálogo da carteira · ${nome || cod} (${cod})`],
@@ -4943,28 +4980,143 @@ function catExportXlsx() {
   toast(`Planilha gerada · ${produtos.length} produtos`);
 }
 
-/** Foto reduzida para o PDF: a original chega a 3000 px e o arquivo
- *  ficaria enorme; 360 px sobra para a caixa de 88 pt. */
+async function catGarantirExcelJs() {
+  if (window.ExcelJS) return true;
+  try {
+    await new Promise((ok, nao) => {
+      const t = document.createElement('script');
+      t.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+      t.onload = ok; t.onerror = nao;
+      document.head.appendChild(t);
+    });
+  } catch (_) { return false; }
+  return !!window.ExcelJS;
+}
+
+/** A mesma planilha, com a foto do produto na primeira coluna. A planilha
+ *  de sempre (SheetJS) não coloca imagem; esta usa o ExcelJS, carregado só
+ *  quando alguém pede. */
+async function catExportXlsxComImagens(cli) {
+  const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam } = catLinhasPlanilha();
+  const [cod, nome] = APP.dic.cli[cli];
+  syncShow('Preparando a planilha…');
+  if (!await catGarantirExcelJs()) { syncHide(); toast('Não consegui carregar o gerador de planilha com imagens'); return; }
+
+  // uma foto por produto, de oito em oito
+  const unicos = [...new Map(fotos.map(([ref, cor]) => [ref + '|' + cor, [ref, cor]])).values()];
+  const img = new Map();
+  for (let i = 0; i < unicos.length; i += 8) {
+    syncShow(`Buscando as fotos · ${Math.min(i + 8, unicos.length)} de ${unicos.length}`);
+    const lote = await Promise.all(unicos.slice(i, i + 8).map(([ref, cor]) => catFoto(ref, cor, 320, 0.9)));
+    lote.forEach((f, j) => img.set(unicos[i + j].join('|'), f));
+  }
+  syncShow('Montando a planilha…');
+
+  const wb = new window.ExcelJS.Workbook();
+  wb.creator = 'CMS Representações · Detalhada';
+  const ws = wb.addWorksheet('Carteira', { views: [{ state: 'frozen', ySplit: 5, xSplit: 1 }] });
+  const resumo = catResumoFiltros();
+  ws.getCell('A1').value = `Catálogo da carteira · ${nome || cod} (${cod})`;
+  ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF0F766E' } };
+  ws.getCell('A2').value = `${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`;
+  ws.getCell('A3').value = `${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`;
+  ['A2', 'A3'].forEach(c => { ws.getCell(c).font = { size: 10, color: { argb: 'FF6B7280' } }; });
+
+  const cabecalho = ws.getRow(5);
+  cabecalho.values = ['Foto', ...cab];
+  cabecalho.height = 22;
+  cabecalho.eachCell(c => {
+    c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } };
+    c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  });
+
+  const ALT = 58;                       // pontos: cabe a miniatura de 72 px
+  const ids = new Map();
+  corpo.forEach((linha, i) => {
+    const n = 6 + i;
+    const row = ws.getRow(n);
+    row.values = ['', ...linha];
+    row.height = ALT;
+    row.alignment = { vertical: 'middle' };
+    const chave = fotos[i].join('|'), f = img.get(chave);
+    if (f) {
+      if (!ids.has(chave)) ids.set(chave, wb.addImage({ base64: f.url, extension: 'jpeg' }));
+      const lado = 72, k = Math.min(lado / f.w, lado / f.h);
+      ws.addImage(ids.get(chave), { tl: { col: 0.12, row: n - 1 + 0.06 }, ext: { width: f.w * k, height: f.h * k }, editAs: 'oneCell' });
+    }
+  });
+
+  const larguras = { 1: 12, 2: 11, 3: 32, 4: 10, 5: 8, 6: 8, 7: 16, 8: 10, 9: 10, 10: 12, 11: 11, 12: 12, 13: 11, 14: 11, 15: 11, 16: 11, 17: 11, 18: 36 };
+  for (let c = 1; c <= cab.length + 1; c++) ws.getColumn(c).width = larguras[c] || 6;
+  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + corpo.length, column: cab.length + 1 } };
+
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = catNomeArquivo(cli, 'xlsx');
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  syncHide();
+  toast(`Planilha com imagens gerada · ${produtos.length} produtos`);
+}
+
+/** Modal curto com escolhas. Devolve a escolhida, ou null se fechar. */
+function perguntar({ titulo, sub = '', corpo = '', opcoes = [], botoes = [] }) {
+  return new Promise(resolve => {
+    const fundo = $('modal-pergunta');
+    $('pg-titulo').textContent = titulo;
+    $('pg-sub').textContent = sub;
+    $('pg-corpo').innerHTML = corpo + opcoes.map(o =>
+      `<button type="button" class="pg-opcao" data-pg="${escAttr(o.id)}"><span class="ic"><i class="${o.ic}"></i></span>` +
+      `<span><b>${escHtml(o.rot)}</b>${o.dica ? `<small>${escHtml(o.dica)}</small>` : ''}</span></button>`).join('');
+    $('pg-rodape').innerHTML = botoes.map(b =>
+      `<button type="button" class="${b.cls || 'btn-limpar-dest'}" data-pg="${escAttr(b.id)}">${b.ic ? `<i class="${b.ic}"></i> ` : ''}${escHtml(b.rot)}</button>`).join('');
+    $('pg-rodape').style.display = botoes.length ? '' : 'none';
+    const fim = valor => {
+      fundo.classList.remove('show');
+      fundo.onclick = null; $('pg-fechar').onclick = null;
+      document.removeEventListener('keydown', esc, true);
+      resolve(valor);
+    };
+    const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); fim(null); } };
+    fundo.onclick = e => {
+      const b = e.target.closest('[data-pg]');
+      if (b) fim(b.dataset.pg);
+      else if (e.target === fundo) fim(null);
+    };
+    $('pg-fechar').onclick = () => fim(null);
+    document.addEventListener('keydown', esc, true);
+    fundo.classList.add('show');
+    setTimeout(() => { const f = fundo.querySelector('[data-pg]'); if (f) f.focus(); }, 30);
+  });
+}
+
+/** Foto para o PDF e a planilha. A original chega a 3000 px: o PDF usa
+ *  até 1000 px, que continua nítida com zoom (360 px ficava borrada), e a
+ *  planilha 320 px, para a miniatura da linha continuar boa com zoom. */
 const _catFotos = new Map();
-function catFoto(ref, cor) {
-  const chave = ref + '_' + corParaArquivo(cor);
+function catFoto(ref, cor, max = 1000, qualidade = 0.9) {
+  const nome = ref + '_' + corParaArquivo(cor);
+  const chave = nome + '@' + max;
   if (_catFotos.has(chave)) return _catFotos.get(chave);
   const pr = new Promise(res => {
     const img = new Image();
     img.onload = () => {
       try {
-        const k = Math.min(1, 360 / Math.max(img.naturalWidth, img.naturalHeight));
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
         const cv = document.createElement('canvas');
         cv.width = Math.max(1, Math.round(img.naturalWidth * k));
         cv.height = Math.max(1, Math.round(img.naturalHeight * k));
         const cx = cv.getContext('2d');
         cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+        cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
         cx.drawImage(img, 0, 0, cv.width, cv.height);
-        res({ url: cv.toDataURL('image/jpeg', 0.84), w: cv.width, h: cv.height });
+        res({ url: cv.toDataURL('image/jpeg', qualidade), w: cv.width, h: cv.height });
       } catch (_) { res(null); }
     };
     img.onerror = () => res(null);
-    img.src = `${IMG_PATH}${chave}.jpg`;
+    img.src = `${IMG_PATH}${nome}.jpg`;
   });
   _catFotos.set(chave, pr);
   return pr;
@@ -5158,9 +5310,35 @@ async function catExportPdf() {
     y += h + 10;
   }
   rodape();
-  doc.save(catNomeArquivo(cli, 'pdf'));
+  const nomePdf = catNomeArquivo(cli, 'pdf');
+  doc.save(nomePdf);
   syncHide();
   toast(`Catálogo gerado · ${produtos.length} produtos`);
+  catOferecerWhatsapp(doc.output('blob'), nomePdf, nomeCli || codCli);
+}
+
+/** Depois do PDF baixado: compartilhar pelo WhatsApp? No celular e no
+ *  tablet o menu do sistema anexa o arquivo de verdade; onde ele não
+ *  existe, abre o WhatsApp com a mensagem e o PDF baixado vai à mão. */
+async function catOferecerWhatsapp(blob, nomePdf, cliente) {
+  const arquivo = new File([blob], nomePdf, { type: 'application/pdf' });
+  const anexa = !!(navigator.canShare && navigator.canShare({ files: [arquivo] }));
+  const texto = `Olá! Segue o catálogo das encomendas de ${cliente}.`;
+  const r = await perguntar({
+    titulo: 'Catálogo gerado',
+    sub: nomePdf,
+    corpo: `<p class="pg-texto">Deseja compartilhar pelo WhatsApp?</p>` +
+      (anexa ? '' : '<p class="pg-nota">Neste aparelho o WhatsApp abre com a mensagem pronta; anexe o PDF que acabou de ser baixado.</p>'),
+    botoes: [{ id: 'nao', rot: 'Agora não' },
+             { id: 'zap', rot: 'Compartilhar', ic: 'fa-brands fa-whatsapp', cls: 'btn-confirmar-dest pg-zap' }],
+  });
+  if (r !== 'zap') return;
+  if (anexa) {
+    try { await navigator.share({ files: [arquivo], title: 'Catálogo da carteira', text: texto }); }
+    catch (e) { if (e && e.name !== 'AbortError') toast('Não deu para compartilhar agora'); }
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+  }
 }
 
 // Os mesmos dois botões servem ao RFV e ao catálogo: quem manda é a tela.
@@ -12627,6 +12805,21 @@ html.dark .prob-chip.g1{ --c:#E0B341; }
   color:#15803D; font-size:12.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px; }
 html.dark .prob-resumo{ color:#6EE7A0; }
 .prob-vazio{ padding:40px 20px; text-align:center; color:var(--ds-muted); }
+/* ── modal de pergunta ── */
+.pg-card{ max-width:420px; }
+.pg-corpo{ display:flex; flex-direction:column; gap:10px; padding:4px 18px 16px; }
+.pg-texto{ margin:0; font-size:13.5px; line-height:1.5; color:var(--ds-ink-2, var(--ds-ink)); }
+.pg-nota{ margin:0; font-size:12px; line-height:1.45; color:var(--ds-muted); }
+.pg-opcao{ display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer; font:inherit;
+  padding:12px 14px; border-radius:14px; border:1px solid var(--ds-line); background:var(--ds-card); color:var(--ds-ink);
+  transition:border-color .15s, box-shadow .15s; }
+.pg-opcao:hover, .pg-opcao:focus-visible{ border-color:var(--ds-accent); box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .12); outline:none; }
+.pg-opcao .ic{ width:40px; height:40px; border-radius:12px; flex:none; display:grid; place-items:center; font-size:16px;
+  background:rgba(var(--ds-accent-rgb), .10); color:var(--ds-accent); }
+.pg-opcao b{ display:block; font-size:14px; }
+.pg-opcao small{ display:block; font-size:12px; color:var(--ds-muted); margin-top:1px; }
+.pg-zap{ background:#16A34A !important; border-color:#16A34A !important; color:#fff !important; }
+.pg-zap:hover{ background:#15803D !important; }
 /* ícones das fichas: relógio e ampulheta para o atraso, calendário para a
    data adiada (as regras das Entradas e saídas dariam as setas de lá) */
 html.vn #screen-prob .rfv-fichas .rfv-ficha.neg::before{ content:'\f017'; }
