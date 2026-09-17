@@ -2290,6 +2290,30 @@
     }
     #cartGradesSummaryToggle > span{ font-size:9.5px; letter-spacing:.06em; }
 
+    /* ── Sacola: mesma moldura do visualizador de fotos ──────────────────
+       Era uma folha de 896px no meio da tela; com a mesma caixa do viewer a
+       lista respira e o resumo cabe inteiro ao lado. */
+    @media(min-width:640px){
+      #cartModalSheet{
+        width:min(1240px,100%);
+        height:min(96vh,860px);
+        max-height:min(96vh,860px);
+      }
+    }
+    /* No computador a lista rola sozinha e o resumo fica parado ao lado —
+       antes o painel inteiro subia junto e o botão de finalizar saía da tela,
+       que é por que existia o botão flutuante. */
+    @media(min-width:1024px){
+      #cartScroll{ overflow:hidden; display:flex; }
+      #cartContent{ flex:1 1 auto; min-height:0; align-items:start; }
+      #cartItemsCol{ max-height:100%; overflow-y:auto; padding-right:6px; }
+      #cartItemsCol .cart-itens-topo{
+        position:sticky; top:0; z-index:3; background:var(--card,#fff);
+        padding:2px 0 6px;
+      }
+      #cartSidebar{ max-height:100%; overflow-y:auto; }
+    }
+
     /* ── o resumo ── */
     #cartSidebar > .rounded-3xl{ padding:10px 12px; border-radius:18px; }
     /* só o título "Resumo" — sem o caminho completo a regra pegava também o
@@ -2921,8 +2945,8 @@
     <!-- Cart / Checkout Modal -->
     <div id="cartModal" class="hidden fixed inset-0 z-50">
       <div class="backdrop absolute inset-0" data-close-cart="true"></div>
-      <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center p-0 sm:p-6">
-        <div class="sheet w-full sm:max-w-4xl bg-white shadow-lift sm:rounded-3xl overflow-hidden max-h-[92vh] sm:max-h-[86vh] flex flex-col" id="cartModalSheet">
+      <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center p-0 sm:p-4">
+        <div class="sheet w-full bg-white shadow-lift sm:rounded-3xl overflow-hidden max-h-[92vh] flex flex-col" id="cartModalSheet">
           <div id="cartDragHandle" class="sm:hidden flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing shrink-0" aria-hidden="true">
             <div class="w-10 h-1 rounded-full bg-oly-border opacity-60"></div>
           </div>
@@ -2948,7 +2972,7 @@
             </div>
           </div>
 
-          <div class="p-3 sm:p-6 overflow-y-auto no-scrollbar" id="cartScroll">
+          <div class="p-3 sm:p-5 overflow-y-auto no-scrollbar" id="cartScroll">
             <div id="cartEmpty" class="hidden rounded-3xl border border-oly-border bg-oly-bg p-8 text-center">
               <div class="mx-auto h-12 w-12 rounded-2xl bg-oly-blue/10 flex items-center justify-center">
                 <i class="fa-solid fa-bag-shopping text-oly-blue"></i>
@@ -2957,7 +2981,7 @@
               <div class="mt-1 text-oly-muted">Adicione itens para finalizar.</div>
             </div>
 
-            <div id="cartContent" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div id="cartContent" class="grid grid-cols-1 lg:grid-cols-4 gap-4">
               <!-- Botão flutuante de finalizar (só aparece com painel oculto no desktop) -->
               <div id="cartFloatingFab" class="hidden">
                 <button id="btnShowSidebar" type="button" class="cart-fab-btn" title="Mostrar resumo e opções de exportar">
@@ -2970,8 +2994,8 @@
                   <span id="cartFabTotal" class="cart-fab-total">0 pares</span>
                 </button>
               </div>
-              <div class="lg:col-span-2">
-                <div class="flex items-center justify-between">
+              <div class="lg:col-span-3" id="cartItemsCol">
+                <div class="flex items-center justify-between cart-itens-topo">
                   <div class="font-extrabold">Itens</div>
                   <button id="btnClearCart" class="focus-ring text-sm font-bold text-oly-blue hover:underline" title="Esvaziar a sacola por completo">
                     Limpar sacola
@@ -3166,6 +3190,17 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <div id="cartBarraFim" class="hidden lg:hidden shrink-0 border-t border-oly-border bg-white px-3 py-2.5 flex items-center gap-3">
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-oly-muted">Total</div>
+              <div class="text-base font-extrabold leading-tight"><span id="cartBarraPares">0</span> pares</div>
+            </div>
+            <button id="btnFinalizarBarra" type="button" class="focus-ring ml-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-3 text-sm font-extrabold text-white hover:opacity-95" title="Finalizar e exportar o pedido">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Finalizar pedido</span>
+            </button>
           </div>
 
         </div>
@@ -7084,12 +7119,19 @@ document.addEventListener("click", (e) => {
   lsSet("cart_grades_collapsed", next ? "1" : "0");
 });
 
+document.addEventListener("click", (e) => {
+  if(e.target.closest("#btnFinalizarBarra")) $("btnExportXlsx")?.click();
+});
+
 function renderCartUI(){
   syncCardAddStatusFromCart();
   const { items, cartSize, by, totalCost, totalValue } = cartTotals();
 
   // ✅ Atualiza resumo (se existir)
   if($("cartTotalQty")) $("cartTotalQty").textContent = String(items);
+  // a barra do rodapé (celular e tablet) repete o total e o botão principal
+  if($("cartBarraPares")) $("cartBarraPares").textContent = String(items);
+  if($("cartBarraFim")) $("cartBarraFim").classList.toggle("hidden", cartSize === 0);
   document.dispatchEvent(new CustomEvent("cart:total-changed"));
   if($("cartTotalValue")) $("cartTotalValue").textContent = moneyBR(totalValue);
 
@@ -10011,6 +10053,26 @@ function renderGradeSizeList(){
     updateGradeTotal();
   }, true);
 
+  function voltarApagando(campo){
+    const campos = [...list.querySelectorAll(".grade-qty-input")];
+    const ant = campos[campos.indexOf(campo) - 1];
+    if(!ant) return false;
+    ant.value = "";
+    ant.dataset.antes = "";
+    gradeState.sizes[parseInt(ant.dataset.idx, 10)].qty = 0;
+    updateGradeTotal();
+    ant.focus({ preventScroll:true });
+    return true;
+  }
+  /* O teclado do celular e do tablet não manda Backspace em campo vazio: ele
+     só avisa que apagou, por beforeinput. É por aqui que o pulo funciona
+     neles. */
+  list.addEventListener("beforeinput", (e)=>{
+    if(!e.target.classList.contains("grade-qty-input")) return;
+    if(e.inputType !== "deleteContentBackward" || e.target.value !== "") return;
+    if(voltarApagando(e.target)) e.preventDefault();
+  });
+
   /* Teclado: as setas andam pelos campos e o Enter fecha a grade indo para a
      data, que é o próximo passo obrigatório — e já abre o calendário.
      Campo de número não diz onde está o cursor (selectionStart é nulo), e são
@@ -10027,17 +10089,9 @@ function renderGradeSizeList(){
     }
     /* Apagar em série: com o campo já vazio, o Backspace volta um tamanho e
        apaga ele também. É o caminho da digitação ao contrário — sem isso era
-       preciso clicar em cada campo para limpar a grade. */
+       preciso tocar em cada campo para limpar a grade. */
     if(e.key === "Backspace" && e.target.value === ""){
-      const campos = [...list.querySelectorAll(".grade-qty-input")];
-      const ant = campos[campos.indexOf(e.target) - 1];
-      if(!ant) return;
-      e.preventDefault();
-      ant.value = "";
-      ant.dataset.antes = "";
-      gradeState.sizes[parseInt(ant.dataset.idx, 10)].qty = 0;
-      updateGradeTotal();
-      ant.focus({ preventScroll:true });
+      if(voltarApagando(e.target)) e.preventDefault();
       return;
     }
     if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) return;
