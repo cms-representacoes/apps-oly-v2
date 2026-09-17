@@ -10025,6 +10025,21 @@ function renderGradeSizeList(){
       irParaDataDesejada();
       return;
     }
+    /* Apagar em série: com o campo já vazio, o Backspace volta um tamanho e
+       apaga ele também. É o caminho da digitação ao contrário — sem isso era
+       preciso clicar em cada campo para limpar a grade. */
+    if(e.key === "Backspace" && e.target.value === ""){
+      const campos = [...list.querySelectorAll(".grade-qty-input")];
+      const ant = campos[campos.indexOf(e.target) - 1];
+      if(!ant) return;
+      e.preventDefault();
+      ant.value = "";
+      ant.dataset.antes = "";
+      gradeState.sizes[parseInt(ant.dataset.idx, 10)].qty = 0;
+      updateGradeTotal();
+      ant.focus({ preventScroll:true });
+      return;
+    }
     if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) return;
     const campos = [...list.querySelectorAll(".grade-qty-input")];
     const i = campos.indexOf(e.target);
