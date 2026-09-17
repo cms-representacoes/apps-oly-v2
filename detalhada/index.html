@@ -2839,6 +2839,8 @@ function ligar(id, evento, fn) {
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
+  // os botões flutuantes dependem da tela aberta
+  if (typeof atualizarFabLimpar === 'function' && APP && APP.base) atualizarFabLimpar();
 }
 function normalizar(s) {
   return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -5023,10 +5025,25 @@ async function rfvExportPdf() {
    filtro já é a escolha. Foto do mesmo tamanho do catálogo da vitrine.
    ============================================================ */
 function catClienteFiltrado() {
-  if (!APP.base || APP.status === 'MARCADAS') return -1;
-  if (!document.querySelector('#screen-produtos.active')) return -1;
+  const l = catClientesFiltrados();
+  return l.length === 1 ? l[0] : -1;
+}
+/** Todos os clientes marcados no filtro. Os botões ficam enquanto houver
+ *  pelo menos um: escolher outro cliente no menu soma ao que já estava
+ *  marcado, e esconder os botões nessa hora fazia parecer que tinham sumido
+ *  depois de gerar. Com vários, sai um arquivo por cliente. */
+function catClientesFiltrados() {
+  if (!APP.base || APP.status === 'MARCADAS') return [];
+  if (!document.querySelector('#screen-produtos.active')) return [];
   const sel = APP.filtros.cliente;
-  return sel && sel.size === 1 ? Number([...sel][0]) : -1;
+  return sel ? [...sel].map(Number) : [];
+}
+/** Roda `fn` como se só `cli` estivesse filtrado (mesmo mês, busca e o
+ *  resto). É síncrono de propósito: nada redesenha a tela no meio. */
+function catSoCliente(cli, fn) {
+  const antes = APP.filtros.cliente;
+  APP.filtros.cliente = new Set([cli]);
+  try { return fn(); } finally { APP.filtros.cliente = antes; }
 }
 
 /** O que a lista mostra agora, com as encomendas de cada produto na ordem
@@ -5080,19 +5097,20 @@ function catPrevOuFat(r) {
 }
 
 async function catExportXlsx() {
-  const cli = catClienteFiltrado();
-  if (cli < 0) return;
-  if (!catDados().produtos.length) { toast('Nada na lista para exportar'); return; }
+  const clis = catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
+  if (!catClientesFiltrados().length) return;
+  if (!clis.length) { toast('Nada na lista para exportar'); return; }
   const r = await perguntar({
-    titulo: 'Gerar planilha',
-    sub: APP.dic.cli[cli][1] || APP.dic.cli[cli][0],
+    titulo: clis.length > 1 ? `Gerar ${clis.length} planilhas` : 'Gerar planilha',
+    sub: clis.length > 1 ? 'Uma por cliente, com os mesmos filtros' : (APP.dic.cli[clis[0]][1] || APP.dic.cli[clis[0]][0]),
     opcoes: [
       { id: 'com', rot: 'Com imagens', ic: 'fa-solid fa-image', dica: 'Miniatura do produto em cada linha · arquivo maior' },
       { id: 'sem', rot: 'Sem imagens', ic: 'fa-solid fa-table', dica: 'Só os dados · mais leve e rápido' },
     ],
   });
-  if (r === 'com') return catExportXlsxComImagens(cli);
-  if (r === 'sem') return catExportXlsxSemImagens(cli);
+  if (r !== 'com' && r !== 'sem') return;
+  for (const cli of clis) await catGerarPlanilha(cli, r === 'com');
+  if (clis.length > 1) toast(`${clis.length} planilhas geradas`);
 }
 
 /** Linhas da planilha, as mesmas com ou sem imagens. As colunas e a
@@ -5149,7 +5167,7 @@ function catExportXlsxComImagens(cli) { return catGerarPlanilha(cli, true); }
  *  sem imagens, ela some e as linhas ficam baixas. As duas saem pelo ExcelJS:
  *  o SheetJS da página não grava alinhamento, cor nem largura de linha. */
 async function catGerarPlanilha(cli, comFotos) {
-  const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam } = catLinhasPlanilha();
+  const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam } = catSoCliente(cli, catLinhasPlanilha);
   const [cod, nome] = APP.dic.cli[cli];
   syncShow('Preparando a planilha…');
   if (!await catGarantirExcelJs()) { syncHide(); toast('Não consegui carregar o gerador de planilha'); return; }
@@ -5292,10 +5310,16 @@ function catFoto(ref, cor, max = 1000, qualidade = 0.9) {
 }
 
 async function catExportPdf() {
-  const cli = catClienteFiltrado();
-  if (cli < 0) return;
-  const { produtos, totCart, totFat, totLinhas } = catDados();
-  if (!produtos.length) { toast('Nada na lista para exportar'); return; }
+  const clis = catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
+  if (!catClientesFiltrados().length) return;
+  if (!clis.length) { toast('Nada na lista para exportar'); return; }
+  for (const cli of clis) await catGerarPdf(cli, clis.length === 1);
+  if (clis.length > 1) toast(`${clis.length} catálogos gerados`);
+}
+
+async function catGerarPdf(cli, oferecerZap) {
+  const { produtos, totCart, totFat, totLinhas } = catSoCliente(cli, catDados);
+  if (!produtos.length) return;
   syncShow('Montando o catálogo…');
   if (!await rfvGarantirPdf()) { syncHide(); toast('Não consegui carregar o gerador de PDF'); return; }
 
@@ -5483,7 +5507,7 @@ async function catExportPdf() {
   doc.save(nomePdf);
   syncHide();
   toast(`Catálogo gerado · ${produtos.length} produtos`);
-  catOferecerWhatsapp(doc.output('blob'), nomePdf, nomeCli || codCli);
+  if (oferecerZap) catOferecerWhatsapp(doc.output('blob'), nomePdf, nomeCli || codCli);
 }
 
 /** Depois do PDF baixado: compartilhar pelo WhatsApp? No celular e no
@@ -6321,12 +6345,13 @@ function atualizarFabLimpar() {
   fab.dataset.tela = noRfv ? 'rfv' : noEs ? 'es' : 'produtos';
   const exp = $('fab-export');
   if (exp) {
-    const cliCat = catClienteFiltrado();
-    exp.hidden = !((noRfv && ligado) || cliCat >= 0);
+    const clis = catClientesFiltrados();
+    exp.hidden = !((noRfv && ligado) || clis.length > 0);
     // o mesmo botão, dois assuntos: a dica diz o que vai sair
-    const quem = cliCat >= 0 ? ' o catálogo de ' + (APP.dic.cli[cliCat][1] || APP.dic.cli[cliCat][0]) : '';
-    $('btn-exp-xlsx').title = cliCat >= 0 ? 'Baixar' + quem + ' em Excel' : 'Baixar em Excel (.xlsx)';
-    $('btn-exp-pdf').title = cliCat >= 0 ? 'Baixar' + quem + ' em PDF' : 'Baixar em PDF';
+    const quem = clis.length === 1 ? ' o catálogo de ' + (APP.dic.cli[clis[0]][1] || APP.dic.cli[clis[0]][0])
+      : clis.length > 1 ? ` os catálogos dos ${clis.length} clientes (um arquivo cada)` : '';
+    $('btn-exp-xlsx').title = clis.length ? 'Baixar' + quem + ' em Excel' : 'Baixar em Excel (.xlsx)';
+    $('btn-exp-pdf').title = clis.length ? 'Baixar' + quem + ' em PDF' : 'Baixar em PDF';
   }
 }
 
@@ -6628,6 +6653,7 @@ function render() {
   medirTopoCongelado();
 
   const lista = $('lista');
+  atualizarFabLimpar();
   if (grupos.length === 0) {
     lista.innerHTML = `
       <div class="empty-state">
