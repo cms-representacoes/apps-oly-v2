@@ -2278,8 +2278,8 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
           <i class="fa-solid fa-location-dot"></i> Cidade
         </button>
         <button class="rfv-tgl rfv-tgl-rep" id="rfv-repasse" type="button" hidden
-                title="Mostrar só os clientes com repasse aguardando a fábrica">
-          <i class="fa-solid fa-right-left"></i> Aguardando fábrica <span class="n" id="rfv-repasse-n"></span>
+                title="Mostrar só os clientes com repasse aguardando conclusão">
+          <i class="fa-solid fa-right-left"></i> Aguardando conclusão <span class="n" id="rfv-repasse-n"></span>
         </button>
         <button type="button" class="rfv-campo rfv-dd" data-f="vend" id="rfv-dd-vend">Prepostos</button>
         <button type="button" class="rfv-campo rfv-dd" data-f="marca">Marca</button>
@@ -3995,7 +3995,7 @@ function rfvTelaMes(A) {
     // repasse que a fábrica ainda não fez: só a quantidade, num selo
     const pr = rep ? rep.itens.reduce((s, x) => s + x.pares, 0) : 0;
     const selo = pr ? `<span class="rfv-rep" data-rep="${escAttr(rep.chave)}" tabindex="0"
-        aria-label="${escAttr(formatarNumero(pr) + ' pares de repasse aguardando a fábrica')}">${formatarNumero(pr)}</span>` : '';
+        aria-label="${escAttr(formatarNumero(pr) + ' pares de repasse aguardando conclusão')}">${formatarNumero(pr)}</span>` : '';
     if (!t) return `<td class="${extra}${selo ? 'com-rep' : 'rfv-zero'}">${selo || '·'}</td>`;
     const titulo = f && c ? `${formatarNumero(f)} faturado · ${formatarNumero(c)} em carteira`
                           : c ? 'em carteira' : 'faturado';
@@ -4442,7 +4442,7 @@ function rfvAbrirBalao(chip) {
   if (!itens) return;
   const b = rfvBalao();
   const total = itens.reduce((t, x) => t + x.pares, 0);
-  b.innerHTML = `<div class="rb-cab"><b>Repasse aguardando a fábrica</b><span>${formatarNumero(total)} pares · ${escHtml(mesCurtoRotulo(mes))}</span></div>` +
+  b.innerHTML = `<div class="rb-cab"><b>Repasse aguardando conclusão</b><span>${formatarNumero(total)} pares · ${escHtml(mesCurtoRotulo(mes))}</span></div>` +
     itens.map(x => `<div class="rb-item">
       <span class="es-thumb rb-foto"><img src="${IMG_PATH}${escAttr(x.ref + '_' + corParaArquivo(x.cor))}.jpg" alt="" loading="lazy"
         onerror="this.parentNode.classList.add('failed')"><i class="fa-solid fa-image" aria-hidden="true"></i></span>
@@ -4857,7 +4857,7 @@ function rfvResumoFiltros() {
     const tem = RFV_MULTI.has(f) ? rfvSel(f).length : !!RFV.f[f];
     if (tem) partes.push(RFV_FILTRO[f].nome + ': ' + rfvRotulo(f));
   }
-  if (RFV.soRep) partes.push('Só com repasse aguardando a fábrica');
+  if (RFV.soRep) partes.push('Só com repasse aguardando conclusão');
   const busca = $('rfv-busca').value.trim();
   if (busca) partes.push('Busca: ' + busca);
   return partes.join(' · ');
@@ -5095,7 +5095,11 @@ async function catExportXlsx() {
   if (r === 'sem') return catExportXlsxSemImagens(cli);
 }
 
-/** Linhas da planilha, as mesmas com ou sem imagens. */
+/** Linhas da planilha, as mesmas com ou sem imagens. As colunas e a
+ *  formatação seguem o modelo que o CMS montou à mão (Catalogo FIT STORE BY
+ *  COMBATE, 16/09/2026): referência, descrição, cor, faixa, GCI, previsão,
+ *  carteira, um tamanho por coluna e, no fim, DESTINO e PRAZO em branco para
+ *  preencher com o cliente. */
 function catLinhasPlanilha() {
   const { produtos, totCart, totFat, totLinhas } = catDados();
 
@@ -5108,54 +5112,21 @@ function catLinhasPlanilha() {
   }
   const colTam = [...tams].sort((a, b) => ord(a) - ord(b) || String(a).localeCompare(String(b)));
 
-  const cab = ['Referência', 'Descrição', 'Cor', 'Gênero', 'Marca', 'Faixa', 'Fábrica', 'Filial',
-               'Preposto', 'GCI', 'OC', 'NF', 'Prev. fat.', 'Carteira (pares)', 'Faturado (pares)',
-               'Data fat.', 'Grade', ...colTam];
+  const cab = ['Referência', 'Descrição', 'Cor', 'Faixa', 'GCI', 'Prev. fat.', 'Carteira (pares)', ...colTam];
   const corpo = [], fotos = [];
   for (const p of produtos) for (const r of p.linhas) {
     fotos.push([p.ref, p.cor]);
     const g = gradeDaLinha(r);
     const faixa = (APP.dic.faixa && r[C.FAIXA] != null && r[C.FAIXA] >= 0) ? APP.dic.faixa[r[C.FAIXA]] : '';
-    const gradeTxt = !g ? '' : (Array.isArray(g.caixas) && g.caixas.length
-      ? g.caixas.map(c => Object.keys(c.tam || {}).sort((a, b) => ord(a) - ord(b)).map(t => `${t}:${c.tam[t]}`).join(' ')
-          + (c.solto ? ` (${c.pares} pares)` : ` × ${Number(c.caixas) || 1} cx`)).join(' | ')
-      : Object.keys(g.tam).sort((a, b) => ord(a) - ord(b)).map(t => `${t}:${g.tam[t]}`).join(' '));
     corpo.push([
-      p.ref, p.desc, p.cor, generoDaLinha(r) || '',
-      APP.dic.marca[r[C.MARCA]] || '', faixa || '',
-      APP.dic.fab ? (APP.dic.fab[r[C.FAB]] || '') : '', APP.dic.fil ? (APP.dic.fil[r[C.FIL]] || '') : '',
-      APP.dic.prep[r[C.PREP]] || '', r[C.GCI] || '',
-      r[C.OC] >= 0 ? APP.dic.oc[r[C.OC]] : '', r[C.NF] || '',
+      String(p.ref), p.desc, p.cor, faixa || '',
+      r[C.GCI] || '',
       r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : '',
-      r[C.CART] || 0, r[C.FAT] || 0,
-      r[C.DFAT] >= 0 && r[C.FAT] ? diaParaBR(r[C.DFAT]) : '',
-      gradeTxt,
+      r[C.CART] || 0,
       ...colTam.map(t => (g && g.tam && g.tam[t]) ? Number(g.tam[t]) : ''),
     ]);
   }
-
   return { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam };
-}
-
-function catExportXlsxSemImagens(cli) {
-  const { produtos, totCart, totFat, totLinhas, cab, corpo } = catLinhasPlanilha();
-  const [cod, nome] = APP.dic.cli[cli];
-  const resumo = catResumoFiltros();
-  const aoa = [
-    [`Catálogo da carteira · ${nome || cod} (${cod})`],
-    [`${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`],
-    [`${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`],
-    [],
-    cab,
-    ...corpo,
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = cab.map((h, i) => ({ wch: i === 1 ? 32 : i === 16 ? 36 : i >= 17 ? 6 : Math.max(9, String(h).length + 2) }));
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 4, c: 0 }, e: { r: 4 + corpo.length, c: cab.length - 1 } }) };
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Carteira');
-  XLSX.writeFile(wb, catNomeArquivo(cli, 'xlsx'));
-  toast(`Planilha gerada · ${produtos.length} produtos`);
 }
 
 async function catGarantirExcelJs() {
@@ -5171,63 +5142,83 @@ async function catGarantirExcelJs() {
   return !!window.ExcelJS;
 }
 
-/** A mesma planilha, com a foto do produto na primeira coluna. A planilha
- *  de sempre (SheetJS) não coloca imagem; esta usa o ExcelJS, carregado só
- *  quando alguém pede. */
-async function catExportXlsxComImagens(cli) {
+function catExportXlsxSemImagens(cli) { return catGerarPlanilha(cli, false); }
+function catExportXlsxComImagens(cli) { return catGerarPlanilha(cli, true); }
+
+/** A planilha no formato do modelo. Com imagens, a primeira coluna é a foto;
+ *  sem imagens, ela some e as linhas ficam baixas. As duas saem pelo ExcelJS:
+ *  o SheetJS da página não grava alinhamento, cor nem largura de linha. */
+async function catGerarPlanilha(cli, comFotos) {
   const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam } = catLinhasPlanilha();
   const [cod, nome] = APP.dic.cli[cli];
   syncShow('Preparando a planilha…');
-  if (!await catGarantirExcelJs()) { syncHide(); toast('Não consegui carregar o gerador de planilha com imagens'); return; }
+  if (!await catGarantirExcelJs()) { syncHide(); toast('Não consegui carregar o gerador de planilha'); return; }
 
-  // uma foto por produto, de oito em oito
-  const unicos = [...new Map(fotos.map(([ref, cor]) => [ref + '|' + cor, [ref, cor]])).values()];
   const img = new Map();
-  for (let i = 0; i < unicos.length; i += 8) {
-    syncShow(`Buscando as fotos · ${Math.min(i + 8, unicos.length)} de ${unicos.length}`);
-    const lote = await Promise.all(unicos.slice(i, i + 8).map(([ref, cor]) => catFoto(ref, cor, 320, 0.9)));
-    lote.forEach((f, j) => img.set(unicos[i + j].join('|'), f));
+  if (comFotos) {
+    const unicos = [...new Map(fotos.map(([ref, cor]) => [ref + '|' + cor, [ref, cor]])).values()];
+    for (let i = 0; i < unicos.length; i += 8) {
+      syncShow(`Buscando as fotos · ${Math.min(i + 8, unicos.length)} de ${unicos.length}`);
+      const lote = await Promise.all(unicos.slice(i, i + 8).map(([ref, cor]) => catFoto(ref, cor, 320, 0.9)));
+      lote.forEach((f, j) => img.set(unicos[i + j].join('|'), f));
+    }
   }
   syncShow('Montando a planilha…');
 
+  const MEIO = { horizontal: 'center', vertical: 'middle' };
   const wb = new window.ExcelJS.Workbook();
   wb.creator = 'CMS Representações · Detalhada';
-  const ws = wb.addWorksheet('Carteira', { views: [{ state: 'frozen', ySplit: 5, xSplit: 1 }] });
-  const resumo = catResumoFiltros();
-  ws.getCell('A1').value = `Catálogo da carteira · ${nome || cod} (${cod})`;
-  ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF0F766E' } };
-  ws.getCell('A2').value = `${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`;
-  ws.getCell('A3').value = `${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`;
-  ['A2', 'A3'].forEach(c => { ws.getCell(c).font = { size: 10, color: { argb: 'FF6B7280' } }; });
+  const desloc = comFotos ? 1 : 0;                    // coluna da foto
+  const ws = wb.addWorksheet('Carteira', { views: [{ state: 'frozen', ySplit: 5, xSplit: desloc }] });
 
-  const cabecalho = ws.getRow(5);
-  cabecalho.values = ['Foto', ...cab];
-  cabecalho.height = 22;
-  cabecalho.eachCell(c => {
-    c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  // linhas 1 a 3: título, filtros e totais, centralizados, como no modelo
+  const resumo = catResumoFiltros();
+  const topo = [
+    [`Catálogo da carteira · ${nome || cod} (${cod})`, { name: 'Calibri', bold: true, size: 14, color: { argb: 'FF0F766E' } }],
+    [`${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
+    [`${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
+  ];
+  topo.forEach(([texto, fonte], i) => {
+    const c = ws.getCell(i + 1, 1);
+    c.value = texto; c.font = fonte; c.alignment = MEIO;
+  });
+  ws.getRow(1).height = 18.75;
+
+  // cabeçalho
+  const titulos = [...(comFotos ? ['Foto'] : []), ...cab, 'DESTINO', 'PRAZO'];
+  const cabec = ws.getRow(5);
+  cabec.values = titulos;
+  cabec.height = 21.95;
+  cabec.eachCell(c => {
+    c.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } };
-    c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    c.alignment = { ...MEIO, wrapText: true };
   });
 
-  const ALT = 58;                       // pontos: cabe a miniatura de 72 px
+  // corpo: tudo centralizado e ao meio; DESTINO e PRAZO ficam em branco
+  const nCol = titulos.length;
   const ids = new Map();
   corpo.forEach((linha, i) => {
     const n = 6 + i;
     const row = ws.getRow(n);
-    row.values = ['', ...linha];
-    row.height = ALT;
-    row.alignment = { vertical: 'middle' };
-    const chave = fotos[i].join('|'), f = img.get(chave);
-    if (f) {
-      if (!ids.has(chave)) ids.set(chave, wb.addImage({ base64: f.url, extension: 'jpeg' }));
-      const lado = 72, k = Math.min(lado / f.w, lado / f.h);
-      ws.addImage(ids.get(chave), { tl: { col: 0.12, row: n - 1 + 0.06 }, ext: { width: f.w * k, height: f.h * k }, editAs: 'oneCell' });
+    row.values = [...(comFotos ? [''] : []), ...linha];
+    row.height = comFotos ? 57.95 : 20;
+    for (let c = 1; c <= nCol - 2; c++) row.getCell(c).alignment = MEIO;
+    if (comFotos) {
+      const chave = fotos[i].join('|'), f = img.get(chave);
+      if (f) {
+        if (!ids.has(chave)) ids.set(chave, wb.addImage({ base64: f.url, extension: 'jpeg' }));
+        const lado = 72, k = Math.min(lado / f.w, lado / f.h);
+        ws.addImage(ids.get(chave), { tl: { col: 0.12, row: n - 1 + 0.06 }, ext: { width: f.w * k, height: f.h * k }, editAs: 'oneCell' });
+      }
     }
   });
 
-  const larguras = { 1: 12, 2: 11, 3: 32, 4: 10, 5: 8, 6: 8, 7: 16, 8: 10, 9: 10, 10: 12, 11: 11, 12: 12, 13: 11, 14: 11, 15: 11, 16: 11, 17: 11, 18: 36 };
-  for (let c = 1; c <= cab.length + 1; c++) ws.getColumn(c).width = larguras[c] || 6;
-  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + corpo.length, column: cab.length + 1 } };
+  // larguras do modelo: foto 12, ref 11, descrição 32, cor 10, faixa 16,
+  // GCI 11, previsão 13, carteira 13, cada tamanho 13, DESTINO 16, PRAZO 13
+  const larguras = [...(comFotos ? [12] : []), 11, 32, 10, 16, 11, 13, 13, ...colTam.map(() => 13), 16, 13];
+  larguras.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + corpo.length, column: nCol - 2 } };
 
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
@@ -5236,7 +5227,7 @@ async function catExportXlsxComImagens(cli) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   syncHide();
-  toast(`Planilha com imagens gerada · ${produtos.length} produtos`);
+  toast(`Planilha ${comFotos ? 'com imagens ' : ''}gerada · ${produtos.length} produtos`);
 }
 
 /** Modal curto com escolhas. Devolve a escolhida, ou null se fechar. */
