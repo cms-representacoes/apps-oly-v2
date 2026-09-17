@@ -5233,8 +5233,9 @@ async function catGerarPlanilha(cli, comFotos) {
   });
 
   // larguras do modelo: foto 12, ref 11, descrição 32, cor 10, faixa 16,
-  // GCI 11, previsão 13, carteira 13, cada tamanho 13, DESTINO 16, PRAZO 13
-  const larguras = [...(comFotos ? [12] : []), 11, 32, 10, 16, 11, 13, 13, ...colTam.map(() => 13), 16, 13];
+  // GCI 11, previsão 13, carteira 13, cada tamanho 40 pixels, DESTINO 16, PRAZO 13.
+  // 40 pixels no Excel = largura 5 (5,7109375 com a margem que ele guarda no arquivo).
+  const larguras = [...(comFotos ? [12] : []), 11, 32, 10, 16, 11, 13, 13, ...colTam.map(() => 5.7109375), 16, 13];
   larguras.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + corpo.length, column: nCol - 2 } };
 
