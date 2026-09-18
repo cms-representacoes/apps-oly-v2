@@ -41,19 +41,20 @@
   .hero .eyebrow{font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
   .hero h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(24px,3.6vw,34px);line-height:1.1;letter-spacing:-.02em;margin:8px 0 6px}
   .hero .lede{color:var(--slate);margin:0;font-size:14.5px}
-  .lastupd{margin-top:14px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);font-family:"Space Grotesk",sans-serif}
+  .lastupd{margin-top:3px;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);font-family:"Space Grotesk",sans-serif}
   .lastupd .dot{width:7px;height:7px;border-radius:50%;background:var(--mute)}
   .lastupd.ok .dot{background:var(--green)}
 
   .topbtns{display:flex;align-items:center;gap:8px}
 
   .stickybar{position:sticky;top:var(--toph);z-index:19;background:var(--paper);padding:14px 0 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-  .kpis{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 4px}
-  .kpi{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:12px;padding:10px 16px;min-width:190px;animation:kpiGlow 2.6s ease-in-out infinite}
-  .kpi .l{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-  .kpi-line{display:flex;align-items:baseline;gap:6px;margin-top:2px}
-  .kpi .v{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;color:var(--purple)}
-  .kpi-of{font-size:12px;color:var(--mute)}
+  /* KPIs pequenos, sempre lado a lado — no celular também */
+  .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 4px;max-width:520px}
+  .kpi{background:var(--card);border:1.5px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:12px;padding:8px 12px;min-width:0;animation:kpiGlow 2.6s ease-in-out infinite}
+  .kpi .l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  .kpi-line{display:flex;align-items:baseline;gap:5px;margin-top:1px;flex-wrap:wrap}
+  .kpi .v{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:700;color:var(--purple)}
+  .kpi-of{font-size:11px;color:var(--mute)}
   .kpi-of b.est{color:var(--purple);font-weight:700}
   .kpi-of b.venda{color:var(--green);font-weight:700}
   .kpi.venda .v{color:var(--green)}
@@ -69,13 +70,28 @@
   }
 
   .ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:24px 0 4px}
+  /* fileira das marcas: nunca quebra; se não couber, rola para os lados */
+  .ctrls-marcas{flex-wrap:nowrap;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .ctrls-marcas::-webkit-scrollbar{display:none}
+  .ctrls-marcas #tabs{flex:none;flex-wrap:nowrap;gap:8px}
+  .ctrls-marcas > button{flex:none}
+  @media(min-width:1025px){
+    .ctrls-linha{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:24px 0 4px}
+    .ctrls-linha > .ctrls{margin:0}
+    .ctrls-linha > .ctrls + .ctrls{padding-left:14px;border-left:1px solid var(--line)}
+    .ctrls-linha #statusFilter{flex:none}
+  }
   .cat-tabs{display:flex;gap:8px;flex-wrap:wrap;flex:1}
   .cat-tab{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer;white-space:nowrap}
   .cat-tab.on{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
   .cat-tab .n{opacity:.75;margin-left:4px;font-weight:400}
-  .addcta{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:99px;border:1px solid var(--purple);background:var(--purple);color:var(--purple-ink);cursor:pointer;white-space:nowrap}
+  /* marca: sigla e ícone (tênis ou chinelo) lado a lado */
+  .cat-tab.marca-tab{display:inline-flex;align-items:center;gap:5px;font-weight:700}
+  .cat-tab.marca-tab svg{flex:none}
+  .cat-tab.marca-tab .n{margin-left:1px}
+  .addcta{font-family:"Space Grotesk",sans-serif;font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--purple);background:var(--purple);color:var(--purple-ink);cursor:pointer;white-space:nowrap}
   .addcta:hover{filter:brightness(1.05)}
-  .resetcta{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:99px;border:1px solid color-mix(in srgb,var(--red) 55%,var(--line));background:transparent;color:var(--red);cursor:pointer;white-space:nowrap}
+  .resetcta{font-family:"Space Grotesk",sans-serif;font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--red) 55%,var(--line));background:transparent;color:var(--red);cursor:pointer;white-space:nowrap}
   .resetcta:hover{background:color-mix(in srgb,var(--red) 8%,transparent)}
   .resetcta:disabled{opacity:.45;cursor:default}
 
@@ -117,12 +133,14 @@
   .litem{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:14px}
   .litem.dirty{border:2px solid var(--purple);box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 16%,transparent);background:color-mix(in srgb,var(--purple) 4%,var(--card))}
   .litem{position:relative}
-  .litem .img{width:150px;height:150px;flex:none;background:var(--line-2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:10px}
+  .litem .img{width:108px;height:108px;flex:none;background:var(--line-2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px}
   .litem .img img{width:100%;height:100%;object-fit:contain}
   .litem .img .ph{font-size:9px;color:var(--mute);font-family:"Space Grotesk",sans-serif;text-align:center}
   .litem .info{flex:1;min-width:0}
   .litem .desc{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:15px}
-  .litem .meta{font-size:12.5px;color:var(--purple);font-weight:600;margin-top:4px}
+  .litem .meta{font-size:12.5px;color:var(--purple);font-weight:600;margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+  .litem .meta .art{color:var(--slate);font-weight:600;font-variant-numeric:tabular-nums}
+  .litem .meta .vend{color:var(--mute);font-weight:500}
   .litem .fields{display:flex;gap:12px;flex:none}
   .litem .qty-row{width:112px}
 
@@ -211,10 +229,25 @@
   .notfound{padding:80px 20px;text-align:center;color:var(--slate)}
   .notfound h1{font-family:"Space Grotesk",sans-serif;color:var(--ink)}
 
+  /* topo: o nome da loja pode quebrar em duas linhas, nunca estourar */
+  .brand-name{overflow-wrap:anywhere}
   @media(max-width:560px){
+    .topbar{padding:12px 0;gap:10px}
+    .cms-logo{width:40px;height:40px;border-radius:12px;font-size:13px}
+    .brand-name{font-size:15px;line-height:1.2}
+    .brand-sub{font-size:10px}
+    .topbtns .rot{display:none}
+    .topbtns .theme-btn{width:38px;padding:0;justify-content:center;font-size:16px}
+    .kpis{margin:10px 0 2px;gap:8px}
+    .stickybar .searchwrap{flex:1 1 100%;max-width:none}
+    .stickybar .search{width:100%}
+    .kpi{padding:7px 10px}
+    .kpi .v{font-size:17px}
     .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
     .savebar-in{flex-wrap:wrap}
-    .litem{flex-wrap:wrap}
+    .litem{flex-wrap:wrap;gap:12px}
+    .litem .img{width:84px;height:84px;padding:4px;border-radius:10px}
+    .litem .desc{font-size:14px}
     .litem .fields{width:100%}
   }
 </style>
@@ -223,24 +256,20 @@
 <div class="wrap" id="app" hidden>
 
   <div class="topbar">
+    <!-- O nome da loja fica no topo, ao lado do logo: o título grande que
+         vinha embaixo ocupava meia tela do celular antes do primeiro produto. -->
     <div class="brand">
       <div class="cms-logo">CMS</div>
-      <div class="brand-txt"><span class="brand-name">CMS Representações</span><span class="brand-sub">Estoque Virtual · Matriz Esportes</span></div>
+      <div class="brand-txt">
+        <span class="brand-name" id="lojaNome">—</span>
+        <span class="lastupd" id="lastUpd" title="Quando a loja salvou pela última vez"><span class="dot"></span><span>Ainda não enviado</span></span>
+      </div>
     </div>
     <span class="spacer"></span>
     <div class="topbtns">
-      <button class="theme-btn" id="refreshBtn" type="button" title="Recarregar os dados mais recentes">↻ Atualizar</button>
-      <button class="theme-btn" id="fsBtn" type="button" title="Ativar/sair da tela cheia" aria-label="Tela cheia"><span id="fsIcon">⛶</span> Tela cheia</button>
-      <button class="theme-btn" id="themeBtn" type="button" title="Alternar tema claro/escuro" aria-label="Tema claro/escuro"><span id="themeIcon">◐</span> Tema</button>
+      <button class="theme-btn" id="refreshBtn" type="button" title="Recarregar os dados mais recentes" aria-label="Atualizar">↻<span class="rot"> Atualizar</span></button>
     </div>
   </div>
-
-  <header class="hero">
-    <div class="eyebrow">Loja</div>
-    <h1 id="lojaNome">—</h1>
-    <p class="lede" id="lojaCidade">Informe abaixo o estoque atual e as vendas de cada produto.</p>
-    <div class="lastupd" id="lastUpd"><span class="dot"></span><span>Ainda não enviado</span></div>
-  </header>
 
   <div class="kpis">
     <div class="kpi"><div class="l">Estoque total</div><div class="kpi-line"><span class="v tnum" id="kpiEstoque">0</span><span class="kpi-of">de <b id="kpiEstoqueGeral" class="est tnum">0</b> no total</span></div></div>
@@ -252,17 +281,16 @@
       <input class="search" id="search" type="text" placeholder="Buscar por descrição, cor ou artigo…">
       <button class="search-clear" id="searchClear" type="button" title="Limpar busca" aria-label="Limpar busca">✕</button>
     </div>
-    <span class="spacer"></span>
-    <div class="viewseg">
-      <button class="vseg-btn" id="viewGrade" type="button" title="Ver como grade de cartões">Grade</button>
-      <button class="vseg-btn on" id="viewLista" type="button" title="Ver como lista, com imagens maiores">Lista</button>
-    </div>
   </div>
 
-  <div class="ctrls">
+  <!-- No computador, marcas, ações e o filtro de sinalização ficam numa
+       fileira só; no tablet e no celular o filtro desce para a de baixo. -->
+  <div class="ctrls-linha">
+  <!-- marcas e as duas ações numa fileira só, que rola de lado no celular -->
+  <div class="ctrls ctrls-marcas">
     <div class="cat-tabs" id="tabs"></div>
-    <button class="resetcta" id="zerarBtn" title="Zerar estoque e venda de todos os produtos para começar o preenchimento do zero">↺ Zerar e iniciar atualização</button>
-    <button class="addcta" id="addPendenteBtn" title="Registrar um produto que não está na sua lista">+ Produto não cadastrado</button>
+    <button class="resetcta" id="zerarBtn" title="Zerar estoque e venda de todos os produtos para começar a contagem do zero">↺ Zerar contagem</button>
+    <button class="addcta" id="addPendenteBtn" title="Registrar um produto que você tem na loja mas não aparece na sua lista">+ Produto fora da lista</button>
   </div>
 
   <div class="ctrls">
@@ -271,6 +299,7 @@
       <button class="cat-tab" data-sf="pendente" title="Produtos que ainda não foram revisados">Não sinalizados</button>
       <button class="cat-tab" data-sf="sinalizado" title="Produtos marcados como inexistentes, aguardando a CMS">Sinalizados</button>
     </div>
+  </div>
   </div>
 
   <div class="grid" id="grid" style="display:none"></div>
@@ -294,7 +323,7 @@
 
 <div class="modal-bg" id="modalBg" hidden>
   <div class="modal">
-    <h2>Produto não cadastrado</h2>
+    <h2>Produto fora da lista</h2>
     <p class="hint">Procure pelo nome, pelo artigo ou pela cor e escolha o produto pela foto — os campos se preenchem sozinhos. Se não achar, preencha à mão.</p>
     <div class="f">
       <label>Marca</label>
@@ -363,21 +392,23 @@
 const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
 const IMG_BASE = '../imagens_olympikus/';
 const MARCA_LABELS = { 'OLY FTW': 'Olympikus Tênis', 'OLY CHI': 'Olympikus Chinelo', 'UA FTW': 'Under Armour Tênis' };
+// Ícones desenhados aqui mesmo: o emoji de chinelo não existe em todo celular.
+const ICONE_TENIS = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 15.5c0-3.2 1-6.4 2.6-8l3.2 2.3 2-2.8 4.6 3.8c2.6.6 5.7 1.7 6.6 3.9v.8z"/><path d="M2.5 15.5h19v2.6h-19z"/><path d="M11 11.5l1.4-1.3M13.3 13l1.4-1.3"/></svg>';
+const ICONE_CHINELO = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.4c3.3 0 5.5 2.6 5.5 6.3 0 2.5-.9 4.3-1.3 6.2-.4 2-.3 3.6-.9 5-.6 1.3-1.8 1.8-3.3 1.8s-2.7-.5-3.3-1.8c-.6-1.4-.5-3-.9-5-.4-1.9-1.3-3.7-1.3-6.2 0-3.7 2.2-6.3 5.5-6.3z"/><path d="M12 5.4v1.4M12 6.8c-1.9 1.3-3.5 2.8-5 4.5M12 6.8c1.9 1.3 3.5 2.8 5 4.5"/></svg>';
+const MARCA_CURTA = {
+  'OLY FTW': `OLY ${ICONE_TENIS}`,
+  'OLY CHI': `OLY ${ICONE_CHINELO}`,
+  'UA FTW':  `UA ${ICONE_TENIS}`,
+};
 
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || '';
 
 let STATE = { loja: null, marcaAtiva: null, dirty: new Set(), view: 'lista', flagged: new Set(), synced: new Set(), catalogoGlobal: {}, preFlagValues: new Map(), statusFilter: 'todos' };
 
-function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); localStorage.setItem('matriz-theme', t); }
-(function initTheme(){
-  const saved = localStorage.getItem('matriz-theme');
-  applyTheme(saved || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
-})();
-document.getElementById('themeBtn').onclick = () => {
-  const cur = document.documentElement.getAttribute('data-theme');
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
-};
+// A página da loja fica sempre no tema claro: é o que se lê melhor no
+// celular, no balcão, e ninguém precisava alternar.
+document.documentElement.setAttribute('data-theme', 'light');
 
 function $(id){ return document.getElementById(id); }
 function toast(msg, isErr){
@@ -437,10 +468,25 @@ window.addEventListener('beforeunload', e => {
   if(STATE.dirty.size > 0){ e.preventDefault(); e.returnValue = ''; }
 });
 
+// Rodando no próprio computador o Worker não atende (ele só aceita o endereço
+// publicado). Para dar para ver a tela, a leitura cai no arquivo publicado —
+// só leitura: salvar continua exigindo o endereço de verdade.
+const EM_CASA = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+async function lerEstoque(){
+  try{ return await callWorker({ action: 'getMatrizEstoque' }); }
+  catch(e){
+    if(!EM_CASA) throw e;
+    const r = await fetch('https://cms-representacoes.github.io/apps-oly/data/matriz_estoque.json', { cache: 'no-cache' });
+    if(!r.ok) throw e;
+    setTimeout(() => toast('Teste local: só leitura — salvar funciona no endereço publicado.'), 800);
+    return { data: await r.json() };
+  }
+}
+
 async function load(){
   if(!TOKEN){ showNotFound(); return; }
   try{
-    const { data } = await callWorker({ action: 'getMatrizEstoque' });
+    const { data } = await lerEstoque();
     const loja = (data.lojas || []).find(l => l.token === TOKEN);
     if(!loja){ showNotFound(); return; }
     STATE.loja = loja;
@@ -487,7 +533,8 @@ function showNotFound(){ $('notfound').hidden = false; }
 function render(){
   const loja = STATE.loja;
   $('lojaNome').textContent = loja.nome;
-  $('lojaCidade').textContent = (loja.cidade ? loja.cidade + ' · ' : '') + 'Informe abaixo o estoque atual e as vendas de cada produto.';
+  document.title = loja.nome + ' · Estoque Virtual';
+  requestAnimationFrame(acertarTopo);
   const lu = $('lastUpd');
   if(loja.ultimaAtualizacaoLoja){
     lu.classList.add('ok');
@@ -501,7 +548,7 @@ function render(){
   $('tabs').innerHTML = marcas.map(m => {
     const n = (loja.marcas[m] || []).length;
     const label = MARCA_LABELS[m] || m;
-    return `<button class="cat-tab ${m===STATE.marcaAtiva?'on':''}" data-marca="${m}" title="Ver produtos de ${label}">${label}<span class="n">${n}</span></button>`;
+    return `<button class="cat-tab marca-tab ${m===STATE.marcaAtiva?'on':''}" data-marca="${m}" title="Ver produtos de ${label}" aria-label="${label}">${MARCA_CURTA[m] || label}<span class="n">${n}</span></button>`;
   }).join('');
 
   $('tabs').querySelectorAll('[data-marca]').forEach(btn => {
@@ -616,7 +663,7 @@ function renderList(filtered){
       <div class="info">
         ${(updated || flagged) ? `<div class="badges-row">${updated}${flagged}</div>` : ''}
         <div class="desc">${it.descricao || ''}</div>
-        <div class="meta">${it.cor || ''} · Artigo ${it.artigo || ''}${it.preposto ? ' · Vendedor: '+it.preposto : ''}</div>
+        <div class="meta"><span class="cor">${it.cor || ''}</span><span class="art">${it.artigo || ''}</span>${it.preposto ? `<span class="vend">Vendedor: ${it.preposto}</span>` : ''}</div>
         ${flagBtnHtml(it)}
       </div>
       <div class="fields">
@@ -839,8 +886,6 @@ $('search').addEventListener('keydown', e => {
 });
 $('searchClear').onclick = () => { $('search').value = ''; $('searchClear').classList.remove('show'); $('search').focus(); renderItems(); };
 
-$('viewGrade').onclick = () => { STATE.view = 'grade'; $('viewGrade').classList.add('on'); $('viewLista').classList.remove('on'); renderItems(); };
-$('viewLista').onclick = () => { STATE.view = 'lista'; $('viewLista').classList.add('on'); $('viewGrade').classList.remove('on'); renderItems(); };
 
 // ---------- zerar estoque e venda (reinício do preenchimento) ----------
 function todosItens(){
@@ -853,7 +898,7 @@ $('zerarBtn').onclick = async () => {
   const comValor = todosItens().filter(it => (Number(it.estoqueAtual)||0) !== 0 || (Number(it.venda)||0) !== 0);
   if(comValor.length === 0){ toast('Estoque e venda já estão zerados.'); return; }
   const ok = await askConfirm(
-    'Zerar e iniciar atualização',
+    'Zerar contagem',
     `Isso vai zerar o estoque e a venda de ${comValor.length} produto(s) desta loja, em todas as marcas, para você começar o preenchimento do zero. Nada é enviado agora — só quando você clicar em "Salvar alterações".`,
     'Zerar tudo'
   );
@@ -1072,13 +1117,13 @@ window.addEventListener('scroll', () => {
 });
 $('totopBtn').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-$('fsBtn').onclick = () => {
-  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
-  else{ document.exitFullscreen().catch(()=>{}); }
-};
-document.addEventListener('fullscreenchange', () => {
-  $('fsIcon').textContent = document.fullscreenElement ? '⛝' : '⛶';
-});
+// O topo muda de altura (nome da loja em uma ou duas linhas): a barra de
+// busca, que gruda embaixo dele, acompanha.
+function acertarTopo(){
+  const t = document.querySelector('.topbar');
+  if(t) document.documentElement.style.setProperty('--toph', t.offsetHeight + 'px');
+}
+window.addEventListener('resize', acertarTopo);
 
 $('statusFilter').querySelectorAll('[data-sf]').forEach(chip => {
   chip.onclick = () => {
