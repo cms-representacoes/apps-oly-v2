@@ -22,6 +22,22 @@ const URL_CONSULTA =
   'https://www.vulcabras.com.br/ebm4web/faces/UC1183_RealizarConsultaEncomendaVenda.jsp';
 const URL_LOGIN = 'https://www.vulcabras.com.br/ebm4web/ebmMain.jsp';
 
+/* ---------- login guardado ----------
+   Usuário e senha do EBM ficam no armazenamento DA EXTENSÃO
+   (chrome.storage.local): a página da Detalhada não os guarda, o GitHub
+   não os vê e nenhum site consegue ler. Só este arquivo os usa, e só para
+   preencher a tela de login quando o EBM pede. Nunca vão para o log. */
+async function lerLogin() {
+  const { ebmUsuario, ebmSenha } = await chrome.storage.local.get(['ebmUsuario', 'ebmSenha']);
+  return ebmUsuario && ebmSenha ? { usuario: ebmUsuario, senha: ebmSenha } : null;
+}
+async function gravarLogin(usuario, senha) {
+  await chrome.storage.local.set({ ebmUsuario: String(usuario), ebmSenha: String(senha) });
+}
+async function esquecerLogin() {
+  await chrome.storage.local.remove(['ebmUsuario', 'ebmSenha']);
+}
+
 // O caminho todo — consulta, pedido, visualizador, PDF — leva alguns
 // minutos num dia ruim de rede. Curto demais mata trabalho que ia dar certo.
 // E rodando minimizado o Chrome afrouxa os temporizadores das páginas, o
@@ -72,10 +88,10 @@ function avisar(tipo, texto, extra = {}) {
   }).catch(() => { /* a aba pode ter sido fechada */ });
 }
 
-async function encerrar(ok, texto) {
+async function encerrar(ok, texto, extra = {}) {
   if (!job) return;
   anotar((ok ? 'PRONTO: ' : 'FALHOU: ') + texto);
-  avisar(ok ? 'fim' : 'erro', texto, { log: job.log });
+  avisar(ok ? 'fim' : 'erro', texto, { log: job.log, ...extra });
 
   chrome.alarms.clear(VIGIA);
 
@@ -102,7 +118,24 @@ chrome.runtime.onMessage.addListener((msg, sender, responder) => {
     return;
   }
 
-  if (msg.tipo === 'ping') { responder({ ok: true, versao: '0.1.0' }); return true; }
+  if (msg.tipo === 'ping') { responder({ ok: true, versao: '0.3.0' }); return true; }
+
+  // O modal da Detalhada manda o login para cá; daqui ele não volta.
+  if (msg.tipo === 'salvarLogin') {
+    const u = String(msg.usuario || '').trim(), p = String(msg.senha || '');
+    if (!u || !p) { responder({ ok: false, erro: 'Informe usuário e senha.' }); return true; }
+    gravarLogin(u, p).then(() => responder({ ok: true }),
+                           (e) => responder({ ok: false, erro: String(e && e.message || e) }));
+    return true;
+  }
+  if (msg.tipo === 'esquecerLogin') {
+    esquecerLogin().then(() => responder({ ok: true }));
+    return true;
+  }
+  if (msg.tipo === 'temLogin') {
+    lerLogin().then((l) => responder({ ok: true, tem: !!l }));
+    return true;
+  }
 
   if (msg.tipo === 'gerarPdf') {
     if (job) { responder({ ok: false, erro: 'Já existe um PDF sendo gerado.' }); return true; }
@@ -134,6 +167,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 
 async function iniciar(dados, tabOrigem) {
   job = novoJob(dados, tabOrigem);
+  job.login = await lerLogin();       // null: sem login guardado
   chrome.alarms.create(VIGIA, { periodInMinutes: 0.5 });
   anotar(`início · ${job.gcis.length} GCI(s) · status ${job.status} · arquivo "${job.nomeArquivo}"`);
   avisar('progresso', 'Abrindo o EBM…');
@@ -203,8 +237,49 @@ function comandoPara(msg, sender) {
       return { acao: 'nada' };
     }
     anotar(`tela de login em ${url.split('/').pop()}`);
-    encerrar(false, 'Entre no EBM antes de gerar o PDF: abra o EBM, faça login e tente de novo.');
-    return { acao: 'nada' };
+
+    // Sem login guardado: a Detalhada pede usuário e senha e tenta de novo.
+    if (!job.login) {
+      encerrar(false, 'Entre no EBM antes de gerar o PDF.', { codigo: 'precisa-login' });
+      return { acao: 'nada' };
+    }
+
+    // Já mandamos o login e a tela de login voltou. Pode ser recusa, mas
+    // também pode ser só o EBM se reorganizando depois de entrar — então
+    // primeiro confere: manda a aba para a consulta. Se lá ainda pedir
+    // login, aí sim o EBM recusou. (O popup de controle de sessão só
+    // aparece depois de estarmos dentro, e esse já é ignorado acima.)
+    if (job.loginEnviado) {
+      const desde = Date.now() - job.loginEnviado.em;
+      if (desde < 4000 || msg.doc === job.loginEnviado.doc) return { acao: 'nada' };
+      if (!job.conferindoLogin) {
+        job.conferindoLogin = Date.now();
+        anotar('a tela de login voltou; conferindo pela consulta');
+        chrome.tabs.update(job.tabEbm, { url: URL_CONSULTA }).catch(() => {});
+        return { acao: 'nada' };
+      }
+      if (Date.now() - job.conferindoLogin > 3000) {
+        encerrar(false, 'O EBM recusou o usuário ou a senha guardados.', { codigo: 'login-recusado' });
+      }
+      return { acao: 'nada' };
+    }
+
+    // Primeira vez: preenche e entra. Depois do login o EBM pode cair na
+    // tela inicial em vez da consulta — se em alguns segundos nenhuma tela
+    // de dentro aparecer, a aba é mandada de volta para a consulta.
+    job.loginEnviado = { tabId, doc: msg.doc, em: Date.now() };
+    avisar('progresso', 'Entrando no EBM…');
+    anotar('preenchendo o login guardado');
+    const reabrir = () => {
+      if (job && !job.viuEbm && job.tabEbm != null) {
+        anotar('login feito; abrindo a consulta');
+        chrome.tabs.update(job.tabEbm, { url: URL_CONSULTA }).catch(() => {});
+      }
+    };
+    setTimeout(reabrir, 8000);
+    setTimeout(reabrir, 20000);
+    job.docAtendido = msg.doc;
+    return { acao: 'login', usuario: job.login.usuario, senha: job.login.senha };
   }
 
   // Qualquer tela de dentro prova que a sessão está aberta

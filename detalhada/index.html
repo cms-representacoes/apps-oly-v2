@@ -8556,6 +8556,70 @@ function avancarFila(deuCerto, motivo) {
 
 // Estado da geração em curso, só para a tarja de andamento.
 let _pdfEmCurso = null;
+// O último pedido feito: se o EBM pedir login, é ele que se repete depois.
+let _pdfUltimo = null;
+
+/* ---------- login do EBM ----------
+   A extensão (0.3 em diante) entra no EBM sozinha quando tem usuário e
+   senha guardados. Sem eles — ou quando o EBM recusa os guardados — ela
+   devolve um código, e é aqui que se pedem os dois. Eles vão direto para
+   a extensão, que guarda no armazenamento dela: esta página não grava
+   nada, nem no navegador nem no servidor. */
+const extensaoEntraSozinha = () => !!document.documentElement.dataset.cmsEbmLogin;
+
+async function pedirLoginEbm(recusado) {
+  for (;;) {
+    const pergunta = perguntar({
+      titulo: 'Entrar no EBM',
+      sub: recusado ? 'O EBM recusou o usuário ou a senha guardados'
+                    : 'Para gerar o PDF, a extensão precisa entrar no EBM',
+      corpo: `<div class="pg-login">
+        ${recusado ? '<p class="pg-erro">Confira e digite de novo.</p>' : ''}
+        <label>Usuário do EBM<input id="ebm-usuario" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
+        <label>Senha<input id="ebm-senha" type="password" autocomplete="current-password"></label>
+        <p class="pg-nota">Fica guardado só neste navegador, dentro da extensão do EBM. Da próxima vez ela entra sozinha.</p>
+      </div>`,
+      botoes: [{ id: 'cancelar', rot: 'Cancelar' },
+               { id: 'entrar', rot: 'Entrar e gerar', ic: 'fa-solid fa-right-to-bracket', cls: 'btn-confirmar-dest' }],
+    });
+    // O cursor já espera no usuário, e o Enter entra — como em qualquer
+    // tela de login. (O modal põe o foco no primeiro botão.)
+    setTimeout(() => {
+      const u = $('ebm-usuario'), p = $('ebm-senha');
+      if (!u || !p) return;
+      u.focus();
+      const enter = (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (e.target === u && !p.value) { p.focus(); return; }
+        const b = document.querySelector('#pg-rodape [data-pg="entrar"]');
+        if (b) b.click();
+      };
+      u.addEventListener('keydown', enter);
+      p.addEventListener('keydown', enter);
+    }, 60);
+    const r = await pergunta;
+    const usuario = ($('ebm-usuario') || {}).value || '';
+    const senha = ($('ebm-senha') || {}).value || '';
+    // os campos saem da tela: a senha não fica esquecida no DOM
+    if ($('pg-corpo')) $('pg-corpo').innerHTML = '';
+    if (r !== 'entrar') return false;
+    if (!usuario.trim() || !senha) { toast('Preencha usuário e senha'); continue; }
+
+    const salvo = await new Promise(ok => {
+      const fim = (v) => { window.removeEventListener('cms-ebm-resposta', ouvir); clearTimeout(t); ok(v); };
+      const ouvir = (ev) => {
+        const d = ev.detail || {};
+        if (d.tipo === 'login-salvo') fim(true);
+        else if (d.tipo === 'login-erro') { toast(d.texto || 'Não consegui guardar o login'); fim(false); }
+      };
+      const t = setTimeout(() => fim(false), 6000);
+      window.addEventListener('cms-ebm-resposta', ouvir);
+      window.dispatchEvent(new CustomEvent('cms-ebm-login', { detail: { usuario: usuario.trim(), senha } }));
+    });
+    if (salvo) return true;
+  }
+}
 
 function pedirPdf(gcis, nomeCliente, status) {
   if (!temExtensao()) {
@@ -8565,6 +8629,7 @@ function pedirPdf(gcis, nomeCliente, status) {
   if (_pdfEmCurso) { toast('Já tem um PDF sendo gerado — aguarde'); return; }
 
   _pdfEmCurso = { gcis, nomeCliente };
+  _pdfUltimo = { gcis, nomeCliente, status };
   const f = APP.fila;
   mostrarTarjaPdf(
     (f && f.grupos.length > 1)
@@ -8825,6 +8890,30 @@ function ligarRespostaPdf() {
       }
       fecharTarjaPdf(2500);
       toast(d.texto || 'PDF gerado');
+      return;
+    }
+    if (d.tipo === 'erro' && (d.codigo === 'precisa-login' || d.codigo === 'login-recusado')
+        && extensaoEntraSozinha()) {
+      _pdfEmCurso = null;
+      const pendente = _pdfUltimo;
+      $('tarja-pdf-titulo').textContent = 'Entrar no EBM';
+      $('tarja-pdf-detalhe').textContent = d.codigo === 'login-recusado'
+        ? 'O EBM recusou o login guardado' : 'Falta o login do EBM';
+      renderBarraSelecao();
+      pedirLoginEbm(d.codigo === 'login-recusado').then(ok => {
+        if (ok && pendente) {
+          // a fila (se houver) continua do mesmo ponto: nada foi contado
+          pedirPdf(pendente.gcis, pendente.nomeCliente, pendente.status);
+          return;
+        }
+        fecharTarjaPdf(0);
+        if (APP.fila) {
+          const restam = APP.fila.grupos.length - APP.fila.atual;
+          APP.fila = null;
+          toast(`PDF cancelado · faltaram ${restam}`);
+        }
+        renderBarraSelecao();
+      });
       return;
     }
     if (d.tipo === 'erro') {
@@ -13155,6 +13244,14 @@ html.dark .rfv-balao .rb-n{ color:#C4B5FD; }
 .pg-opcao b{ display:block; font-size:14px; }
 .pg-opcao small{ display:block; font-size:12px; color:var(--ds-muted); margin-top:1px; }
 .pg-zap{ background:#16A34A !important; border-color:#16A34A !important; color:#fff !important; }
+/* login do EBM dentro do modal de pergunta */
+.pg-login{ display:flex; flex-direction:column; gap:10px; }
+.pg-login label{ display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:700; color:var(--ds-muted); }
+.pg-login input{ font:inherit; font-size:14px; font-weight:600; color:var(--ds-ink); background:var(--ds-card);
+  border:1px solid var(--ds-line); border-radius:12px; padding:11px 12px; outline:none; }
+.pg-login input:focus{ border-color:var(--ds-accent); box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .14); }
+.pg-login .pg-erro{ margin:0; font-size:12.5px; font-weight:700; color:#B91C1C; }
+html.dark .pg-login .pg-erro{ color:#FCA5A5; }
 .pg-zap:hover{ background:#15803D !important; }
 /* ícones das fichas: relógio e ampulheta para o atraso, calendário para a
    data adiada (as regras das Entradas e saídas dariam as setas de lá) */

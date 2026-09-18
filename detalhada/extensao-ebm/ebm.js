@@ -356,6 +356,39 @@
   /* ---------- as ações ---------- */
 
   const acoes = {
+    /** Preenche a tela de login com o que a extensão guardou e entra.
+     *  Os ids são os mesmos que os robôs Python usam (ebm_core.py):
+     *  j_username, j_password e o botão de nome form1:btnOK.
+     *  A senha nunca vai para o log. */
+    async login(cmd) {
+      const usuario = $('j_username') ||
+        [...document.querySelectorAll('input[type=text], input:not([type])')].find(i => i.offsetParent);
+      const senha = $('j_password') ||
+        [...document.querySelectorAll('input[type=password]')].find(i => i.offsetParent);
+      if (!usuario || !senha) throw new Error('não achei os campos da tela de login');
+
+      // Um alerta depois do login ("senha expira em N dias", sessão ativa em
+      // outro lugar) trancaria a aba escondida. A marca faz o ebm-main.js
+      // aceitar esses avisos sozinho — só nas janelas deste trabalho.
+      try { sessionStorage.setItem('cmsSilenciar', '1'); } catch (e) { /* segue */ }
+
+      const escrever = (el, v) => {
+        el.focus();
+        el.value = v;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      escrever(usuario, cmd.usuario);
+      escrever(senha, cmd.senha);
+      await espera(250);
+
+      const botao = document.getElementsByName('form1:btnOK')[0] || $('form1:btnOK') ||
+        document.querySelector('input[type=submit], button[type=submit]');
+      relatar({ aviso: 'login preenchido; entrando' });
+      if (botao) botao.click();
+      else (senha.form || usuario.form).submit();
+    },
+
     /** Monta o filtro: status, linha, Tipo, Campo, Operador, Valor.
      *  Dá para encadear porque as colunas abrem por ajax, sem recarregar
      *  a página — só a criação da linha é que recarrega. */

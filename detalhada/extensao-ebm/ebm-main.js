@@ -27,6 +27,35 @@
    ============================================================ */
 
 (() => {
+  // Janela aberta por um trabalho que precisou entrar no EBM: os alertas e
+  // confirmações da página são aceitos sozinhos, senão trancam a aba
+  // escondida. A marca só existe nas janelas do trabalho (sessionStorage é
+  // por aba) — o EBM que o vendedor usa na mão continua igual.
+  try {
+    if (sessionStorage.getItem('cmsSilenciar') === '1') {
+      window.alert = (m) => { console.log('[CMS] alerta aceito:', m); };
+      window.confirm = (m) => { console.log('[CMS] confirmação aceita:', m); return true; };
+    }
+  } catch (e) { /* sem sessionStorage, segue como sempre */ }
+
+  // Quem chega ao EBM sem estar logado é mandado para a tela de entrada, e
+  // ela abre com o alerta "User name is required!" — antes de alguém
+  // digitar qualquer coisa. Com o alerta aberto a página fica trancada e
+  // a extensão não consegue preencher o login. Só esse alerta, e só nos
+  // primeiros segundos da página, é engolido; depois disso (quando é o
+  // vendedor que clicou em OK com o campo vazio) ele aparece normalmente.
+  try {
+    const nasceu = Date.now();
+    const original = window.alert;
+    window.alert = function (m) {
+      if (/user\s*name\s*is\s*required/i.test(String(m)) && Date.now() - nasceu < 6000) {
+        console.log('[CMS] alerta de abertura do login ignorado:', m);
+        return;
+      }
+      return original.apply(this, arguments);
+    };
+  } catch (e) { /* segue como sempre */ }
+
   const G = 'form1:webFilterGrid';
   const idCampo  = (l, c) => `${G}:webGrid:txtInput:row${l}:${c}`;
   const idCelula = (l, c) => `${G}:row${l}:${c}`;

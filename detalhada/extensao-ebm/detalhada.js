@@ -16,7 +16,9 @@
    ============================================================ */
 
 // Marca a página para o app saber que a extensão está instalada.
-document.documentElement.dataset.cmsEbm = '0.2.0';
+document.documentElement.dataset.cmsEbm = '0.3.0';
+// Esta versão sabe guardar o login do EBM e entrar sozinha.
+document.documentElement.dataset.cmsEbmLogin = '1';
 
 /** Recarregar a extensão mata o script que já está na página: o
  *  `chrome.runtime` vira inválido e QUALQUER chamada estoura na hora —
@@ -44,6 +46,27 @@ window.addEventListener('cms-ebm-pdf', (ev) => {
   } catch (e) {
     responder({ tipo: 'erro', texto: /context invalidated/i.test(String(e)) ? ATUALIZOU : String(e.message || e) });
   }
+});
+
+// O modal da Detalhada entrega usuário e senha; eles vão direto para o
+// armazenamento da extensão e a página não fica com nada.
+window.addEventListener('cms-ebm-login', (ev) => {
+  const d = ev.detail || {};
+  if (!extensaoViva()) return responder({ tipo: 'erro', texto: ATUALIZOU });
+  try {
+    chrome.runtime.sendMessage({ de: 'cms-detalhada', tipo: 'salvarLogin',
+                                 usuario: d.usuario, senha: d.senha })
+      .then((r) => responder(r && r.ok ? { tipo: 'login-salvo' }
+                                       : { tipo: 'login-erro', texto: (r && r.erro) || 'Não consegui guardar.' }))
+      .catch((e) => responder({ tipo: 'login-erro', texto: String(e && e.message || e) }));
+  } catch (e) {
+    responder({ tipo: 'login-erro', texto: String(e.message || e) });
+  }
+});
+window.addEventListener('cms-ebm-esquecer', () => {
+  if (!extensaoViva()) return;
+  try { chrome.runtime.sendMessage({ de: 'cms-detalhada', tipo: 'esquecerLogin' }).catch(() => {}); }
+  catch (e) { /* extensão recarregada */ }
 });
 
 // Andamento vindo do orquestrador
