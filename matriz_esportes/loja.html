@@ -216,6 +216,8 @@
   .totop{position:fixed;right:22px;bottom:96px;height:44px;border-radius:999px;border:none;background:var(--purple);color:#fff;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;box-shadow:0 4px 14px rgba(124,58,237,.35);cursor:pointer;display:none;align-items:center;gap:7px;padding:0 16px;z-index:40}
   .totop:hover{filter:brightness(1.06)}
   .totop.show{display:flex}
+  .addcta{display:inline-flex;align-items:center;gap:6px}
+  .addcta .ic-cad{width:14px;height:14px;flex:none}
 
   .flagbtn{margin-top:6px;width:100%;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:600;color:var(--red);background:transparent;border:1px dashed color-mix(in srgb,var(--red) 45%,var(--line));border-radius:7px;padding:6px;cursor:pointer}
   .flagbtn:hover{background:color-mix(in srgb,var(--red) 8%,transparent)}
@@ -239,6 +241,19 @@
     .topbtns .rot{display:none}
     .topbtns .theme-btn{width:38px;padding:0;justify-content:center;font-size:16px}
     .kpis{margin:10px 0 2px;gap:8px}
+    /* celular: voltar ao topo só com a seta, à direita; cadastrar produto
+       vira botão verde flutuante, à esquerda — os dois logo acima da barra
+       de salvar, que muda de altura (a altura dela vem do script) */
+    .totop{right:14px;bottom:calc(var(--saveh, 84px) + 12px);width:48px;height:48px;padding:0;justify-content:center;font-size:20px}
+    .totop .rot{display:none}
+    #addPendenteBtn{position:fixed;left:14px;bottom:calc(var(--saveh, 84px) + 12px);z-index:40;width:52px;height:52px;padding:0;
+      border-radius:999px;justify-content:center;background:#16A34A;border-color:#16A34A;color:#fff;
+      box-shadow:0 6px 16px rgba(22,163,74,.40)}
+    #addPendenteBtn .ic-cad{width:24px;height:24px}
+    #addPendenteBtn .rot{display:none}
+    #addPendenteBtn:active{transform:scale(.96)}
+    /* a lista ganha folga no fim para o último cartão não ficar embaixo dos botões */
+    #list{padding-bottom:72px}
     .stickybar .searchwrap{flex:1 1 100%;max-width:none}
     .stickybar .search{width:100%}
     .kpi{padding:7px 10px}
@@ -290,7 +305,7 @@
   <div class="ctrls ctrls-marcas">
     <div class="cat-tabs" id="tabs"></div>
     <button class="resetcta" id="zerarBtn" title="Zerar estoque e venda de todos os produtos para começar a contagem do zero">↺ Zerar contagem</button>
-    <button class="addcta" id="addPendenteBtn" title="Registrar um produto que você tem na loja mas não aparece na sua lista">+ Produto fora da lista</button>
+    <button class="addcta" id="addPendenteBtn" title="Cadastrar um produto que você tem na loja mas não aparece na sua lista" aria-label="Cadastrar produto fora da lista"><svg class="ic-cad" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H16"/><path d="M12 10.5v6M9 13.5h6"/></svg><span class="rot">Produto fora da lista</span></button>
   </div>
 
   <div class="ctrls">
@@ -305,7 +320,7 @@
   <div class="grid" id="grid" style="display:none"></div>
   <div class="list" id="list"></div>
 
-  <button class="totop" id="totopBtn" type="button" title="Voltar ao topo da página" aria-label="Voltar ao topo">↑ Voltar ao topo</button>
+  <button class="totop" id="totopBtn" type="button" title="Voltar ao topo da página" aria-label="Voltar ao topo"><span aria-hidden="true">↑</span><span class="rot">Voltar ao topo</span></button>
 
   <div class="savebar">
     <div class="savebar-in">
@@ -1124,6 +1139,12 @@ function acertarTopo(){
   if(t) document.documentElement.style.setProperty('--toph', t.offsetHeight + 'px');
 }
 window.addEventListener('resize', acertarTopo);
+function acertarBase(){
+  const b = document.querySelector('.savebar');
+  if(b) document.documentElement.style.setProperty('--saveh', b.offsetHeight + 'px');
+}
+window.addEventListener('resize', acertarBase);
+new ResizeObserver(acertarBase).observe(document.querySelector('.savebar'));
 
 $('statusFilter').querySelectorAll('[data-sf]').forEach(chip => {
   chip.onclick = () => {

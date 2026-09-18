@@ -75,10 +75,12 @@
   .rs-cov.neutra{background:var(--line-2);color:var(--mute)}
   .ksum.warn .v{color:var(--red)}
 
-  .section-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;margin:34px 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  /* seções mais juntas: com as três recolhidas, a tela era quase só espaço */
+  .section-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;margin:14px 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .wrap > .topbar + .section-title{margin-top:18px}
   .section-title .badge{font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:99px;padding:2px 9px}
 
-  .pendfilter{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+  .pendfilter{display:flex;gap:8px;margin:0 0 8px;flex-wrap:wrap}
   .pfchip{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
   .pfchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 
@@ -99,7 +101,7 @@
   .pend .acts{display:flex;gap:8px}
   .pend .acts .btn{padding:7px 12px;font-size:12.5px}
   .pend.resolved{opacity:.5}
-  .empty{color:var(--mute);font-size:13.5px;padding:16px 0}
+  .empty{color:var(--mute);font-size:13.5px;padding:4px 0 2px}
 
   .vend{background:var(--card);border:2px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:16px;padding:22px 24px;margin-top:16px;transition:border-color .2s,box-shadow .2s}
   .vend.recente{border-color:var(--green)}
@@ -254,11 +256,6 @@
     <button class="theme-btn btn" id="themeBtn" type="button" title="Alternar tema claro/escuro"><span id="themeIcon">◐</span> Tema</button>
   </div>
 
-  <header class="hero">
-    <h1>Estoque Virtual · Matriz Esportes</h1>
-    <p class="lede">Sellout reportado por cada loja do grupo — estoque atual e vendas, por marca e produto.</p>
-  </header>
-
   <div class="section-title">Visão geral <button class="pfchip" id="toggleKpis" style="margin-left:auto">▾ Ocultar</button></div>
   <div class="stickykpis" id="kpisWrap"><div class="ksum-row" id="kpis"></div></div>
 
@@ -275,7 +272,7 @@
   <div id="pendBulkWrap"></div>
   <div id="pendList"></div>
 
-  <div class="section-title" style="margin-top:38px">Lojas</div>
+  <div class="section-title" style="margin-top:14px">Lojas</div>
   <div id="lojasList"></div>
 
   <footer>Estoque Virtual · CMS Representações · ferramenta interna</footer>
@@ -623,9 +620,23 @@ async function callWorker(body){
   return data;
 }
 
+// Rodando no próprio computador o Worker não atende (só aceita o endereço
+// publicado): a leitura cai no arquivo publicado, só para ver a tela.
+const EM_CASA = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+async function lerEstoque(){
+  try{ return await callWorker({ action: 'getMatrizEstoque' }); }
+  catch(e){
+    if(!EM_CASA) throw e;
+    const r = await fetch('https://cms-representacoes.github.io/apps-oly/data/matriz_estoque.json', { cache: 'no-cache' });
+    if(!r.ok) throw e;
+    setTimeout(() => toast('Teste local: só leitura — gravar funciona no endereço publicado.'), 800);
+    return { data: await r.json() };
+  }
+}
+
 async function load(){
   try{
-    const { data } = await callWorker({ action: 'getMatrizEstoque' });
+    const { data } = await lerEstoque();
     DATA = data && typeof data === 'object' ? data : { lojas: [], pendentes: [] };
     render();
   }catch(e){
@@ -704,8 +715,8 @@ function renderPendentes(){
   const pendAbertosNaLista = pend.filter(p => p.status === 'pendente');
 
   $('pendToggleWrap').innerHTML = resolvidosNaLista ? `
-    <button class="pfchip" id="pendToggleResolvidos" style="margin-bottom:14px">${mostrarResolvidos ? '▾ Ocultar resolvidos' : '▸ Mostrar resolvidos'} (${resolvidosNaLista})</button>
-    ${mostrarResolvidos ? `<button class="pfchip" id="pendLimparHistorico" style="margin-bottom:14px;margin-left:8px;color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))">🗑 Limpar histórico</button>` : ''}
+    <button class="pfchip" id="pendToggleResolvidos" style="margin-bottom:8px">${mostrarResolvidos ? '▾ Ocultar resolvidos' : '▸ Mostrar resolvidos'} (${resolvidosNaLista})</button>
+    ${mostrarResolvidos ? `<button class="pfchip" id="pendLimparHistorico" style="margin-bottom:8px;margin-left:8px;color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))">🗑 Limpar histórico</button>` : ''}
   ` : '';
   const toggleBtn = $('pendToggleResolvidos');
   if(toggleBtn) toggleBtn.onclick = () => { mostrarResolvidos = !mostrarResolvidos; renderPendentes(); };
