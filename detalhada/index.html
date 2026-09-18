@@ -5257,7 +5257,20 @@ async function catGerarPlanilha(cli, comFotos) {
       if (f) {
         if (!ids.has(chave)) ids.set(chave, wb.addImage({ base64: f.url, extension: 'jpeg' }));
         const lado = 72, k = Math.min(lado / f.w, lado / f.h);
-        ws.addImage(ids.get(chave), { tl: { col: 0.12, row: n - 1 + 0.06 }, ext: { width: f.w * k, height: f.h * k }, editAs: 'oneCell' });
+        // "Mover e dimensionar com células": a foto fica presa entre dois
+        // cantos da própria célula e acompanha quando a linha ou a coluna
+        // muda de tamanho, ou quando a lista é filtrada e ordenada. Os cantos
+        // vão em EMU (a unidade do Excel), centralizados: em fração de célula
+        // o ExcelJS supõe uma coluna padrão e a foto saía achatada.
+        // Coluna A = 12 caracteres (89 px), linha = 57,95 pt.
+        const EMU_PX = 9525, COL_EMU = 89 * EMU_PX, LIN_EMU = Math.round(57.95 * 12700);
+        const wE = Math.round(f.w * k * EMU_PX), hE = Math.round(f.h * k * EMU_PX);
+        const x0 = Math.round((COL_EMU - wE) / 2), y0 = Math.round((LIN_EMU - hE) / 2);
+        ws.addImage(ids.get(chave), {
+          tl: { nativeCol: 0, nativeColOff: x0, nativeRow: n - 1, nativeRowOff: y0 },
+          br: { nativeCol: 0, nativeColOff: x0 + wE, nativeRow: n - 1, nativeRowOff: y0 + hE },
+          editAs: 'twoCell',
+        });
       }
     }
   });
