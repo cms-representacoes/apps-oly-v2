@@ -5038,6 +5038,28 @@ function catClientesFiltrados() {
   const sel = APP.filtros.cliente;
   return sel ? [...sel].map(Number) : [];
 }
+/** Sem cliente no filtro, mas com a lista filtrada (um produto, um mês,
+ *  uma faixa...): os botões também aparecem, e sai um arquivo só com a
+ *  carteira da tela — com a coluna do cliente, porque ali há vários. */
+function catModoGeral() {
+  if (!APP.base || APP.status === 'MARCADAS') return false;
+  if (!document.querySelector('#screen-produtos.active')) return false;
+  if (catClientesFiltrados().length) return false;
+  const limpar = $('btn-limpar-filtros');
+  return !!(limpar && limpar.classList.contains('show'));
+}
+const catRotuloCliente = r => {
+  const c = APP.dic.cli[r[C.CLI]] || [];
+  return c[1] ? `${c[1]} (${c[0]})` : String(c[0] || '');
+};
+function catNomeGeral(ext, produtos) {
+  const hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+  const base = produtos && produtos.length === 1
+    ? `Carteira ${produtos[0].desc} ${produtos[0].ref}` : 'Carteira filtrada';
+  const limpo = base.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 70);
+  return `${limpo} ${hoje}.${ext}`;
+}
+
 /** Roda `fn` como se só `cli` estivesse filtrado (mesmo mês, busca e o
  *  resto). É síncrono de propósito: nada redesenha a tela no meio. */
 function catSoCliente(cli, fn) {
@@ -5097,12 +5119,14 @@ function catPrevOuFat(r) {
 }
 
 async function catExportXlsx() {
-  const clis = catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
-  if (!catClientesFiltrados().length) return;
-  if (!clis.length) { toast('Nada na lista para exportar'); return; }
+  const geral = catModoGeral();
+  const clis = geral ? [-1] : catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
+  if (!geral && !catClientesFiltrados().length) return;
+  if (!clis.length || (geral && !catDados().produtos.length)) { toast('Nada na lista para exportar'); return; }
   const r = await perguntar({
     titulo: clis.length > 1 ? `Gerar ${clis.length} planilhas` : 'Gerar planilha',
-    sub: clis.length > 1 ? 'Uma por cliente, com os mesmos filtros' : (APP.dic.cli[clis[0]][1] || APP.dic.cli[clis[0]][0]),
+    sub: geral ? 'A carteira da tela, com a coluna do cliente'
+      : clis.length > 1 ? 'Uma por cliente, com os mesmos filtros' : (APP.dic.cli[clis[0]][1] || APP.dic.cli[clis[0]][0]),
     opcoes: [
       { id: 'com', rot: 'Com imagens', ic: 'fa-solid fa-image', dica: 'Miniatura do produto em cada linha · arquivo maior' },
       { id: 'sem', rot: 'Sem imagens', ic: 'fa-solid fa-table', dica: 'Só os dados · mais leve e rápido' },
@@ -5118,7 +5142,7 @@ async function catExportXlsx() {
  *  COMBATE, 16/09/2026): referência, descrição, cor, faixa, GCI, previsão,
  *  carteira, um tamanho por coluna e, no fim, DESTINO e PRAZO em branco para
  *  preencher com o cliente. */
-function catLinhasPlanilha() {
+function catLinhasPlanilha(comCliente = false) {
   const { produtos, totCart, totFat, totLinhas } = catDados();
 
   // Os tamanhos viram colunas: a união do que aparece, em ordem de número.
@@ -5130,21 +5154,24 @@ function catLinhasPlanilha() {
   }
   const colTam = [...tams].sort((a, b) => ord(a) - ord(b) || String(a).localeCompare(String(b)));
 
-  const cab = ['Referência', 'Descrição', 'Cor', 'Faixa', 'GCI', 'Prev. fat.', 'Carteira (pares)', ...colTam];
+  // Na carteira geral entra a coluna do cliente, logo depois do produto.
+  const cab = ['Referência', 'Descrição', 'Cor', ...(comCliente ? ['Cliente'] : []),
+               'Faixa', 'GCI', 'Prev. fat.', 'Carteira (pares)', ...colTam];
   const corpo = [], fotos = [];
   for (const p of produtos) for (const r of p.linhas) {
     fotos.push([p.ref, p.cor]);
     const g = gradeDaLinha(r);
     const faixa = (APP.dic.faixa && r[C.FAIXA] != null && r[C.FAIXA] >= 0) ? APP.dic.faixa[r[C.FAIXA]] : '';
     corpo.push([
-      String(p.ref), p.desc, p.cor, faixa || '',
+      String(p.ref), p.desc, p.cor, ...(comCliente ? [catRotuloCliente(r)] : []), faixa || '',
       r[C.GCI] || '',
       r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : '',
       r[C.CART] || 0,
       ...colTam.map(t => (g && g.tam && g.tam[t]) ? Number(g.tam[t]) : ''),
     ]);
   }
-  return { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam };
+  const nClientes = new Set(produtos.flatMap(p => p.linhas.map(r => r[C.CLI]))).size;
+  return { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam, nClientes };
 }
 
 async function catGarantirExcelJs() {
@@ -5167,8 +5194,10 @@ function catExportXlsxComImagens(cli) { return catGerarPlanilha(cli, true); }
  *  sem imagens, ela some e as linhas ficam baixas. As duas saem pelo ExcelJS:
  *  o SheetJS da página não grava alinhamento, cor nem largura de linha. */
 async function catGerarPlanilha(cli, comFotos) {
-  const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam } = catSoCliente(cli, catLinhasPlanilha);
-  const [cod, nome] = APP.dic.cli[cli];
+  const geral = cli < 0;
+  const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam, nClientes } =
+    geral ? catLinhasPlanilha(true) : catSoCliente(cli, () => catLinhasPlanilha(false));
+  const [cod, nome] = geral ? ['', ''] : APP.dic.cli[cli];
   syncShow('Preparando a planilha…');
   if (!await catGarantirExcelJs()) { syncHide(); toast('Não consegui carregar o gerador de planilha'); return; }
 
@@ -5192,7 +5221,8 @@ async function catGerarPlanilha(cli, comFotos) {
   // linhas 1 a 3: título, filtros e totais, centralizados, como no modelo
   const resumo = catResumoFiltros();
   const topo = [
-    [`Catálogo da carteira · ${nome || cod} (${cod})`, { name: 'Calibri', bold: true, size: 14, color: { argb: 'FF0F766E' } }],
+    [geral ? `Catálogo da carteira · ${nClientes} ${nClientes === 1 ? 'cliente' : 'clientes'}`
+           : `Catálogo da carteira · ${nome || cod} (${cod})`, { name: 'Calibri', bold: true, size: 14, color: { argb: 'FF0F766E' } }],
     [`${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
     [`${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
   ];
@@ -5235,14 +5265,15 @@ async function catGerarPlanilha(cli, comFotos) {
   // larguras do modelo: foto 12, ref 11, descrição 32, cor 10, faixa 16,
   // GCI 11, previsão 13, carteira 13, cada tamanho 40 pixels, DESTINO 16, PRAZO 13.
   // 40 pixels no Excel = largura 5 (5,7109375 com a margem que ele guarda no arquivo).
-  const larguras = [...(comFotos ? [12] : []), 11, 32, 10, 16, 11, 13, 13, ...colTam.map(() => 5.7109375), 16, 13];
+  const larguras = [...(comFotos ? [12] : []), 11, 32, 10, ...(geral ? [34] : []), 16, 11, 13, 13,
+                    ...colTam.map(() => 5.7109375), 16, 13];
   larguras.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + corpo.length, column: nCol - 2 } };
 
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   const a = document.createElement('a');
-  a.href = url; a.download = catNomeArquivo(cli, 'xlsx');
+  a.href = url; a.download = geral ? catNomeGeral('xlsx', produtos) : catNomeArquivo(cli, 'xlsx');
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   syncHide();
@@ -5311,6 +5342,12 @@ function catFoto(ref, cor, max = 1000, qualidade = 0.9) {
 }
 
 async function catExportPdf() {
+  // carteira geral: um PDF só, sem oferecer o WhatsApp — ele tem vários
+  // clientes, não é para mandar a um deles
+  if (catModoGeral()) {
+    if (!catDados().produtos.length) { toast('Nada na lista para exportar'); return; }
+    return catGerarPdf(-1, false);
+  }
   const clis = catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
   if (!catClientesFiltrados().length) return;
   if (!clis.length) { toast('Nada na lista para exportar'); return; }
@@ -5319,7 +5356,8 @@ async function catExportPdf() {
 }
 
 async function catGerarPdf(cli, oferecerZap) {
-  const { produtos, totCart, totFat, totLinhas } = catSoCliente(cli, catDados);
+  const geral = cli < 0;
+  const { produtos, totCart, totFat, totLinhas } = geral ? catDados() : catSoCliente(cli, catDados);
   if (!produtos.length) return;
   syncShow('Montando o catálogo…');
   if (!await rfvGarantirPdf()) { syncHide(); toast('Não consegui carregar o gerador de PDF'); return; }
@@ -5333,7 +5371,8 @@ async function catGerarPdf(cli, oferecerZap) {
   }
   syncShow('Montando o catálogo…');
 
-  const [codCli, nomeCli] = APP.dic.cli[cli];
+  const [codCli, nomeCli] = geral ? ['', ''] : APP.dic.cli[cli];
+  const nClis = new Set(produtos.flatMap(p => p.linhas.map(r => r[C.CLI]))).size;
   const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const K = { verde: [15, 118, 110], verdeClaro: [204, 236, 232], texto: [15, 23, 42], fraco: [100, 116, 139],
@@ -5355,9 +5394,10 @@ async function catGerarPdf(cli, oferecerZap) {
     doc.text('CATÁLOGO DA CARTEIRA', M, 22);
     doc.text(quando, W - M, 22, { align: 'right' });
     doc.setTextColor(255, 255, 255); fonte('bold', 16);
-    doc.text(doc.splitTextToSize(String(nomeCli || codCli), LARG - 90)[0], M, 44);
+    doc.text(doc.splitTextToSize(geral ? 'Carteira filtrada' : String(nomeCli || codCli), LARG - 90)[0], M, 44);
     fonte('normal', 8.5); cor(K.verdeClaro);
-    const linha2 = [`Código ${codCli}`, prepostos.length ? 'Preposto ' + prepostos.join(', ') : '', resumo]
+    const linha2 = [geral ? `${nf(nClis)} ${nClis === 1 ? 'cliente' : 'clientes'}` : `Código ${codCli}`,
+                    prepostos.length ? 'Preposto ' + prepostos.join(', ') : '', resumo]
       .filter(Boolean).join('  ·  ');
     doc.splitTextToSize(linha2, LARG).slice(0, 2).forEach((t, i) => doc.text(t, M, 60 + i * 11));
     // números do que está no catálogo
@@ -5374,7 +5414,7 @@ async function catGerarPdf(cli, oferecerZap) {
   function cabecalhoPequeno() {
     cor(K.verde, 'fill'); doc.rect(0, 0, W, 38, 'F');
     doc.setTextColor(255, 255, 255); fonte('bold', 10);
-    doc.text(doc.splitTextToSize(`${nomeCli || codCli} · ${codCli}`, LARG - 90)[0], M, 24);
+    doc.text(doc.splitTextToSize(geral ? 'Carteira filtrada' : `${nomeCli || codCli} · ${codCli}`, LARG - 90)[0], M, 24);
     cor(K.verdeClaro); fonte('normal', 8.5);
     doc.text('Catálogo da carteira · ' + quando, W - M, 24, { align: 'right' });
   }
@@ -5414,7 +5454,8 @@ async function catGerarPdf(cli, oferecerZap) {
 
   // Colunas das encomendas, dentro do lado direito do card.
   function colunas(tx, tw) {
-    const w = [0.2, 0.26, 0.17, 0.17, 0.2].map(k => k * tw);
+    // na carteira geral a segunda coluna é o cliente, e precisa de mais espaço
+    const w = (geral ? [0.15, 0.37, 0.14, 0.14, 0.2] : [0.2, 0.26, 0.17, 0.17, 0.2]).map(k => k * tw);
     const x = []; let acc = tx;
     for (const v of w) { x.push(acc); acc += v; }
     return x;
@@ -5456,7 +5497,7 @@ async function catGerarPdf(cli, oferecerZap) {
     const cx = colunas(tx, tw);
     if (desenhar) {
       cor(K.fraco); fonte('bold', 6.3);
-      ['GCI', 'OC / NF', 'CARTEIRA', 'FATURADO', 'PREV. / FAT.'].forEach((h, i) => doc.text(h, cx[i], y));
+      ['GCI', geral ? 'CLIENTE' : 'OC / NF', 'CARTEIRA', 'FATURADO', 'PREV. / FAT.'].forEach((h, i) => doc.text(h, cx[i], y));
       cor(K.linha, 'draw'); doc.setLineWidth(0.4); doc.line(tx, y + 3, tx + tw, y + 3);
     }
     y += 13;
@@ -5467,7 +5508,9 @@ async function catGerarPdf(cli, oferecerZap) {
         doc.text(String(r[C.GCI] || '—'), cx[0], y);
         fonte('normal', 8.3);
         const oc = r[C.OC] >= 0 ? APP.dic.oc[r[C.OC]] : '';
-        doc.text(doc.splitTextToSize([oc, r[C.NF] ? 'NF ' + r[C.NF] : ''].filter(Boolean).join(' · ') || '—', cx[2] - cx[1] - 6)[0], cx[1], y);
+        const col2 = geral ? catRotuloCliente(r)
+          : [oc, r[C.NF] ? 'NF ' + r[C.NF] : ''].filter(Boolean).join(' · ');
+        doc.text(doc.splitTextToSize(col2 || '—', cx[2] - cx[1] - 6)[0], cx[1], y);
         if (emCart) { cor(K.cart); fonte('bold', 8.3); doc.text(nf(r[C.CART]) + ' pares', cx[2], y); }
         else { cor(K.fraco); fonte('normal', 8.3); doc.text('—', cx[2], y); }
         if (r[C.FAT]) { cor(K.fat); fonte('bold', 8.3); doc.text(nf(r[C.FAT]) + ' pares', cx[3], y); }
@@ -5493,18 +5536,34 @@ async function catGerarPdf(cli, oferecerZap) {
     doc.text('CMS Representações · Detalhada', M, H - 16);
     doc.text('pág. ' + pag, W - M, H - 16, { align: 'right' });
   };
-  for (let i = 0; i < produtos.length; i++) {
-    const h = card(produtos[i], fotos[i], y, false);
+  // Um produto com muitas encomendas não cabe numa página — na carteira
+  // geral um só produto junta todos os clientes. O card é partido em
+  // pedaços que cabem; antes ele passava do fim da folha e era cortado.
+  const maxH = BASE - TOPO - 10;
+  const pedacos = [];
+  produtos.forEach((prod, i) => {
+    if (card(prod, fotos[i], 0, false) <= maxH) { pedacos.push([prod, fotos[i]]); return; }
+    let atual = [];
+    for (const r of prod.linhas) {
+      if (atual.length && card({ ...prod, linhas: [...atual, r] }, fotos[i], 0, false) > maxH) {
+        pedacos.push([{ ...prod, linhas: atual }, fotos[i]]);
+        atual = [r];
+      } else atual.push(r);
+    }
+    if (atual.length) pedacos.push([{ ...prod, linhas: atual }, fotos[i]]);
+  });
+  for (const [prod, foto] of pedacos) {
+    const h = card(prod, foto, y, false);
     if (y + h > BASE && y > (pag === 1 ? TOPO1 : TOPO)) {
       rodape(); doc.addPage(); pag++; cabecalhoPequeno(); y = TOPO;
     }
     cor(K.linha, 'draw'); doc.setLineWidth(0.5); cor(K.branco, 'fill');
     doc.roundedRect(M, y, LARG, h, 7, 7, 'FD');
-    card(produtos[i], fotos[i], y, true);
+    card(prod, foto, y, true);
     y += h + 10;
   }
   rodape();
-  const nomePdf = catNomeArquivo(cli, 'pdf');
+  const nomePdf = geral ? catNomeGeral('pdf', produtos) : catNomeArquivo(cli, 'pdf');
   doc.save(nomePdf);
   syncHide();
   toast(`Catálogo gerado · ${produtos.length} produtos`);
@@ -6347,12 +6406,14 @@ function atualizarFabLimpar() {
   const exp = $('fab-export');
   if (exp) {
     const clis = catClientesFiltrados();
-    exp.hidden = !((noRfv && ligado) || clis.length > 0);
-    // o mesmo botão, dois assuntos: a dica diz o que vai sair
+    const geral = !noRfv && catModoGeral();
+    exp.hidden = !((noRfv && ligado) || clis.length > 0 || geral);
+    // o mesmo botão, três assuntos: a dica diz o que vai sair
     const quem = clis.length === 1 ? ' o catálogo de ' + (APP.dic.cli[clis[0]][1] || APP.dic.cli[clis[0]][0])
-      : clis.length > 1 ? ` os catálogos dos ${clis.length} clientes (um arquivo cada)` : '';
-    $('btn-exp-xlsx').title = clis.length ? 'Baixar' + quem + ' em Excel' : 'Baixar em Excel (.xlsx)';
-    $('btn-exp-pdf').title = clis.length ? 'Baixar' + quem + ' em PDF' : 'Baixar em PDF';
+      : clis.length > 1 ? ` os catálogos dos ${clis.length} clientes (um arquivo cada)`
+      : geral ? ' a carteira da tela, com os clientes' : '';
+    $('btn-exp-xlsx').title = quem ? 'Baixar' + quem + ' em Excel' : 'Baixar em Excel (.xlsx)';
+    $('btn-exp-pdf').title = quem ? 'Baixar' + quem + ' em PDF' : 'Baixar em PDF';
   }
 }
 
