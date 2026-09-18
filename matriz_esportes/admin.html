@@ -159,6 +159,72 @@
   .cf-box p{font-size:13.5px;color:var(--slate);margin:0}
   .cf-box .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
+  /* ── Base de produtos: buscar e cadastrar ──────────────────────────────
+     A loja avisa que tem no físico um produto que não está na lista dela.
+     Em vez de gravar o que ela digitou (artigo errado, cor por extenso),
+     o admin acha o produto certo na base — com a foto dos bancos que já
+     existem — e é ELE que entra no estoque virtual. */
+  .bp-bg{position:fixed;inset:0;background:rgba(10,14,22,.55);display:flex;align-items:center;justify-content:center;z-index:120;padding:20px}
+  .bp-bg[hidden]{display:none}
+  .bp-box{background:var(--card);border:1px solid var(--line);border-radius:18px;width:min(980px,100%);height:min(88vh,820px);display:flex;flex-direction:column;overflow:hidden}
+  .bp-head{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+  .bp-head h2{font-family:"Space Grotesk",sans-serif;font-size:18px;margin:0}
+  .bp-head .sub{font-size:12.5px;color:var(--mute);margin-top:2px}
+  .bp-head .x{margin-left:auto}
+  .bp-pedido{margin:10px 20px 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--amber) 12%,var(--card));border:1px solid color-mix(in srgb,var(--amber) 35%,var(--line));font-size:13px;color:var(--navy)}
+  .bp-pedido b{font-family:"Space Grotesk",sans-serif}
+  .bp-busca{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 20px}
+  .bp-busca input{flex:1 1 260px;min-width:0;font:inherit;font-size:14px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);outline:none}
+  .bp-busca input:focus{border-color:var(--purple);box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 16%,transparent)}
+  .bp-filtros{display:flex;gap:6px;flex-wrap:wrap}
+  .bp-filtros button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:12px;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer}
+  .bp-filtros button.on{background:var(--purple);border-color:var(--purple);color:#fff}
+  .bp-conta{padding:0 20px 8px;font-size:12px;color:var(--mute)}
+  .bp-lista{flex:1;overflow:auto;padding:4px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;align-content:start;grid-auto-rows:max-content}
+  .bp-card{border:1px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;overflow:hidden;display:flex;flex-direction:column;text-align:left;font:inherit;color:inherit;padding:0}
+  .bp-card:hover,.bp-card:focus-visible{border-color:var(--purple);box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 14%,transparent);outline:none}
+  .bp-card .ft{width:100%;aspect-ratio:1/1;background:#fff;display:grid;place-items:center;border-bottom:1px solid var(--line-2)}
+  .bp-ph{font-size:11.5px;color:var(--mute)}
+  .bp-card .ft img{width:100%;height:100%;object-fit:contain}
+  .bp-card .tx{padding:9px 11px 11px;display:flex;flex-direction:column;gap:2px}
+  .bp-card .d{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;line-height:1.25}
+  .bp-card .d.sem{color:var(--mute);font-weight:600;font-style:italic}
+  .bp-card .ac{font-size:11.5px;color:var(--slate)}
+  .bp-card .mk{align-self:flex-start;margin-top:4px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--line-2);color:var(--navy)}
+  .bp-card.na-loja{opacity:.55}
+  .bp-card .ja{font-size:11px;font-weight:700;color:var(--green)}
+  .bp-vazio{grid-column:1/-1;text-align:center;color:var(--mute);padding:40px 10px;font-size:13.5px}
+  /* segundo passo: o produto escolhido e os números */
+  .bp-escolha{flex:1;overflow:auto;padding:16px 20px 20px;display:grid;grid-template-columns:260px 1fr;gap:22px;align-content:start}
+  .bp-escolha[hidden]{display:none}
+  .bp-escolha .ft{aspect-ratio:1/1;border:1px solid var(--line);border-radius:14px;background:#fff;display:grid;place-items:center;overflow:hidden}
+  .bp-escolha .ft img{width:100%;height:100%;object-fit:contain}
+  .bp-form{display:flex;flex-direction:column;gap:12px}
+  .bp-form .tit{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:18px}
+  .bp-form .meta{font-size:13px;color:var(--slate);margin-top:-6px}
+  .bp-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--mute)}
+  .bp-form input,.bp-form select{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none}
+  .bp-form input:focus,.bp-form select:focus{border-color:var(--purple)}
+  .bp-form .duas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  .bp-form label{min-width:0}
+  .bp-form input,.bp-form select{width:100%;min-width:0}
+  .bp-form .aviso{font-size:12.5px;color:var(--red);font-weight:600}
+  .bp-form .acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .btn.linkbase{background:color-mix(in srgb,var(--purple) 10%,var(--card));color:var(--purple);border-color:color-mix(in srgb,var(--purple) 40%,var(--line))}
+  .vcadastrar{margin:0 0 12px}
+  @media (max-width:720px){
+    .bp-bg{padding:0;align-items:stretch}
+    .bp-box{height:100%;width:100%;border-radius:0}
+    .bp-head{padding:14px 14px 10px}
+    .bp-busca{padding:10px 14px}
+    .bp-conta{padding:0 14px 6px}
+    .bp-lista{padding:4px 14px 16px;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .bp-pedido{margin:8px 14px 0}
+    .bp-escolha{grid-template-columns:1fr;padding:12px 14px 16px;gap:14px}
+    .bp-escolha .ft{max-width:220px;justify-self:center;width:100%}
+    .bp-form .duas{grid-template-columns:1fr 1fr}
+  }
+
   .zoom-bg{position:fixed;inset:0;background:rgba(10,14,22,.75);display:flex;align-items:center;justify-content:center;z-index:120;padding:30px}
   .zoom-bg[hidden]{display:none}
   .zoom-box{max-width:520px;width:100%;background:var(--card);border-radius:16px;padding:16px;text-align:center}
@@ -215,6 +281,57 @@
   <footer>Estoque Virtual · CMS Representações · ferramenta interna</footer>
 </div>
 
+<div class="bp-bg" id="bpBg" hidden>
+  <div class="bp-box" role="dialog" aria-modal="true" aria-labelledby="bpTit">
+    <div class="bp-head">
+      <div>
+        <h2 id="bpTit">Base de produtos</h2>
+        <div class="sub" id="bpSub">Procure pelo artigo, pelo nome ou pela cor</div>
+      </div>
+      <button class="btn x" id="bpFechar" type="button" title="Fechar sem cadastrar">Fechar</button>
+    </div>
+    <div class="bp-pedido" id="bpPedido" hidden></div>
+    <div id="bpPasso1" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="bp-busca">
+        <input id="bpBusca" type="search" placeholder="Artigo, nome do produto ou cor" autocomplete="off" aria-label="Buscar na base de produtos">
+        <div class="bp-filtros" id="bpFiltros">
+          <button data-f="" class="on" title="Olympikus e Under Armour">Todos</button>
+          <button data-f="OLY" title="Só Olympikus">Olympikus</button>
+          <button data-f="UA" title="Só Under Armour">Under Armour</button>
+          <button data-f="CHI" title="Só chinelos">Chinelos</button>
+        </div>
+      </div>
+      <div class="bp-conta" id="bpConta"></div>
+      <div class="bp-lista" id="bpLista"></div>
+    </div>
+    <div class="bp-escolha" id="bpPasso2" hidden>
+      <div class="ft" id="bpFoto"></div>
+      <div class="bp-form">
+        <div>
+          <div class="tit" id="bpNome"></div>
+          <div class="meta" id="bpMeta"></div>
+        </div>
+        <label>Descrição que vai aparecer para a loja
+          <input id="bpDesc" maxlength="80" title="Pode ajustar o nome que a loja vai ver">
+        </label>
+        <div class="duas">
+          <label>Loja<select id="bpLoja" title="Loja que recebe o produto"></select></label>
+          <label>Lista<select id="bpMarca" title="Em qual lista da loja o produto entra"></select></label>
+        </div>
+        <div class="duas">
+          <label>Estoque atual<input id="bpEstoque" type="number" min="0" inputmode="numeric" title="Pares que a loja tem hoje"></label>
+          <label>Venda<input id="bpVenda" type="number" min="0" inputmode="numeric" title="Pares vendidos no período"></label>
+        </div>
+        <div class="aviso" id="bpAviso" hidden></div>
+        <div class="acoes">
+          <button class="btn" id="bpVoltar" type="button" title="Escolher outro produto">← Outro produto</button>
+          <button class="btn primary" id="bpCadastrar" type="button" title="Cadastrar este produto no estoque virtual da loja">Cadastrar na loja</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="cf-bg" id="cfBg" hidden>
   <div class="cf-box">
     <h2 id="cfTitle">Confirmar</h2>
@@ -243,6 +360,9 @@ const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
 const IMG_BASE = '../imagens_olympikus/';
 const LOJA_PAGE = 'loja.html';
 const MARCA_LABELS = { 'OLY FTW': 'Olympikus Tênis', 'OLY CHI': 'Olympikus Chinelo', 'UA FTW': 'Under Armour Tênis' };
+// Segundo banco de fotos: o do CMS PASS. Produto que só tem foto lá também
+// aparece com imagem (antes caía em "Sem imagem").
+const IMG_BASE_CAT = 'https://cms-representacoes.github.io/apps-oly/Catalogo/';
 
 let DATA = { lojas: [], pendentes: [] };
 let pendFilter = 'todos';
@@ -253,7 +373,10 @@ function $(id){ return document.getElementById(id); }
 function imgUrlExt(artigo, cor, ext){ const corArquivo = String(cor || '').replace(/\//g, '_'); return IMG_BASE + encodeURIComponent(artigo) + '_' + encodeURIComponent(corArquivo) + '.' + ext; }
 function imgUrl(artigo, cor){ return imgUrlExt(artigo, cor, 'jpg'); }
 function imgFallback(imgEl, artigo, cor){
-  if(imgEl.dataset.fb !== '1'){ imgEl.dataset.fb = '1'; imgEl.src = imgUrlExt(artigo, cor, 'jpeg'); }
+  const passo = Number(imgEl.dataset.fb || 0);
+  const corArquivo = String(cor || '').replace(/\//g, '_');
+  if(passo === 0){ imgEl.dataset.fb = '1'; imgEl.src = imgUrlExt(artigo, cor, 'jpeg'); }
+  else if(passo === 1){ imgEl.dataset.fb = '2'; imgEl.src = IMG_BASE_CAT + encodeURIComponent(artigo) + '_' + encodeURIComponent(corArquivo) + '.jpg'; }
   else{ imgEl.parentElement.innerHTML = '<span class="ph">Sem imagem</span>'; }
 }
 function fmtData(iso){
@@ -329,6 +452,165 @@ function askConfirm(title, msg, okLabel){
     $('cfCancel').onclick = () => cleanup(false);
   });
 }
+
+/* ── Base de produtos ────────────────────────────────────────────────── */
+const BP = { base: null, bancos: {}, filtro: '', ctx: null, escolhido: null };
+
+async function carregarBase(){
+  if(BP.base) return BP.base;
+  const r = await fetch('base_produtos.json?v=' + Math.floor(Date.now() / 36e5), { cache: 'no-cache' });
+  if(!r.ok) throw new Error('base_produtos.json (' + r.status + ')');
+  const j = await r.json();
+  BP.bancos = j.bancos || {};
+  BP.base = (j.produtos || []).map(x => ({ ...x,
+    // o tipo entra no texto: "chinelo" e "tênis" também acham, mesmo sem
+    // estarem no nome do produto
+    alvo: semAcento([x.a, x.d, x.c, x.c.replace(/\//g, ' '), x.t === 'CHI' ? 'CHINELO' : 'TENIS',
+                     x.m === 'UA' ? 'UNDER ARMOUR UA' : 'OLYMPIKUS OLY'].join(' ')) }));
+  return BP.base;
+}
+const semAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+const escHtml = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+const fotoDaBase = x => x.b && BP.bancos[x.b] ? BP.bancos[x.b] + encodeURIComponent(x.f) : '';
+const listaPadrao = x => x.m === 'UA' ? 'UA FTW' : (x.t === 'CHI' ? 'OLY CHI' : 'OLY FTW');
+
+/** Abre a busca. `pendente`: veio de um aviso da loja (já traz loja, números
+ *  e o que ela digitou). `loja`: cadastro direto, pelo botão da loja. */
+async function abrirBase({ pendente = null, loja = null } = {}){
+  BP.ctx = { pendente, loja: loja || (pendente && (DATA.lojas || []).find(l => l.codigo === pendente.lojaCodigo)) || null };
+  BP.escolhido = null;
+  $('bpPasso1').style.display = 'flex'; $('bpPasso2').hidden = true;
+  $('bpTit').textContent = pendente ? 'Cadastrar o produto que a loja informou' : 'Cadastrar produto da base';
+  $('bpSub').textContent = BP.ctx.loja ? BP.ctx.loja.nome : 'Procure pelo artigo, pelo nome ou pela cor';
+  $('bpPedido').hidden = !pendente;
+  if(pendente){
+    $('bpPedido').innerHTML = `A loja informou: <b>${escHtml(pendente.descricao || '—')}</b> · cor ${escHtml(pendente.cor || '—')} · artigo ${escHtml(pendente.artigo || '—')} · estoque ${pendente.estoqueAtual ?? 0} · venda ${pendente.venda ?? 0}`;
+  }
+  $('bpBg').hidden = false;
+  document.body.style.overflow = 'hidden';
+  $('bpLista').innerHTML = '<div class="bp-vazio">Carregando a base…</div>';
+  try{ await carregarBase(); }
+  catch(e){ $('bpLista').innerHTML = `<div class="bp-vazio">Não consegui abrir a base de produtos (${escHtml(e.message)}).</div>`; return; }
+  // começa pelo artigo que a loja mandou; sem artigo, pelo nome
+  const artigo = String(pendente && pendente.artigo || '').replace(/\D/g, '');
+  $('bpBusca').value = artigo.length >= 5 ? artigo : (pendente ? (pendente.descricao || '') : '');
+  pintarBase();
+  setTimeout(() => $('bpBusca').focus(), 40);
+}
+function fecharBase(){
+  $('bpBg').hidden = true;
+  document.body.style.overflow = '';
+  BP.ctx = null; BP.escolhido = null;
+}
+
+function pintarBase(){
+  const termos = semAcento($('bpBusca').value).split(/\s+/).filter(Boolean);
+  const loja = BP.ctx && BP.ctx.loja;
+  const naLoja = new Set(loja ? Object.values(loja.marcas || {}).flat().map(i => i.id) : []);
+  let lista = BP.base.filter(x => {
+    if(BP.filtro === 'OLY' && x.m !== 'OLY') return false;
+    if(BP.filtro === 'UA' && x.m !== 'UA') return false;
+    if(BP.filtro === 'CHI' && x.t !== 'CHI') return false;
+    return termos.every(t => x.alvo.includes(t));
+  });
+  // artigo exato primeiro, depois quem tem foto
+  const q = termos.join('');
+  lista.sort((a, b) => (b.a === q) - (a.a === q) || (!!b.b - !!a.b) || a.d.localeCompare(b.d));
+  const total = lista.length, MAX = 120;
+  lista = lista.slice(0, MAX);
+  // sem nada digitado e sem filtro, a lista fica vazia: são mais de mil produtos
+  const mostra = termos.length || BP.filtro;
+  $('bpConta').textContent = !mostra ? `${BP.base.length} produtos na base · digite para procurar`
+    : total ? `${total} encontrado${total > 1 ? 's' : ''}${total > MAX ? ` · mostrando ${MAX}, refine a busca` : ''}`
+    : 'Nada encontrado — tente só o número do artigo ou parte do nome';
+  if(!mostra){ $('bpLista').innerHTML = ''; return; }
+  $('bpLista').innerHTML = lista.map((x, i) => {
+    const foto = fotoDaBase(x);
+    const ja = naLoja.has(`${x.a}|${x.c}`);
+    return `<button type="button" class="bp-card${ja ? ' na-loja' : ''}" data-i="${i}" title="${ja ? 'Já está na lista desta loja' : 'Escolher este produto'}">
+      <span class="ft">${foto ? `<img src="${foto}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<span class=bp-ph>Sem imagem</span>'">` : '<span class="bp-ph">Sem imagem</span>'}</span>
+      <span class="tx">
+        <span class="d${x.d ? '' : ' sem'}">${escHtml(x.d || 'Sem descrição')}</span>
+        <span class="ac">${escHtml(x.a)} · ${escHtml(x.c)}</span>
+        ${ja ? '<span class="ja">✓ já está na loja</span>' : ''}
+        <span class="mk">${x.m === 'UA' ? 'Under Armour' : 'Olympikus'}${x.t === 'CHI' ? ' · chinelo' : ''}</span>
+      </span>
+    </button>`;
+  }).join('');
+  $('bpLista').querySelectorAll('.bp-card').forEach(b => b.onclick = () => escolherDaBase(lista[Number(b.dataset.i)]));
+}
+
+function escolherDaBase(x){
+  BP.escolhido = x;
+  const p = BP.ctx && BP.ctx.pendente;
+  const foto = fotoDaBase(x);
+  $('bpFoto').innerHTML = foto ? `<img src="${foto}" alt="">` : '<span class="bp-ph">Sem imagem</span>';
+  $('bpNome').textContent = x.d || 'Produto sem descrição na base';
+  $('bpMeta').textContent = `Artigo ${x.a} · cor ${x.c} · ${x.m === 'UA' ? 'Under Armour' : 'Olympikus'}${x.g ? ' · ' + x.g : ''}`;
+  // sem descrição na base, vale o que a loja escreveu
+  $('bpDesc').value = x.d || (p && p.descricao) || '';
+  $('bpLoja').innerHTML = (DATA.lojas || []).map(l =>
+    `<option value="${escHtml(l.codigo)}"${BP.ctx.loja && BP.ctx.loja.codigo === l.codigo ? ' selected' : ''}>${escHtml(l.nome)}</option>`).join('');
+  const listas = ['OLY FTW', 'OLY CHI', 'UA FTW'];
+  const sugerida = listaPadrao(x);
+  $('bpMarca').innerHTML = listas.map(m => `<option value="${m}"${m === sugerida ? ' selected' : ''}>${MARCA_LABELS[m] || m}</option>`).join('');
+  $('bpEstoque').value = p ? (p.estoqueAtual ?? 0) : '';
+  $('bpVenda').value = p ? (p.venda ?? 0) : '';
+  $('bpAviso').hidden = true;
+  $('bpLoja').disabled = !!p;         // o aviso é de uma loja: o produto vai para ela
+  $('bpPasso1').style.display = 'none'; $('bpPasso2').hidden = false;
+  conferirDuplicado();
+  setTimeout(() => $('bpEstoque').focus(), 40);
+}
+
+function conferirDuplicado(){
+  const x = BP.escolhido; if(!x) return;
+  const loja = (DATA.lojas || []).find(l => l.codigo === $('bpLoja').value);
+  const ja = loja && Object.values(loja.marcas || {}).flat().some(i => i.id === `${x.a}|${x.c}`);
+  $('bpAviso').hidden = !ja;
+  $('bpAviso').textContent = ja ? 'Este produto já está na lista desta loja — cadastrar de novo não duplica.' : '';
+}
+
+async function cadastrarDaBase(){
+  const x = BP.escolhido; if(!x) return;
+  const p = BP.ctx && BP.ctx.pendente;
+  const lojaCodigo = $('bpLoja').value;
+  const descricao = $('bpDesc').value.trim();
+  if(!descricao){ $('bpAviso').hidden = false; $('bpAviso').textContent = 'Escreva a descrição que a loja vai ver.'; $('bpDesc').focus(); return; }
+  const btn = $('bpCadastrar');
+  btn.disabled = true; btn.textContent = 'Cadastrando…';
+  try{
+    const r = await callWorker({ action: 'cadastrarMatrizItem', lojaCodigo, marca: $('bpMarca').value,
+      artigo: x.a, cor: x.c, descricao,
+      estoqueAtual: Number($('bpEstoque').value) || 0, venda: Number($('bpVenda').value) || 0,
+      pendenteId: p ? p.id : undefined });
+    fecharBase();
+    await load();
+    toast(r.duplicado ? 'Produto já estava na loja' + (p ? ' — aviso resolvido.' : '.')
+                      : `${descricao} cadastrado na loja.`);
+  }catch(e){
+    $('bpAviso').hidden = false;
+    $('bpAviso').textContent = /action|desconhecid|unknown/i.test(e.message)
+      ? 'O Worker ainda não tem o cadastro pela base — ele precisa ser publicado de novo.'
+      : 'Não deu para cadastrar: ' + e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Cadastrar na loja';
+  }
+}
+
+$('bpFechar').onclick = fecharBase;
+$('bpBg').onclick = e => { if(e.target === $('bpBg')) fecharBase(); };
+$('bpBusca').oninput = () => pintarBase();
+$('bpFiltros').onclick = e => {
+  const b = e.target.closest('[data-f]'); if(!b) return;
+  BP.filtro = b.dataset.f;
+  $('bpFiltros').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  pintarBase();
+};
+$('bpVoltar').onclick = () => { $('bpPasso2').hidden = true; $('bpPasso1').style.display = 'flex'; $('bpBusca').focus(); };
+$('bpLoja').onchange = conferirDuplicado;
+$('bpCadastrar').onclick = cadastrarDaBase;
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('bpBg').hidden) fecharBase(); });
 
 async function callWorker(body){
   const res = await fetch(WORKER_URL, {
@@ -471,12 +753,20 @@ function renderPendentes(){
       ${isRemocao ? '' : `<div class="nums tnum">Estoque: ${p.estoqueAtual ?? 0} · Venda: ${p.venda ?? 0}</div>`}
       ${p.status === 'pendente' ? `
       <div class="acts">
-        <button class="btn primary" data-act="aprovar" title="${isRemocao ? 'Remover este item do catálogo da loja' : 'Marcar como já cadastrado corretamente'}">${isRemocao ? 'Confirmar remoção' : 'Marcar cadastrado'}</button>
+        ${isRemocao ? '' : `<button class="btn linkbase" data-base="${p.id}" title="Achar o produto certo na base, com foto, e cadastrar na loja">🔎 Buscar na base</button>`}
+        <button class="btn primary" data-act="aprovar" title="${isRemocao ? 'Remover este item do catálogo da loja' : 'Cadastrar exatamente como a loja digitou'}">${isRemocao ? 'Confirmar remoção' : 'Marcar cadastrado'}</button>
         <button class="btn" data-act="rejeitar" title="${isRemocao ? 'Manter o item no catálogo da loja' : 'Descartar esse pedido de cadastro'}">${isRemocao ? 'Manter no catálogo' : 'Rejeitar'}</button>
       </div>` : ''}
     </div>
   `;
   }).join('');
+
+  $('pendList').querySelectorAll('[data-base]').forEach(btn => {
+    btn.onclick = () => {
+      const p = (DATA.pendentes || []).find(x => x.id === btn.dataset.base);
+      if(p) abrirBase({ pendente: p });
+    };
+  });
 
   $('pendList').querySelectorAll('[data-act]').forEach(btn => {
     btn.onclick = async () => {
@@ -639,6 +929,7 @@ function renderLojas(){
         <button class="btn" data-copy="${link}" title="Copiar o link desta loja para a área de transferência">Copiar link</button>
       </div>
       <div class="vbody">
+        <div class="vcadastrar"><button class="btn linkbase" data-cadastrar="${i}" title="Procurar na base de produtos e cadastrar nesta loja">＋ Cadastrar produto da base</button></div>
         <div class="marcafilter" id="mf-${i}">
           ${marcas.map((m,mi) => `<button class="mchip ${mi===0?'on':''}" data-marca="${m}" title="Ver produtos de ${MARCA_LABELS[m]||m}">${MARCA_LABELS[m]||m}</button>`).join('')}
           <button class="mchip semimg" id="semimg-${i}" title="Mostrar só produtos sem imagem cadastrada">📷 Sem imagem</button>
@@ -652,6 +943,10 @@ function renderLojas(){
       </div>
     </div>`;
   }).join('');
+
+  $('lojasList').querySelectorAll('[data-cadastrar]').forEach(b => {
+    b.onclick = () => abrirBase({ loja: (DATA.lojas || [])[Number(b.dataset.cadastrar)] });
+  });
 
   lojas.forEach((l, i) => {
     $('vend-'+i).querySelector('[data-toggle]').onclick = () => {

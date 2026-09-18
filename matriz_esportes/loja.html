@@ -389,9 +389,17 @@ function imgUrlExt(artigo, cor, ext){
 }
 function imgUrl(artigo, cor){ return imgUrlExt(artigo, cor, 'jpg'); }
 function imgFallback(imgEl, artigo, cor){
-  if(imgEl.dataset.fb !== '1'){
+  // jpg → jpeg no banco do Catálogo Digital → jpg no banco do CMS PASS: o
+  // produto cadastrado pela base pode ter foto só neste último.
+  const passo = Number(imgEl.dataset.fb || 0);
+  const corArquivo = String(cor || '').replace(/\//g, '_');
+  if(passo === 0){
     imgEl.dataset.fb = '1';
     imgEl.src = imgUrlExt(artigo, cor, 'jpeg');
+  }else if(passo === 1){
+    imgEl.dataset.fb = '2';
+    imgEl.src = 'https://cms-representacoes.github.io/apps-oly/Catalogo/' +
+      encodeURIComponent(artigo) + '_' + encodeURIComponent(corArquivo) + '.jpg';
   }else{
     imgEl.parentElement.innerHTML = '<div class="ph">Sem imagem</div>';
   }
