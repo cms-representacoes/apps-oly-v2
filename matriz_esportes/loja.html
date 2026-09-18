@@ -150,6 +150,9 @@
   .savebar-in{max-width:1180px;width:100%;display:flex;align-items:center;gap:16px}
   .savebar .status{font-size:13.5px;color:var(--slate);flex:1;font-weight:500}
   .savebar .status.ok{color:var(--green);font-weight:600}
+  .savebar .status .curto{display:none}
+  .savebtn{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .savebtn .ic-salvar{flex:none}
   .btn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:9px;padding:10px 18px}
   .btn.primary{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
   .savebtn{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;background:var(--purple);color:#fff;border-radius:11px;padding:15px 30px;box-shadow:0 4px 14px rgba(124,58,237,.35);transition:background .2s}
@@ -259,7 +262,13 @@
     .kpi{padding:7px 10px}
     .kpi .v{font-size:17px}
     .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-    .savebar-in{flex-wrap:wrap}
+    /* barra de salvar: uma linha só — aviso curto à esquerda, botão compacto */
+    .savebar{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
+    .savebar-in{gap:10px}
+    .savebar .status{font-size:13px;line-height:1.25;min-width:0}
+    .savebar .status .longo{display:none}
+    .savebar .status .curto{display:inline}
+    .savebtn{padding:11px 18px;font-size:14.5px;border-radius:10px;flex:none}
     .litem{flex-wrap:wrap;gap:12px}
     .litem .img{width:84px;height:84px;padding:4px;border-radius:10px}
     .litem .desc{font-size:14px}
@@ -325,8 +334,8 @@
   <div class="savebar">
     <div class="savebar-in">
 
-      <span class="status" id="saveStatus">Nenhuma alteração pendente.</span>
-      <button class="savebtn" id="saveBtn" disabled title="Salvar as alterações agora">Salvar alterações</button>
+      <span class="status" id="saveStatus"><span class="longo">Nenhuma alteração pendente.</span><span class="curto">Nada a salvar</span></span>
+      <button class="savebtn" id="saveBtn" disabled title="Salvar as alterações agora" aria-label="Salvar"><svg class="ic-salvar" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="6" rx="1"/></svg><span class="rot">Salvar</span></button>
     </div>
   </div>
 </div>
@@ -831,17 +840,23 @@ function markDirty(id, card){
   if(badge) badge.remove();
   updateSaveBar();
 }
+/** O aviso da barra tem duas versões: a longa e uma curta para o celular. */
+function avisoSalvar(longo, curto, ok){
+  const el = $('saveStatus');
+  el.classList.toggle('ok', !!ok);
+  el.innerHTML = '';
+  const a = document.createElement('span'); a.className = 'longo'; a.textContent = longo;
+  const b = document.createElement('span'); b.className = 'curto'; b.textContent = curto || longo;
+  el.append(a, b);
+}
+const BOTAO_SALVAR = $('saveBtn').innerHTML;
 function updateSaveBar(){
   const n = STATE.dirty.size;
   $('saveBtn').disabled = n === 0;
   $('saveBtn').classList.toggle('dirty', n > 0);
-  if(n === 0){
-    $('saveStatus').classList.remove('ok');
-    $('saveStatus').textContent = 'Nenhuma alteração pendente.';
-  }else{
-    $('saveStatus').classList.remove('ok');
-    $('saveStatus').textContent = `${n} item(ns) alterado(s) — clique em Salvar quando terminar.`;
-  }
+  if(n === 0) avisoSalvar('Nenhuma alteração pendente.', 'Nada a salvar');
+  else avisoSalvar(`${n} item(ns) alterado(s) — clique em Salvar quando terminar.`,
+                   `${n} alterado${n > 1 ? 's' : ''} · falta salvar`);
 }
 
 let autosaveTimer = null;
@@ -857,7 +872,7 @@ async function saveNow(trigger){
   if(trigger === 'manual'){
     btn.disabled = true;
     btn.classList.remove('dirty');
-    $('saveStatus').textContent = 'Salvando…';
+    avisoSalvar('Salvando…');
   }
   try{
     const savedIds = Array.from(STATE.dirty);
@@ -870,22 +885,21 @@ async function saveNow(trigger){
     renderItems();
     btn.classList.remove('dirty');
     btn.classList.add('saved');
-    btn.textContent = '✓ Salvo!';
+    btn.textContent = '✓ Salvo';
     btn.disabled = true;
-    $('saveStatus').classList.add('ok');
-    $('saveStatus').textContent = 'Estoque atualizado com sucesso — ' + fmtData(STATE.loja.ultimaAtualizacaoLoja) + '.';
+    avisoSalvar('Estoque atualizado com sucesso — ' + fmtData(STATE.loja.ultimaAtualizacaoLoja) + '.', 'Estoque salvo ✓', true);
     const lu = $('lastUpd');
     lu.classList.add('ok');
     lu.querySelector('span:last-child').textContent = 'Último envio: ' + fmtData(STATE.loja.ultimaAtualizacaoLoja);
     toast(trigger === 'manual' ? 'Estoque salvo com sucesso!' : 'Estoque sincronizado automaticamente.');
-    setTimeout(() => { btn.classList.remove('saved'); btn.textContent = 'Salvar alterações'; }, 3000);
+    setTimeout(() => { btn.classList.remove('saved'); btn.innerHTML = BOTAO_SALVAR; }, 3000);
   }catch(e){
     console.error(e);
     if(trigger === 'manual'){
       toast('Erro ao salvar: ' + e.message, true);
       btn.disabled = false;
       btn.classList.add('dirty');
-      $('saveStatus').textContent = STATE.dirty.size + ' item(ns) alterado(s), ainda não salvo.';
+      avisoSalvar(STATE.dirty.size + ' item(ns) alterado(s), ainda não salvo.', 'Não salvou · tente de novo');
     }else{
       autosaveTimer = setTimeout(() => saveNow('auto'), 6000);
     }
