@@ -604,6 +604,19 @@
      vinha. Por isso aqui a vigilância é contínua, e o que dispara uma
      ação é a tela MUDAR, não a página carregar. */
 
+  // O Chrome barrou uma janela do EBM: sem ela o roteiro não anda.
+  // Vale o que aconteceu antes de este script carregar (a marca na página)
+  // e o que acontecer depois (o evento).
+  let popupAvisado = false;
+  const avisarPopup = (url) => {
+    if (popupAvisado) return;
+    popupAvisado = true;
+    relatar({ erro: 'O Chrome bloqueou uma janela do EBM (pop-up).', codigo: 'popup-bloqueado',
+              aviso: `janela barrada: ${String(url || '').split('/').pop() || '(sem endereço)'}` });
+  };
+  if (document.documentElement.dataset.cmsPopupBloqueado) avisarPopup(document.documentElement.dataset.cmsPopupBloqueado);
+  window.addEventListener('cms-ebm-popup-bloqueado', (ev) => avisarPopup(ev.detail));
+
   let telaAtendida = null;
   let ocupado = false;
 

@@ -8567,6 +8567,40 @@ let _pdfUltimo = null;
    nada, nem no navegador nem no servidor. */
 const extensaoEntraSozinha = () => !!document.documentElement.dataset.cmsEbmLogin;
 
+/* ---------- pop-ups do EBM ----------
+   O EBM abre janelas próprias (login, visualizador do pedido). Num Chrome
+   que bloqueia pop-ups do site, o PDF nunca sai e a janela do EBM fica
+   parada numa tela vazia. A extensão percebe o bloqueio e a Detalhada
+   explica como liberar — página interna do Chrome não abre por link, então
+   o endereço vai para a área de transferência. */
+const CONFIG_POPUPS = 'chrome://settings/content/popups';
+const SITE_EBM = 'https://www.vulcabras.com.br';
+
+async function avisarPopupBloqueado(pendente) {
+  for (;;) {
+    const r = await perguntar({
+      titulo: 'Libere as janelas do EBM',
+      sub: 'O Chrome bloqueou uma janela (pop-up) que o EBM precisa abrir',
+      corpo: `<p class="pg-texto">É uma vez só, neste navegador:</p>
+        <ol class="pg-passos">
+          <li>Abra uma aba nova e cole o endereço <code>${CONFIG_POPUPS}</code> — o botão abaixo copia para você.</li>
+          <li>Em <b>"Permitido enviar pop-ups e usar redirecionamentos"</b>, clique em <b>Adicionar</b>.</li>
+          <li>Digite <code>${SITE_EBM}</code> e confirme.</li>
+          <li>Volte aqui e clique em <b>Tentar de novo</b>.</li>
+        </ol>`,
+      botoes: [{ id: 'fechar', rot: 'Fechar' },
+               { id: 'copiar', rot: 'Copiar endereço', ic: 'fa-regular fa-copy' },
+               { id: 'tentar', rot: 'Tentar de novo', ic: 'fa-solid fa-rotate-right', cls: 'btn-confirmar-dest' }],
+    });
+    if (r === 'copiar') {
+      try { await navigator.clipboard.writeText(CONFIG_POPUPS); toast('Endereço copiado — cole numa aba nova'); }
+      catch (e) { toast('Copie o endereço: ' + CONFIG_POPUPS); }
+      continue;                       // o aviso volta, para a pessoa seguir os passos
+    }
+    return r === 'tentar' && !!pendente;
+  }
+}
+
 async function pedirLoginEbm(recusado) {
   for (;;) {
     const pergunta = perguntar({
@@ -8890,6 +8924,24 @@ function ligarRespostaPdf() {
       }
       fecharTarjaPdf(2500);
       toast(d.texto || 'PDF gerado');
+      return;
+    }
+    if (d.tipo === 'erro' && d.codigo === 'popup-bloqueado') {
+      _pdfEmCurso = null;
+      const pendente = _pdfUltimo;
+      $('tarja-pdf-titulo').textContent = 'Libere as janelas do EBM';
+      $('tarja-pdf-detalhe').textContent = 'O Chrome bloqueou um pop-up do EBM';
+      renderBarraSelecao();
+      avisarPopupBloqueado(pendente).then(tentar => {
+        if (tentar) { pedirPdf(pendente.gcis, pendente.nomeCliente, pendente.status); return; }
+        fecharTarjaPdf(0);
+        if (APP.fila) {
+          const restam = APP.fila.grupos.length - APP.fila.atual;
+          APP.fila = null;
+          toast(`PDF cancelado · faltaram ${restam}`);
+        }
+        renderBarraSelecao();
+      });
       return;
     }
     if (d.tipo === 'erro' && (d.codigo === 'precisa-login' || d.codigo === 'login-recusado')
@@ -13251,6 +13303,12 @@ html.dark .rfv-balao .rb-n{ color:#C4B5FD; }
   border:1px solid var(--ds-line); border-radius:12px; padding:11px 12px; outline:none; }
 .pg-login input:focus{ border-color:var(--ds-accent); box-shadow:0 0 0 3px rgba(var(--ds-accent-rgb), .14); }
 .pg-login .pg-erro{ margin:0; font-size:12.5px; font-weight:700; color:#B91C1C; }
+/* passo a passo para liberar os pop-ups do EBM */
+.pg-passos{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px;
+  font-size:13px; line-height:1.45; color:var(--ds-ink); }
+.pg-passos code{ font-family:ui-monospace, Consolas, monospace; font-size:12px; font-weight:700;
+  background:rgba(var(--ds-accent-rgb), .10); color:var(--ds-accent); border-radius:6px; padding:1px 6px;
+  word-break:break-all; }
 html.dark .pg-login .pg-erro{ color:#FCA5A5; }
 .pg-zap:hover{ background:#15803D !important; }
 /* ícones das fichas: relógio e ampulheta para o atraso, calendário para a

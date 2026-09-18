@@ -56,6 +56,26 @@
     };
   } catch (e) { /* segue como sempre */ }
 
+  // O EBM abre janelas próprias (login, visualizador do pedido). Quando o
+  // Chrome está bloqueando pop-ups do site, o window.open devolve null e o
+  // roteiro fica parado numa tela vazia, sem erro nenhum. Aqui isso vira
+  // um aviso — é o ebm.js quem o leva adiante.
+  try {
+    const abrirOriginal = window.open;
+    window.open = function () {
+      const janela = abrirOriginal.apply(this, arguments);
+      if (!janela) {
+        // A marca fica na página porque o EBM costuma abrir a janela já na
+        // carga, antes de o ebm.js existir para ouvir o evento.
+        try { document.documentElement.dataset.cmsPopupBloqueado = String(arguments[0] || '?'); }
+        catch (e) { /* segue */ }
+        window.dispatchEvent(new CustomEvent('cms-ebm-popup-bloqueado', {
+          detail: String(arguments[0] || '') }));
+      }
+      return janela;
+    };
+  } catch (e) { /* segue como sempre */ }
+
   const G = 'form1:webFilterGrid';
   const idCampo  = (l, c) => `${G}:webGrid:txtInput:row${l}:${c}`;
   const idCelula = (l, c) => `${G}:row${l}:${c}`;

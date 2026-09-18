@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CMS · PDF de Encomendas",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Gera o PDF do pedido no EBM4Web a partir das encomendas marcadas no app Detalhada.",
 
   "permissions": ["tabs", "downloads", "storage", "alarms"],

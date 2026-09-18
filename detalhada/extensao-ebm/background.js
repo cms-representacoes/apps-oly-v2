@@ -372,8 +372,11 @@ async function esconder(tabId) {
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.de !== 'cms-ebm-pagina') return;
-  if (msg.erro) { anotar('página relatou: ' + msg.erro); encerrar(false, msg.erro); }
   if (msg.aviso) anotar('página: ' + msg.aviso);
+  if (msg.erro) {
+    anotar('página relatou: ' + msg.erro);
+    encerrar(false, msg.erro, msg.codigo ? { codigo: msg.codigo } : {});
+  }
   if (!job && (msg.erro || msg.aviso)) {
     console.log('[CMS] (sem trabalho em curso)', msg.erro || msg.aviso);
   }
@@ -386,9 +389,35 @@ chrome.downloads.onDeterminingFilename.addListener((item, sugerir) => {
   if (!/ClienteEncomenda.*\.pdf$/i.test(item.filename)) return;
 
   const nome = limparNome(job.nomeArquivo) + '.pdf';
-  anotar(`baixou ${item.filename} → ${nome}`);
+  anotar(`baixando ${item.filename} → ${nome}`);
+  job.downloadId = item.id;
+  job.nomeFinal = nome;
   sugerir({ filename: nome, conflictAction: 'uniquify' });
-  encerrar(true, `PDF salvo como ${nome}`);
+  avisar('progresso', 'Salvando o PDF…');
+  // NÃO encerra aqui. Este é só o momento em que o Chrome dá nome ao
+  // arquivo — ele ainda está chegando. Encerrar agora fechava a janela do
+  // EBM no meio do download: o aviso dizia "salvo" e o arquivo não
+  // aparecia na pasta. Quem encerra é o onChanged, abaixo.
+});
+
+// O download terminou (ou falhou): só agora o trabalho acaba e a janela do
+// EBM pode fechar. O aviso leva o caminho completo, que é o que responde
+// "cadê o arquivo?".
+chrome.downloads.onChanged.addListener(async (delta) => {
+  if (!job || job.downloadId == null || delta.id !== job.downloadId) return;
+  const estado = delta.state && delta.state.current;
+  if (estado === 'complete') {
+    let caminho = '';
+    try {
+      const [it] = await chrome.downloads.search({ id: delta.id });
+      caminho = (it && it.filename) || '';
+    } catch (e) { /* sem o caminho, fica o nome */ }
+    anotar(`download concluído: ${caminho || job.nomeFinal}`);
+    encerrar(true, caminho ? `PDF salvo em ${caminho}` : `PDF salvo como ${job.nomeFinal}`, { caminho });
+  } else if (estado === 'interrupted') {
+    const motivo = (delta.error && delta.error.current) || 'motivo desconhecido';
+    encerrar(false, `O download do PDF não terminou (${motivo}). Veja em chrome://downloads.`);
+  }
 });
 
 function limparNome(s) {
