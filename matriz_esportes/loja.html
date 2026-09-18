@@ -1059,7 +1059,13 @@ function renderSugestoes(){
     // "chinelo" e "tênis" também acham, mesmo sem estar no nome
     const alvo = semAcentoL([it.artigo, it.descricao, it.cor, String(it.cor).replace(/\//g, ' '),
       (it.chinelo || it.lista === 'OLY CHI') ? 'CHINELO' : 'TENIS', it.lista === 'UA FTW' ? 'UNDER ARMOUR UA' : 'OLYMPIKUS'].join(' '));
-    return termos.every(t => alvo.includes(t));
+    // Cada termo casa com o começo de uma palavra ("COR" acha "CORRE"), e
+    // número curto só casa com a palavra inteira: "corre 5" não traz o
+    // Corre 4 só porque um artigo ou outro número tem um 5 no meio.
+    const palavras = alvo.split(/[\s\/·.,;:()+-]+/).filter(Boolean);
+    return termos.every(t => /^\d{1,3}$/.test(t)
+      ? palavras.includes(t)
+      : palavras.some(w => w.startsWith(t)));
   });
   const q = termos.join('');
   // artigo exato, depois a marca escolhida, depois quem tem foto
