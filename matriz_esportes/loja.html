@@ -155,10 +155,13 @@
   .modal .f input,.modal .f select{width:100%;font-family:"Inter",sans-serif;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
   .modal .f input:focus,.modal .f select:focus{outline:none;border-color:var(--purple)}
   .modal .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .p-suggest{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:220px;overflow-y:auto;z-index:10;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+  .p-suggest{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:min(320px,46vh);overflow-y:auto;z-index:10;box-shadow:0 8px 20px rgba(0,0,0,.12)}
   .p-suggest-item{display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer}
   .p-suggest-item:hover{background:var(--line-2)}
-  .p-suggest-item img{width:34px;height:34px;object-fit:contain;background:var(--line-2);border-radius:6px;padding:3px;flex:none}
+  .p-suggest-item img{width:52px;height:52px;object-fit:contain;background:#fff;border:1px solid var(--line-2);border-radius:8px;padding:2px;flex:none}
+  .p-suggest-item .sem{width:52px;height:52px;flex:none;border-radius:8px;background:var(--line-2);display:grid;place-items:center;font-size:9px;color:var(--mute);text-align:center}
+  .p-suggest-item .mk{display:inline-block;margin-top:2px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+  .p-suggest-head{padding:7px 10px 4px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
   .p-suggest-item .txt{font-size:12.5px;line-height:1.3}
   .p-suggest-item .txt b{font-family:"Space Grotesk",sans-serif;font-weight:600;display:block}
   .p-suggest-item .txt span{color:var(--purple);font-size:11px}
@@ -292,7 +295,7 @@
 <div class="modal-bg" id="modalBg" hidden>
   <div class="modal">
     <h2>Produto não cadastrado</h2>
-    <p class="hint">Digite o nome do produto — se já existir em alguma loja, selecione da lista pra preencher sozinho. Se não achar, preencha manualmente.</p>
+    <p class="hint">Procure pelo nome, pelo artigo ou pela cor e escolha o produto pela foto — os campos se preenchem sozinhos. Se não achar, preencha à mão.</p>
     <div class="f">
       <label>Marca</label>
       <select id="pMarca">
@@ -302,8 +305,8 @@
       </select>
     </div>
     <div class="f" style="position:relative">
-      <label>Descrição</label>
-      <input id="pDescricao" type="text" placeholder="Digite o nome do produto…" autocomplete="off">
+      <label>Produto</label>
+      <input id="pDescricao" type="text" placeholder="Nome, artigo ou cor do produto…" autocomplete="off" title="Procure na lista de produtos da CMS">
       <div class="p-suggest" id="pSuggest" hidden></div>
     </div>
     <div class="p-preview" id="pPreview" hidden>
@@ -914,7 +917,16 @@ function updatePreview(){
   const cor = $('pCor').value.trim();
   const descricao = $('pDescricao').value.trim();
   if(artigo && cor){
-    $('pPreviewImg').src = imgUrl(artigo, cor);
+    const daBase = _escolhaFoto && _escolhaFoto.chave === artigo + '|' + cor ? _escolhaFoto.url : '';
+    // a prévia tenta os dois bancos, mas nunca apaga a legenda ao lado
+    const tentativas = daBase ? [daBase] : [imgUrl(artigo, cor), imgUrlExt(artigo, cor, 'jpeg'),
+      'https://cms-representacoes.github.io/apps-oly/Catalogo/' + encodeURIComponent(artigo) + '_' +
+      encodeURIComponent(String(cor).replace(/\//g, '_')) + '.jpg'];
+    const img = $('pPreviewImg');
+    let n = 0;
+    img.style.visibility = '';
+    img.onerror = () => { n++; if(n < tentativas.length) img.src = tentativas[n]; else img.style.visibility = 'hidden'; };
+    img.src = tentativas[0];
     $('pPreviewCap').textContent = (descricao || '(sem descrição)') + ' · ' + cor + ' · Artigo ' + artigo;
     $('pPreview').hidden = false;
   }else{
@@ -922,30 +934,90 @@ function updatePreview(){
   }
 }
 
-function renderSugestoes(){
-  const q = $('pDescricao').value.trim().toLowerCase();
-  const mapa = (STATE.catalogoGlobal && STATE.catalogoGlobal[$('pMarca').value]) || new Map();
-  if(!q){ $('pSuggest').hidden = true; return; }
-  const itens = Array.from(mapa.values()).filter(it =>
-    (it.descricao||'').toLowerCase().includes(q) || (it.cor||'').toLowerCase().includes(q) || (it.artigo||'').toLowerCase().includes(q)
-  ).slice(0, 8);
+/* ── Base de produtos da CMS ──────────────────────────────────────────
+   A sugestão procurava só no que as três lojas já têm: produto que nenhuma
+   delas cadastrou não aparecia, e a loja digitava artigo e cor à mão —
+   com erro. Agora procura também na base completa (a mesma do admin), com
+   a foto dos bancos de imagens, e o aviso chega à CMS com o produto certo. */
+const BASE = { itens: null, bancos: {}, carregando: null };
+const semAcentoL = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+const escL = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const listaDaBase = x => x.m === 'UA' ? 'UA FTW' : (x.t === 'CHI' ? 'OLY CHI' : 'OLY FTW');
 
-  if(itens.length === 0){
-    $('pSuggest').innerHTML = `<div class="p-suggest-empty">Nenhum produto encontrado — preencha artigo e cor manualmente abaixo.</div>`;
+function carregarBaseLoja(){
+  if(BASE.itens) return Promise.resolve(BASE.itens);
+  if(BASE.carregando) return BASE.carregando;
+  BASE.carregando = fetch('base_produtos.json?v=' + Math.floor(Date.now() / 36e5), { cache: 'no-cache' })
+    .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(j => {
+      BASE.bancos = j.bancos || {};
+      BASE.itens = (j.produtos || []).map(x => ({ artigo: x.a, descricao: x.d, cor: x.c, lista: listaDaBase(x), chinelo: x.t === 'CHI',
+        foto: x.b && BASE.bancos[x.b] ? BASE.bancos[x.b] + encodeURIComponent(x.f) : '' }));
+      return BASE.itens;
+    })
+    .catch(() => { BASE.itens = []; return BASE.itens; })   // sem base, segue só com o das lojas
+    .finally(() => { BASE.carregando = null; });
+  return BASE.carregando;
+}
+
+/** Tudo o que dá para sugerir: o que as lojas têm e a base, sem repetir. */
+function candidatos(){
+  const vistos = new Map();
+  for(const [lista, mapa] of Object.entries(STATE.catalogoGlobal || {})){
+    for(const it of mapa.values()) vistos.set(it.artigo + '|' + it.cor, { ...it, lista, foto: '' });
+  }
+  for(const it of (BASE.itens || [])){
+    const k = it.artigo + '|' + it.cor;
+    const ja = vistos.get(k);
+    if(ja){ if(!ja.foto) ja.foto = it.foto; if(!ja.descricao) ja.descricao = it.descricao; }
+    else vistos.set(k, { ...it });
+  }
+  return [...vistos.values()];
+}
+
+let _escolhaFoto = null;   // foto do produto escolhido na lista, para a prévia
+
+function renderSugestoes(){
+  const termos = semAcentoL($('pDescricao').value).split(/\s+/).filter(Boolean);
+  if(!termos.length){ $('pSuggest').hidden = true; return; }
+  const listaAtual = $('pMarca').value;
+  let itens = candidatos().filter(it => {
+    // "chinelo" e "tênis" também acham, mesmo sem estar no nome
+    const alvo = semAcentoL([it.artigo, it.descricao, it.cor, String(it.cor).replace(/\//g, ' '),
+      (it.chinelo || it.lista === 'OLY CHI') ? 'CHINELO' : 'TENIS', it.lista === 'UA FTW' ? 'UNDER ARMOUR UA' : 'OLYMPIKUS'].join(' '));
+    return termos.every(t => alvo.includes(t));
+  });
+  const q = termos.join('');
+  // artigo exato, depois a marca escolhida, depois quem tem foto
+  itens.sort((a, b) => (b.artigo === q) - (a.artigo === q) || (b.lista === listaAtual) - (a.lista === listaAtual)
+    || (!!b.foto - !!a.foto) || String(a.descricao).localeCompare(String(b.descricao)));
+  const total = itens.length;
+  itens = itens.slice(0, 30);
+
+  if(!total){
+    $('pSuggest').innerHTML = `<div class="p-suggest-empty">${BASE.itens ? 'Nenhum produto encontrado' : 'Carregando a lista de produtos…'} — se não achar, preencha artigo e cor à mão abaixo.</div>`;
   }else{
-    $('pSuggest').innerHTML = itens.map(it => `
-      <div class="p-suggest-item" data-artigo="${it.artigo}" data-cor="${it.cor}" data-desc="${it.descricao}">
-        <img src="${imgUrl(it.artigo, it.cor)}" loading="lazy" onerror="this.style.visibility='hidden'">
-        <div class="txt"><b>${it.descricao}</b><span>${it.cor} · Artigo ${it.artigo}</span></div>
-      </div>
-    `).join('');
+    $('pSuggest').innerHTML = `<div class="p-suggest-head">${total} produto${total > 1 ? 's' : ''}${total > 30 ? ' · mostrando 30, detalhe mais' : ''}</div>` +
+      itens.map((it, n) => `
+      <div class="p-suggest-item" data-n="${n}" title="Escolher este produto">
+        ${it.foto ? `<img src="${escL(it.foto)}" loading="lazy" alt="" onerror="this.outerHTML='<span class=sem>sem foto</span>'">`
+                  : `<img src="${escL(imgUrl(it.artigo, it.cor))}" loading="lazy" alt="" onerror="this.outerHTML='<span class=sem>sem foto</span>'">`}
+        <div class="txt"><b>${escL(it.descricao || 'Produto sem descrição')}</b><span>${escL(it.cor)} · Artigo ${escL(it.artigo)}</span>
+          <span class="mk">${it.lista === 'UA FTW' ? 'Under Armour Tênis' : it.lista === 'OLY CHI' ? 'Olympikus Chinelo' : 'Olympikus Tênis'}</span></div>
+      </div>`).join('');
     $('pSuggest').querySelectorAll('.p-suggest-item').forEach(row => {
       row.onclick = () => {
-        $('pArtigo').value = row.dataset.artigo;
-        $('pDescricao').value = row.dataset.desc;
-        $('pCor').value = row.dataset.cor;
+        const it = itens[Number(row.dataset.n)];
+        $('pArtigo').value = it.artigo;
+        $('pDescricao').value = it.descricao || '';
+        $('pCor').value = it.cor;
+        // o produto escolhido diz em que lista entra
+        if(it.lista && [...$('pMarca').options].some(o => o.value === it.lista)) $('pMarca').value = it.lista;
+        _escolhaFoto = it.foto ? { chave: it.artigo + '|' + it.cor, url: it.foto } : null;
         $('pSuggest').hidden = true;
         updatePreview();
+        if(!it.descricao) $('pDescricao').focus();
+        else $('pEstoque').focus();
       };
     });
   }
@@ -953,13 +1025,15 @@ function renderSugestoes(){
 }
 
 $('pDescricao').oninput = () => { renderSugestoes(); updatePreview(); };
-$('pMarca').onchange = () => { $('pSuggest').hidden = true; renderSugestoes(); };
+$('pMarca').onchange = () => { $('pSuggest').hidden = true; };
 document.addEventListener('click', e => {
   if(!$('pSuggest').hidden && !e.target.closest('.f') ) $('pSuggest').hidden = true;
 });
 ['pArtigo','pCor'].forEach(id => $(id).oninput = updatePreview);
 
 function openModal(){
+  carregarBaseLoja().then(() => { if(!$('modalBg').hidden && $('pDescricao').value.trim()) renderSugestoes(); });
+  _escolhaFoto = null;
   $('pMarca').value = STATE.marcaAtiva || 'OLY FTW';
   $('pSuggest').hidden = true;
   $('pPreview').hidden = true;
