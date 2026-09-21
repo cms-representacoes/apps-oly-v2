@@ -14,8 +14,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   :root{
     --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
@@ -436,23 +434,26 @@
   </div>
 </div>
 <style>
+  /* Mesmo padrão de todas as aberturas da CMS: fundo marinho do Portal e
+     o quadrado roxo. Só o que vem embaixo muda — aqui, as barras. */
   #appSplash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;
-    background:linear-gradient(160deg,#9B6BF0,#7C3AED 55%,#6D28D9);
+    background:linear-gradient(160deg,#1e293b,#0f172a 55%,#020617);
     opacity:1;transition:opacity .45s ease}
   #appSplash.out{opacity:0;pointer-events:none}
   #appSplash[hidden]{display:none}
   .spl-box{display:flex;flex-direction:column;align-items:center;gap:10px;
     animation:splIn .5s cubic-bezier(.22,1,.36,1) both}
   .spl-logo{position:relative;overflow:hidden;width:92px;height:92px;border-radius:24px;
-    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+    background:linear-gradient(145deg,#a970ff 0%,#8b5cf6 48%,#7439e0 100%);
+    border:1px solid rgba(190,160,255,.30);
     display:grid;place-items:center;color:#fff;font:700 30px "Space Grotesk",sans-serif;
-    letter-spacing:.02em;box-shadow:0 14px 40px rgba(0,0,0,.25);
+    letter-spacing:.02em;box-shadow:0 14px 40px rgba(124,58,237,.45);
     animation:splPulse 1.6s ease-in-out .4s infinite}
   .spl-shine{position:absolute;top:-30%;left:-80%;width:55%;height:160%;transform:rotate(18deg);
     background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
     animation:splShine 1.8s ease-in-out .6s infinite}
-  .spl-name{color:#fff;font:600 15px "Space Grotesk",sans-serif;letter-spacing:.01em}
-  .spl-sub{color:rgba(255,255,255,.75);font:500 11.5px "Inter",sans-serif;
+  .spl-name{color:#f1f5f9;font:600 15px "Space Grotesk",sans-serif;letter-spacing:.01em}
+  .spl-sub{color:#94a3b8;font:500 11.5px "Inter",sans-serif;
     letter-spacing:.14em;text-transform:uppercase}
   .spl-chart{display:flex;align-items:flex-end;gap:7px;height:58px;margin-top:12px}
   .spl-bar{width:12px;border-radius:4px 4px 2px 2px;display:block;height:0;
@@ -479,10 +480,23 @@
 </style>
 <script>
 (function(){
-  // só no app instalado (Android: display-mode; iOS: navigator.standalone)
+  // Quando mostrar a abertura: no app instalado, sempre; no navegador
+  // (computador ou celular), uma vez por dia por aparelho — anuncia sem virar
+  // pedágio a cada visita. "?abertura=1" força, para conferir a animação.
   const standalone = window.matchMedia('(display-mode: standalone)').matches
     || window.navigator.standalone === true;
-  if(!standalone) return;
+  const forcar = /[?&]abertura=1\b/.test(location.search);
+  let mostrar = standalone || forcar;
+  if(!mostrar){
+    try{
+      const hoje = new Date().toISOString().slice(0, 10);
+      if(localStorage.getItem('cms.abertura.performance') !== hoje){
+        localStorage.setItem('cms.abertura.performance', hoje);
+        mostrar = true;
+      }
+    }catch(_){ /* sem armazenamento: fica sem abertura, sem prejuízo */ }
+  }
+  if(!mostrar) return;
   const el=document.getElementById('appSplash');
   el.hidden=false;
   const inicio=Date.now();
@@ -571,6 +585,14 @@
     </div>
   </div>
 </div>
+
+<!-- As bibliotecas de planilha ficam aqui, e não no <head>: no <head> elas
+     travavam a primeira pintura, e no celular o Android segurava a tela
+     parada com o logo até elas baixarem. Aqui, a abertura animada já está
+     na tela enquanto elas chegam. O ExcelJS só serve para exportar, então
+     nem segura o resto da página. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
 <script>
 // ── Tela cheia ───────────────────────────────────────────────────────────────
