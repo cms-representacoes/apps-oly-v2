@@ -5045,6 +5045,9 @@ function catModoGeral() {
   if (!APP.base || APP.status === 'MARCADAS') return false;
   if (!document.querySelector('#screen-produtos.active')) return false;
   if (catClientesFiltrados().length) return false;
+  // encomendas marcadas ou produto aberto já dizem o que exportar, mesmo
+  // sem filtro nenhum — sem isto os botões sumiam justo nessa hora
+  if (catRecorte()) return true;
   const limpar = $('btn-limpar-filtros');
   return !!(limpar && limpar.classList.contains('show'));
 }
@@ -5070,8 +5073,48 @@ function catSoCliente(cli, fn) {
 
 /** O que a lista mostra agora, com as encomendas de cada produto na ordem
  *  da tela (carteira primeiro, pela previsão; depois o faturado recente). */
+/** O que a exportação pega, além dos filtros. Quem marcou encomendas no
+ *  modo de seleção quer o catálogo delas; quem abriu um produto está olhando
+ *  para ele. Exportar a lista inteira nesses casos era o que confundia.
+ *  Ordem: o marcado vale mais que o aberto. */
+function catRecorte() {
+  if (APP.modoSelecao && APP.selecao.size) {
+    const n = APP.selecao.size;
+    return { tipo: 'selecao', rotulo: `Só ${n === 1 ? 'a encomenda marcada' : `as ${n} encomendas marcadas`}` };
+  }
+  if (APP.abertos.size) {
+    const n = APP.abertos.size;
+    return { tipo: 'abertos', rotulo: `Só ${n === 1 ? 'o produto aberto' : `os ${n} produtos abertos`}` };
+  }
+  return null;
+}
+
+/** Os grupos da lista com o recorte aplicado: linhas de fora saem, e os
+ *  totais do grupo e do catálogo são refeitos com o que sobrou. */
+function catAplicarRecorte({ grupos, totCart, totFat, totLinhas }) {
+  const rec = catRecorte();
+  if (!rec) return { grupos, totCart, totFat, totLinhas };
+  let tc = 0, tf = 0, tl = 0;
+  const saida = [];
+  for (const g of grupos) {
+    let lin = g.linhas;
+    if (rec.tipo === 'selecao') lin = lin.filter(i => APP.selecao.has(i));
+    else if (!APP.abertos.has(chaveGrupo(g))) lin = [];
+    if (!lin.length) continue;
+    let cart = 0, fat = 0, prevMin = Infinity;
+    for (const i of lin) {
+      const r = APP.L[i];
+      cart += r[C.CART]; fat += r[C.FAT];
+      if (r[C.CART] > 0 && r[C.PREV] < prevMin) prevMin = r[C.PREV];
+    }
+    saida.push({ ...g, linhas: lin, cart, fat, prevMin });
+    tc += cart; tf += fat; tl += lin.length;
+  }
+  return { grupos: saida, totCart: tc, totFat: tf, totLinhas: tl };
+}
+
 function catDados() {
-  const { grupos, totCart, totFat, totLinhas } = agregar();
+  const { grupos, totCart, totFat, totLinhas } = catAplicarRecorte(agregar());
   const produtos = grupos.map(g => {
     const [ref, desc] = APP.dic.ref[g.ref];
     const cor = APP.dic.cor[g.cor];
@@ -5120,21 +5163,41 @@ function catPrevOuFat(r) {
 
 async function catExportXlsx() {
   const geral = catModoGeral();
-  const clis = geral ? [-1] : catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
   if (!geral && !catClientesFiltrados().length) return;
-  if (!clis.length || (geral && !catDados().produtos.length)) { toast('Nada na lista para exportar'); return; }
+  // Os clientes que têm alguma linha no que vai sair. Com vários, a pessoa
+  // escolhe: tudo numa planilha só (mesma aba, com a coluna do cliente) ou
+  // um arquivo por cliente — antes isso era decidido pelo filtro, e quem
+  // marcava as encomendas de um produto com cinco clientes não tinha escolha.
+  const clis = geral
+    ? [...new Set(catDados().produtos.flatMap(p => p.linhas.map(r => r[C.CLI])))]
+    : catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
+  if (!clis.length) { toast('Nada na lista para exportar'); return; }
+  const varios = clis.length > 1;
+  const rec = catRecorte();
+  const nomeDe = c => APP.dic.cli[c][1] || APP.dic.cli[c][0];
   const r = await perguntar({
-    titulo: clis.length > 1 ? `Gerar ${clis.length} planilhas` : 'Gerar planilha',
-    sub: geral ? 'A carteira da tela, com a coluna do cliente'
-      : clis.length > 1 ? 'Uma por cliente, com os mesmos filtros' : (APP.dic.cli[clis[0]][1] || APP.dic.cli[clis[0]][0]),
+    titulo: 'Gerar planilha',
+    sub: (rec ? rec.rotulo + ' · ' : '') + (varios ? `${clis.length} clientes` : nomeDe(clis[0])),
+    corpo: varios ? `<div class="pg-escolha">
+        <span class="t">${clis.length} clientes</span>
+        <label><input type="radio" name="catJunto" value="junto" checked>
+          <span>Tudo numa planilha só<small>Mesma aba, com a coluna do cliente</small></span></label>
+        <label><input type="radio" name="catJunto" value="separado">
+          <span>Um arquivo por cliente<small>${clis.length} planilhas, cada uma com o nome do cliente</small></span></label>
+      </div>` : '',
     opcoes: [
       { id: 'com', rot: 'Com imagens', ic: 'fa-solid fa-image', dica: 'Miniatura do produto em cada linha · arquivo maior' },
       { id: 'sem', rot: 'Sem imagens', ic: 'fa-solid fa-table', dica: 'Só os dados · mais leve e rápido' },
     ],
   });
   if (r !== 'com' && r !== 'sem') return;
+  // o modal já fechou, mas a escolha continua na tela até a próxima pergunta
+  const separado = varios &&
+    ((document.querySelector('input[name="catJunto"]:checked') || {}).value === 'separado');
+  if (!varios) { await catGerarPlanilha(geral ? -1 : clis[0], r === 'com'); return; }
+  if (!separado) { await catGerarPlanilha(-1, r === 'com'); return; }
   for (const cli of clis) await catGerarPlanilha(cli, r === 'com');
-  if (clis.length > 1) toast(`${clis.length} planilhas geradas`);
+  toast(`${clis.length} planilhas geradas`);
 }
 
 /** Linhas da planilha, as mesmas com ou sem imagens. As colunas e a
@@ -5355,6 +5418,8 @@ function catFoto(ref, cor, max = 1000, qualidade = 0.9) {
 }
 
 async function catExportPdf() {
+  const rec = catRecorte();
+  if (rec) toast(`Catálogo: ${rec.rotulo.charAt(0).toLowerCase()}${rec.rotulo.slice(1)}`);
   // carteira geral: um PDF só, sem oferecer o WhatsApp — ele tem vários
   // clientes, não é para mandar a um deles
   if (catModoGeral()) {
@@ -8457,6 +8522,7 @@ function gruposDaSelecao() {
 }
 
 function renderBarraSelecao() {
+  atualizarFabLimpar();
   const barra = $('barra-selecao');
   if (!APP.modoSelecao) { barra.classList.remove('show'); return; }
   barra.classList.add('show');
@@ -9112,6 +9178,7 @@ function recolherTudoAgora() {
 /** O botao so existe quando ha o que recolher: num cabecalho de tabela, um
  *  botao permanente que quase sempre nao faz nada vira ruido. */
 function atualizarBotaoRecolher() {
+  atualizarFabLimpar();
   const b = $('btn-recolher');
   if (!b) return;
   const n = APP.abertos.size;
@@ -13296,6 +13363,14 @@ html.dark .rfv-balao .rb-n{ color:#C4B5FD; }
 .pg-opcao b{ display:block; font-size:14px; }
 .pg-opcao small{ display:block; font-size:12px; color:var(--ds-muted); margin-top:1px; }
 .pg-zap{ background:#16A34A !important; border-color:#16A34A !important; color:#fff !important; }
+/* um arquivo ou vários, na planilha de vários clientes */
+.pg-escolha{ display:flex; flex-direction:column; gap:2px; padding:10px 12px; border-radius:14px;
+  border:1px solid var(--ds-line); background:rgba(var(--ds-accent-rgb), .04); }
+.pg-escolha .t{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ds-muted); }
+.pg-escolha label{ display:flex; align-items:flex-start; gap:9px; padding:6px 0; cursor:pointer;
+  font-size:13px; font-weight:700; color:var(--ds-ink); }
+.pg-escolha label small{ display:block; font-size:11.5px; font-weight:500; color:var(--ds-muted); margin-top:1px; }
+.pg-escolha input{ accent-color:var(--ds-accent); margin-top:3px; }
 /* login do EBM dentro do modal de pergunta */
 .pg-login{ display:flex; flex-direction:column; gap:10px; }
 .pg-login label{ display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:700; color:var(--ds-muted); }
