@@ -145,8 +145,11 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .giro thead th.te{background:var(--th-estoque);color:var(--th-estoque-ink)}
 .giro thead th.tc{background:var(--th-cob);color:var(--th-cob-ink)}
 .giro thead th.to{background:var(--line-2);color:var(--navy)}
-.giro thead th.ord::after{content:" ▾";opacity:.9}
-.giro thead th.ord.asc::after{content:" ▴"}
+/* A setinha da ordenação sai do fluxo: no fluxo ela caía embaixo do número
+   e desalinhava a coluna ordenada em relação às vizinhas. */
+.giro thead th.ord::after{content:"▾";position:absolute;left:50%;bottom:1px;transform:translateX(-50%);
+  font-size:9px;line-height:1;opacity:.85;pointer-events:none}
+.giro thead th.ord.asc::after{content:"▴"}
 .giro .sub{display:block;font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none;margin-top:1px}
 .giro .sub.low{color:var(--red)} .giro .sub.high{color:var(--orange)}
 .giro .mes{border-left:2px solid var(--line)}
@@ -262,6 +265,11 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 button.sino:hover{background:var(--red);color:#fff}
 button.sino:focus-visible{outline:2px solid var(--red);outline-offset:1px}
 .sino.calmo{background:color-mix(in srgb,var(--slate) 14%,transparent);color:var(--slate);cursor:default}
+.cob-cab{display:inline-flex;align-items:center;gap:4px;justify-content:center}
+button.sino.cab{width:17px;height:17px;margin:0;vertical-align:-3px;
+  background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
+button.sino.cab:hover{background:var(--red);color:#fff}
+button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--red) 28%,transparent)}
 .giro tbody tr.sel .sino{background:rgba(255,255,255,.22);color:#fff}
 
 /* janela do que a vitrine tem */
@@ -485,6 +493,17 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
           <div class="fx-lista" id="fxLista"></div>
         </div>
       </div>
+      <div class="faixa-wrap">
+        <button type="button" class="chip fx-chip" id="pdChip" aria-expanded="false" aria-controls="pdPop">PDV</button>
+        <div class="fx-pop" id="pdPop" role="dialog" aria-label="Filtrar por PDV">
+          <div class="fx-topo">
+            <span class="quantos" id="pdQuantos">Nenhum marcado</span>
+            <button type="button" class="fx-acao" id="pdTudo">Tudo</button>
+            <button type="button" class="fx-acao" id="pdLimpar">Limpar</button>
+          </div>
+          <div class="fx-lista" id="pdLista"></div>
+        </div>
+      </div>
       <div class="chips" id="marcas"></div>
       <button type="button" class="chip-limpar" id="limparChip" title="Limpar os filtros" aria-label="Limpar os filtros">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.6 7.6v5.1l-3.8 2.1v-7.2Z"/><path d="M16.5 16.5l4 4"/><path d="M20.5 16.5l-4 4"/></svg>
@@ -581,6 +600,13 @@ const ICONE_SINO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
   `<path d="M12 4.5 2.8 20h18.4Z"/><path d="M12 10.5v4"/><path d="M12 17.3v.2"/></svg>`;
 // Cobertura baixa pede ação. Com carteira em aberto já há resposta a caminho,
 // então o sinal fica apagado; sem carteira, ele abre a busca na vitrine.
+// cobertura baixa e nada em aberto: é o produto que pede ação hoje
+function pedeAcao(p){
+  const ult = E.base.meses[E.base.meses.length - 1];
+  const x = p.m[ult] || {};
+  const c = cobertura(x.v || 0, x.e || 0);
+  return c !== null && c <= COB_ALERTA && !temAberto(p);
+}
 function alertaCob(p, c){
   if(c === null || c > COB_ALERTA) return '';
   if(temAberto(p)) return `<span class="sino calmo" title="Cobertura baixa, mas já há pedido em aberto">${ICONE_SINO}</span>`;
@@ -606,7 +632,7 @@ const E = { clientes:[], base:null, busca:'', genero:'', marca:'', ordem:{ k:'ve
            // OBS escritas aqui, por produto; guardadas no aparelho
            obs:{}, editando:false,
            // faixa do produto (CORRE, MEIA OLY…), vinda da Detalhada
-           faixas:{}, faixaSel:new Set(), fotos:null, fotoArtigo:null, vitProduto:null,
+           faixas:{}, faixaSel:new Set(), pdvSel:new Set(), soAlerta:false, fotos:null, fotoArtigo:null, vitProduto:null,
            vitCores:null, chipItens:null, sac:new Map(),
            cart:null, cartInfo:null, cartErro:false, linhas:[], comCart:false,
            // 1º semestre recolhido numa coluna só; null = segue o calendário
@@ -1099,10 +1125,10 @@ async function abrirCliente(id){
     $('tabela').innerHTML = '<div class="empty">Não foi possível carregar os dados deste cliente.</div>';
     return;
   }
-  E.sel = null; E.marca = ''; E.genero = ''; E.rolou = false; E.comCart = false;
+  E.sel = null; E.marca = ''; E.genero = ''; E.rolou = false; E.comCart = false; E.soAlerta = false;
   // abre sempre pela venda do mês mais recente, do maior para o menor
   E.ordem = { k:'v:' + E.base.meses[E.base.meses.length - 1], dir:-1 };
-  E.cart = null; E.cartInfo = null; E.cartErro = false; E.faixaSel.clear(); E.faixas = {};
+  E.cart = null; E.cartInfo = null; E.cartErro = false; E.faixaSel.clear(); E.pdvSel.clear(); E.faixas = {};
   E.base.produtos.forEach(p => { p.c = null; });
   E.linhas = E.base.produtos;
   const c = E.base.cliente;
@@ -1402,7 +1428,9 @@ function filtrados(){
   const grupos = gruposDaBusca(E.busca);
   return E.linhas.filter(p => {
     if(E.comCart && !temAberto(p)) return false;
-    if(E.faixaSel.size && !E.faixaSel.has(p.faixa || SEM_FAIXA)) return false;
+    if(E.faixaSel.size && !E.faixaSel.has(valorFaixa(p))) return false;
+    if(E.pdvSel.size && !E.pdvSel.has(valorPdv(p))) return false;
+    if(E.soAlerta && !pedeAcao(p)) return false;
     if(E.marca && p.marca !== E.marca) return false;
     if(E.genero && p.genero !== E.genero) return false;
     if(grupos.length && !casaBusca(p, grupos)) return false;
@@ -1421,7 +1449,8 @@ function pintar(){
   // busca também conta: com "corre 5" na busca, o número é o dos corre 5
   const gruposChip = gruposDaBusca(E.busca);
   const naBusca = p => !gruposChip.length || casaBusca(p, gruposChip);
-  const naFaixa = p => !E.faixaSel.size || E.faixaSel.has(p.faixa || SEM_FAIXA);
+  const naFaixa = p => (!E.faixaSel.size || E.faixaSel.has(valorFaixa(p))) &&
+                       (!E.pdvSel.size || E.pdvSel.has(valorPdv(p)));
   const semMarca = E.linhas.filter(p => (!E.genero || p.genero === E.genero) && (!E.comCart || temAberto(p)) && naFaixa(p) && naBusca(p));
   const marcas = [...new Set(E.linhas.map(p => p.marca))].sort();
   $('marcas').innerHTML = `<button class="chip${E.marca ? '' : ' on'}" data-marca="">Todas<span class="n">${nf(semMarca.length)}</span></button>` +
@@ -1437,7 +1466,7 @@ function pintar(){
     })() : '');
   $('marcas').querySelectorAll('[data-marca]').forEach(b => b.onclick = () => { E.marca = b.dataset.marca; pintar(); });
   if($('chipCart')) $('chipCart').onclick = () => { E.comCart = !E.comCart; pintar(); };
-  pintarFaixas();
+  pintarFiltros();
 
   // carteira do ano: meses por semestre. O 1º semestre recolhe numa coluna
   // (1S26) — por padrão quando já passou; a escolha da pessoa é lembrada.
@@ -1496,6 +1525,15 @@ function pintar(){
     const ativo = E.ordem.k === k;
     return `<th class="${cls}${ativo ? ' ord' + (E.ordem.dir > 0 ? ' asc' : '') : ''}" data-ord="${k}" ${extra}>${txt}</th>`;
   };
+  // o sino no cabeçalho filtra quem precisa de ação — é o caminho curto
+  // para varrer a vitrine só do que está apertado
+  const botaoAlerta = () => {
+    const n = E.linhas.filter(p => pedeAcao(p)).length;
+    if(!n && !E.soAlerta) return '';
+    return `<button type="button" class="sino cab${E.soAlerta ? ' on' : ''}" id="btnAlerta" ` +
+      `title="${E.soAlerta ? 'Mostrar todos os produtos' : `Só os ${nf(n)} com cobertura até ${cobTexto(COB_ALERTA)} e sem carteira`}" ` +
+      `aria-pressed="${E.soAlerta}">${ICONE_SINO}</button>`;
+  };
   const seta = `<button type="button" class="btn-extras" id="btnExtras"
       title="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, PDV, faixa e código do cliente"
       aria-label="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, PDV, faixa e código do cliente"
@@ -1516,7 +1554,8 @@ function pintar(){
     const v = soma(m, 'v'), e = soma(m, 'e'), c = cobertura(v, e);
     h2 += th('v:' + m, `Venda<span class="sub">${nf(v)}</span>`, 'tv mes') +
           th('e:' + m, `Estoque<span class="sub">${nf(e)}</span>`, 'te') +
-          (atual ? th('c:' + m, `Cob.<span class="sub ${cobClasse(c)}">${cobTexto(c)}</span>`, 'tc') +
+          (atual ? th('c:' + m, `Cob.<span class="sub ${cobClasse(c)}">` +
+                     `<span class="cob-cab">${cobTexto(c)}${botaoAlerta()}</span></span>`, 'tc') +
                    th('o:' + m, 'OBS', 'to') : '');
   });
 
@@ -1651,6 +1690,12 @@ function pintar(){
     // abrindo, leva a vista até as colunas que acabaram de aparecer
     if(E.extras) $('tabela').scrollLeft = 0;
   };
+  const ba = $('btnAlerta');
+  if(ba) ba.onclick = ev => {
+    ev.stopPropagation();               // senão o clique ordenaria a coluna
+    E.soAlerta = !E.soAlerta;
+    pintar();
+  };
   const bs = $('btnS1');
   if(bs) bs.onclick = ev => {
     ev.stopPropagation();
@@ -1686,52 +1731,79 @@ function pintar(){
 }
 
 
-/* ── filtro por faixa ────────────────────────────────────────────────── */
-/* Os pares são a venda do ano, somada por faixa. A conta respeita os outros
-   filtros (busca, gênero, marca, em aberto), mas não a própria faixa — senão
-   marcar uma esconderia as demais. */
-function pintarFaixas(){
+/* ── filtros de lista (faixa e PDV) ──────────────────────────────────── */
+/* Os dois funcionam igual: uma lista com marcação múltipla e os pares de
+   cada opção. Os pares são a venda do ano e a conta respeita os outros
+   filtros, mas não o próprio — marcar um valor não pode sumir com os
+   outros da lista. */
+const SEM_PDV = 'Sem PDV';
+const valorPdv = p => p.pdv ? String(p.pdv) : SEM_PDV;
+const valorFaixa = p => p.faixa || SEM_FAIXA;
+
+const FILTROS = [
+  { id:'fx', sel:'faixaSel', valor:valorFaixa, rotulo:v => v, nome:'Faixa',
+    vazio:'Nenhuma marcada', conta:n => `${n} marcada${n > 1 ? 's' : ''}`,
+    temDados:() => E.linhas.some(p => p.faixa && p.faixa !== SEM_FAIXA),
+    ordem:(a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR') },
+  { id:'pd', sel:'pdvSel', valor:valorPdv, rotulo:v => v === SEM_PDV ? v : brl(Number(v)), nome:'PDV',
+    vazio:'Nenhum marcado', conta:n => `${n} marcado${n > 1 ? 's' : ''}`,
+    temDados:() => E.linhas.some(p => p.pdv),
+    // preço desce do mais caro para o mais barato; sem PDV fica no fim
+    ordem:(a, b) => (a[0] === SEM_PDV ? 1 : b[0] === SEM_PDV ? -1 : Number(b[0]) - Number(a[0])) },
+];
+
+function pintarFiltro(f){
   const B = E.base; if(!B) return;
-  const chip = $('fxChip'), pop = $('fxPop');
-  const temDados = E.linhas.some(p => p.faixa && p.faixa !== SEM_FAIXA);
-  chip.parentElement.hidden = !temDados;
-  if(!temDados) return;
+  const chip = $(f.id + 'Chip');
+  chip.parentElement.hidden = !f.temDados();
+  if(chip.parentElement.hidden) return;
+  const sel = E[f.sel];
   const termos = gruposDaBusca(E.busca);
+  // tudo menos este filtro
   const base = E.linhas.filter(p =>
     (!E.genero || p.genero === E.genero) && (!E.marca || p.marca === E.marca) &&
-    (!E.comCart || temAberto(p)) && (!termos.length || casaBusca(p, termos)));
+    (!E.comCart || temAberto(p)) && (!termos.length || casaBusca(p, termos)) &&
+    FILTROS.every(o => o === f || !E[o.sel].size || E[o.sel].has(o.valor(p))));
   const pares = new Map();
   base.forEach(p => {
-    const f = p.faixa || SEM_FAIXA;
-    const v = B.meses.reduce((s, m) => s + ((p.m[m] || {}).v || 0), 0);
-    pares.set(f, (pares.get(f) || 0) + v);
+    const v = f.valor(p);
+    pares.set(v, (pares.get(v) || 0) + B.meses.reduce((s2, m) => s2 + ((p.m[m] || {}).v || 0), 0));
   });
-  const lista = [...pares.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
-  $('fxLista').innerHTML = lista.map(([f, v]) =>
-    `<button type="button" class="fx-item${E.faixaSel.has(f) ? ' on' : ''}" data-faixa="${esc(f)}" ` +
-    `role="checkbox" aria-checked="${E.faixaSel.has(f)}"><span class="fx-cx">${E.faixaSel.has(f) ? '✓' : ''}</span>` +
-    `<span class="fx-nome">${esc(f)}</span><span class="fx-pares">${nf(v)} pares</span></button>`).join('');
-  const n = E.faixaSel.size;
-  $('fxQuantos').textContent = n ? `${n} marcada${n > 1 ? 's' : ''}` : 'Nenhuma marcada';
-  chip.textContent = n === 1 ? [...E.faixaSel][0] : n ? `Faixa · ${n}` : 'Faixa';
+  $(f.id + 'Lista').innerHTML = [...pares.entries()].sort(f.ordem).map(([v, q]) =>
+    `<button type="button" class="fx-item${sel.has(v) ? ' on' : ''}" data-v="${esc(v)}" ` +
+    `role="checkbox" aria-checked="${sel.has(v)}"><span class="fx-cx">${sel.has(v) ? '✓' : ''}</span>` +
+    `<span class="fx-nome">${esc(f.rotulo(v))}</span><span class="fx-pares">${nf(q)} pares</span></button>`).join('');
+  const n = sel.size;
+  $(f.id + 'Quantos').textContent = n ? f.conta(n) : f.vazio;
+  chip.textContent = n === 1 ? f.rotulo([...sel][0]) : n ? `${f.nome} · ${n}` : f.nome;
   chip.classList.toggle('on', !!n);
-  chip.title = n ? 'Faixas marcadas: ' + [...E.faixaSel].join(', ') : 'Filtrar por faixa';
-  $('fxLista').querySelectorAll('[data-faixa]').forEach(b => b.onclick = () => {
-    const f = b.dataset.faixa;
-    E.faixaSel.has(f) ? E.faixaSel.delete(f) : E.faixaSel.add(f);
+  chip.title = n ? `${f.nome}: ` + [...sel].map(f.rotulo).join(', ') : `Filtrar por ${f.nome.toLowerCase()}`;
+  $(f.id + 'Lista').querySelectorAll('[data-v]').forEach(b => b.onclick = () => {
+    const v = b.dataset.v;
+    sel.has(v) ? sel.delete(v) : sel.add(v);
     pintar();
   });
 }
-function abrirFaixas(sim){
-  $('fxPop').classList.toggle('aberta', sim);
-  $('fxChip').setAttribute('aria-expanded', String(sim));
+function pintarFiltros(){ FILTROS.forEach(pintarFiltro); }
+
+function abrirPop(id, sim){
+  FILTROS.forEach(f => {
+    const aberto = sim && f.id === id;
+    $(f.id + 'Pop').classList.toggle('aberta', aberto);
+    $(f.id + 'Chip').setAttribute('aria-expanded', String(aberto));
+  });
 }
-$('fxChip').onclick = ev => { ev.stopPropagation(); abrirFaixas(!$('fxPop').classList.contains('aberta')); };
-$('fxPop').onclick = ev => ev.stopPropagation();
-$('fxTudo').onclick = () => { E.linhas.forEach(p => E.faixaSel.add(p.faixa || SEM_FAIXA)); pintar(); };
-$('fxLimpar').onclick = () => { E.faixaSel.clear(); pintar(); };
-document.addEventListener('click', () => abrirFaixas(false));
-document.addEventListener('keydown', ev => { if(ev.key === 'Escape') abrirFaixas(false); });
+FILTROS.forEach(f => {
+  $(f.id + 'Chip').onclick = ev => {
+    ev.stopPropagation();
+    abrirPop(f.id, !$(f.id + 'Pop').classList.contains('aberta'));
+  };
+  $(f.id + 'Pop').onclick = ev => ev.stopPropagation();
+  $(f.id + 'Tudo').onclick = () => { E.linhas.forEach(p => E[f.sel].add(f.valor(p))); pintar(); };
+  $(f.id + 'Limpar').onclick = () => { E[f.sel].clear(); pintar(); };
+});
+document.addEventListener('click', () => abrirPop(null, false));
+document.addEventListener('keydown', ev => { if(ev.key === 'Escape') abrirPop(null, false); });
 
 /* ── escrever a OBS ──────────────────────────────────────────────────── */
 function editarObs(cel){
@@ -1823,31 +1895,63 @@ function janela(forcar){
 }
 
 /* ── topo recolhido e botões flutuantes ──────────────────────────────── */
-const temFiltro = () => !!(E.busca || E.genero || E.marca || E.comCart || E.faixaSel.size);
+const temFiltro = () => !!(E.busca || E.genero || E.marca || E.comCart || E.faixaSel.size || E.pdvSel.size || E.soAlerta);
 
 // A linha do cliente encolhe exatamente o que a tabela rolou: rolou 20px,
 // ela perde 20px. Some no fim do próprio gesto e volta na subida, sem atraso
 // nem animação.
 const CAB = document.querySelector('.cab-anim');
 let altoCab = 0;
+/* O topo sobe por etapas, na ordem em que a informação deixa de ser
+   necessária enquanto se lê a tabela: primeiro o nome do cliente, depois os
+   números do topo e, no tablet e no celular, também a fita de marcas. A
+   busca e o gênero nunca somem — são o que a pessoa usa no meio da leitura.
+   Tudo acompanha a rolagem na medida exata, sem animação. */
+const CHIPS = document.querySelectorAll('.toolbar')[1];
+const soTela = () => window.innerWidth <= 900;       // tablet e celular
+const ETAPAS = [
+  { el:CAB,       alto:0, sempre:true },
+  { el:$('kpis'), alto:0, sempre:false },
+  { el:CHIPS,     alto:0, sempre:false },
+];
+const alturaCheia = el => {
+  const st = getComputedStyle(el);
+  return el.offsetHeight + (parseFloat(st.marginBottom) || 0);
+};
+
 function medirCab(){
-  CAB.style.height = ''; E.cabAltura = null;
-  const ph = CAB.firstElementChild;
-  // a folga até a barra de filtros entra na conta, senão sobra uma tira
-  altoCab = ph.offsetHeight + (parseFloat(getComputedStyle(ph).marginBottom) || 0);
+  ETAPAS.forEach(e => {
+    e.el.style.height = e.el.style.marginBottom = e.el.style.opacity = e.el.style.paddingBottom = '';
+    e.feito = null;
+  });
+  // a folga até a barra de baixo entra na conta, senão sobra uma tira
+  altoCab = alturaCheia(CAB.firstElementChild);
+  ETAPAS[0].alto = altoCab;
+  ETAPAS[1].alto = soTela() ? alturaCheia($('kpis')) : 0;
+  ETAPAS[2].alto = soTela() ? alturaCheia(CHIPS) : 0;
   medirTabela();
   acompanharCab();
 }
 function acompanharCab(){
-  // Só escreve: as medidas vêm de medirTabela(). Pouca coisa na tela e a
-  // linha nem recolhe — recolher faria a tabela caber inteira, a rolagem
-  // voltar a zero e a linha reaparecer, que era o tremor.
-  const h = (E.med.rolagem || 0) < altoCab + 4 ? altoCab
-          : Math.max(0, altoCab - $('tabela').scrollTop);
-  if(h === E.cabAltura) return;
-  E.cabAltura = h;
-  CAB.style.height = h + 'px';
-  CAB.style.opacity = altoCab ? Math.min(1, (h / altoCab) * 2.2) : 1;
+  // Só escreve: as medidas vêm de medirTabela(). Pouca coisa na tela e nada
+  // recolhe — recolher faria a tabela caber inteira, a rolagem voltar a zero
+  // e o topo reaparecer, que era o tremor.
+  const total = ETAPAS.reduce((s2, e) => s2 + e.alto, 0);
+  let resto = (E.med.rolagem || 0) < total + 4 ? 0 : $('tabela').scrollTop;
+  for(const e of ETAPAS){
+    if(!e.alto){ resto = Math.max(0, resto); continue; }
+    const h = Math.max(0, e.alto - resto);
+    resto = Math.max(0, resto - e.alto);
+    if(h === e.feito) continue;
+    e.feito = h;
+    e.el.style.height = h + 'px';
+    e.el.style.overflow = 'hidden';
+    e.el.style.marginBottom = '0px';
+    // a folga de baixo (a dos KPIs, para a barra de rolagem) também encolhe,
+    // senão sobra uma tira de 4px depois de recolhido
+    e.el.style.paddingBottom = h < e.alto ? '0px' : '';
+    e.el.style.opacity = Math.min(1, (h / e.alto) * 2.2);
+  }
 }
 function fabs(){
   $('fabTopo').classList.toggle('on', $('tabela').scrollTop > 40);
@@ -1877,7 +1981,8 @@ $('fabTopo').onclick = () => {
 };
 $('limparChip').onclick = () => $('fabLimpar').onclick();
 $('fabLimpar').onclick = () => {
-  E.busca = ''; E.genero = ''; E.marca = ''; E.comCart = false; E.faixaSel.clear();
+  E.busca = ''; E.genero = ''; E.marca = ''; E.comCart = false; E.soAlerta = false;
+  E.faixaSel.clear(); E.pdvSel.clear();
   $('busca').value = ''; $('buscaWrap').classList.remove('tem'); $('genero').value = '';
   pintar(); fabs();
 };
