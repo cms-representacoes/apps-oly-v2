@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Giro · CMS Representações</title>
+<meta name="theme-color" content="#7C3AED">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+/* Mesma linguagem do protótipo "Giro Degraus" (index v30): roxo CMS, Space
+   Grotesk nos números, a tabela matriz com meses agrupados. Esta primeira
+   etapa é só a análise de giro; importação e motores vêm depois. */
+:root{
+  --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
+  --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
+  --accent:#7C3AED; --accent-hover:#6D28D9;
+  --green:#0CA678; --amber:#E0A100; --orange:#E8590C; --red:#C92A2A;
+  --venda-bg:#F3FBF8; --estoque-bg:#FDF5F2;
+  --th-venda:#E1F5EE; --th-venda-ink:#085041;
+  --th-estoque:#FAECE7; --th-estoque-ink:#712B13;
+  --th-cob:#E3ECFA; --th-cob-ink:#1E3A6E; --cob-bg:#F3F7FD;
+  /* carteira: as cores da planilha — cabeçalho amarelo, verde forte no que
+     ainda está em aberto e suave no que já faturou */
+  --k-head:#FFE14D; --k-head-ink:#3D3300; --k-sub:#FFF4B8; --k-sub-ink:#5A4A00;
+  --k-fat:#EEF6E6; --k-fat-ink:#6B8A55; --k-abe:#92D050; --k-abe-ink:#1D3A0A;
+  --k-tot:#E2EFDA; --k-tot-ink:#2F4A1F;
+  --sidebar-w:210px; --sidebar-w-collapsed:64px;
+}
+[data-theme="dark"]{
+  --ink:#E8EBF1; --navy:#D6DDEA; --slate:#9AA4B5; --mute:#828DA0;
+  --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
+  --green:#34D399; --amber:#F4C430; --orange:#FB923C; --red:#F2868B;
+  --venda-bg:#0E1F1A; --estoque-bg:#241611;
+  --th-venda:#123328; --th-venda-ink:#8FE3C2;
+  --th-estoque:#3A1F16; --th-estoque-ink:#F7B69E;
+  --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
+  --k-head:#5C4E00; --k-head-ink:#FFE98A; --k-sub:#342D07; --k-sub-ink:#F2DE80;
+  --k-fat:#16220F; --k-fat-ink:#8DAE76; --k-abe:#4E8A1F; --k-abe-ink:#F2FFE6;
+  --k-tot:#1D2A16; --k-tot-ink:#CDE8B8;
+}
+*{box-sizing:border-box}
+/* No touchpad, deslizar dois dedos para o lado no fim da tabela fazia o
+   navegador voltar ou avançar de página. Aqui o gesto de lado nunca vira
+   navegação: ele só rola a tabela. */
+html,body{overscroll-behavior-x:none}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Inter",system-ui,sans-serif;
+  font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.sg{font-family:"Space Grotesk",system-ui,sans-serif}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* A tela inteira cabe na janela e a tabela ocupa o que sobra. Assim ela
+   cresce e encolhe pelo próprio layout — nada de medir altura no JS, que
+   era o que dava o atraso ao recolher o título. */
+.app{display:flex;height:100dvh;overflow:hidden}
+
+/* ── menu lateral ── */
+.sidebar{width:var(--sidebar-w);flex:none;background:var(--card);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:20px 14px;transition:width .15s ease;
+  position:sticky;top:0;height:100vh;overflow:hidden}
+.sidebar.collapsed{width:var(--sidebar-w-collapsed);padding:20px 10px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.brand-logo{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(145deg,#a970ff 0%,#8b5cf6 48%,#7439e0 100%);color:#fff;
+  font:700 12px "Space Grotesk",sans-serif;letter-spacing:.02em}
+.brand-txt{display:flex;flex-direction:column;line-height:1.2;white-space:nowrap;overflow:hidden}
+.brand-name{font-weight:600;font-size:14px}
+.brand-sub{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.sidebar.collapsed .brand-txt,.sidebar.collapsed .nav-label,.sidebar.collapsed .foot-label{display:none}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.nav-item,.foot-btn{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;border:none;
+  background:none;color:var(--slate);font-weight:600;font-size:13.5px;text-align:left;white-space:nowrap;
+  overflow:hidden;text-decoration:none;transition:transform .18s cubic-bezier(.2,.8,.3,1),background .18s}
+.nav-item:hover,.foot-btn:hover{background:var(--line-2);transform:translateX(3px)}
+.nav-item.active{background:var(--accent);color:#fff;box-shadow:0 6px 14px -6px rgba(124,58,237,.55)}
+.nav-ic{width:18px;height:18px;flex:none;display:inline-flex}
+.nav-ic svg{width:100%;height:100%}
+.sidebar-foot{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:2px}
+.foot-btn{font-size:12.5px;padding:8px 10px}
+
+/* ── conteúdo ── */
+.content{flex:1;min-width:0;min-height:0;padding:28px 32px 14px;display:flex;flex-direction:column}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.pagehead h1{font-size:24px;font-weight:700;margin:3px 0 4px;letter-spacing:-.01em}
+.cab-cli{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.app.sem-menu .sidebar{display:none}
+.menu-seta{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--card);
+  color:var(--slate);font:700 17px/1 "Space Grotesk",sans-serif;display:grid;place-items:center;padding:0 0 2px}
+.menu-seta:hover{border-color:var(--accent);color:var(--accent)}
+.menu-seta:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.logo-cab{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#a970ff 0%,#8b5cf6 48%,#7439e0 100%);color:#fff;
+  font:700 11.5px "Space Grotesk",sans-serif;letter-spacing:.02em;box-shadow:0 6px 14px -6px rgba(124,58,237,.55)}
+.cab-cli h1{margin:0;display:flex;align-items:baseline;gap:0}
+.cab-cli h1 .cod{font-size:15px;font-weight:600;color:var(--slate);white-space:pre;letter-spacing:0}
+.cab-cli h1 .cod:empty{display:none}
+.cab-cli .info{font-size:14px;font-weight:500;color:var(--slate);margin-left:4px}
+.cli-pick{display:flex;flex-direction:column;gap:4px}
+.cli-pick label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+select.sel,.search{border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:9px;
+  padding:9px 12px;font-size:13px;font-weight:600}
+select.sel:focus,.search:focus{outline:none;border-color:var(--accent)}
+
+/* barra de ferramentas */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.search-wrap{position:relative;flex:1 1 260px;max-width:380px}
+.search{width:100%;padding-right:34px;font-weight:500}
+.search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:none;
+  background:none;color:var(--mute);font-size:18px;line-height:1;border-radius:50%;display:none}
+.search::placeholder{color:var(--mute);opacity:.55}
+.search-wrap.tem .search-clear{display:block}
+.search-clear:hover{background:var(--line-2);color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 12px "Space Grotesk",sans-serif;padding:7px 12px;border-radius:99px;border:1px solid var(--line);
+  background:var(--card);color:var(--slate);white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .n{opacity:.7;margin-left:4px;font-weight:500}
+.kpis{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.kpi{background:var(--card);border-radius:10px;padding:6px 12px;min-width:84px;
+  box-shadow:0 3px 10px -4px rgba(15,20,30,.18)}
+[data-theme="dark"] .kpi{box-shadow:0 3px 10px -4px rgba(0,0,0,.5)}
+.kpi .l{font:600 9.5px "Space Grotesk",sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.kpi .v{font:700 16px "Space Grotesk",sans-serif;color:var(--ink);margin-top:1px;font-variant-numeric:tabular-nums}
+.kpi .v.low{color:var(--red)} .kpi .v.high{color:var(--orange)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;flex:1;min-height:0;display:flex}
+.empty{color:var(--mute);font-size:13.5px;padding:40px 20px;text-align:center}
+
+/* ── a matriz ── */
+.wrap{flex:1;min-width:0;overflow:auto;border-radius:14px;overscroll-behavior:contain}
+table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;table-layout:fixed}
+.giro th,.giro td{padding:7px 10px;font-size:12.5px;white-space:nowrap;border-bottom:1px solid var(--line-2);
+  background:var(--card);text-align:center;font-variant-numeric:tabular-nums}
+.giro thead th{position:sticky;z-index:4;font:700 10.5px "Space Grotesk",sans-serif;letter-spacing:.05em;
+  text-transform:uppercase;cursor:pointer;user-select:none}
+.giro thead tr.h1 th{top:0;height:34px}
+.giro thead tr.h2 th{top:34px}
+.giro thead th.roxo{background:var(--accent);color:#fff;border-bottom:1px solid var(--accent-hover)}
+.giro thead th.tv{background:var(--th-venda);color:var(--th-venda-ink)}
+.giro thead th.te{background:var(--th-estoque);color:var(--th-estoque-ink)}
+.giro thead th.tc{background:var(--th-cob);color:var(--th-cob-ink)}
+.giro thead th.to{background:var(--line-2);color:var(--navy)}
+.giro thead th.ord::after{content:" ▾";opacity:.9}
+.giro thead th.ord.asc::after{content:" ▴"}
+.giro .sub{display:block;font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none;margin-top:1px}
+.giro .sub.low{color:var(--red)} .giro .sub.high{color:var(--orange)}
+.giro .mes{border-left:2px solid var(--line)}
+.giro .fx1,.giro .fx2,.giro .fx3{position:sticky;z-index:3;text-align:center}
+/* larguras fixas: é assim que as três colunas presas sabem onde começa a
+   seguinte. A cor fica presa porque o mesmo código aparece várias vezes. */
+.giro .fx1{left:0;width:118px;min-width:118px;max-width:118px;font-weight:700}
+.giro .fx2{left:118px;width:230px;min-width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.giro .fx3{left:348px;width:92px;min-width:92px;max-width:92px;box-shadow:2px 0 0 var(--line);
+  overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.giro thead .fx1,.giro thead .fx2,.giro thead .fx3{z-index:6}
+.cor-cab{display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-extras{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.45);
+  background:rgba(255,255,255,.16);color:#fff;font:700 15px/1 "Space Grotesk",sans-serif;
+  display:grid;place-items:center;padding:0 0 2px}
+.btn-extras:hover{background:rgba(255,255,255,.3)}
+.btn-extras:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.giro .corm{display:none;font-size:10.5px;font-weight:600;color:var(--slate)}
+.giro tbody tr.sel .corm{color:#fff}
+.cli-pick[hidden]{display:none}
+.giro td.v{background:var(--venda-bg)}
+.giro td.e{background:var(--estoque-bg)}
+.giro td.c{font:700 12.5px "Space Grotesk",sans-serif;background:var(--cob-bg)}
+/* a vaga do alerta fica reservada em todas as linhas, senão o número dança
+   de lugar conforme a linha tem ou não o sinal */
+.giro td.c .cobn{display:inline-block;min-width:28px;text-align:right}
+.giro td.c .cobico{display:inline-block;width:22px;text-align:left;vertical-align:middle}
+.giro td.c.low{color:var(--red)} .giro td.c.high{color:var(--orange)}
+.giro td.zero{color:var(--mute)}
+.giro td.l{text-align:center}
+.giro tbody tr{cursor:pointer;height:34px}
+.giro tbody tr.vazia{height:auto;cursor:default}
+.giro tbody tr.vazia td{padding:0;border:none;background:var(--card)}
+.giro tbody tr.vazia:hover td{background:var(--card)}
+.giro tbody tr:hover td{background:var(--line-2)}
+.giro tbody tr.sel td{background:var(--accent);color:#fff}
+.giro tbody tr.sel td.c.low,.giro tbody tr.sel td.c.high,.giro tbody tr.sel td.zero{color:#fff}
+.giro td.obsc{min-width:104px;padding-right:14px}
+.obs{display:inline-block;font:700 10px "Space Grotesk",sans-serif;letter-spacing:.03em;padding:2px 8px;border-radius:99px;
+  background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+.giro tbody tr.sel .obs{background:rgba(255,255,255,.22);color:#fff}
+.obs.so{background:color-mix(in srgb,var(--k-abe) 30%,transparent);color:var(--k-tot-ink)}
+/* OBS escrita aqui: um ponto marca que ainda não está na planilha */
+.obs.ed::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:currentColor;opacity:.65;margin-right:5px;vertical-align:1px}
+.giro td.obsc{cursor:text}
+.giro td.obsc:hover .obs{outline:1px dashed color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
+.giro td.obsc:hover:not(:has(.obs))::after{content:"escrever";font:600 10px "Space Grotesk",sans-serif;color:var(--mute)}
+.obs-edit{width:100%;min-width:92px;border:1px solid var(--accent);border-radius:7px;background:var(--card);
+  color:var(--ink);font:600 11px "Space Grotesk",sans-serif;letter-spacing:.03em;padding:3px 6px;text-transform:uppercase}
+.obs-edit:focus{outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+
+/* ── carteira ── */
+.giro thead th.kh{background:var(--k-head);color:var(--k-head-ink);border-bottom:1px solid color-mix(in srgb,var(--k-head-ink) 20%,transparent)}
+.giro thead th.kt{background:var(--k-sub);color:var(--k-sub-ink)}
+.giro thead th.ks{background:var(--k-tot);color:var(--k-tot-ink)}
+.k-cab{display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-k{flex:none;width:20px;height:20px;border-radius:50%;border:1px solid color-mix(in srgb,var(--k-head-ink) 35%,transparent);
+  background:color-mix(in srgb,var(--k-head-ink) 10%,transparent);color:var(--k-head-ink);
+  font:700 14px/1 "Space Grotesk",sans-serif;display:grid;place-items:center;padding:0 0 2px}
+.btn-k.larga{width:auto;border-radius:99px;padding:0 8px 1px;font-size:10.5px;letter-spacing:.03em}
+.btn-k:hover{background:color-mix(in srgb,var(--k-head-ink) 20%,transparent)}
+.btn-k:focus-visible{outline:2px solid var(--k-head-ink);outline-offset:2px}
+.giro td.k{min-width:46px}
+.giro td.kf{background:var(--k-fat);color:var(--k-fat-ink)}
+.giro td.ka{background:var(--k-abe);color:var(--k-abe-ink);font-weight:700}
+.giro td.mix{line-height:1.1;padding-top:2px;padding-bottom:2px}
+.giro td.mix .kfat{display:block;font-size:10px;font-weight:600;opacity:.75}
+.giro tbody tr.sel td.mix .kfat{opacity:.85}
+.giro td.ks{background:var(--k-tot);color:var(--k-tot-ink);font:700 12.5px "Space Grotesk",sans-serif}
+.chip.kchip.on{background:var(--k-abe);border-color:var(--k-abe);color:#fff}
+
+/* filtro de faixa: chip que abre uma lista com marcação múltipla */
+.faixa-wrap{position:relative}
+.chip.fx-chip::after{content:"⌄";margin-left:6px;font-size:13px;line-height:0;opacity:.75;position:relative;top:-2px}
+.chip.fx-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.fx-pop{position:absolute;top:calc(100% + 7px);left:0;z-index:40;width:268px;max-height:330px;display:none;
+  flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 18px 38px -16px rgba(15,20,30,.45);overflow:hidden}
+.fx-pop.aberta{display:flex}
+.fx-topo{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line-2)}
+.fx-topo .quantos{flex:1;font:600 10px "Space Grotesk",sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.fx-acao{border:none;background:none;color:var(--accent);font:600 11.5px "Inter",sans-serif;padding:2px 4px;border-radius:6px}
+.fx-acao:hover{background:var(--line-2)}
+.fx-lista{overflow:auto;padding:4px 0;overscroll-behavior:contain}
+.fx-item{display:flex;align-items:center;gap:9px;width:100%;border:none;background:none;text-align:left;
+  padding:7px 12px;color:var(--ink);font-size:13px}
+.fx-item:hover{background:var(--line-2)}
+.fx-cx{flex:none;width:15px;height:15px;border-radius:4px;border:1.5px solid var(--line);display:grid;place-items:center;
+  color:#fff;font-size:10px;line-height:1}
+.fx-item.on .fx-cx{background:var(--accent);border-color:var(--accent)}
+.fx-nome{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx-pares{font:600 11.5px "Space Grotesk",sans-serif;color:var(--mute);font-variant-numeric:tabular-nums}
+@media (max-width:640px){ .fx-pop{width:min(88vw,300px)} }
+.chip.kchip::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--k-abe);
+  margin-right:6px;vertical-align:0}
+/* No computador, limpar filtros fica na própria fita, ao lado de Em aberto;
+   no tablet e no celular ele continua flutuando, perto do polegar. */
+.chip-limpar{flex:none;width:31px;height:31px;border-radius:50%;border:none;background:#E8590C;color:#fff;
+  display:none;place-items:center;padding:0}
+.chip-limpar.on{display:grid}
+.chip-limpar:hover{filter:brightness(1.08)}
+.chip-limpar:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.chip-limpar svg{width:15px;height:15px}
+@media (max-width:900px){ .chip-limpar,.chip-limpar.on{display:none} }
+@media (min-width:901px){ #fabLimpar{display:none} }
+.chip.kchip.on::before{background:#fff}
+/* alerta de cobertura baixa, dentro da coluna Cob. */
+.giro td.c{position:relative}
+.sino{flex:none;width:17px;height:17px;border-radius:5px;border:none;padding:0;margin-left:4px;
+  display:inline-grid;place-items:center;vertical-align:-3px;background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+.sino svg{width:11px;height:11px}
+button.sino:hover{background:var(--red);color:#fff}
+button.sino:focus-visible{outline:2px solid var(--red);outline-offset:1px}
+.sino.calmo{background:color-mix(in srgb,var(--slate) 14%,transparent);color:var(--slate);cursor:default}
+.giro tbody tr.sel .sino{background:rgba(255,255,255,.22);color:#fff}
+
+/* janela do que a vitrine tem */
+.foto-cx.vit-cx{width:min(700px,94vw);max-width:none;padding:0;overflow:hidden;max-height:92dvh;display:flex;flex-direction:column}
+.vit-cab,.vit-num{flex:none}
+.vit-cx .foto-fechar{top:10px;right:10px;width:29px;height:29px;font-size:15px;z-index:3;box-shadow:none}
+.vit-cab{display:flex;gap:13px;align-items:center;padding:12px 16px;padding-right:46px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,var(--card)),var(--card))}
+.vit-foto{flex:none;width:54px;height:54px;border-radius:11px;background:var(--line-2);object-fit:contain}
+.vit-nome{flex:1;min-width:0}
+.vit-nome h3{margin:0;font:700 16px "Space Grotesk",sans-serif;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vit-meta{margin-top:3px;font-size:12px;color:var(--slate);display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.vit-meta .cor{font-weight:700;color:var(--ink)}
+.vit-meta .sep{color:var(--line)}
+.selo-alerta{font:700 10px "Space Grotesk",sans-serif;letter-spacing:.05em;text-transform:uppercase;
+  background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red);border-radius:99px;padding:3px 9px}
+
+.vit-num{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.vit-num div{background:var(--card);padding:7px 14px}
+.vit-num .l{font:600 9.5px "Space Grotesk",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.vit-num .v{font:700 14.5px "Space Grotesk",sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.vit-num .v.low{color:var(--red)}
+
+.vit-corpo{padding:12px 16px 14px;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+/* ── os cards da vitrine, dentro da janela ── */
+.vit-corpo{--marca:#2C39E2;--marca-claro:#5B69E8;--marca-escuro:#1B27B0;
+  --pronta:#0E6B47;--pronta-fundo:#DEEFE7;--repasse:#2C39E2;--repasse-fundo:#E6E8FC;
+  --plano:#7A2FBF;--plano-fundo:#F1E7FB;--linha-v:#E2E4E0}
+[data-theme="dark"] .vit-corpo{--pronta-fundo:#122A20;--repasse-fundo:#161B3A;--plano-fundo:#241634;
+  --pronta:#6ED3A8;--repasse:#93A1FF;--plano:#C79BEE;--linha-v:var(--line)}
+.vgrade{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:10px}
+.vcard{background:var(--card);border:1px solid var(--linha-v);border-radius:13px;overflow:hidden;
+  display:flex;flex-direction:column;transition:border-color .14s,box-shadow .14s,transform .14s}
+.vcard:hover{box-shadow:0 1px 2px rgba(22,24,26,.06),0 10px 26px rgba(22,24,26,.09);transform:translateY(-1px)}
+.vcard.na-sacola{border-color:color-mix(in srgb,var(--marca) 48%,var(--linha-v))}
+.vfoto{position:relative;aspect-ratio:1/1;background:#fff;border-bottom:1px solid var(--linha-v);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.vfoto img{width:100%;height:100%;object-fit:contain}
+.vfoto .sem{font:600 10px "Space Grotesk",sans-serif;color:var(--mute)}
+.selo-cor,.selo-mesma{position:absolute;top:7px;left:7px;border-radius:99px;padding:2px 8px;
+  font:700 9.5px "Space Grotesk",sans-serif;letter-spacing:.04em}
+.selo-cor{background:rgba(255,255,255,.92);border:1px solid var(--linha-v);color:#16181A}
+.selo-mesma{background:var(--accent);color:#fff}
+.vcorpo{padding:7px 8px 8px;display:flex;flex-direction:column;gap:4px;flex:1}
+.vnome{font-size:11.5px;font-weight:800;color:var(--ink);line-height:1.15;letter-spacing:-.015em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vcod{font-size:9.5px;font-weight:600;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vpreco{font-size:13.5px;font-weight:900;color:var(--marca);letter-spacing:-.025em}
+.vchips{display:flex;flex-direction:column;gap:4px;margin-top:auto;padding-top:4px}
+.vchip{display:flex;align-items:center;gap:5px;border:1px solid transparent;border-radius:9px;padding:4px 7px;
+  font:600 10px "Space Grotesk",sans-serif;letter-spacing:.02em;text-align:left;width:100%}
+.vchip b{font-weight:800;font-variant-numeric:tabular-nums}
+.vchip .mais{margin-left:auto;font-size:12px;font-weight:800;opacity:.75}
+.vchip.c-est{background:var(--pronta-fundo);color:var(--pronta)}
+.vchip.c-rep{background:var(--repasse-fundo);color:var(--repasse)}
+.vchip.c-pro{background:var(--plano-fundo);color:var(--plano)}
+.vchip:hover{filter:brightness(.97)}
+.vchip.on{color:#fff}
+.vchip.c-est.on{background:var(--pronta)} .vchip.c-rep.on{background:var(--marca)} .vchip.c-pro.on{background:var(--plano)}
+.vchip.on .mais{opacity:1}
+.vchip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* barra da sacola, presa no pé da janela */
+.vit-sacola{flex:none;display:flex;align-items:center;gap:11px;padding:9px 14px;border-top:1px solid var(--line);
+  background:color-mix(in srgb,#2C39E2 6%,var(--card));flex-wrap:wrap}
+.vit-sacola.vazia{background:var(--paper)}
+.vit-sacola .ic{flex:none;width:31px;height:31px;border-radius:9px;display:grid;place-items:center;
+  background:color-mix(in srgb,#2C39E2 14%,transparent);color:#2C39E2}
+.vit-sacola .ic svg{width:16px;height:16px}
+.vit-sacola .tx{flex:1;min-width:140px}
+.vit-sacola .tx b{display:block;font:700 12.5px "Space Grotesk",sans-serif;color:var(--ink)}
+.vit-sacola .tx small{font-size:11px;color:var(--slate)}
+.btn-sac{border:none;border-radius:10px;height:34px;padding:0 14px;color:#fff;font:700 12px "Inter",sans-serif;
+  background:linear-gradient(145deg,#5B69E8,#2C39E2 55%,#1B27B0);
+  box-shadow:0 6px 16px rgba(44,57,226,.32)}
+.btn-sac:disabled{background:var(--line-2);color:var(--mute);box-shadow:none;cursor:default}
+.secao{display:flex;align-items:baseline;gap:8px;margin:0 0 9px;flex-wrap:wrap}
+.secao h5{margin:0;font:700 10px "Space Grotesk",sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.secao span{font-size:11.5px;color:var(--mute)}
+.vit-nada{color:var(--mute);font-size:12.5px;padding:0 2px 10px;text-align:center}
+.vit-pe{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.vit-fonte{font-size:11px;color:var(--mute)}
+.vit-link{font-size:12.5px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap}
+.vit-link:hover{text-decoration:underline}
+@media (max-width:640px){
+  .vgrade{grid-template-columns:repeat(auto-fill,minmax(142px,1fr));gap:8px}
+  .vit-num{grid-template-columns:repeat(3,1fr)}
+  .vit-corpo{padding:12px 14px 16px}
+  .vit-cab{padding:11px 14px;padding-right:44px}
+}
+
+/* foto do produto: ícone ao lado do código e a janela com a imagem */
+.btn-foto{flex:none;width:19px;height:19px;border-radius:5px;border:1px solid var(--line);background:var(--card);
+  color:var(--slate);display:inline-grid;place-items:center;padding:0;vertical-align:-4px;margin-right:6px}
+.btn-foto svg{width:12px;height:12px}
+.btn-foto:hover{border-color:var(--accent);color:var(--accent)}
+.btn-foto:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.giro tbody tr.sel .btn-foto{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.18);color:#fff}
+.foto-fundo{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(8,12,20,.62);backdrop-filter:blur(2px)}
+.foto-fundo.aberta{display:flex}
+.foto-cx{background:var(--card);border-radius:16px;padding:14px;max-width:min(460px,92vw);width:100%;
+  box-shadow:0 30px 60px -24px rgba(0,0,0,.6);position:relative}
+#fotoImg{width:100%;border-radius:11px;display:block;background:var(--line-2);aspect-ratio:1/1;object-fit:contain}
+.foto-tit{font:700 14px "Space Grotesk",sans-serif;color:var(--ink);margin:10px 2px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.foto-tit .cor{font-weight:600;font-size:12.5px;color:var(--slate)}
+.foto-sub{font-size:11.5px;color:var(--mute);margin:3px 2px 0}
+.foto-fechar{position:absolute;top:-10px;right:-10px;width:32px;height:32px;border-radius:50%;border:none;
+  background:var(--accent);color:#fff;font-size:17px;line-height:1;box-shadow:0 8px 18px -8px rgba(124,58,237,.7)}
+.gen{font-size:11px;font-weight:600;color:var(--slate)}
+.giro tbody tr.sel .gen{color:#fff}
+
+/* Descendo a tabela, o nome do cliente sobe junto — como a página da
+   Detalhada, que rola inteira. A altura acompanha a rolagem na medida
+   exata, sem transição: é isso que faz parecer natural. */
+.cab-anim{overflow:hidden}
+.cab-anim > .pagehead{margin-bottom:18px}
+
+/* botões flutuantes: voltar ao topo e limpar filtros */
+.fabs{position:fixed;right:18px;bottom:18px;z-index:30;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;border:none;color:#fff;display:grid;place-items:center;
+  box-shadow:0 10px 22px -8px rgba(15,20,30,.5);opacity:0;transform:translateY(10px);pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease,filter .16s ease}
+.fab.on{opacity:1;transform:none;pointer-events:auto}
+.fab:hover{filter:brightness(1.08)}
+.fab:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.fab svg{width:21px;height:21px}
+.fab.roxo{background:var(--accent)}
+.fab.laranja{background:#E8590C}
+
+footer{margin-top:8px;color:var(--mute);font-size:11.5px}
+
+/* ── tablet e celular ── */
+@media (max-width:900px){
+  .app{flex-direction:column}
+  .sidebar,.sidebar.collapsed{width:auto;height:auto;flex:none;position:sticky;top:0;z-index:20;flex-direction:row;
+    align-items:center;padding:10px 14px;border-right:none;border-bottom:1px solid var(--line)}
+  .brand{border:none;padding:0;margin:0}
+  .nav{flex-direction:row;flex:1;margin-left:14px}
+  .nav-label{display:none}
+  .sidebar-foot{border:none;padding:0;flex-direction:row}
+  .foot-label{display:none}
+  .content{padding:16px 14px 12px}
+  .cab-anim > .pagehead{margin-bottom:12px}
+  footer{font-size:10.5px}
+  .pagehead h1{font-size:20px}
+  .cab-cli h1 .cod{font-size:13px}
+  .kpis{margin-left:0;width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+  .chips{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}
+  .search-wrap{max-width:none;flex-basis:100%}
+  .fabs{right:12px;bottom:12px}
+  .fab{width:42px;height:42px}
+}
+@media (max-width:640px){
+  /* no celular só o código fica preso, com a cor embaixo dele; descrição e
+     cor em coluna própria rolam junto */
+  .giro .fx2,.giro .fx3{position:static;box-shadow:none}
+  .giro .fx1{width:112px;min-width:112px;max-width:112px;box-shadow:2px 0 0 var(--line);line-height:1.25}
+  .giro tbody tr{height:44px}
+  .giro .corm{display:block}
+  footer .det{display:none}
+  .cli-pick{width:100%}
+  .cli-pick select{width:100%}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">CMS</div>
+      <div class="brand-txt"><span class="brand-name">Análise de Giro</span><span class="brand-sub">Plano de contas</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item active" href="#" title="Análise de Giro"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5v-6.2"/><path d="M10.8 19.5V7.3"/><path d="M17 19.5V11"/><path d="M4 5.5l4.8 4 4-3 6.7 5.2"/></svg></span><span class="nav-label">Análise de Giro</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="foot-btn" href="https://cms-representacoes.github.io/apps-oly/" title="Voltar ao Portal"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span class="foot-label">Portal</span></a>
+      <button class="foot-btn" id="themeToggle" title="Modo escuro"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z"/></svg></span><span class="foot-label">Modo escuro</span></button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="cab-anim"><div class="pagehead">
+      <!-- nome e dados do cliente numa linha só: o título não precisa de
+           três andares antes da tabela -->
+      <div class="cab-cli">
+        <button type="button" class="menu-seta" id="menuSeta" aria-controls="sidebar"></button>
+        <span class="logo-cab" aria-hidden="true">CMS</span>
+        <h1 id="titulo"><span id="tituloNome">Análise de Giro</span><span class="cod" id="tituloCod"></span></h1>
+        <div class="info" id="eyebrow">Carregando…</div>
+      </div>
+      <div class="cli-pick" id="cliPick" hidden>
+        <label for="cliSel">Cliente</label>
+        <select class="sel" id="cliSel"></select>
+      </div>
+    </div></div>
+
+    <div class="toolbar">
+      <div class="search-wrap" id="buscaWrap">
+        <input type="text" class="search" id="busca" placeholder="Código, descrição ou cor" title="Busca exata: duas palavras valem como expressão (corre 5). A vírgula refina — ex.: corre 5, pto" autocomplete="off">
+        <button class="search-clear" id="buscaLimpa" title="Limpar a busca (Esc)">&times;</button>
+      </div>
+      <select class="sel" id="genero" title="Filtrar por gênero">
+        <option value="">Todos os gêneros</option>
+      </select>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="toolbar">
+      <div class="faixa-wrap">
+        <button type="button" class="chip fx-chip" id="fxChip" aria-expanded="false" aria-controls="fxPop">Faixa</button>
+        <div class="fx-pop" id="fxPop" role="dialog" aria-label="Filtrar por faixa">
+          <div class="fx-topo">
+            <span class="quantos" id="fxQuantos">Nenhuma marcada</span>
+            <button type="button" class="fx-acao" id="fxTudo">Tudo</button>
+            <button type="button" class="fx-acao" id="fxLimpar">Limpar</button>
+          </div>
+          <div class="fx-lista" id="fxLista"></div>
+        </div>
+      </div>
+      <div class="chips" id="marcas"></div>
+      <button type="button" class="chip-limpar" id="limparChip" title="Limpar os filtros" aria-label="Limpar os filtros">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.6 7.6v5.1l-3.8 2.1v-7.2Z"/><path d="M16.5 16.5l4 4"/><path d="M20.5 16.5l-4 4"/></svg>
+      </button>
+    </div>
+
+    <div class="card"><div class="wrap" id="tabela"><div class="empty">Carregando…</div></div></div>
+    <footer id="rodape"></footer>
+  </main>
+
+  <datalist id="obsLista"></datalist>
+
+  <div class="foto-fundo" id="vitFundo" role="dialog" aria-modal="true" aria-label="Onde este produto está">
+    <div class="foto-cx vit-cx">
+      <button type="button" class="foto-fechar" id="vitFechar" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
+      <div class="vit-cab" id="vitCab"></div>
+      <div class="vit-num" id="vitNum"></div>
+      <div class="vit-corpo" id="vitCorpo"></div>
+      <div class="vit-sacola vazia" id="vitSacola">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-1.3 11.2a2 2 0 0 1-2 1.8H7.3a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span>
+        <span class="tx"><b id="sacTit">Sacola vazia</b><small id="sacSub">Toque na origem do card para escolher</small></span>
+        <button type="button" class="btn-sac" id="sacEnviar" disabled>Enviar para a sacola →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="foto-fundo" id="fotoFundo" role="dialog" aria-modal="true" aria-label="Foto do produto">
+    <div class="foto-cx">
+      <button type="button" class="foto-fechar" id="fotoFechar" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
+      <img id="fotoImg" alt="">
+      <div class="foto-tit" id="fotoTit"></div>
+      <div class="foto-sub" id="fotoSub"></div>
+    </div>
+  </div>
+
+  <div class="fabs">
+    <button type="button" class="fab laranja" id="fabLimpar" title="Limpar os filtros" aria-label="Limpar os filtros">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.6 7.6v5.1l-3.8 2.1v-7.2Z"/><path d="M16.5 16.5l4 4"/><path d="M20.5 16.5l-4 4"/></svg>
+    </button>
+    <button type="button" class="fab roxo" id="fabTopo" title="Voltar ao topo" aria-label="Voltar ao topo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6 12l6-6 6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ── acesso: o mesmo login do Portal ────────────────────────────────── */
+const LOCAL = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+function sessao(){
+  try{
+    const s = JSON.parse(localStorage.getItem('cms_portal_session_v1') || 'null');
+    if(!s || !s.expiraEm || new Date(s.expiraEm).getTime() < Date.now()) return null;
+    return s;
+  }catch(_){ return null; }
+}
+const SESSAO = sessao() || (LOCAL ? { nome:'CMS' } : null);
+if(!SESSAO){ location.replace('https://cms-representacoes.github.io/apps-oly/'); return; }
+const NOME = String(SESSAO.nome || '').trim().toUpperCase();
+// A CMS e o Christian veem todos os clientes; cada vendedor, os seus.
+const VE_TUDO = NOME === 'CMS' || NOME === 'CHRISTIAN LUCAS';
+
+/* ── utilitários ─────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const nf = n => Number(n || 0).toLocaleString('pt-BR');
+const brl = v => v ? Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }) : '—';
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const rotuloMes = k => { const [a, m] = k.split('-'); return MESES[+m - 1] + '/' + a.slice(2); };
+const guardar = (k, v) => { try{ localStorage.setItem('giro.' + k, v); }catch(_){} };
+const lembrar = k => { try{ return localStorage.getItem('giro.' + k); }catch(_){ return null; } };
+
+// Cobertura em meses = estoque ÷ venda do mês. Sem venda e com estoque é
+// infinita (produto parado); sem os dois, não há o que medir.
+function cobertura(v, e){
+  if(v > 0) return e / v;
+  return e > 0 ? Infinity : null;
+}
+function cobTexto(c){
+  if(c === null) return '—';
+  if(c === Infinity) return '∞';
+  // sempre com uma casa: "1,0" e "1,3" alinham na coluna; "1" e "1,3" não
+  return c.toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 });
+}
+// abaixo de 1 mês falta produto; acima de 6 sobra
+const cobClasse = c => c === null ? '' : (c === Infinity || c > 6) ? 'high' : c < 1 ? 'low' : '';
+
+const COB_ALERTA = 1.5;   // daqui para baixo, o estoque não cobre o mês
+const ICONE_SINO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">` +
+  `<path d="M12 4.5 2.8 20h18.4Z"/><path d="M12 10.5v4"/><path d="M12 17.3v.2"/></svg>`;
+// Cobertura baixa pede ação. Com carteira em aberto já há resposta a caminho,
+// então o sinal fica apagado; sem carteira, ele abre a busca na vitrine.
+function alertaCob(p, c){
+  if(c === null || c > COB_ALERTA) return '';
+  if(temAberto(p)) return `<span class="sino calmo" title="Cobertura baixa, mas já há pedido em aberto">${ICONE_SINO}</span>`;
+  return `<button type="button" class="sino" data-vit="1" title="Cobertura baixa e sem carteira — ver o que a vitrine tem" ` +
+    `aria-label="Ver o que a vitrine tem deste produto">${ICONE_SINO}</button>`;
+}
+
+const SVG_FOTO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">` +
+  `<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="M4 17l5-4.5 4.5 4 3-2.5L20 17"/></svg>`;
+const ICONE_FOTO = `<button type="button" class="btn-foto" data-foto="1" title="Ver a foto do produto" aria-label="Ver a foto do produto">${SVG_FOTO}</button>`;
+
+const MARCAS = { 'OLY FTW':'Tênis', 'OLY VEST':'Vestuário', 'OLY MEIAS':'Meias',
+                 'OLY ACC':'Acessórios', 'OLY CHI':'Chinelos' };
+
+/* ── estado ──────────────────────────────────────────────────────────── */
+const E = { clientes:[], base:null, busca:'', genero:'', marca:'', ordem:{ k:'venda', dir:-1 }, sel:null, rolou:false,
+           // Gênero, PDV e Cód. cliente: consulta, não decisão — ficam
+           // recolhidos atrás do › no cabeçalho da cor, e a escolha é lembrada
+           extras: lembrar('extras') === '1',
+           // carteira da Detalhada: null enquanto não chega
+           corpo:null, tbody:null, janela:{ de:-1, ate:-1 }, colunas:0, alturaLinha:34,
+           med:{ area:0, rolagem:0 }, cabAltura:null,
+           // OBS escritas aqui, por produto; guardadas no aparelho
+           obs:{}, editando:false,
+           // faixa do produto (CORRE, MEIA OLY…), vinda da Detalhada
+           faixas:{}, faixaSel:new Set(), fotos:null, fotoArtigo:null, vitProduto:null,
+           vitCores:null, chipItens:null, sac:new Map(),
+           cart:null, cartInfo:null, cartErro:false, linhas:[], comCart:false,
+           // 1º semestre recolhido numa coluna só; null = segue o calendário
+           s1: lembrar('s1') };
+
+/* ── tema e menu ─────────────────────────────────────────────────────── */
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-theme', t);
+  $('themeToggle').querySelector('.foot-label').textContent = t === 'dark' ? 'Modo claro' : 'Modo escuro';
+}
+aplicarTema(lembrar('tema') || 'light');
+$('themeToggle').onclick = () => {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  guardar('tema', t); aplicarTema(t);
+};
+// A barra lateral nasce escondida: o espaço é da tabela. A seta ao lado do
+// logo mostra e esconde, e o navegador lembra a última escolha.
+function aplicarMenu(aberto){
+  document.querySelector('.app').classList.toggle('sem-menu', !aberto);
+  const b = $('menuSeta');
+  b.textContent = aberto ? '‹' : '›';
+  b.title = aberto ? 'Esconder o menu' : 'Mostrar o menu (Portal, modo escuro)';
+  b.setAttribute('aria-label', b.title);
+  b.setAttribute('aria-expanded', String(aberto));
+}
+aplicarMenu(lembrar('menu') === 'aberto');
+$('menuSeta').onclick = () => {
+  const aberto = document.querySelector('.app').classList.contains('sem-menu');
+  guardar('menu', aberto ? 'aberto' : 'fechado');
+  aplicarMenu(aberto);
+  // no celular o menu aparece no topo e empurra a tabela: mede de novo
+};
+
+/* ── o que a vitrine CMS tem ─────────────────────────────────────────── */
+/* Mesmas fontes da vitrine (apps-oly/data): disponibilidades.json separa
+   pronta entrega de produção pelo _meta, e dispo.json traz os lotes de
+   repasse. As listas de ocultos e exclusivos valem aqui também — não
+   adianta apontar o que a vitrine não oferece. Só é baixado quando alguém
+   clica no alerta: são ~1,7 MB. */
+const VIT_MIN = 48;                       // mínimo da vitrine para pronta entrega e produção
+const VIT_CAMINHOS = ['../../apps-oly/data/', 'https://cms-representacoes.github.io/apps-oly/data/'];
+const VIT_LINK = 'https://cms-representacoes.github.io/apps-oly/vitrine/';
+let VIT = null, vitCarregando = null;
+
+let vitBase = null;     // o caminho que respondeu; fora do site publicado é o de produção
+async function jsonVitrine(arq){
+  let erro;
+  for(const base of (vitBase ? [vitBase] : VIT_CAMINHOS)){
+    try{
+      const r = await fetch(base + arq, { cache:'no-cache' });
+      if(r.ok){ vitBase = base; return await r.json(); }
+      erro = new Error(arq + ' ' + r.status);
+    }catch(e){ erro = e; }
+  }
+  throw erro;
+}
+const chaveVit = (art, cor) => norm(art) + '|' + chaveCor(cor);
+// "2Q_DEZ" → "Dez"; "1Q_NOV" → "1ª Nov", como na vitrine
+const MES_SIGLA = { JAN:'Jan', FEV:'Fev', MAR:'Mar', ABR:'Abr', MAI:'Mai', JUN:'Jun',
+                    JUL:'Jul', AGO:'Ago', SET:'Set', OUT:'Out', NOV:'Nov', DEZ:'Dez' };
+function rotuloQuinzena(k){
+  const [q, m] = String(k || '').split('_');
+  const mes = MES_SIGLA[m] || m || '';
+  return q === '2Q' ? mes : '1ª ' + mes;
+}
+
+async function carregarVitrine(){
+  if(VIT) return VIT;
+  if(vitCarregando) return vitCarregando;
+  vitCarregando = (async () => {
+    const [disp, dispo, pedidos, ocD, ocL, exc] = await Promise.all([
+      jsonVitrine('disponibilidades.json'),
+      jsonVitrine('dispo.json'),
+      jsonVitrine('pedidos.json').catch(() => []),
+      jsonVitrine('ocultos_disponibilidades.json').catch(() => []),
+      jsonVitrine('ocultos.json').catch(() => []),
+      jsonVitrine('exclusivos.json').catch(() => ({})),
+    ]);
+    // O que já foi pedido some do lote, como na vitrine: um lote inteiro
+    // reservado não está mais disponível para ninguém. Sem esta conta, a
+    // tela apontava repasse que a vitrine não mostra mais.
+    const CONTAM = new Set(['PENDENTE', 'EM ANALISE', 'APROVADO', 'ATENDIDO PARCIALMENTE']);
+    const reservado = new Map();
+    for(const ped of (Array.isArray(pedidos) ? pedidos : [])){
+      if(!ped || ped.archived) continue;
+      if(!CONTAM.has(norm(ped.status || 'Pendente'))) continue;
+      for(const it of (ped.items || [])){
+        const num = String((it && it.num) || '').trim();
+        if(!num) continue;
+        reservado.set(num, (reservado.get(num) || 0) + (Number(it.totalUnits) || 0));
+      }
+    }
+    const barrados = new Set([...(Array.isArray(ocD) ? ocD : []),
+      ...(exc && typeof exc === 'object' && !Array.isArray(exc) ? Object.keys(exc) : [])]
+      .map(k => { const [a, c] = String(k).split('|'); return chaveVit(a, c); }));
+    const lotesOcultos = new Set((Array.isArray(ocL) ? ocL : []).map(String));
+    const pronta = new Map(), producao = new Map(), repasse = new Map(), dados = new Map();
+    for(const i of (Array.isArray(disp) ? disp : [])){
+      const k = chaveVit(i.artigo, i.cor);
+      if(barrados.has(k)) continue;
+      dados.set(k, { nome:i.descricao, cor:i.cor, pdv:Number(i.pdv) || 0,
+        imagem:String(i.imagem || '').trim(), categoria:String(i.categoriaProduto || '').toUpperCase(),
+        genero:String(i.genero || '').toUpperCase() });
+      if(i._meta){
+        const q = Object.entries(i.quinzenas || {}).map(([r, v]) => ({ rot:rotuloQuinzena(r), v:Number(v) || 0 }))
+          .filter(x => x.v >= VIT_MIN);
+        // As quinzenas são opções de entrega do mesmo lote de produção, não
+        // parcelas: 2Q_NOV 628 e 2Q_DEZ 628 são os mesmos 628 pares. O total
+        // é o totalGeral da fonte, como a vitrine usa.
+        if(q.length) producao.set(k, { itens:q, descricao:i.descricao, cor:i.cor, prevFat:i.prevFat,
+          total: Number(i.totalGeral) || Math.max(...q.map(x => x.v)) });
+      }else{
+        const g = {};
+        let total = 0;
+        for(const [t, v] of Object.entries(i.grade || {})) if(Number(v) > 0){ g[t] = Number(v); total += Number(v); }
+        if(total >= VIT_MIN) pronta.set(k, { total, grade:g, descricao:i.descricao, cor:i.cor });
+      }
+    }
+    for(const r of (Array.isArray(dispo) ? dispo : [])){
+      const k = chaveVit(r.codigo, r.cor);
+      const chaveLote = [r.codigo, r.cor, r.gci].join('|');
+      if(barrados.has(k) || lotesOcultos.has(chaveLote)) continue;
+      // no repasse não há mínimo: o lote vale enquanto sobrar par nele
+      const saldo = (Number(r.saldo) || 0) - (reservado.get(String(r.num || '').trim()) || 0);
+      if(saldo <= 0) continue;
+      const g = {};
+      for(const [t, v] of Object.entries(r.grade || {})) if(Number(v) > 0) g[t] = Number(v);
+      if(!repasse.has(k)) repasse.set(k, []);
+      repasse.get(k).push({ num:String(r.num || '').trim(), gci:String(r.gci || '').trim(),
+        entrega:r.dataEntrega, saldo, cor:r.cor, descricao:r.produto, grade:g });
+    }
+    VIT = { pronta, producao, repasse, dados, em:Date.now() };
+    return VIT;
+  })().finally(() => { vitCarregando = null; });
+  return vitCarregando;
+}
+
+// o que existe nesta cor e em quais outras cores do mesmo artigo
+function acharNaVitrine(p){
+  const k = chaveVit(p.codigo, p.cor);
+  const art = norm(p.codigo) + '|';
+  const outras = new Map();
+  const marcar = (mapa, nome) => {
+    for(const [chave, val] of mapa){
+      if(!chave.startsWith(art) || chave === k) continue;
+      const cor = (Array.isArray(val) ? val[0].cor : val.cor) || chave.split('|')[1];
+      const pares = Array.isArray(val) ? val.reduce((s, l) => s + l.saldo, 0)
+                  : val.total || 0;
+      if(!outras.has(cor)) outras.set(cor, { onde:new Set(), pares:0 });
+      const o = outras.get(cor);
+      o.onde.add(nome);
+      o.pares = Math.max(o.pares, pares);   // origens somam o mesmo produto
+    }
+  };
+  marcar(VIT.pronta, 'pronta'); marcar(VIT.producao, 'produção'); marcar(VIT.repasse, 'repasse');
+  return { pronta:VIT.pronta.get(k), producao:VIT.producao.get(k), repasse:VIT.repasse.get(k), outras };
+}
+
+// PP, P, M, G, GG… e os numéricos em ordem
+const TAMS = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG', 'EG', 'EGG'];
+function ordemTam(t){
+  const s2 = String(t).trim().toUpperCase();
+  const n = parseFloat(s2.replace(',', '.'));
+  if(!isNaN(n)) return n;
+  const i = TAMS.indexOf(s2);
+  return i < 0 ? 900 : 1000 + i;
+}
+/* ── a sacola, igual à da vitrine ────────────────────────────────────
+   O item entra com os mesmos campos que a vitrine grava (key, origem,
+   gradeDisp, caixas/amount…), então ele aparece lá já pronto para o
+   vendedor fechar a grade. Estoque e produção entram com a grade em
+   branco — é na vitrine que ela se preenche, como sempre foi. */
+const corArqVit = c => norm(c).replace(/[\/\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+const kVit = (art, cor) => norm(art) + '|' + corArqVit(cor);
+const TAMS_CAT = {
+  TENIS:['34','35','36','37','38','39','40','41','42','43','44','45','46','47','48'],
+  CHINELO:['33/34','35/36','37/38','39/40','41/42','43/44','45/46'],
+  VESTUARIO:['PP','P','M','G','GG','G1','G2','G3','2GG'],
+  ACESSORIO:['U','GG','M/G','33/38','39/44'], MEIA:['M','G'],
+};
+function baseItem(o){
+  return { artigo:o.artigo, cor:o.cor, corCodigo:o.cor, nome:o.nome, produto:o.nome,
+    codigo:o.artigo, pdv:o.pdv, imagem:o.imagem, categoria:o.categoria,
+    dataDesejada:'', num:'', gci:'', ebm:'', prevFaturamento:'' };
+}
+const itemEstoque = o => ({ ...baseItem(o), key:`est|${o.k}`, origem:'estoque', caixas:1,
+  gradeDisp:{ ...(o.pronta ? o.pronta.grade : {}) }, gradePedido:{} });
+function itemProducao(o, q){
+  const tams = (o.pronta && Object.keys(o.pronta.grade).length)
+    ? Object.keys(o.pronta.grade) : (TAMS_CAT[o.categoria] || []);
+  const disp = {};
+  for(const t of tams) disp[t] = q.v;      // a base não quebra por tamanho
+  return { ...baseItem(o), key:`pro|${o.k}|${q.mes}`, origem:'producao', caixas:1,
+    mes:q.mes, quinzena:q.rot, teto:q.v, gradeDisp:disp, gradePedido:{} };
+}
+function itemRepasse(o, lote){
+  const packSize = Object.values(lote.grade || {}).reduce((a, b) => a + b, 0);
+  return { ...baseItem(o), key:`rep|${o.k}|${lote.num}`, origem:'repasse',
+    num:lote.num, gci:lote.gci, prevFaturamento:lote.entrega || '',
+    grade:{ ...(lote.grade || {}) }, packSize, mode:'boxed', saldo:lote.saldo,
+    amount: packSize > 0 && lote.saldo >= packSize ? 1 : 0 };
+}
+
+// as cores do artigo que estão na vitrine, com tudo que cada uma tem
+function coresNaVitrine(p){
+  const art = norm(p.codigo) + '|';
+  const chaves = new Set([...VIT.pronta.keys(), ...VIT.producao.keys(), ...VIT.repasse.keys()]
+    .filter(k => k.startsWith(art)));
+  const minha = chaveVit(p.codigo, p.cor);
+  const lista = [];
+  for(const k of chaves){
+    const est = VIT.pronta.get(k), pro = VIT.producao.get(k), lotes = VIT.repasse.get(k) || [];
+    const d = VIT.dados.get(k) || {};
+    const cor = d.cor || (est && est.cor) || (pro && pro.cor) || (lotes[0] && lotes[0].cor) || k.split('|')[1];
+    const nome = d.nome || (est && est.descricao) || (pro && pro.descricao) || (lotes[0] && lotes[0].descricao) || p.descricao;
+    lista.push({ k:kVit(p.codigo, cor), artigo:norm(p.codigo), cor, nome,
+      pdv: d.pdv || p.pdv || 0, imagem: d.imagem || '', categoria: d.categoria || '',
+      pronta: est || null, meta: pro || null, lotes,
+      mesma: k === minha,
+      total: (est ? est.total : 0) + lotes.reduce((s2, l) => s2 + l.saldo, 0) + (pro ? pro.total : 0) });
+  }
+  return lista.sort((a, b) => (b.mesma - a.mesma) || (b.total - a.total));
+}
+
+const naSacola = k => E.sac.has(k);
+function mexerSacola(key, item){
+  if(E.sac.has(key)) E.sac.delete(key);
+  else if(item) E.sac.set(key, item);
+  pintarCards();
+}
+
+function pintarVitrine(p, r){
+  E.vitCores = coresNaVitrine(p);
+  pintarCards();
+}
+
+function pintarCards(){
+  const p = E.vitProduto, lista = E.vitCores || [];
+  const fotoDe2 = o => {
+    const f = fotoDaCor(o.artigo, o.cor) || (o.imagem ? { arq:o.imagem + '.jpg' } : null);
+    return f ? FOTO_PASTA + f.arq : '';
+  };
+  const chipsDe = o => {
+    const c = [];
+    if(o.pronta) c.push({ cls:'c-est', rot:'Pronta', q:o.pronta.total, key:`est|${o.k}`, item:() => itemEstoque(o) });
+    o.lotes.forEach(l => c.push({ cls:'c-rep', rot:'Repasse Nº ' + l.num, q:l.saldo,
+      key:`rep|${o.k}|${l.num}`, item:() => itemRepasse(o, l) }));
+    if(o.meta){
+      const q = o.meta.itens[0];
+      c.push({ cls:'c-pro', rot:'Produção · ' + q.rot, q:o.meta.total, key:`pro|${o.k}|${q.mes}`, item:() => itemProducao(o, q) });
+    }
+    return c;
+  };
+  E.chipItens = new Map();
+  const cards = lista.map((o, i) => {
+    const cs = chipsDe(o);
+    cs.forEach(c => E.chipItens.set(c.key, c.item));
+    const dentro = cs.filter(c => naSacola(c.key)).length;
+    const img = fotoDe2(o);
+    return `<article class="vcard${dentro ? ' na-sacola' : ''}">
+      <div class="vfoto">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="sem">sem foto</span>'}
+        <span class="${o.mesma ? 'selo-mesma' : 'selo-cor'}">${o.mesma ? 'esta cor' : esc(o.cor)}</span></div>
+      <div class="vcorpo">
+        <span class="vnome" title="${esc(o.nome)}">${esc(o.nome)}</span>
+        <span class="vcod">${esc(o.artigo)} · ${esc(o.cor)}</span>
+        ${o.pdv ? `<span class="vpreco">${brl(o.pdv)}</span>` : ''}
+        <span class="vchips">${cs.map(c =>
+          `<button type="button" class="vchip ${c.cls}${naSacola(c.key) ? ' on' : ''}" data-sac="${esc(c.key)}" ` +
+          `title="${naSacola(c.key) ? 'Tirar da sacola' : 'Pôr na sacola'}">${esc(c.rot)} <b>${nf(c.q)}</b>` +
+          `<span class="mais">${naSacola(c.key) ? '✓' : '+'}</span></button>`).join('')}</span>
+      </div></article>`;
+  }).join('');
+
+  // "Duas cores disponíveis na vitrine" — o número por extenso lê melhor que
+  // um algarismo solto no meio da frase
+  const PORT = ['Nenhuma', 'Uma', 'Duas', 'Três', 'Quatro', 'Cinco', 'Seis', 'Sete', 'Oito', 'Nove', 'Dez'];
+  const n = lista.length;
+  const quantas = n <= 10 ? PORT[n] : nf(n);
+  const titulo = n
+    ? `${quantas} ${n === 1 ? 'cor disponível' : 'cores disponíveis'} na vitrine`
+    : 'Nenhuma cor deste artigo na vitrine';
+  $('vitCorpo').innerHTML =
+    `<div class="secao"><h5>${titulo}</h5></div>` +
+    (lista.length ? `<div class="vgrade">${cards}</div>` : '<div class="vit-nada">Nem esta cor nem outras cores deste artigo estão na vitrine.</div>') +
+    `<div class="vit-pe"><span class="vit-fonte">Saldos de hoje, já sem o que está oculto e sem o que outros pedidos reservaram</span>` +
+    `<a class="vit-link" href="${VIT_LINK}" target="_blank" rel="noopener">Abrir a vitrine CMS →</a></div>`;
+  barraSacola();
+}
+
+function barraSacola(){
+  const n = E.sac.size;
+  const bar = $('vitSacola');
+  bar.classList.toggle('vazia', !n);
+  const porOrigem = { estoque:0, repasse:0, producao:0 };
+  for(const it of E.sac.values()) porOrigem[it.origem]++;
+  const partes = [];
+  if(porOrigem.estoque) partes.push(porOrigem.estoque + ' pronta entrega');
+  if(porOrigem.repasse) partes.push(porOrigem.repasse + ' repasse');
+  if(porOrigem.producao) partes.push(porOrigem.producao + ' produção');
+  $('sacTit').textContent = n ? `${n} ite${n > 1 ? 'ns' : 'm'} · ${partes.join(' · ')}` : 'Sacola vazia';
+  $('sacSub').textContent = n
+    ? 'Vai para a sua sacola na vitrine CMS; a grade você fecha lá'
+    : 'Toque na origem do card para escolher';
+  $('sacEnviar').disabled = !n;
+}
+
+async function enviarSacola(){
+  const codigo = String((SESSAO && SESSAO.codigo) || '').trim();
+  if(!codigo){ $('sacSub').textContent = 'Entre pelo Portal para enviar — falta o seu código.'; return; }
+  const btn = $('sacEnviar');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try{
+    // A sacola é do vendedor e pode ter coisa de antes: lê, junta e devolve.
+    let atual = [];
+    try{
+      const r = await chamarWorker2({ action:'getSacola', codigo, marca:'oly' }, 8000);
+      if(r && Array.isArray(r.itens)) atual = r.itens.filter(x => x && x.key);
+    }catch(_){}
+    const mapa = new Map(atual.map(it => [it.key, it]));
+    for(const [k, it] of E.sac) mapa.set(k, it);
+    const resp = await chamarWorker2({ action:'saveSacola', codigo, marca:'oly',
+      itens:[...mapa.values()], de:'analise-giro' }, 12000);
+    if(!resp || !resp.success) throw new Error('resposta sem sucesso');
+    const quantos = E.sac.size;
+    E.sac.clear();
+    pintarCards();
+    btn.textContent = 'Enviado ✓';
+    $('sacSub').textContent = `${quantos} ite${quantos > 1 ? 'ns foram' : 'm foi'} para a sua sacola na vitrine.`;
+    setTimeout(() => { btn.textContent = 'Enviar para a sacola →'; barraSacola(); }, 2600);
+  }catch(e){
+    console.warn('sacola não subiu', e);
+    btn.textContent = 'Enviar para a sacola →';
+    btn.disabled = false;
+    $('sacSub').textContent = 'Não deu para enviar agora. Tente de novo em instantes.';
+  }
+}
+// o worker da vitrine aceita as ações com corpo próprio
+async function chamarWorker2(corpo, ms){
+  const corta = new AbortController();
+  const t = setTimeout(() => corta.abort(), ms);
+  try{
+    const r = await fetch(WORKER_URL, { method:'PATCH', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(corpo), signal: corta.signal });
+    if(!r.ok) throw new Error('worker ' + r.status);
+    return await r.json();
+  }finally{ clearTimeout(t); }
+}
+
+async function abrirVitrine(k){
+  const p = E.linhas.find(x => x.k === k);
+  if(!p) return;
+  E.vitProduto = p;
+  const ult = E.base.meses[E.base.meses.length - 1];
+  const x = p.m[ult] || {};
+  const c = cobertura(x.v || 0, x.e || 0);
+  const f = fotoDe(p);
+  $('vitCab').innerHTML =
+    (f ? `<img class="vit-foto" src="${FOTO_PASTA}${esc(f.arq)}" alt="">` : '') +
+    `<div class="vit-nome"><h3>${esc(p.descricao)}</h3><div class="vit-meta">` +
+    `<span class="cor">${esc(p.cor)}</span><span class="sep">·</span><span>Artigo ${esc(p.codigo)}</span>` +
+    (p.faixa && p.faixa !== SEM_FAIXA ? `<span class="sep">·</span><span>${esc(p.faixa)}</span>` : '') +
+    `<span class="selo-alerta">sem carteira</span></div></div>`;
+  $('vitNum').innerHTML = [
+    [`Cobertura ${rotuloMes(ult)}`, cobTexto(c) + (c !== null && c !== Infinity ? ' mês' : ''), 'low'],
+    [`Estoque ${rotuloMes(ult)}`, nf(x.e || 0), ''],
+    [`Venda ${rotuloMes(ult)}`, nf(x.v || 0), ''],
+  ].map(([l, v, cls]) => `<div><div class="l">${l}</div><div class="v ${cls}">${v}</div></div>`).join('');
+  $('vitCorpo').innerHTML = '<div class="vit-nada">Procurando na vitrine…</div>';
+  $('vitFundo').classList.add('aberta');
+  $('vitFechar').focus();
+  try{
+    await carregarVitrine();
+    pintarVitrine(p, acharNaVitrine(p));
+  }catch(e){
+    console.warn('vitrine indisponível', e);
+    $('vitCorpo').innerHTML = '<div class="vit-nada">Não foi possível ler a vitrine agora. Tente de novo em instantes.</div>';
+  }
+}
+function fecharVitrine(){ $('vitFundo').classList.remove('aberta'); }
+// foto da cor listada, sem sair da janela da vitrine
+$('vitCorpo').addEventListener('click', ev => {
+  const sac = ev.target.closest('[data-sac]');
+  if(sac){
+    const k = sac.dataset.sac, fab = E.chipItens && E.chipItens.get(k);
+    mexerSacola(k, fab && fab());
+    return;
+  }
+  const b = ev.target.closest('[data-cor]');
+  if(!b) return;
+  const cor = b.dataset.cor, p = E.vitProduto;
+  const f = p && fotoDaCor(p.codigo, cor);
+  if(f) mostrarFoto(f, p.descricao, cor, p.codigo);
+});
+$('vitFechar').onclick = fecharVitrine;
+$('sacEnviar').onclick = enviarSacola;
+$('vitFundo').onclick = ev => { if(ev.target === $('vitFundo')) fecharVitrine(); };
+document.addEventListener('keydown', ev => {
+  // com a foto aberta por cima, o Esc fecha só ela
+  if(ev.key === 'Escape' && !$('fotoFundo').classList.contains('aberta')) fecharVitrine();
+});
+
+/* ── fotos ───────────────────────────────────────────────────────────── */
+/* As imagens são as mesmas da Carteira e da Detalhada, em
+   apps-oly-v2/imagens_olympikus, no formato artigo_cor.jpg. O índice diz
+   quais existem: assim o ícone só aparece quando há foto, e a tela não pede
+   ao servidor uma imagem que não está lá. */
+const FOTO_PASTA = '../imagens_olympikus/';
+// Os arquivos não seguem um padrão de cor: PTO_LM, PTOLM e PTO/LM são a mesma
+// coisa. A chave ignora tudo que não é letra ou número.
+const chaveFoto = (art, cor) => norm(art) + '|' + norm(cor).replace(/[^A-Z0-9]/g, '');
+async function carregarFotos(){
+  try{
+    const r = await fetch('dados/fotos.json' + bust(), { cache:'no-cache' });
+    const idx = await r.json();
+    E.fotos = new Map(Object.entries(idx || {}));
+    E.fotoArtigo = new Map();
+    for(const [k, arq] of E.fotos){
+      const a = k.split('|')[0];
+      if(!E.fotoArtigo.has(a)) E.fotoArtigo.set(a, arq);
+    }
+  }catch(_){ E.fotos = new Map(); E.fotoArtigo = new Map(); }
+}
+// a foto da cor; sem ela, outra cor do mesmo artigo, avisando na janela
+function fotoDe(p){
+  if(!E.fotos || !E.fotos.size) return null;
+  const exata = E.fotos.get(chaveFoto(p.codigo, p.cor));
+  if(exata) return { arq: exata, exata:true };
+  const outra = E.fotoArtigo.get(norm(p.codigo));
+  return outra ? { arq: outra, exata:false } : null;
+}
+function abrirFoto(k){
+  const p = E.linhas.find(x => x.k === k);
+  const f = p && fotoDe(p);
+  if(f) mostrarFoto(f, p.descricao, p.cor, p.codigo);
+}
+// serve para a linha da tabela e para as cores listadas na janela da vitrine
+function mostrarFoto(f, descricao, cor, codigo){
+  $('fotoImg').src = FOTO_PASTA + f.arq;
+  $('fotoImg').alt = `${descricao} ${cor}`;
+  $('fotoTit').innerHTML = `${esc(descricao)}<span class="cor">${esc(cor)}</span>`;
+  $('fotoSub').textContent = `Artigo ${codigo}` + (f.exata ? '' : ' · foto de outra cor deste artigo');
+  $('fotoFundo').classList.add('aberta');
+  $('fotoFechar').focus();
+}
+// a foto de uma cor qualquer do artigo, pelo índice
+function fotoDaCor(codigo, cor){
+  if(!E.fotos || !E.fotos.size) return null;
+  const arq = E.fotos.get(chaveFoto(codigo, cor));
+  return arq ? { arq, exata:true } : null;
+}
+function fecharFoto(){ $('fotoFundo').classList.remove('aberta'); $('fotoImg').removeAttribute('src'); }
+$('fotoFechar').onclick = fecharFoto;
+$('fotoFundo').onclick = ev => { if(ev.target === $('fotoFundo')) fecharFoto(); };
+document.addEventListener('keydown', ev => { if(ev.key === 'Escape') fecharFoto(); });
+
+/* ── dados ───────────────────────────────────────────────────────────── */
+const bust = () => '?v=' + Math.floor(Date.now() / 60000);
+async function carregar(){
+  try{
+    const r = await fetch('dados/clientes.json' + bust(), { cache:'no-cache' });
+    const todos = await r.json();
+    E.clientes = todos.filter(c => VE_TUDO || String(c.vendedor || '').toUpperCase() === NOME);
+  }catch(_){
+    $('eyebrow').textContent = 'Não foi possível carregar a lista de clientes.';
+    $('tabela').innerHTML = '<div class="empty">Sem conexão com os dados. Tente recarregar a página.</div>';
+    return;
+  }
+  if(!E.clientes.length){
+    $('eyebrow').textContent = 'Nenhum cliente liberado para você ainda.';
+    $('tabela').innerHTML = '<div class="empty">Quando um plano de contas seu for publicado, ele aparece aqui.</div>';
+    return;
+  }
+  $('cliSel').innerHTML = E.clientes.map(c => `<option value="${esc(c.id)}">${esc(c.nome)} · ${esc(c.codigo)}</option>`).join('');
+  $('cliPick').hidden = E.clientes.length < 2;
+  const ult = lembrar('cliente');
+  const inicial = E.clientes.some(c => c.id === ult) ? ult : E.clientes[0].id;
+  $('cliSel').value = inicial;
+  await carregarFotos();
+  await abrirCliente(inicial);
+}
+$('cliSel').onchange = e => abrirCliente(e.target.value);
+
+async function abrirCliente(id){
+  guardar('cliente', id);
+  $('tabela').innerHTML = '<div class="empty">Carregando…</div>';
+  try{
+    const r = await fetch(`dados/${encodeURIComponent(id)}.json` + bust(), { cache:'no-cache' });
+    E.base = await r.json();
+  }catch(_){
+    $('tabela').innerHTML = '<div class="empty">Não foi possível carregar os dados deste cliente.</div>';
+    return;
+  }
+  E.sel = null; E.marca = ''; E.genero = ''; E.rolou = false; E.comCart = false;
+  // abre sempre pela venda do mês mais recente, do maior para o menor
+  E.ordem = { k:'v:' + E.base.meses[E.base.meses.length - 1], dir:-1 };
+  E.cart = null; E.cartInfo = null; E.cartErro = false; E.faixaSel.clear(); E.faixas = {};
+  E.base.produtos.forEach(p => { p.c = null; });
+  E.linhas = E.base.produtos;
+  const c = E.base.cliente;
+  $('eyebrow').textContent = `· ${c.lojas} lojas · vendedor ${c.vendedor}`;
+  $('tituloCod').textContent = ' - ' + c.codigo;
+  $('tituloNome').textContent = c.nome;
+  document.title = `${c.nome} · Análise de Giro`;
+  const generos = [...new Set(E.base.produtos.map(p => p.genero).filter(Boolean))].sort();
+  $('genero').innerHTML = '<option value="">Todos os gêneros</option>' +
+    generos.map(g => `<option value="${esc(g)}">${esc(g.charAt(0) + g.slice(1).toLowerCase())}</option>`).join('');
+  // a carteira guardada no aparelho entra já na primeira pintura: a tabela
+  // aparece uma vez só, completa, em vez de redesenhar quando ela chega
+  E.obs = (await cacheLer('obs:' + c.id)) || {};
+  const guardado = await cacheLer('cart:' + c.id);
+  if(E.base.cliente.id !== c.id) return;
+  if(cartValida(guardado, c, E.base.ano)){
+    E.cart = guardado.itens; E.faixas = guardado.faixas || {}; E.cartInfo = guardado;
+    juntarCarteira();
+  }
+  rodape();
+  pintar();
+  medirCab();
+  carregarCarteira(c, guardado);
+}
+
+/* ── carteira (Detalhada) ────────────────────────────────────────────── */
+/* A carteira vem da Detalhada, que o script diário publica no worker: assim
+   ela está sempre em dia, sem depender de regerar o plano. A base tem 3 MB,
+   então o aparelho guarda só o recorte do cliente e pergunta ao worker se a
+   base mudou (o resumo tem poucos bytes) antes de baixar de novo. */
+const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
+const DET_VERSAO = 1;   // ordem dos campos da linha da Detalhada (v1)
+const DC = { CLI:1, MARCA:2, REF:5, COR:6, PREV:10, CART:11, FAT:12, DFAT:13, FAIXA:14 };
+// marca da Detalhada → marca do plano. UA fica de fora: o plano é Olympikus.
+const MARCA_DET = { OLY:'OLY FTW', CFOLY:'OLY VEST', MEOLY:'OLY MEIAS', ACOLY:'OLY ACC', CHOLY:'OLY CHI' };
+// "PTO/PT", "PTO_PT" e "PTO / PT" são a mesma cor
+const chaveCor = c => norm(c).replace(/\s*[\/_]\s*/g, '/').trim();
+
+async function chamarWorker(action, ms){
+  for(let tentativa = 1; tentativa <= 2; tentativa++){
+    const corta = new AbortController();
+    const t = setTimeout(() => corta.abort(), ms);
+    try{
+      const r = await fetch(WORKER_URL, { method:'PATCH', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ action }), signal: corta.signal });
+      if(!r.ok) throw new Error('worker ' + r.status);
+      return await r.json();
+    }catch(e){
+      // o worker às vezes responde 503 ao montar a base inteira; é passageiro
+      if(tentativa === 2) throw e;
+      await new Promise(ok => setTimeout(ok, 1500));
+    }finally{ clearTimeout(t); }
+  }
+}
+
+function abrirDB(){
+  return new Promise((ok, falha) => {
+    const r = indexedDB.open('analise-giro', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => falha(r.error);
+  });
+}
+async function cacheLer(chave){
+  try{
+    const db = await abrirDB();
+    return await new Promise(ok => {
+      const q = db.transaction('kv').objectStore('kv').get(chave);
+      q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null);
+    });
+  }catch(_){ return null; }
+}
+async function cacheSalvar(chave, valor){
+  try{
+    const db = await abrirDB();
+    db.transaction('kv', 'readwrite').objectStore('kv').put(valor, chave);
+  }catch(_){}
+}
+
+// Pedido por referência + cor e mês do ano: f = já faturado, a = em aberto.
+// O mês é o da previsão de faturamento, que é como a planilha organiza.
+function extrairCarteira(base, codigos, ano){
+  const clis = new Set();
+  base.dic.cli.forEach((c, i) => { if(codigos.includes(String(c[0]))) clis.add(i); });
+  const itens = {};
+  // A faixa (CORRE, MEIA OLY, CONF_FEM…) é do produto, não do cliente: vale
+  // a linha de qualquer um, e assim cobre mais artigos.
+  const faixas = {};
+  const temFaixa = Array.isArray(base.dic.faixa) && base.dic.faixa.length;
+  for(const l of base.l){
+    if(temFaixa){
+      const i = l[DC.FAIXA];
+      if(i != null && i >= 0){
+        const ref = (base.dic.ref[l[DC.REF]] || [''])[0];
+        if(ref && !faixas[ref]) faixas[ref] = base.dic.faixa[i];
+      }
+    }
+    if(!clis.has(l[DC.CLI])) continue;
+    const marca = MARCA_DET[base.dic.marca[l[DC.MARCA]]];
+    if(!marca) continue;
+    const dia = l[DC.PREV] >= 0 ? l[DC.PREV] : l[DC.DFAT];
+    if(dia < 0) continue;
+    const d = new Date(dia * 864e5);
+    if(d.getUTCFullYear() !== ano) continue;
+    const mes = `${ano}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    const [ref, desc] = base.dic.ref[l[DC.REF]] || ['', ''];
+    const cor = String(base.dic.cor[l[DC.COR]] || '').toUpperCase();
+    const k = ref + '|' + chaveCor(cor);
+    const it = itens[k] || (itens[k] = { ref, cor, desc, marca, m:{} });
+    const x = it.m[mes] || (it.m[mes] = { f:0, a:0 });
+    if(l[DC.CART] > 0) x.a += l[DC.CART];
+    else if(l[DC.FAT] > 0) x.f += l[DC.FAT];
+  }
+  return { itens, faixas };
+}
+
+const temAberto = p => !!p.c && Object.values(p.c).some(x => x.a > 0);
+
+/* ── OBS ─────────────────────────────────────────────────────────────
+   A OBS do mês mais recente pode ser escrita aqui. A da planilha continua
+   valendo enquanto ninguém escrever por cima; o que é escrito fica no
+   aparelho (IndexedDB) e leva um ponto ao lado, para não se confundir com
+   o que veio do plano de contas. */
+const obsDoPlano = (p, mes) => (p.m[mes] || {}).o || (p.soCart ? 'CARTEIRA' : '');
+const obsEditada = p => E.obs[p.k];
+function obsEfetiva(p, mes){
+  const e = obsEditada(p);
+  return e === undefined ? obsDoPlano(p, mes) : e;
+}
+async function guardarObs(cli){
+  try{ await cacheSalvar('obs:' + cli, { ...E.obs }); }catch(_){}
+}
+
+// Casa a carteira com os produtos do plano. O que tem pedido em aberto e não
+// está no plano entra como linha nova ("só carteira"); se o artigo já existe
+// em outra cor, herda dele descrição, gênero, PDV e marca.
+const SEM_FAIXA = 'Sem faixa';
+function juntarCarteira(){
+  const B = E.base;
+  const faixaDe = cod => (E.faixas || {})[cod] || SEM_FAIXA;
+  const porChave = new Map(), porCodigo = new Map();
+  B.produtos.forEach(p => {
+    p.c = null;
+    p.faixa = faixaDe(p.codigo);
+    porChave.set(p.codigo + '|' + chaveCor(p.cor), p);
+    if(!porCodigo.has(p.codigo)) porCodigo.set(p.codigo, p);
+  });
+  const novos = [];
+  Object.values(E.cart || {}).forEach(it => {
+    const k = it.ref + '|' + chaveCor(it.cor);
+    const p = porChave.get(k);
+    if(p){ p.c = it.m; return; }
+    if(!Object.values(it.m).some(x => x.a > 0)) return;
+    const irmao = porCodigo.get(it.ref);
+    novos.push({ k:'cart:' + k, marca: irmao ? irmao.marca : it.marca, codigo: it.ref,
+      descricao: irmao ? irmao.descricao : it.desc, cor: it.cor, genero: irmao ? irmao.genero : '',
+      grupo:'', pdv: irmao ? irmao.pdv : null, codCliente:'', m:{}, c: it.m, soCart:true,
+      faixa: faixaDe(it.ref) });
+  });
+  E.linhas = B.produtos.concat(novos);
+}
+
+const codigosDe = cli => ((cli.codigos && cli.codigos.length) ? cli.codigos : [cli.codigo]).map(String);
+// Versão do recorte guardado. Mudou o que se extrai da Detalhada (a faixa
+// entrou aqui), sobe este número: o que está no aparelho é refeito, em vez
+// de ficar valendo um recorte sem a informação nova.
+const CART_V = 2;
+// o recorte guardado só vale para os mesmos códigos, o mesmo ano e a versão
+const cartValida = (g, cli, ano) => !!g && g.v === CART_V && g.codigos === codigosDe(cli).join(',') && g.ano === ano;
+const UM_DIA = 864e5;
+const RESERVA = '../detalhada/dados/detalhada.json';
+
+// A carteira guardada já entra na primeira pintura (quem chama instala antes
+// de pintar); aqui só se confere, em segundo plano, se há base mais nova.
+async function carregarCarteira(cli, guardado){
+  const codigos = codigosDe(cli);
+  const ano = E.base.ano;
+  const chave = 'cart:' + cli.id;
+  const valido = cartValida(guardado, cli, ano);
+  const instalar = pacote => {
+    if(!E.base || E.base.cliente.id !== cli.id) return;   // trocou de cliente no meio
+    const w = $('tabela');
+    const noFim = !E.cart || w.scrollLeft + w.clientWidth >= w.scrollWidth - 8;
+    E.cart = pacote.itens; E.faixas = pacote.faixas || {}; E.cartInfo = pacote; E.cartErro = false;
+    juntarCarteira();
+    if(noFim) E.rolou = false;
+    pintar(); rodape();
+  };
+  try{
+    const info = await chamarWorker('getDetalhadaInfo', 8000);
+    if(!info || !info.gerado) throw new Error('sem base publicada');
+    if(valido && guardado.gerado === info.gerado) return;
+    const base = await chamarWorker('getDetalhada', 45000);
+    if(!base || base.v !== DET_VERSAO || !Array.isArray(base.l)) throw new Error('base inválida');
+    const pacote = { v:CART_V, gerado: base.gerado || info.gerado, codigos: codigos.join(','), ano,
+                     ...extrairCarteira(base, codigos, ano), salvoEm: Date.now() };
+    cacheSalvar(chave, pacote);
+    instalar(pacote);
+  }catch(e){
+    console.warn('carteira: worker indisponível, tentando a cópia do repositório', e);
+    // Reserva: a cópia da Detalhada que fica no repositório. Envelhece, mas
+    // é melhor que nada — e é o que funciona fora do site publicado (o
+    // worker só atende o github.io). Só entra se for mais nova que o cache.
+    // São 3 MB: antes de baixar, uma pergunta de cabeçalho (HEAD) diz se a
+    // cópia mudou; sem ela, o limite é um dia.
+    try{
+      let marca = null;
+      try{
+        const h = await fetch(RESERVA, { method:'HEAD', cache:'no-cache' });
+        if(h.ok) marca = h.headers.get('etag') || h.headers.get('last-modified');
+      }catch(_){}
+      if(valido && (marca ? guardado.marcaReserva === marca
+                          : Date.now() - (guardado.salvoEm || 0) < UM_DIA)) return;
+      const r = await fetch(RESERVA, { cache:'no-cache' });
+      const base = r.ok ? await r.json() : null;
+      if(!base || base.v !== DET_VERSAO || !Array.isArray(base.l)) throw new Error('reserva inválida');
+      if(valido && String(guardado.gerado) >= String(base.gerado)){
+        // conferido: não há nada mais novo nessa cópia
+        cacheSalvar(chave, { ...guardado, salvoEm: Date.now(), marcaReserva: marca });
+        return;
+      }
+      const pacote = { v:CART_V, gerado: base.gerado, codigos: codigos.join(','), ano,
+                       ...extrairCarteira(base, codigos, ano), reserva:true,
+                       salvoEm: Date.now(), marcaReserva: marca };
+      cacheSalvar(chave, pacote);
+      instalar(pacote);
+    }catch(e2){
+      console.warn('carteira: Detalhada indisponível', e2);
+      if(!valido && E.base && E.base.cliente.id === cli.id){ E.cartErro = true; rodape(); }
+    }
+  }
+}
+
+function rodape(){
+  const B = E.base; if(!B) return;
+  const quando = d => `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}`;
+  const cart = E.cartInfo ? ` · Carteira: Detalhada de ${quando(new Date(E.cartInfo.gerado))}${E.cartInfo.reserva ? ' (cópia de reserva)' : ''}`
+             : E.cartErro ? ' · Carteira indisponível agora (Detalhada fora do ar)'
+             : ' · Carregando a carteira…';
+  $('rodape').innerHTML = `Fonte: ${esc(B.fonte)} · atualizado em ${quando(new Date(B.atualizadoEm))}${esc(cart)}.` +
+    `<span class="det"> Cobertura = estoque ÷ venda do mês, em meses. ` +
+    `Carteira: verde forte = em aberto, suave = já faturado.</span>`;
+}
+
+/* ── filtros ─────────────────────────────────────────────────────────── */
+$('busca').oninput = () => {
+  E.busca = $('busca').value;
+  $('buscaWrap').classList.toggle('tem', !!E.busca);
+  pintar();
+};
+$('busca').addEventListener('keydown', e => { if(e.key === 'Escape'){ $('busca').value = ''; $('busca').oninput(); } });
+$('buscaLimpa').onclick = () => { $('busca').value = ''; $('busca').oninput(); $('busca').focus(); };
+$('genero').onchange = e => { E.genero = e.target.value; pintar(); };
+
+/* Busca exata. Duas ou mais palavras valem como expressão: elas têm de vir
+   emendadas, na ordem, em algum campo do produto. É o que separa o "CORRE 5"
+   da "BERMUDA CORRE FOCO 5 M" — nela as duas palavras existem, mas longe uma
+   da outra. Número curto só casa inteiro, então "corre 5" não traz o Corre 4
+   nem o Corre 50 Anos. A vírgula refina: o que vem depois filtra dentro do
+   resultado ("corre 5, pto" = Corre 5 nas cores PTO). */
+const SEP_GROSSO = /[\s,;:()+]+/;
+const SEP_FINO = /[\s\/\-_.,;:()+]+/;
+// Cada campo vira uma lista de palavras, e a cor entra também inteira
+// ("PTO/CH"), para "pto/ch" casar com ela e não com o CHallenger.
+function palavrasDe(p){
+  if(!p._c){
+    const corte = t => norm(t).split(SEP_FINO).filter(Boolean);
+    p._c = [corte(p.descricao), corte(p.cor), corte(p.codigo), corte(p.codCliente),
+            [norm(p.cor).trim()].filter(Boolean)];
+    p._d = p._c[0];
+  }
+  return p;
+}
+// um termo casa com uma palavra: número curto só inteiro, o resto pelo começo
+const casaPalavra = (w, t) => /^\d{1,3}$/.test(t) ? w === t : w.startsWith(t);
+// a expressão inteira tem de caber emendada numa das listas
+function casaGrupo(p, termos){
+  if(termos.length === 1){
+    const t = termos[0];
+    return p._c.some(lista => lista.some(w => casaPalavra(w, t)));
+  }
+  return p._c.some(lista => {
+    for(let i = 0; i + termos.length <= lista.length; i++)
+      if(termos.every((t, j) => casaPalavra(lista[i + j], t))) return true;
+    return false;
+  });
+}
+// a vírgula separa os grupos; dentro do grupo, os espaços
+function gruposDaBusca(txt){
+  return norm(txt).split(/[,;]+/)
+    .map(g => g.split(SEP_GROSSO).filter(Boolean))
+    .filter(g => g.length);
+}
+const casaBusca = (p, grupos) => (palavrasDe(p), grupos.every(g => casaGrupo(p, g)));
+
+function filtrados(){
+  const grupos = gruposDaBusca(E.busca);
+  return E.linhas.filter(p => {
+    if(E.comCart && !temAberto(p)) return false;
+    if(E.faixaSel.size && !E.faixaSel.has(p.faixa || SEM_FAIXA)) return false;
+    if(E.marca && p.marca !== E.marca) return false;
+    if(E.genero && p.genero !== E.genero) return false;
+    if(grupos.length && !casaBusca(p, grupos)) return false;
+    return true;
+  });
+}
+
+/* ── pintura ─────────────────────────────────────────────────────────── */
+function pintar(){
+  const B = E.base;
+  const meses = B.meses;
+  const ult = meses[meses.length - 1];
+  let lista = filtrados();
+
+  // chips de marca, com a contagem do que os outros filtros deixam — a
+  // busca também conta: com "corre 5" na busca, o número é o dos corre 5
+  const gruposChip = gruposDaBusca(E.busca);
+  const naBusca = p => !gruposChip.length || casaBusca(p, gruposChip);
+  const naFaixa = p => !E.faixaSel.size || E.faixaSel.has(p.faixa || SEM_FAIXA);
+  const semMarca = E.linhas.filter(p => (!E.genero || p.genero === E.genero) && (!E.comCart || temAberto(p)) && naFaixa(p) && naBusca(p));
+  const marcas = [...new Set(E.linhas.map(p => p.marca))].sort();
+  $('marcas').innerHTML = `<button class="chip${E.marca ? '' : ' on'}" data-marca="">Todas<span class="n">${nf(semMarca.length)}</span></button>` +
+    marcas.map(m => `<button class="chip${E.marca === m ? ' on' : ''}" data-marca="${esc(m)}">${esc(MARCAS[m] || m)}` +
+      `<span class="n">${nf(semMarca.filter(p => p.marca === m).length)}</span></button>`).join('') +
+    (E.cart ? (() => {
+      // o número do chip é o que ainda não faturou, em pares — não a
+      // quantidade de produtos
+      const comCart = E.linhas.filter(p => (!E.genero || p.genero === E.genero) && (!E.marca || p.marca === E.marca) && temAberto(p) && naFaixa(p) && naBusca(p));
+      const pares = comCart.reduce((s, p) => s + Object.values(p.c || {}).reduce((t, x) => t + x.a, 0), 0);
+      return `<button class="chip kchip${E.comCart ? ' on' : ''}" id="chipCart" ` +
+        `title="${nf(pares)} pares ainda não faturados, em ${nf(comCart.length)} produtos">Em aberto<span class="n">${nf(pares)}</span></button>`;
+    })() : '');
+  $('marcas').querySelectorAll('[data-marca]').forEach(b => b.onclick = () => { E.marca = b.dataset.marca; pintar(); });
+  if($('chipCart')) $('chipCart').onclick = () => { E.comCart = !E.comCart; pintar(); };
+  pintarFaixas();
+
+  // carteira do ano: meses por semestre. O 1º semestre recolhe numa coluna
+  // (1S26) — por padrão quando já passou; a escolha da pessoa é lembrada.
+  const ano2 = String(B.ano).slice(2);
+  const mesesAno = Array.from({ length:12 }, (_, i) => `${B.ano}-${String(i + 1).padStart(2, '0')}`);
+  const S1 = mesesAno.slice(0, 6), S2 = mesesAno.slice(6);
+  const hoje = new Date();
+  const s1Passou = hoje.getFullYear() > B.ano || (hoje.getFullYear() === B.ano && hoje.getMonth() >= 6);
+  const s1Aberto = E.s1 === null ? !s1Passou : E.s1 === '1';
+  const kTot = (p, ms) => ms.reduce((s, m) => { const x = (p.c || {})[m]; return s + (x ? x.f + x.a : 0); }, 0);
+
+  // ordenação
+  const val = p => {
+    const k = E.ordem.k;
+    if(k === 'codigo' || k === 'descricao' || k === 'cor' || k === 'genero' || k === 'codCliente' || k === 'faixa') return String(p[k] || '');
+    if(k === 'pdv') return p.pdv || 0;
+    if(k === 'venda') return meses.reduce((s, m) => s + ((p.m[m] || {}).v || 0), 0);
+    if(k === 'ks:1') return kTot(p, S1);
+    if(k === 'ks:2') return kTot(p, S2);
+    const [tipo, mes] = k.split(':');
+    const x = p.m[mes] || {};
+    if(tipo === 'v') return x.v || 0;
+    if(tipo === 'e') return x.e || 0;
+    if(tipo === 'c'){ const c = cobertura(x.v || 0, x.e || 0); return c === null ? -1 : c === Infinity ? 1e9 : c; }
+    if(tipo === 'o') return obsEfetiva(p, mes);
+    if(tipo === 'k') return kTot(p, [mes]);
+    return 0;
+  };
+  lista.sort((a, b) => {
+    const x = val(a), y = val(b);
+    return (typeof x === 'string' ? x.localeCompare(y, 'pt-BR', { numeric:true }) : x - y) * E.ordem.dir;
+  });
+
+  // KPIs do mês mais recente e do ano
+  const soma = (m, c) => lista.reduce((s, p) => s + ((p.m[m] || {})[c] || 0), 0);
+  const vUlt = soma(ult, 'v'), eUlt = soma(ult, 'e');
+  const vAno = meses.reduce((s, m) => s + soma(m, 'v'), 0);
+  const cUlt = cobertura(vUlt, eUlt);
+  $('kpis').innerHTML = [
+    ['Produtos', nf(lista.length), ''],
+    [`Venda ${rotuloMes(ult)}`, nf(vUlt), ''],
+    [`Estoque ${rotuloMes(ult)}`, nf(eUlt), ''],
+    ['Cobertura', cobTexto(cUlt) + (cUlt !== null && cUlt !== Infinity ? ' m' : ''), cobClasse(cUlt)],
+    [`Venda ${B.ano}`, nf(vAno), ''],
+    ['Média/mês', nf(Math.round(vAno / meses.length)), ''],
+    ...(E.cart ? [['Carteira aberta', nf(lista.reduce((s, p) => s + Object.values(p.c || {}).reduce((t, x) => t + x.a, 0), 0)), '']] : []),
+  ].map(([l, v, cls]) => `<div class="kpi"><div class="l">${l}</div><div class="v ${cls}">${v}</div></div>`).join('');
+
+  if(!lista.length){
+    $('tabela').innerHTML = '<div class="empty">Nenhum produto com esses filtros.</div>';
+    return;
+  }
+
+  // cabeçalho
+  const th = (k, txt, cls = '', extra = '') => {
+    const ativo = E.ordem.k === k;
+    return `<th class="${cls}${ativo ? ' ord' + (E.ordem.dir > 0 ? ' asc' : '') : ''}" data-ord="${k}" ${extra}>${txt}</th>`;
+  };
+  const seta = `<button type="button" class="btn-extras" id="btnExtras"
+      title="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, PDV, faixa e código do cliente"
+      aria-label="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, PDV, faixa e código do cliente"
+      aria-expanded="${E.extras}">${E.extras ? '‹' : '›'}</button>`;
+  let h1 = th('codigo', 'Código', 'roxo fx1', 'rowspan="2"') + th('descricao', 'Descrição', 'roxo fx2', 'rowspan="2"') +
+           th('cor', `<span class="cor-cab">Cor${seta}</span>`, 'roxo fx3', 'rowspan="2"') +
+           (E.extras ? th('genero', 'Gênero', 'roxo', 'rowspan="2"') +
+                       th('pdv', 'PDV', 'roxo', 'rowspan="2"') +
+                       th('faixa', 'Faixa', 'roxo', 'rowspan="2"') +
+                       th('codCliente', 'Cód. cliente', 'roxo', 'rowspan="2"') : '');
+  let h2 = '';
+  // Cob. e OBS só no mês mais recente: nos anteriores é histórico, e a
+  // decisão se toma olhando o mês atual. Os anteriores ficam só com venda e
+  // estoque, e a tabela encolhe pela metade.
+  meses.forEach(m => {
+    const atual = m === ult;
+    h1 += `<th class="roxo mes" colspan="${atual ? 4 : 2}" data-ord="" style="cursor:default">${rotuloMes(m)}</th>`;
+    const v = soma(m, 'v'), e = soma(m, 'e'), c = cobertura(v, e);
+    h2 += th('v:' + m, `Venda<span class="sub">${nf(v)}</span>`, 'tv mes') +
+          th('e:' + m, `Estoque<span class="sub">${nf(e)}</span>`, 'te') +
+          (atual ? th('c:' + m, `Cob.<span class="sub ${cobClasse(c)}">${cobTexto(c)}</span>`, 'tc') +
+                   th('o:' + m, 'OBS', 'to') : '');
+  });
+
+  // carteira: 1S26 e 2S26, cada um com o total do semestre. Recolhido, o
+  // 1º semestre some inteiro (meses e total) e o botão para trazê-lo de
+  // volta fica no cabeçalho do 2º.
+  const somaK = ms => lista.reduce((s, p) => s + kTot(p, ms), 0);
+  if(E.cart){
+    const setaS1 = s1Aberto
+      ? `<button type="button" class="btn-k" id="btnS1" title="Ocultar a carteira do 1º semestre"
+          aria-label="Ocultar a carteira do 1º semestre" aria-expanded="true">‹</button>`
+      : `<button type="button" class="btn-k larga" id="btnS1" title="Mostrar a carteira do 1º semestre"
+          aria-label="Mostrar a carteira do 1º semestre" aria-expanded="false">‹ 1S${ano2}</button>`;
+    h1 += (s1Aberto ? `<th class="kh mes" colspan="7" data-ord="" style="cursor:default"><span class="k-cab">Carteira 1S${ano2}${setaS1}</span></th>` : '') +
+          `<th class="kh mes" colspan="7" data-ord="" style="cursor:default"><span class="k-cab">${s1Aberto ? '' : setaS1}Carteira 2S${ano2}</span></th>`;
+    const semestre = (ms, n) =>
+      ms.map((m, i) => th('k:' + m, `${MESES[+m.slice(5) - 1]}<span class="sub">${nf(somaK([m]))}</span>`, 'kt' + (i ? '' : ' mes'))).join('') +
+      th('ks:' + n, `${n}S${ano2}<span class="sub">${nf(somaK(ms))}</span>`, 'ks');
+    h2 += (s1Aberto ? semestre(S1, 1) : '') + semestre(S2, 2);
+  }
+  // Mês que tem parte faturada e parte em aberto: o que falta faturar vem
+  // grande, em verde forte, e o que já faturou vem pequeno embaixo. Assim a
+  // célula não parece ter mais carteira do que realmente tem.
+  const celK = (x, cls = '') => {
+    const f = x ? x.f : 0, a = x ? x.a : 0;
+    if(!f && !a) return `<td class="k${cls}"></td>`;
+    const tit = a && f ? `${nf(a)} em aberto · ${nf(f)} já faturado` : a ? `${nf(a)} em aberto` : `${nf(f)} já faturado`;
+    if(a && f) return `<td class="k ka mix${cls}" title="${tit}">${nf(a)}<span class="kfat">${nf(f)}</span></td>`;
+    return `<td class="k ${a ? 'ka' : 'kf'}${cls}" title="${tit}">${nf(a || f)}</td>`;
+  };
+  const celS = (p, ms, cls = '') => {
+    const t = kTot(p, ms);
+    const a = ms.reduce((s2, m) => { const x = (p.c || {})[m]; return s2 + (x ? x.a : 0); }, 0);
+    if(!t) return `<td class="ks${cls}"></td>`;
+    return `<td class="ks${cls}" title="${nf(a)} em aberto · ${nf(t - a)} já faturado">${nf(t)}</td>`;
+  };
+
+  // corpo: as linhas ficam guardadas em texto; só entram na tela as que
+  // aparecem (ver janela())
+  const corpo = lista.map(p => {
+    let cel = '';
+    meses.forEach(m => {
+      const x = p.m[m] || {};
+      const v = x.v || 0, e = x.e || 0, c = cobertura(v, e);
+      // produto que só existe na carteira não tem venda nem estoque no
+      // plano: fica em branco, não zero
+      cel += `<td class="v mes${v ? '' : ' zero'}">${v ? nf(v) : p.soCart ? '' : '0'}</td>` +
+             `<td class="e${e ? '' : ' zero'}">${e ? nf(e) : p.soCart ? '' : '0'}</td>`;
+      if(m === ult){
+        const txt = obsEfetiva(p, m);
+        const meu = obsEditada(p) !== undefined;
+        const classe = 'obs' + (meu ? ' ed' : '') + (!meu && p.soCart ? ' so' : '');
+        cel += `<td class="c ${cobClasse(c)}${c === null ? ' zero' : ''}">` +
+               `<span class="cobn">${cobTexto(c)}</span><span class="cobico">${alertaCob(p, c)}</span></td>` +
+               `<td class="obsc" data-obs="1" title="${meu ? 'Escrito aqui — clique para mudar' : 'Clique para escrever'}">` +
+               `${txt ? `<span class="${classe}">${esc(txt)}</span>` : ''}</td>`;
+      }
+    });
+    if(E.cart){
+      const pc = p.c || {};
+      if(s1Aberto){
+        S1.forEach((m, i) => { cel += celK(pc[m], i ? '' : ' mes'); });
+        cel += celS(p, S1);
+      }
+      S2.forEach((m, i) => { cel += celK(pc[m], i ? '' : ' mes'); });
+      cel += celS(p, S2);
+    }
+    return `<tr data-k="${esc(p.k)}" class="${E.sel === p.k ? 'sel' : ''}">
+      <td class="fx1">${fotoDe(p) ? ICONE_FOTO : ''}${esc(p.codigo)}<span class="corm">${esc(p.cor)}</span></td>
+      <td class="fx2" title="${esc(p.descricao)}">${esc(p.descricao)}</td>
+      <td class="fx3" title="${esc(p.cor)}">${esc(p.cor)}</td>
+      ${E.extras ? `<td class="gen">${esc(p.genero.charAt(0) + p.genero.slice(1).toLowerCase())}</td>
+      <td class="tnum">${brl(p.pdv)}</td>
+      <td class="gen">${esc(p.faixa === SEM_FAIXA ? '—' : (p.faixa || '—'))}</td>
+      <td class="l">${esc(p.codCliente || '—')}</td>` : ''}
+      ${cel}
+    </tr>`;
+  });
+
+  const sugestoes = [...new Set([...B.produtos.map(p => (p.m[ult] || {}).o), ...Object.values(E.obs)]
+    .map(t => String(t || '').trim()).filter(Boolean))].sort();
+  $('obsLista').innerHTML = sugestoes.map(t => `<option value="${esc(t)}"></option>`).join('');
+
+  const wrap = $('tabela');
+  const x0 = wrap.scrollLeft, y0 = wrap.scrollTop;
+  // São ~800 linhas × 40 colunas. Com tudo no DOM, cada quadro da rolagem
+  // levava 24 ms; com o que cabe na tela, 15 ms. Então guardamos as linhas
+  // em texto e desenhamos só a faixa visível, com duas tiras vazias no
+  // lugar do resto para a barra de rolagem continuar certa.
+  E.corpo = corpo;
+  E.colunas = (h2.match(/<th/g) || []).length + (E.extras ? 7 : 3);
+  // Larguras declaradas de uma vez. Sem isto, cada remontagem da faixa fazia
+  // o navegador medir todas as células de novo — eram os solavancos de 100 ms
+  // na rolagem, e as colunas ainda dançavam de largura.
+  const L = { fx1:118, fx2:230, fx3:92, gen:82, pdv:83, faixa:126, cod:166, v:58, e:69, c:62, o:104, k:54, ks:60 };
+  let cols = `<col style="width:${L.fx1}px"><col style="width:${L.fx2}px"><col style="width:${L.fx3}px">` +
+    (E.extras ? `<col style="width:${L.gen}px"><col style="width:${L.pdv}px"><col style="width:${L.faixa}px"><col style="width:${L.cod}px">` : '');
+  meses.forEach(m => {
+    cols += `<col style="width:${L.v}px"><col style="width:${L.e}px">`;
+    if(m === ult) cols += `<col style="width:${L.c}px"><col style="width:${L.o}px">`;
+  });
+  if(E.cart){
+    const nMes = (s1Aberto ? 6 : 0) + 6;
+    cols += `<col style="width:${L.k}px">`.repeat(nMes) + `<col style="width:${L.ks}px">`.repeat(s1Aberto ? 2 : 1);
+  }
+  E.janela = { de:-1, ate:-1 };
+  wrap.innerHTML = `<table class="giro"><colgroup>${cols}</colgroup>` +
+    `<thead><tr class="h1">${h1}</tr><tr class="h2">${h2}</tr></thead><tbody></tbody></table>`;
+  const tbody = wrap.querySelector('tbody');
+  E.tbody = tbody;
+  janela(true);
+
+  // Na primeira vez a tabela abre no mês mais recente, que é o que se olha;
+  // depois ela fica onde a pessoa deixou.
+  if(!E.rolou){
+    wrap.scrollLeft = wrap.scrollWidth;
+    // as fontes chegam depois e alargam as colunas: rola de novo quando
+    // elas estiverem prontas, senão a última coluna fica cortada
+    if(document.fonts && document.fonts.ready)
+      document.fonts.ready.then(() => { wrap.scrollLeft = wrap.scrollWidth; });
+    E.rolou = true;
+  }else{
+    wrap.scrollLeft = x0; wrap.scrollTop = y0;
+  }
+
+  const bx = $('btnExtras');
+  if(bx) bx.onclick = ev => {
+    ev.stopPropagation();
+    E.extras = !E.extras;
+    guardar('extras', E.extras ? '1' : '0');
+    pintar();
+    // abrindo, leva a vista até as colunas que acabaram de aparecer
+    if(E.extras) $('tabela').scrollLeft = 0;
+  };
+  const bs = $('btnS1');
+  if(bs) bs.onclick = ev => {
+    ev.stopPropagation();
+    E.s1 = s1Aberto ? '0' : '1';
+    guardar('s1', E.s1);
+    pintar();
+  };
+  wrap.querySelectorAll('thead [data-ord]').forEach(t => {
+    if(!t.dataset.ord) return;
+    t.onclick = () => {
+      const k = t.dataset.ord;
+      if(E.ordem.k === k) E.ordem.dir *= -1;
+      else E.ordem = { k, dir: /^(codigo|descricao|cor|genero|faixa|codCliente|o:)/.test(k) ? 1 : -1 };
+      pintar();
+    };
+  });
+  fabs();
+  requestAnimationFrame(() => { medirTabela(); if(altoCab) acompanharCab(); });
+  // um ouvinte só para todas as linhas, inclusive as que chegam depois
+  tbody.onclick = ev => {
+    const foto = ev.target.closest('[data-foto]');
+    if(foto){ abrirFoto(foto.closest('tr').dataset.k); return; }
+    const vit = ev.target.closest('[data-vit]');
+    if(vit){ abrirVitrine(vit.closest('tr').dataset.k); return; }
+    const cel = ev.target.closest('td.obsc');
+    if(cel){ editarObs(cel); return; }   // a OBS abre para escrever, não seleciona
+    const tr = ev.target.closest('tr');
+    if(!tr) return;
+    E.sel = E.sel === tr.dataset.k ? null : tr.dataset.k;
+    tbody.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel'));
+    if(E.sel) tr.classList.add('sel');
+  };
+}
+
+
+/* ── filtro por faixa ────────────────────────────────────────────────── */
+/* Os pares são a venda do ano, somada por faixa. A conta respeita os outros
+   filtros (busca, gênero, marca, em aberto), mas não a própria faixa — senão
+   marcar uma esconderia as demais. */
+function pintarFaixas(){
+  const B = E.base; if(!B) return;
+  const chip = $('fxChip'), pop = $('fxPop');
+  const temDados = E.linhas.some(p => p.faixa && p.faixa !== SEM_FAIXA);
+  chip.parentElement.hidden = !temDados;
+  if(!temDados) return;
+  const termos = gruposDaBusca(E.busca);
+  const base = E.linhas.filter(p =>
+    (!E.genero || p.genero === E.genero) && (!E.marca || p.marca === E.marca) &&
+    (!E.comCart || temAberto(p)) && (!termos.length || casaBusca(p, termos)));
+  const pares = new Map();
+  base.forEach(p => {
+    const f = p.faixa || SEM_FAIXA;
+    const v = B.meses.reduce((s, m) => s + ((p.m[m] || {}).v || 0), 0);
+    pares.set(f, (pares.get(f) || 0) + v);
+  });
+  const lista = [...pares.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
+  $('fxLista').innerHTML = lista.map(([f, v]) =>
+    `<button type="button" class="fx-item${E.faixaSel.has(f) ? ' on' : ''}" data-faixa="${esc(f)}" ` +
+    `role="checkbox" aria-checked="${E.faixaSel.has(f)}"><span class="fx-cx">${E.faixaSel.has(f) ? '✓' : ''}</span>` +
+    `<span class="fx-nome">${esc(f)}</span><span class="fx-pares">${nf(v)} pares</span></button>`).join('');
+  const n = E.faixaSel.size;
+  $('fxQuantos').textContent = n ? `${n} marcada${n > 1 ? 's' : ''}` : 'Nenhuma marcada';
+  chip.textContent = n === 1 ? [...E.faixaSel][0] : n ? `Faixa · ${n}` : 'Faixa';
+  chip.classList.toggle('on', !!n);
+  chip.title = n ? 'Faixas marcadas: ' + [...E.faixaSel].join(', ') : 'Filtrar por faixa';
+  $('fxLista').querySelectorAll('[data-faixa]').forEach(b => b.onclick = () => {
+    const f = b.dataset.faixa;
+    E.faixaSel.has(f) ? E.faixaSel.delete(f) : E.faixaSel.add(f);
+    pintar();
+  });
+}
+function abrirFaixas(sim){
+  $('fxPop').classList.toggle('aberta', sim);
+  $('fxChip').setAttribute('aria-expanded', String(sim));
+}
+$('fxChip').onclick = ev => { ev.stopPropagation(); abrirFaixas(!$('fxPop').classList.contains('aberta')); };
+$('fxPop').onclick = ev => ev.stopPropagation();
+$('fxTudo').onclick = () => { E.linhas.forEach(p => E.faixaSel.add(p.faixa || SEM_FAIXA)); pintar(); };
+$('fxLimpar').onclick = () => { E.faixaSel.clear(); pintar(); };
+document.addEventListener('click', () => abrirFaixas(false));
+document.addEventListener('keydown', ev => { if(ev.key === 'Escape') abrirFaixas(false); });
+
+/* ── escrever a OBS ──────────────────────────────────────────────────── */
+function editarObs(cel){
+  if(cel.querySelector('input')) return;
+  const tr = cel.closest('tr');
+  const k = tr.dataset.k;
+  const p = E.linhas.find(x => x.k === k);
+  if(!p) return;
+  const ult = E.base.meses[E.base.meses.length - 1];
+  const antes = obsEfetiva(p, ult);
+  const guardadoAntes = cel.innerHTML;
+  cel.innerHTML = `<input class="obs-edit" list="obsLista" value="${esc(antes)}" maxlength="40" ` +
+    `aria-label="Observação do produto" autocomplete="off">`;
+  const campo = cel.querySelector('input');
+  E.editando = true;                       // a faixa de linhas não se refaz enquanto escreve
+  campo.focus(); campo.select();
+  let fechado = false;
+  const fechar = salvar => {
+    if(fechado) return;
+    fechado = true; E.editando = false;
+    const novo = salvar ? campo.value.trim().toUpperCase() : null;
+    if(novo === null || novo === antes){ cel.innerHTML = guardadoAntes; return; }
+    // voltou a ser igual ao da planilha: deixa de ser edição
+    if(novo === obsDoPlano(p, ult)) delete E.obs[p.k];
+    else E.obs[p.k] = novo;
+    guardarObs(E.base.cliente.id);
+    pintar();
+  };
+  campo.onkeydown = ev => {
+    ev.stopPropagation();
+    if(ev.key === 'Enter') fechar(true);
+    if(ev.key === 'Escape') fechar(false);
+  };
+  campo.onblur = () => fechar(true);
+  campo.onclick = ev => ev.stopPropagation();
+}
+
+/* ── só as linhas visíveis ───────────────────────────────────────────── */
+/* A altura da linha é a mesma para todas (fixada no CSS), então dá para
+   saber onde cada uma cai sem medir nenhuma. */
+const FOLGA = 20;   // linhas desenhadas a mais, acima e abaixo da vista
+// Medidas da tabela. Lê-las a cada quadro obrigava o navegador a refazer o
+// layout no meio da rolagem — era daí que vinha boa parte do arrasto. Agora
+// só são medidas quando a tabela muda ou a janela é redimensionada.
+function medirTabela(){
+  const wrap = $('tabela');
+  if(!wrap) return;
+  const hCab = CAB ? CAB.getBoundingClientRect().height : 0;
+  E.med = { area: wrap.clientHeight + hCab, rolagem: wrap.scrollHeight - wrap.clientHeight - hCab };
+}
+function janela(forcar){
+  const wrap = $('tabela'), tbody = E.tbody, corpo = E.corpo;
+  if(!tbody || !corpo) return;
+  const alt = E.alturaLinha;
+  const total = corpo.length;
+  const cabem = Math.ceil((E.med.area || 600) / alt);
+  // o que a pessoa vê agora; a faixa desenhada é maior, com a folga dos dois
+  // lados, e só se refaz quando a vista sai dela
+  const vis0 = Math.floor(wrap.scrollTop / alt);
+  const visN = Math.min(total, vis0 + cabem + 1);
+  if(E.editando && !forcar) return;
+  if(!forcar && vis0 >= E.janela.de && visN <= E.janela.ate) return;
+  const de = Math.max(0, vis0 - FOLGA);
+  const ate = Math.min(total, visN + FOLGA);
+  const J = E.janela;
+  // Rolagem normal: a faixa anda um pouco, então só entram e saem as linhas
+  // das pontas. Montar as 60 de novo a cada vez custava 100 ms.
+  const emendar = !forcar && J.de >= 0 && de < J.ate && ate > J.de;
+  if(emendar){
+    const topo = tbody.firstElementChild, fim = tbody.lastElementChild;
+    for(let i = J.de; i < de; i++) topo.nextElementSibling.remove();
+    for(let i = J.ate; i > ate; i--) fim.previousElementSibling.remove();
+    if(de < J.de) topo.insertAdjacentHTML('afterend', corpo.slice(de, J.de).join(''));
+    if(ate > J.ate) fim.insertAdjacentHTML('beforebegin', corpo.slice(J.ate, ate).join(''));
+    topo.style.height = (de * alt) + 'px';
+    fim.style.height = ((total - ate) * alt) + 'px';
+  }else{
+    const vazia = n => `<tr class="vazia" style="height:${Math.max(0, n) * alt}px"><td colspan="${E.colunas}"></td></tr>`;
+    tbody.innerHTML = vazia(de) + corpo.slice(de, ate).join('') + vazia(total - ate);
+  }
+  E.janela = { de, ate };
+  if(!forcar) return;
+  // ao montar de novo, confere a altura real da linha e refaz se for outra
+  const tr = tbody.querySelector('tr:not(.vazia)');
+  if(tr){
+    const h = Math.round(tr.getBoundingClientRect().height);
+    if(h && Math.abs(h - alt) > 0.5){ E.alturaLinha = h; E.janela = { de:-1, ate:-1 }; janela(true); }
+  }
+}
+
+/* ── topo recolhido e botões flutuantes ──────────────────────────────── */
+const temFiltro = () => !!(E.busca || E.genero || E.marca || E.comCart || E.faixaSel.size);
+
+// A linha do cliente encolhe exatamente o que a tabela rolou: rolou 20px,
+// ela perde 20px. Some no fim do próprio gesto e volta na subida, sem atraso
+// nem animação.
+const CAB = document.querySelector('.cab-anim');
+let altoCab = 0;
+function medirCab(){
+  CAB.style.height = ''; E.cabAltura = null;
+  const ph = CAB.firstElementChild;
+  // a folga até a barra de filtros entra na conta, senão sobra uma tira
+  altoCab = ph.offsetHeight + (parseFloat(getComputedStyle(ph).marginBottom) || 0);
+  medirTabela();
+  acompanharCab();
+}
+function acompanharCab(){
+  // Só escreve: as medidas vêm de medirTabela(). Pouca coisa na tela e a
+  // linha nem recolhe — recolher faria a tabela caber inteira, a rolagem
+  // voltar a zero e a linha reaparecer, que era o tremor.
+  const h = (E.med.rolagem || 0) < altoCab + 4 ? altoCab
+          : Math.max(0, altoCab - $('tabela').scrollTop);
+  if(h === E.cabAltura) return;
+  E.cabAltura = h;
+  CAB.style.height = h + 'px';
+  CAB.style.opacity = altoCab ? Math.min(1, (h / altoCab) * 2.2) : 1;
+}
+function fabs(){
+  $('fabTopo').classList.toggle('on', $('tabela').scrollTop > 40);
+  const tem = temFiltro();
+  $('fabLimpar').classList.toggle('on', tem);
+  $('limparChip').classList.toggle('on', tem);
+}
+let noQuadro = false;
+let ultimoY = 0;
+$('tabela').addEventListener('scroll', () => {
+  if(noQuadro) return;
+  noQuadro = true;
+  requestAnimationFrame(() => {
+    noQuadro = false;
+    const y = $('tabela').scrollTop;
+    // de lado não muda nem as linhas nem o cabeçalho: não custa nada
+    if(y === ultimoY) return;
+    ultimoY = y;
+    janela(false);
+    acompanharCab();
+    fabs();
+  });
+}, { passive:true });
+window.addEventListener('resize', medirCab);
+$('fabTopo').onclick = () => {
+  $('tabela').scrollTo({ top:0, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
+};
+$('limparChip').onclick = () => $('fabLimpar').onclick();
+$('fabLimpar').onclick = () => {
+  E.busca = ''; E.genero = ''; E.marca = ''; E.comCart = false; E.faixaSel.clear();
+  $('busca').value = ''; $('buscaWrap').classList.remove('tem'); $('genero').value = '';
+  pintar(); fabs();
+};
+
+carregar();
+})();
+</script>
+</body>
+</html>
