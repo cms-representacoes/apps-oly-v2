@@ -1781,6 +1781,12 @@ function pintar(){
   }else{
     wrap.scrollLeft = x0; wrap.scrollTop = y0;
   }
+  // A faixa de linhas foi montada com a tabela ainda no topo (o innerHTML
+  // zera a rolagem). Depois de devolver a posição, ela é refeita no lugar
+  // certo — senão a tabela aparecia vazia até a pessoa mexer na rolagem,
+  // porque o ouvinte via a mesma posição de antes e não tinha o que fazer.
+  ultimoY = wrap.scrollTop;
+  janela(true);
 
   const bx = $('btnExtras');
   if(bx) bx.onclick = ev => {
