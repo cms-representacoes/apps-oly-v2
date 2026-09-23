@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Análise de Giro · CMS Representações</title>
-<meta name="theme-color" content="#7C3AED">
+<meta name="theme-color" content="#2C39E2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
@@ -16,7 +16,8 @@
 :root{
   --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
   --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
-  --accent:#7C3AED; --accent-hover:#6D28D9;
+  /* mesmo azul da vitrine CMS */
+  --accent:#2C39E2; --accent-hover:#1B27B0;
   --green:#0CA678; --amber:#E0A100; --orange:#E8590C; --red:#C92A2A;
   --venda-bg:#F3FBF8; --estoque-bg:#FDF5F2;
   --th-venda:#E1F5EE; --th-venda-ink:#085041;
@@ -27,6 +28,8 @@
   --k-head:#FFE14D; --k-head-ink:#3D3300; --k-sub:#FFF4B8; --k-sub-ink:#5A4A00;
   --k-fat:#EEF6E6; --k-fat-ink:#6B8A55; --k-abe:#92D050; --k-abe-ink:#1D3A0A;
   --k-tot:#E2EFDA; --k-tot-ink:#2F4A1F;
+  --k-chegou:#E3ECFA; --k-chegou-ink:#1D4ED8;
+  --k-parcial:#FBE7B0; --k-parcial-ink:#7A5600;
   --sidebar-w:210px; --sidebar-w-collapsed:64px;
 }
 [data-theme="dark"]{
@@ -37,9 +40,12 @@
   --th-venda:#123328; --th-venda-ink:#8FE3C2;
   --th-estoque:#3A1F16; --th-estoque-ink:#F7B69E;
   --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
+  --accent:#5B69E8; --accent-hover:#7D89FF;
   --k-head:#5C4E00; --k-head-ink:#FFE98A; --k-sub:#342D07; --k-sub-ink:#F2DE80;
   --k-fat:#16220F; --k-fat-ink:#8DAE76; --k-abe:#4E8A1F; --k-abe-ink:#F2FFE6;
   --k-tot:#1D2A16; --k-tot-ink:#CDE8B8;
+  --k-chegou:#16233B; --k-chegou-ink:#A9C4F5;
+  --k-parcial:#3A2E08; --k-parcial-ink:#F3D682;
 }
 *{box-sizing:border-box}
 /* No touchpad, deslizar dois dedos para o lado no fim da tabela fazia o
@@ -65,7 +71,7 @@ button{cursor:pointer}
 .sidebar.collapsed{width:var(--sidebar-w-collapsed);padding:20px 10px}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .brand-logo{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;
-  background:linear-gradient(145deg,#a970ff 0%,#8b5cf6 48%,#7439e0 100%);color:#fff;
+  background:linear-gradient(145deg,#5B69E8 0%,#2C39E2 55%,#1B27B0 100%);color:#fff;
   font:700 12px "Space Grotesk",sans-serif;letter-spacing:.02em}
 .brand-txt{display:flex;flex-direction:column;line-height:1.2;white-space:nowrap;overflow:hidden}
 .brand-name{font-weight:600;font-size:14px}
@@ -76,7 +82,7 @@ button{cursor:pointer}
   background:none;color:var(--slate);font-weight:600;font-size:13.5px;text-align:left;white-space:nowrap;
   overflow:hidden;text-decoration:none;transition:transform .18s cubic-bezier(.2,.8,.3,1),background .18s}
 .nav-item:hover,.foot-btn:hover{background:var(--line-2);transform:translateX(3px)}
-.nav-item.active{background:var(--accent);color:#fff;box-shadow:0 6px 14px -6px rgba(124,58,237,.55)}
+.nav-item.active{background:var(--accent);color:#fff;box-shadow:0 6px 14px -6px rgba(44,57,226,.55)}
 .nav-ic{width:18px;height:18px;flex:none;display:inline-flex}
 .nav-ic svg{width:100%;height:100%}
 .sidebar-foot{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:2px}
@@ -94,8 +100,8 @@ button{cursor:pointer}
 .menu-seta:hover{border-color:var(--accent);color:var(--accent)}
 .menu-seta:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .logo-cab{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
-  background:linear-gradient(145deg,#a970ff 0%,#8b5cf6 48%,#7439e0 100%);color:#fff;
-  font:700 11.5px "Space Grotesk",sans-serif;letter-spacing:.02em;box-shadow:0 6px 14px -6px rgba(124,58,237,.55)}
+  background:linear-gradient(145deg,#5B69E8 0%,#2C39E2 55%,#1B27B0 100%);color:#fff;
+  font:700 11.5px "Space Grotesk",sans-serif;letter-spacing:.02em;box-shadow:0 6px 14px -6px rgba(44,57,226,.55)}
 .cab-cli h1{margin:0;display:flex;align-items:baseline;gap:0}
 .cab-cli h1 .cod{font-size:15px;font-weight:600;color:var(--slate);white-space:pre;letter-spacing:0}
 .cab-cli h1 .cod:empty{display:none}
@@ -153,14 +159,17 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .giro .sub{display:block;font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none;margin-top:1px}
 .giro .sub.low{color:var(--red)} .giro .sub.high{color:var(--orange)}
 .giro .mes{border-left:2px solid var(--line)}
-.giro .fx1,.giro .fx2,.giro .fx3{position:sticky;z-index:3;text-align:center}
+.giro .fx1,.giro .fx2,.giro .fx3,.giro .fx4{position:sticky;z-index:3;text-align:center}
 /* larguras fixas: é assim que as três colunas presas sabem onde começa a
    seguinte. A cor fica presa porque o mesmo código aparece várias vezes. */
 .giro .fx1{left:0;width:118px;min-width:118px;max-width:118px;font-weight:700}
 .giro .fx2{left:118px;width:230px;min-width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis}
-.giro .fx3{left:348px;width:92px;min-width:92px;max-width:92px;box-shadow:2px 0 0 var(--line);
+.giro .fx3{left:348px;width:92px;min-width:92px;max-width:92px;
   overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.giro thead .fx1,.giro thead .fx2,.giro thead .fx3{z-index:6}
+/* PDV é a última coluna presa, então a borda que separa o que rola fica nela */
+.giro .fx4{left:440px;width:86px;min-width:86px;max-width:86px;box-shadow:2px 0 0 var(--line);
+  font-variant-numeric:tabular-nums;font-weight:600}
+.giro thead .fx1,.giro thead .fx2,.giro thead .fx3,.giro thead .fx4{z-index:6}
 .cor-cab{display:flex;align-items:center;justify-content:center;gap:6px}
 .btn-extras{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.45);
   background:rgba(255,255,255,.16);color:#fff;font:700 15px/1 "Space Grotesk",sans-serif;
@@ -202,6 +211,28 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
   color:var(--ink);font:600 11px "Space Grotesk",sans-serif;letter-spacing:.03em;padding:3px 6px;text-transform:uppercase}
 .obs-edit:focus{outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
 
+/* balão da célula da carteira: as notas por trás daquele número */
+.balao{position:fixed;z-index:70;width:min(300px,92vw);background:var(--card);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 18px 40px -16px rgba(15,20,30,.5);padding:11px 13px 12px}
+.balao[hidden]{display:none}
+.balao-x{position:absolute;top:6px;right:7px;width:22px;height:22px;border-radius:50%;border:none;
+  background:none;color:var(--mute);font-size:15px;line-height:1}
+.balao-x:hover{background:var(--line-2);color:var(--ink)}
+.balao-tit{font:700 12.5px "Space Grotesk",sans-serif;color:var(--ink);padding-right:20px}
+.balao-tit small{display:block;font:600 10.5px "Space Grotesk",sans-serif;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--mute);margin-top:2px}
+.balao-corpo{margin-top:8px;display:flex;flex-direction:column;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:9px;overflow:hidden;max-height:210px;overflow-y:auto}
+.balao-l{display:flex;align-items:baseline;gap:8px;background:var(--card);padding:6px 9px;font-size:12px}
+.balao-l .doc{font:700 12px "Space Grotesk",sans-serif;color:var(--ink);user-select:all}
+.balao-l .dia{color:var(--slate);font-size:11.5px}
+.balao-l .q{margin-left:auto;font:600 12px "Space Grotesk",sans-serif;color:var(--slate);font-variant-numeric:tabular-nums}
+.balao-pe{margin-top:8px;font-size:11.5px;color:var(--slate);display:flex;align-items:center;gap:6px}
+.balao-pe .pt{width:8px;height:8px;border-radius:3px;flex:none;background:var(--k-abe)}
+.balao-pe.chegou .pt{background:var(--k-chegou-ink)}
+.balao-pe.espera .pt{background:var(--k-fat-ink)}
+.giro td.k.tem{cursor:pointer}
+
 /* ── carteira ── */
 .giro thead th.kh{background:var(--k-head);color:var(--k-head-ink);border-bottom:1px solid color-mix(in srgb,var(--k-head-ink) 20%,transparent)}
 .giro thead th.kt{background:var(--k-sub);color:var(--k-sub-ink)}
@@ -216,9 +247,8 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .giro td.k{min-width:46px}
 .giro td.kf{background:var(--k-fat);color:var(--k-fat-ink)}
 .giro td.ka{background:var(--k-abe);color:var(--k-abe-ink);font-weight:700}
-.giro td.mix{line-height:1.1;padding-top:2px;padding-bottom:2px}
-.giro td.mix .kfat{display:block;font-size:10px;font-weight:600;opacity:.75}
-.giro tbody tr.sel td.mix .kfat{opacity:.85}
+.giro td.kc{background:var(--k-chegou);color:var(--k-chegou-ink)}
+.giro td.kp{background:var(--k-parcial);color:var(--k-parcial-ink);font-weight:700}
 .giro td.ks{background:var(--k-tot);color:var(--k-tot-ink);font:700 12.5px "Space Grotesk",sans-serif}
 .chip.kchip.on{background:var(--k-abe);border-color:var(--k-abe);color:#fff}
 
@@ -379,7 +409,7 @@ button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-m
 .foto-tit .cor{font-weight:600;font-size:12.5px;color:var(--slate)}
 .foto-sub{font-size:11.5px;color:var(--mute);margin:3px 2px 0}
 .foto-fechar{position:absolute;top:-10px;right:-10px;width:32px;height:32px;border-radius:50%;border:none;
-  background:var(--accent);color:#fff;font-size:17px;line-height:1;box-shadow:0 8px 18px -8px rgba(124,58,237,.7)}
+  background:var(--accent);color:#fff;font-size:17px;line-height:1;box-shadow:0 8px 18px -8px rgba(44,57,226,.7)}
 .gen{font-size:11px;font-weight:600;color:var(--slate)}
 .giro tbody tr.sel .gen{color:#fff}
 
@@ -427,7 +457,7 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
 @media (max-width:640px){
   /* no celular só o código fica preso, com a cor embaixo dele; descrição e
      cor em coluna própria rolam junto */
-  .giro .fx2,.giro .fx3{position:static;box-shadow:none}
+  .giro .fx2,.giro .fx3,.giro .fx4{position:static;box-shadow:none}
   .giro .fx1{width:112px;min-width:112px;max-width:112px;box-shadow:2px 0 0 var(--line);line-height:1.25}
   .giro tbody tr{height:44px}
   .giro .corm{display:block}
@@ -513,6 +543,13 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
     <div class="card"><div class="wrap" id="tabela"><div class="empty">Carregando…</div></div></div>
     <footer id="rodape"></footer>
   </main>
+
+  <div class="balao" id="balao" role="dialog" aria-label="Notas do mês" hidden>
+    <button type="button" class="balao-x" id="balaoX" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
+    <div class="balao-tit" id="balaoTit"></div>
+    <div class="balao-corpo" id="balaoCorpo"></div>
+    <div class="balao-pe" id="balaoPe"></div>
+  </div>
 
   <datalist id="obsLista"></datalist>
 
@@ -1161,7 +1198,7 @@ async function abrirCliente(id){
    base mudou (o resumo tem poucos bytes) antes de baixar de novo. */
 const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
 const DET_VERSAO = 1;   // ordem dos campos da linha da Detalhada (v1)
-const DC = { CLI:1, MARCA:2, REF:5, COR:6, PREV:10, CART:11, FAT:12, DFAT:13, FAIXA:14 };
+const DC = { CLI:1, MARCA:2, REF:5, COR:6, GCI:7, NF:8, PREV:10, CART:11, FAT:12, DFAT:13, FAIXA:14 };
 // marca da Detalhada → marca do plano. UA fica de fora: o plano é Olympikus.
 const MARCA_DET = { OLY:'OLY FTW', CFOLY:'OLY VEST', MEOLY:'OLY MEIAS', ACOLY:'OLY ACC', CHOLY:'OLY CHI' };
 // "PTO/PT", "PTO_PT" e "PTO / PT" são a mesma cor
@@ -1238,14 +1275,64 @@ function extrairCarteira(base, codigos, ano){
     const cor = String(base.dic.cor[l[DC.COR]] || '').toUpperCase();
     const k = ref + '|' + chaveCor(cor);
     const it = itens[k] || (itens[k] = { ref, cor, desc, marca, m:{} });
-    const x = it.m[mes] || (it.m[mes] = { f:0, a:0 });
-    if(l[DC.CART] > 0) x.a += l[DC.CART];
-    else if(l[DC.FAT] > 0) x.f += l[DC.FAT];
+    const x = it.m[mes] || (it.m[mes] = { f:0, a:0, n:[] });
+    // guarda também de onde vem cada pedaço: nota e data no faturado, GCI e
+    // previsão no que está em aberto. É o que o balão da célula mostra.
+    if(l[DC.CART] > 0){
+      x.a += l[DC.CART];
+      x.n.push({ t:'a', q:l[DC.CART], gci:l[DC.GCI] || 0, d:l[DC.PREV] });
+    }else if(l[DC.FAT] > 0){
+      x.f += l[DC.FAT];
+      x.n.push({ t:'f', q:l[DC.FAT], nf:l[DC.NF] || 0, d:l[DC.DFAT] });
+    }
   }
   return { itens, faixas };
 }
 
 const temAberto = p => !!p.c && Object.values(p.c).some(x => x.a > 0);
+
+/* ── o faturado já chegou ao estoque do cliente? ─────────────────────
+   O plano traz venda e estoque de cada mês, e daí sai o que entrou:
+       entrada = estoque do mês − estoque do mês anterior + venda do mês
+   (é a mesma conta de "Entradas e saídas" da Detalhada). Somando as
+   entradas do mês do faturamento em diante e comparando com o que foi
+   faturado, dá para dizer se a mercadoria chegou. Metade já conta como
+   chegou: devolução, ajuste de inventário e faturamento partido entre dois
+   meses fariam um limiar cheio errar quase sempre. */
+const PARTE_CHEGOU = 0.5;
+function entradasDe(p){
+  if(!p._ent){
+    const meses = E.base.meses;
+    p._ent = {};
+    let antes = null;
+    meses.forEach(m => {
+      const x = p.m[m] || {};
+      const e = x.e || 0, v = x.v || 0;
+      // no primeiro mês não há estoque anterior: o que estava lá conta como
+      // já estando na casa, não como entrada
+      p._ent[m] = antes === null ? 0 : (e - antes + v);
+      antes = e;
+    });
+  }
+  return p._ent;
+}
+// devolve { chegou, entrou, mes } para o que foi faturado naquele mês
+function chegadaDe(p, mes, faturado){
+  // dois motivos diferentes para não dar para conferir: o produto não existe
+  // no plano (linha que só veio da carteira) ou o mês ainda não foi lançado
+  if(!faturado || p.soCart) return { chegou:false, entrou:0, mes:null, motivo: p.soCart ? 'produto' : null };
+  const meses = E.base.meses;
+  const i = meses.indexOf(mes);
+  if(i < 0) return { chegou:false, entrou:0, mes:null, motivo:'mes' };
+  const ent = entradasDe(p);
+  const alvo = faturado * PARTE_CHEGOU;
+  let soma = 0, quando = null;
+  for(let j = i; j < meses.length; j++){
+    soma += Math.max(0, ent[meses[j]] || 0);
+    if(!quando && soma >= alvo) quando = meses[j];
+  }
+  return { chegou: soma >= alvo, entrou: Math.round(soma), mes: quando, motivo:null };
+}
 
 /* ── OBS ─────────────────────────────────────────────────────────────
    A OBS do mês mais recente pode ser escrita aqui. A da planilha continua
@@ -1292,10 +1379,10 @@ function juntarCarteira(){
 }
 
 const codigosDe = cli => ((cli.codigos && cli.codigos.length) ? cli.codigos : [cli.codigo]).map(String);
-// Versão do recorte guardado. Mudou o que se extrai da Detalhada (a faixa
-// entrou aqui), sobe este número: o que está no aparelho é refeito, em vez
+// Versão do recorte guardado. Mudou o que se extrai da Detalhada (faixa,
+// notas fiscais), sobe este número: o que está no aparelho é refeito, em vez
 // de ficar valendo um recorte sem a informação nova.
-const CART_V = 2;
+const CART_V = 3;
 // o recorte guardado só vale para os mesmos códigos, o mesmo ano e a versão
 const cartValida = (g, cli, ano) => !!g && g.v === CART_V && g.codigos === codigosDe(cli).join(',') && g.ano === ano;
 const UM_DIA = 864e5;
@@ -1370,7 +1457,9 @@ function rodape(){
              : ' · Carregando a carteira…';
   $('rodape').innerHTML = `Fonte: ${esc(B.fonte)} · atualizado em ${quando(new Date(B.atualizadoEm))}${esc(cart)}.` +
     `<span class="det"> Cobertura = estoque ÷ venda do mês, em meses. ` +
-    `Carteira: verde forte = em aberto, suave = já faturado.</span>`;
+    `Carteira: verde forte = em aberto, verde leve = faturado sem chegar, ` +
+    `azul = faturado e já no estoque, âmbar = faturamento parcial. ` +
+    `Clique na célula para ver as notas.</span>`;
 }
 
 /* ── filtros ─────────────────────────────────────────────────────────── */
@@ -1535,13 +1624,13 @@ function pintar(){
       `aria-pressed="${E.soAlerta}">${ICONE_SINO}</button>`;
   };
   const seta = `<button type="button" class="btn-extras" id="btnExtras"
-      title="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, PDV, faixa e código do cliente"
-      aria-label="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, PDV, faixa e código do cliente"
+      title="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, faixa e código do cliente"
+      aria-label="${E.extras ? 'Ocultar' : 'Mostrar'} gênero, faixa e código do cliente"
       aria-expanded="${E.extras}">${E.extras ? '‹' : '›'}</button>`;
   let h1 = th('codigo', 'Código', 'roxo fx1', 'rowspan="2"') + th('descricao', 'Descrição', 'roxo fx2', 'rowspan="2"') +
-           th('cor', `<span class="cor-cab">Cor${seta}</span>`, 'roxo fx3', 'rowspan="2"') +
+           th('cor', 'Cor', 'roxo fx3', 'rowspan="2"') +
+           th('pdv', `<span class="cor-cab">PDV${seta}</span>`, 'roxo fx4', 'rowspan="2"') +
            (E.extras ? th('genero', 'Gênero', 'roxo', 'rowspan="2"') +
-                       th('pdv', 'PDV', 'roxo', 'rowspan="2"') +
                        th('faixa', 'Faixa', 'roxo', 'rowspan="2"') +
                        th('codCliente', 'Cód. cliente', 'roxo', 'rowspan="2"') : '');
   let h2 = '';
@@ -1576,15 +1665,26 @@ function pintar(){
       th('ks:' + n, `${n}S${ano2}<span class="sub">${nf(somaK(ms))}</span>`, 'ks');
     h2 += (s1Aberto ? semestre(S1, 1) : '') + semestre(S2, 2);
   }
-  // Mês que tem parte faturada e parte em aberto: o que falta faturar vem
-  // grande, em verde forte, e o que já faturou vem pequeno embaixo. Assim a
-  // célula não parece ter mais carteira do que realmente tem.
-  const celK = (x, cls = '') => {
+  // Quatro estados: verde forte é o que ainda não faturou, verde leve é o que
+  // faturou e não chegou ao estoque do cliente, azul é o que já chegou e
+  // âmbar é o mês que faturou só uma parte. No parcial a célula mostra o
+  // total do mês — o que é de cada lado sai no balão, ao clicar.
+  const celK = (p, x, cls = '', mes = '') => {
     const f = x ? x.f : 0, a = x ? x.a : 0;
     if(!f && !a) return `<td class="k${cls}"></td>`;
-    const tit = a && f ? `${nf(a)} em aberto · ${nf(f)} já faturado` : a ? `${nf(a)} em aberto` : `${nf(f)} já faturado`;
-    if(a && f) return `<td class="k ka mix${cls}" title="${tit}">${nf(a)}<span class="kfat">${nf(f)}</span></td>`;
-    return `<td class="k ${a ? 'ka' : 'kf'}${cls}" title="${tit}">${nf(a || f)}</td>`;
+    const ch = f ? chegadaDe(p, mes, f) : null;
+    const dito = !f ? '' : ch.chegou
+      ? `${nf(f)} faturado · chegou ao estoque${ch.mes && ch.mes !== mes ? ' em ' + rotuloMes(ch.mes).toLowerCase() : ''}`
+      : ch.motivo === 'produto'
+        ? `${nf(f)} faturado · este produto não está no plano, sem histórico de estoque`
+        : ch.motivo === 'mes'
+          ? `${nf(f)} faturado · ${rotuloMes(mes)} ainda não foi lançado no plano`
+          : `${nf(f)} faturado · ainda não entrou no estoque${ch.entrou ? ' (entraram ' + nf(ch.entrou) + ')' : ''}`;
+    const tit = a && f ? `${nf(a)} em aberto · ${dito}` : a ? `${nf(a)} em aberto` : dito;
+    const abre = ` data-mes="${mes}"`;
+    if(a && f)
+      return `<td class="k kp tem${cls}"${abre} title="Faturamento parcial · ${tit}">${nf(a + f)}</td>`;
+    return `<td class="k tem ${a ? 'ka' : (ch.chegou ? 'kc' : 'kf')}${cls}"${abre} title="${tit}">${nf(a || f)}</td>`;
   };
   const celS = (p, ms, cls = '') => {
     const t = kTot(p, ms);
@@ -1617,18 +1717,18 @@ function pintar(){
     if(E.cart){
       const pc = p.c || {};
       if(s1Aberto){
-        S1.forEach((m, i) => { cel += celK(pc[m], i ? '' : ' mes'); });
+        S1.forEach((m, i) => { cel += celK(p, pc[m], i ? '' : ' mes', m); });
         cel += celS(p, S1);
       }
-      S2.forEach((m, i) => { cel += celK(pc[m], i ? '' : ' mes'); });
+      S2.forEach((m, i) => { cel += celK(p, pc[m], i ? '' : ' mes', m); });
       cel += celS(p, S2);
     }
     return `<tr data-k="${esc(p.k)}" class="${E.sel === p.k ? 'sel' : ''}">
       <td class="fx1">${fotoDe(p) ? ICONE_FOTO : ''}${esc(p.codigo)}<span class="corm">${esc(p.cor)}</span></td>
       <td class="fx2" title="${esc(p.descricao)}">${esc(p.descricao)}</td>
       <td class="fx3" title="${esc(p.cor)}">${esc(p.cor)}</td>
+      <td class="fx4">${brl(p.pdv)}</td>
       ${E.extras ? `<td class="gen">${esc(p.genero.charAt(0) + p.genero.slice(1).toLowerCase())}</td>
-      <td class="tnum">${brl(p.pdv)}</td>
       <td class="gen">${esc(p.faixa === SEM_FAIXA ? '—' : (p.faixa || '—'))}</td>
       <td class="l">${esc(p.codCliente || '—')}</td>` : ''}
       ${cel}
@@ -1646,13 +1746,14 @@ function pintar(){
   // em texto e desenhamos só a faixa visível, com duas tiras vazias no
   // lugar do resto para a barra de rolagem continuar certa.
   E.corpo = corpo;
-  E.colunas = (h2.match(/<th/g) || []).length + (E.extras ? 7 : 3);
+  E.colunas = (h2.match(/<th/g) || []).length + (E.extras ? 7 : 4);
   // Larguras declaradas de uma vez. Sem isto, cada remontagem da faixa fazia
   // o navegador medir todas as células de novo — eram os solavancos de 100 ms
   // na rolagem, e as colunas ainda dançavam de largura.
-  const L = { fx1:118, fx2:230, fx3:92, gen:82, pdv:83, faixa:126, cod:166, v:58, e:69, c:62, o:104, k:54, ks:60 };
+  const L = { fx1:118, fx2:230, fx3:92, gen:82, pdv:86, faixa:126, cod:166, v:58, e:69, c:62, o:104, k:54, ks:60 };
   let cols = `<col style="width:${L.fx1}px"><col style="width:${L.fx2}px"><col style="width:${L.fx3}px">` +
-    (E.extras ? `<col style="width:${L.gen}px"><col style="width:${L.pdv}px"><col style="width:${L.faixa}px"><col style="width:${L.cod}px">` : '');
+    `<col style="width:${L.pdv}px">` +
+    (E.extras ? `<col style="width:${L.gen}px"><col style="width:${L.faixa}px"><col style="width:${L.cod}px">` : '');
   meses.forEach(m => {
     cols += `<col style="width:${L.v}px"><col style="width:${L.e}px">`;
     if(m === ult) cols += `<col style="width:${L.c}px"><col style="width:${L.o}px">`;
@@ -1716,6 +1817,8 @@ function pintar(){
   requestAnimationFrame(() => { medirTabela(); if(altoCab) acompanharCab(); });
   // um ouvinte só para todas as linhas, inclusive as que chegam depois
   tbody.onclick = ev => {
+    const kcel = ev.target.closest('td.k.tem');
+    if(kcel){ ev.stopPropagation(); abrirBalao(kcel); return; }
     const foto = ev.target.closest('[data-foto]');
     if(foto){ abrirFoto(foto.closest('tr').dataset.k); return; }
     const vit = ev.target.closest('[data-vit]');
@@ -1804,6 +1907,53 @@ FILTROS.forEach(f => {
 });
 document.addEventListener('click', () => abrirPop(null, false));
 document.addEventListener('keydown', ev => { if(ev.key === 'Escape') abrirPop(null, false); });
+
+/* ── balão da célula: as notas daquele mês ───────────────────────────── */
+const diaBR = d => d == null || d < 0 ? '—' : new Date(d * 864e5).toLocaleDateString('pt-BR', { timeZone:'UTC' });
+
+function abrirBalao(td){
+  const tr = td.closest('tr');
+  const p = E.linhas.find(x => x.k === tr.dataset.k);
+  const mes = td.dataset.mes;
+  const x = p && (p.c || {})[mes];
+  if(!x || !(x.n || []).length) return;
+  const fat = x.n.filter(n => n.t === 'f').sort((a, b) => b.d - a.d);
+  const abertos = x.n.filter(n => n.t === 'a').sort((a, b) => a.d - b.d);
+  $('balaoTit').innerHTML = `${esc(p.descricao)} · ${esc(p.cor)}<small>${rotuloMes(mes)} · ` +
+    `${x.f ? nf(x.f) + ' faturado' : ''}${x.f && x.a ? ' · ' : ''}${x.a ? nf(x.a) + ' em aberto' : ''}</small>`;
+  $('balaoCorpo').innerHTML =
+    fat.map(n => `<div class="balao-l"><span class="doc">${n.nf ? 'NF ' + esc(n.nf) : 'sem NF'}</span>` +
+      `<span class="dia">${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span></div>`).join('') +
+    abertos.map(n => `<div class="balao-l"><span class="doc">${n.gci ? 'GCI ' + esc(n.gci) : 'em aberto'}</span>` +
+      `<span class="dia">prev. ${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span></div>`).join('');
+  const pe = $('balaoPe');
+  if(x.f){
+    const ch = chegadaDe(p, mes, x.f);
+    pe.className = 'balao-pe ' + (ch.chegou ? 'chegou' : 'espera');
+    pe.innerHTML = `<span class="pt"></span>` + (ch.chegou
+      ? `Chegou ao estoque${ch.mes && ch.mes !== mes ? ' em ' + rotuloMes(ch.mes).toLowerCase() : ''}`
+      : ch.motivo === 'produto' ? 'Produto fora do plano: sem histórico de estoque'
+      : ch.motivo === 'mes' ? `${rotuloMes(mes)} ainda não foi lançado no plano`
+      : `Ainda não entrou no estoque${ch.entrou ? ' · entraram ' + nf(ch.entrou) : ''}`);
+  }else{
+    pe.className = 'balao-pe';
+    pe.innerHTML = '<span class="pt"></span>Ainda não faturado';
+  }
+  const b = $('balao');
+  b.hidden = false;
+  // preso na célula, mas sempre dentro da tela
+  const r = td.getBoundingClientRect(), cx = b.getBoundingClientRect();
+  const x0 = Math.min(Math.max(8, r.left + r.width / 2 - cx.width / 2), innerWidth - cx.width - 8);
+  const y0 = r.bottom + 8 + cx.height > innerHeight ? Math.max(8, r.top - cx.height - 8) : r.bottom + 8;
+  b.style.left = Math.round(x0) + 'px';
+  b.style.top = Math.round(y0) + 'px';
+}
+const fecharBalao = () => { $('balao').hidden = true; };
+$('balaoX').onclick = fecharBalao;
+$('balao').onclick = ev => ev.stopPropagation();
+document.addEventListener('click', fecharBalao);
+document.addEventListener('keydown', ev => { if(ev.key === 'Escape') fecharBalao(); });
+$('tabela').addEventListener('scroll', fecharBalao, { passive:true });
 
 /* ── escrever a OBS ──────────────────────────────────────────────────── */
 function editarObs(cel){
