@@ -5419,18 +5419,36 @@ function catFoto(ref, cor, max = 1000, qualidade = 0.9) {
 
 async function catExportPdf() {
   const rec = catRecorte();
-  if (rec) toast(`Catálogo: ${rec.rotulo.charAt(0).toLowerCase()}${rec.rotulo.slice(1)}`);
-  // carteira geral: um PDF só, sem oferecer o WhatsApp — ele tem vários
-  // clientes, não é para mandar a um deles
-  if (catModoGeral()) {
-    if (!catDados().produtos.length) { toast('Nada na lista para exportar'); return; }
-    return catGerarPdf(-1, false);
-  }
-  const clis = catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
-  if (!catClientesFiltrados().length) return;
+  const geral = catModoGeral();
+  if (!geral && !catClientesFiltrados().length) return;
+  // Mesma conta da planilha: os clientes que têm linha no que vai sair.
+  const clis = geral
+    ? [...new Set(catDados().produtos.flatMap(p => p.linhas.map(r => r[C.CLI])))]
+    : catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length));
   if (!clis.length) { toast('Nada na lista para exportar'); return; }
-  for (const cli of clis) await catGerarPdf(cli, clis.length === 1);
-  if (clis.length > 1) toast(`${clis.length} catálogos gerados`);
+  if (rec) toast(`Catálogo: ${rec.rotulo.charAt(0).toLowerCase()}${rec.rotulo.slice(1)}`);
+
+  // Um cliente só: sai direto, e com ele o convite do WhatsApp — o catálogo
+  // é dele. Na carteira geral não há a quem mandar.
+  if (clis.length === 1) return catGerarPdf(geral ? -1 : clis[0], !geral);
+
+  // Vários: a mesma escolha da planilha. Antes o PDF sempre saía separado, e
+  // quem queria um arquivo só para mandar ao comprador não tinha como.
+  const nomeDe = c => (APP.dic.cli[c] || [])[1] || (APP.dic.cli[c] || [])[0];
+  const r = await perguntar({
+    titulo: 'Gerar catálogo em PDF',
+    sub: (rec ? rec.rotulo + ' · ' : '') + `${clis.length} clientes`,
+    opcoes: [
+      { id: 'junto', rot: 'Tudo num PDF só', ic: 'fa-solid fa-file-pdf',
+        dica: 'Um arquivo, com o cliente em cada linha' },
+      { id: 'separado', rot: 'Um arquivo por cliente', ic: 'fa-solid fa-copy',
+        dica: `${clis.length} catálogos, cada um com o nome do cliente` },
+    ],
+  });
+  if (r === 'junto') return catGerarPdf(-1, false);
+  if (r !== 'separado') return;
+  for (const cli of clis) await catGerarPdf(cli, false);
+  toast(`${clis.length} catálogos gerados`);
 }
 
 async function catGerarPdf(cli, oferecerZap) {
