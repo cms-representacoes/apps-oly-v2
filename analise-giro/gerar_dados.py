@@ -51,6 +51,20 @@ CLIENTES = [
         'aba': 'AG',
         'aba_carteira': 'CARTEIRA',
     },
+    {
+        'id': 'degraus-ua',
+        'nome': 'Degraus',
+        'razao': 'DEGRAUS FPS',
+        'codigo': '3834566',
+        'codigos': ['3834566', '124330'],
+        'lider': '104988',
+        'lojas': 9,
+        'vendedor': 'JORGE',
+        'marca': 'Under Armour',
+        'arquivo': PLANOS / 'UNDER ARMOUR' / 'JORGE_MARCOS UA' / 'AG UA DEGRAUS.xlsx',
+        'aba': 'AG',
+        'aba_carteira': 'CARTEIRA',
+    },
 ]
 
 
@@ -73,29 +87,55 @@ def texto(v):
     return '' if v in (None, '') else str(v).strip()
 
 
+# O plano da Olympikus abre a linha do cabeçalho com MARCA/SUB e o da
+# Under Armour com MARCAS; o código do cliente é COD_CLIENTE num e
+# REF. CLIENTE no outro. Fora isso os dois têm a mesma forma.
+CABECALHO = ('MARCA/SUB', 'MARCAS')
+ALIAS = {
+    'codigo': ('CODIGO',),
+    'descricao': ('DESCRICAO PRODUTO', 'DESCRICAO'),
+    'cor': ('COR',),
+    'genero': ('GENERO',),
+    'grupo': ('GRUPO_COLECAO', 'GRUPO COLECAO'),
+    'pdv': ('PDV',),
+    'cod_cliente': ('COD_CLIENTE', 'REF. CLIENTE', 'REF CLIENTE'),
+    'desc_cliente': ('DESC_CLIENTE', 'REF/DESC'),
+}
+
+
 def ler_ag(ws):
-    """Produtos e meses do ano, lidos pelo cabeçalho (linha com MARCA/SUB)."""
+    """Produtos e meses do ano, lidos pelo cabeçalho da aba."""
     linhas = ws.iter_rows(values_only=True)
     cab = None
     for r in linhas:
-        if r and norm(r[0]) == 'MARCA/SUB':
+        if r and norm(r[0]) in CABECALHO:
             cab = r
             break
     if cab is None:
-        raise SystemExit('Cabeçalho da aba AG não encontrado (coluna MARCA/SUB).')
+        raise SystemExit('Cabeçalho da aba AG não encontrado '
+                         f'(esperava {" ou ".join(CABECALHO)} na coluna A).')
 
     col = {norm(v): i for i, v in enumerate(cab) if isinstance(v, str)}
+
+    def onde(campo, obrigatorio=True):
+        for nome in ALIAS[campo]:
+            if nome in col:
+                return col[nome]
+        if obrigatorio:
+            raise SystemExit(f'Coluna {ALIAS[campo][0]} não encontrada na aba AG.')
+        return None
+
     ic = {
         'marca': 0,
         'chave': 1,
-        'codigo': col['CODIGO'],
-        'descricao': col['DESCRICAO PRODUTO'],
-        'cor': col['COR'],
-        'genero': col['GENERO'],
-        'grupo': col.get('GRUPO_COLECAO'),
-        'pdv': col['PDV'],
-        'cod_cliente': col['COD_CLIENTE'],
-        'desc_cliente': col.get('DESC_CLIENTE'),
+        'codigo': onde('codigo'),
+        'descricao': onde('descricao'),
+        'cor': onde('cor'),
+        'genero': onde('genero'),
+        'grupo': onde('grupo', False),
+        'pdv': onde('pdv'),
+        'cod_cliente': onde('cod_cliente', False),
+        'desc_cliente': onde('desc_cliente', False),
     }
     # blocos de mês: a célula do cabeçalho é a data e é também a coluna de
     # venda; as seguintes são estoque, giro, cob., análise e OBS
@@ -136,7 +176,7 @@ def ler_ag(ws):
             'genero': texto(r[ic['genero']]).upper(),
             'grupo': texto(r[ic['grupo']]) if ic['grupo'] is not None else '',
             'pdv': num(r[ic['pdv']]) or None,
-            'codCliente': texto(r[ic['cod_cliente']]),
+            'codCliente': texto(r[ic['cod_cliente']]) if ic['cod_cliente'] is not None else '',
             'm': m,
         })
     return [c for c, _ in meses], produtos

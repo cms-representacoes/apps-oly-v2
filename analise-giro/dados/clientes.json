@@ -22,6 +22,31 @@
    "2026-08"
   ],
   "produtos": 749,
-  "atualizadoEm": "2026-09-22T17:15:01"
+  "atualizadoEm": "2026-09-24T14:55:23"
+ },
+ {
+  "id": "degraus-ua",
+  "nome": "Degraus",
+  "codigo": "3834566",
+  "codigos": [
+   "3834566",
+   "124330"
+  ],
+  "lojas": 9,
+  "vendedor": "JORGE",
+  "marca": "Under Armour",
+  "ano": 2026,
+  "meses": [
+   "2026-01",
+   "2026-02",
+   "2026-03",
+   "2026-04",
+   "2026-05",
+   "2026-06",
+   "2026-07",
+   "2026-08"
+  ],
+  "produtos": 121,
+  "atualizadoEm": "2026-09-24T14:55:27"
  }
 ]

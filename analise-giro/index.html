@@ -16,8 +16,9 @@
 :root{
   --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
   --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
-  /* mesmo azul da vitrine CMS */
+  /* as cores das marcas são as mesmas da vitrine CMS */
   --accent:#2C39E2; --accent-hover:#1B27B0;
+  --marca-claro:#5B69E8; --marca-escuro:#1B27B0;
   --green:#0CA678; --amber:#E0A100; --orange:#E8590C; --red:#C92A2A;
   --venda-bg:#F3FBF8; --estoque-bg:#FDF5F2;
   --th-venda:#E1F5EE; --th-venda-ink:#085041;
@@ -41,11 +42,21 @@
   --th-estoque:#3A1F16; --th-estoque-ink:#F7B69E;
   --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
   --accent:#5B69E8; --accent-hover:#7D89FF;
+  --marca-claro:#8791FF; --marca-escuro:#2C39E2;
   --k-head:#5C4E00; --k-head-ink:#FFE98A; --k-sub:#342D07; --k-sub-ink:#F2DE80;
   --k-fat:#16220F; --k-fat-ink:#8DAE76; --k-abe:#4E8A1F; --k-abe-ink:#F2FFE6;
   --k-tot:#1D2A16; --k-tot-ink:#CDE8B8;
   --k-chegou:#16233B; --k-chegou-ink:#A9C4F5;
   --k-parcial:#3A2E08; --k-parcial-ink:#F3D682;
+}
+/* Under Armour: o mesmo vermelho das outras telas da marca */
+:root[data-marca="ua"]{
+  --accent:#E52125; --accent-hover:#A81215;
+  --marca-claro:#F2494C; --marca-escuro:#A81215;
+}
+[data-theme="dark"][data-marca="ua"]{
+  --accent:#F2494C; --accent-hover:#FF7B7D;
+  --marca-claro:#FF7B7D; --marca-escuro:#E52125;
 }
 *{box-sizing:border-box}
 /* No touchpad, deslizar dois dedos para o lado no fim da tabela fazia o
@@ -71,8 +82,8 @@ button{cursor:pointer}
 .sidebar.collapsed{width:var(--sidebar-w-collapsed);padding:20px 10px}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .brand-logo{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;
-  background:linear-gradient(145deg,#5B69E8 0%,#2C39E2 55%,#1B27B0 100%);color:#fff;
-  font:700 12px "Space Grotesk",sans-serif;letter-spacing:.02em}
+  background:linear-gradient(145deg,var(--marca-claro) 0%,var(--accent) 55%,var(--marca-escuro) 100%);
+  color:#fff;font:700 12px "Space Grotesk",sans-serif;letter-spacing:.02em}
 .brand-txt{display:flex;flex-direction:column;line-height:1.2;white-space:nowrap;overflow:hidden}
 .brand-name{font-weight:600;font-size:14px}
 .brand-sub{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
@@ -100,8 +111,18 @@ button{cursor:pointer}
 .menu-seta:hover{border-color:var(--accent);color:var(--accent)}
 .menu-seta:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .logo-cab{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
-  background:linear-gradient(145deg,#5B69E8 0%,#2C39E2 55%,#1B27B0 100%);color:#fff;
-  font:700 11.5px "Space Grotesk",sans-serif;letter-spacing:.02em;box-shadow:0 6px 14px -6px rgba(44,57,226,.55)}
+  background:linear-gradient(145deg,var(--marca-claro) 0%,var(--accent) 55%,var(--marca-escuro) 100%);
+  color:#fff;font:700 11.5px "Space Grotesk",sans-serif;letter-spacing:.02em;
+  box-shadow:0 6px 14px -6px color-mix(in srgb,var(--accent) 55%,transparent);
+  position:relative;border:none;padding:0}
+/* o botão da marca troca o plano; a setinha é o que promete a troca */
+button.logo-cab{cursor:pointer}
+button.logo-cab img{max-width:22px;max-height:15px;object-fit:contain}
+button.logo-cab .troca{position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;border-radius:99px;
+  background:var(--card);border:1px solid var(--line);color:var(--slate);
+  display:grid;place-items:center;font:700 10px/1 "Space Grotesk",sans-serif}
+button.logo-cab:hover .troca{color:var(--ink);border-color:var(--accent)}
+button.logo-cab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .cab-cli h1{margin:0;display:flex;align-items:baseline;gap:0}
 .cab-cli h1 .cod{font-size:15px;font-weight:600;color:var(--slate);white-space:pre;letter-spacing:0}
 .cab-cli h1 .cod:empty{display:none}
@@ -473,7 +494,7 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
 
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-logo">CMS</div>
+      <div class="brand-logo" id="brandLogo">CMS</div>
       <div class="brand-txt"><span class="brand-name">Análise de Giro</span><span class="brand-sub">Plano de contas</span></div>
     </div>
     <nav class="nav">
@@ -491,7 +512,7 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
            três andares antes da tabela -->
       <div class="cab-cli">
         <button type="button" class="menu-seta" id="menuSeta" aria-controls="sidebar"></button>
-        <span class="logo-cab" aria-hidden="true">CMS</span>
+        <button type="button" class="logo-cab" id="btnMarca" hidden></button>
         <h1 id="titulo"><span id="tituloNome">Análise de Giro</span><span class="cod" id="tituloCod"></span></h1>
         <div class="info" id="eyebrow">Carregando…</div>
       </div>
@@ -655,11 +676,32 @@ const SVG_FOTO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
   `<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="M4 17l5-4.5 4.5 4 3-2.5L20 17"/></svg>`;
 const ICONE_FOTO = `<button type="button" class="btn-foto" data-foto="1" title="Ver a foto do produto" aria-label="Ver a foto do produto">${SVG_FOTO}</button>`;
 
-const MARCAS = { 'OLY FTW':'Tênis', 'OLY VEST':'Vestuário', 'OLY MEIAS':'Meias',
-                 'OLY ACC':'Acessórios', 'OLY CHI':'Chinelos' };
+/* ── as duas marcas ──────────────────────────────────────────────────
+   O plano de contas é um por marca: a Degraus tem um de Olympikus e um de
+   Under Armour. A troca é a mesma da vitrine CMS — um toque no logo do
+   topo —, e a cor da tela acompanha. */
+const MARCAS_CFG = {
+  oly: { nome:'Olympikus', curto:'Oly', logo:'../logo-oly-simbolo.png',
+         chips:{ 'OLY FTW':'Tênis', 'OLY VEST':'Vestuário', 'OLY MEIAS':'Meias',
+                 'OLY ACC':'Acessórios', 'OLY CHI':'Chinelos' },
+         // marca da Detalhada → marca do plano
+         det:{ OLY:'OLY FTW', CFOLY:'OLY VEST', MEOLY:'OLY MEIAS',
+               ACOLY:'OLY ACC', CHOLY:'OLY CHI' } },
+  ua:  { nome:'Under Armour', curto:'UA', logo:'../logo-ua-simbolo.png',
+         chips:{ 'UA FTW':'Tênis', 'UA APP':'Vestuário', 'UA MEIAS':'Meias',
+                 'UA ACC':'Acessórios', 'UA CHIN':'Chinelos', 'UA IOF':'IOF' },
+         det:{ UA_TN:'UA FTW', UA_CF:'UA APP', UA_ME:'UA MEIAS',
+               UA_AC:'UA ACC', UA_CH:'UA CHIN' } },
+};
+const marcaDoCliente = c => /under/i.test(String(c.marca || '')) ? 'ua' : 'oly';
+let MARCA = (new URLSearchParams(location.search).get('marca')
+             || lembrar('marca') || 'oly').toLowerCase();
+if(!MARCAS_CFG[MARCA]) MARCA = 'oly';
+document.documentElement.setAttribute('data-marca', MARCA);
+const MARCAS = MARCAS_CFG[MARCA].chips;
 
 /* ── estado ──────────────────────────────────────────────────────────── */
-const E = { clientes:[], base:null, busca:'', genero:'', marca:'', ordem:{ k:'venda', dir:-1 }, sel:null, rolou:false,
+const E = { clientes:[], todos:[], base:null, busca:'', genero:'', marca:'', ordem:{ k:'venda', dir:-1 }, sel:null, rolou:false,
            // Gênero, PDV e Cód. cliente: consulta, não decisão — ficam
            // recolhidos atrás do › no cabeçalho da cor, e a escolha é lembrada
            extras: lembrar('extras') === '1',
@@ -1131,7 +1173,15 @@ async function carregar(){
   try{
     const r = await fetch('dados/clientes.json' + bust(), { cache:'no-cache' });
     const todos = await r.json();
-    E.clientes = todos.filter(c => VE_TUDO || String(c.vendedor || '').toUpperCase() === NOME);
+    E.todos = todos.filter(c => VE_TUDO || String(c.vendedor || '').toUpperCase() === NOME);
+    E.clientes = E.todos.filter(c => marcaDoCliente(c) === MARCA);
+    // a marca lembrada pode não ter plano nenhum para este vendedor
+    if(!E.clientes.length && E.todos.length){
+      MARCA = marcaDoCliente(E.todos[0]);
+      document.documentElement.setAttribute('data-marca', MARCA);
+      guardar('marca', MARCA);
+      E.clientes = E.todos.filter(c => marcaDoCliente(c) === MARCA);
+    }
   }catch(_){
     $('eyebrow').textContent = 'Não foi possível carregar a lista de clientes.';
     $('tabela').innerHTML = '<div class="empty">Sem conexão com os dados. Tente recarregar a página.</div>';
@@ -1150,6 +1200,48 @@ async function carregar(){
   await carregarFotos();
   await abrirCliente(inicial);
 }
+
+/* ── troca de marca ──────────────────────────────────────────────────
+   Um toque no logo leva ao plano da outra marca do mesmo cliente, como na
+   vitrine CMS. Sem plano da outra marca, o botão some — é só a logo, e
+   prometer uma troca que não acontece é pior do que não prometer. */
+function outraMarca(){ return MARCA === 'oly' ? 'ua' : 'oly'; }
+function planoDaOutraMarca(){
+  const atual = E.base && E.base.cliente;
+  const outra = outraMarca();
+  const daOutra = (E.todos || []).filter(c => marcaDoCliente(c) === outra);
+  if(!daOutra.length) return null;
+  // mesmo cliente primeiro; sem ele, o primeiro da outra marca
+  return (atual && daOutra.find(c => String(c.codigo) === String(atual.codigo)))
+      || daOutra[0];
+}
+function pintarBotaoMarca(){
+  const b = $('btnMarca');
+  const alvo = planoDaOutraMarca();
+  const cfg = MARCAS_CFG[MARCA];
+  b.hidden = false;
+  b.innerHTML = `<img src="${cfg.logo}" alt="${esc(cfg.nome)}">` +
+    (alvo ? '<span class="troca" aria-hidden="true">⇄</span>' : '');
+  b.title = alvo
+    ? `Ver o plano de ${MARCAS_CFG[outraMarca()].nome} deste cliente`
+    : `Plano de ${cfg.nome}`;
+  b.setAttribute('aria-label', b.title);
+  b.disabled = !alvo;
+  b.style.cursor = alvo ? 'pointer' : 'default';
+}
+$('btnMarca').onclick = async () => {
+  const alvo = planoDaOutraMarca();
+  if(!alvo) return;
+  MARCA = outraMarca();
+  guardar('marca', MARCA);
+  document.documentElement.setAttribute('data-marca', MARCA);
+  // a tela inteira depende da marca (chips, carteira, cores): recarregar é
+  // mais honesto do que remendar meia dúzia de estados
+  const u = new URL(location.href);
+  u.searchParams.set('marca', MARCA);
+  guardar('cliente', alvo.id);
+  location.href = u.toString();
+};
 $('cliSel').onchange = e => abrirCliente(e.target.value);
 
 async function abrirCliente(id){
@@ -1169,10 +1261,11 @@ async function abrirCliente(id){
   E.base.produtos.forEach(p => { p.c = null; });
   E.linhas = E.base.produtos;
   const c = E.base.cliente;
+  pintarBotaoMarca();
   $('eyebrow').textContent = `· ${c.lojas} lojas · vendedor ${c.vendedor}`;
   $('tituloCod').textContent = ' - ' + c.codigo;
   $('tituloNome').textContent = c.nome;
-  document.title = `${c.nome} · Análise de Giro`;
+  document.title = `${c.nome} ${MARCAS_CFG[MARCA].curto} · Análise de Giro`;
   const generos = [...new Set(E.base.produtos.map(p => p.genero).filter(Boolean))].sort();
   $('genero').innerHTML = '<option value="">Todos os gêneros</option>' +
     generos.map(g => `<option value="${esc(g)}">${esc(g.charAt(0) + g.slice(1).toLowerCase())}</option>`).join('');
@@ -1200,7 +1293,7 @@ const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
 const DET_VERSAO = 1;   // ordem dos campos da linha da Detalhada (v1)
 const DC = { CLI:1, MARCA:2, REF:5, COR:6, GCI:7, NF:8, PREV:10, CART:11, FAT:12, DFAT:13, FAIXA:14 };
 // marca da Detalhada → marca do plano. UA fica de fora: o plano é Olympikus.
-const MARCA_DET = { OLY:'OLY FTW', CFOLY:'OLY VEST', MEOLY:'OLY MEIAS', ACOLY:'OLY ACC', CHOLY:'OLY CHI' };
+const MARCA_DET = MARCAS_CFG[MARCA].det;
 // "PTO/PT", "PTO_PT" e "PTO / PT" são a mesma cor
 const chaveCor = c => norm(c).replace(/\s*[\/_]\s*/g, '/').trim();
 
