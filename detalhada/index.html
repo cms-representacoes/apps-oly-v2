@@ -9930,8 +9930,15 @@ function limparFiltros() {
   if (inp) { inp.value = ''; $('search-wrap').classList.remove('has-value'); }
   APP.pagina = 1;
   APP.abertos.clear();
+  // A seleção também sai: ela é um recorte como os outros, e ficava viva
+  // atrás da barra depois de limpar tudo — a exportação continuava saindo
+  // só das encomendas marcadas, sem nada na tela explicando por quê.
+  APP.modoSelecao = false;
+  APP.selecao.clear();
+  const bs = $('btn-selecao');
+  if (bs) bs.classList.remove('ativo');
   fecharTodosPopovers();
-  if (APP.base) render();
+  if (APP.base) { render(); renderBarraSelecao(); }
 }
 
 /* ============================================================
