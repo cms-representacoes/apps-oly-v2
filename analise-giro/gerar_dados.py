@@ -108,6 +108,22 @@ ALIAS = {
     'desc_cliente': ('DESC_CLIENTE', 'REF/DESC'),
 }
 
+# A referência do produto no sistema do cliente muda de plano para plano:
+# na Olympikus ela vem pronta na coluna COD_CLIENTE; na Under Armour essa
+# coluna costuma vir vazia e a referência está no fim da REF/DESC, que
+# concatena descrição e referência ("TENIS UNDER ARMOUR SKYLINE 5
+# 6014736-BKBKCR"). Pegar a cauda resolve os dois.
+CAUDA_REF = re.compile(r'(\d{5,}\s*-\s*[A-Z0-9/_.]+)\s*$')
+
+
+def ref_do_cliente(cod_cliente, desc_cliente):
+    cc = norm(cod_cliente)
+    if cc:
+        return cc
+    m = CAUDA_REF.search(norm(desc_cliente))
+    return re.sub(r'\s+', '', m.group(1)) if m else ''
+
+
 
 def ler_ag(ws):
     """Produtos e meses do ano, lidos pelo cabeçalho da aba."""
@@ -182,7 +198,9 @@ def ler_ag(ws):
             'genero': texto(r[ic['genero']]).upper(),
             'grupo': texto(r[ic['grupo']]) if ic['grupo'] is not None else '',
             'pdv': num(r[ic['pdv']]) or None,
-            'codCliente': texto(r[ic['cod_cliente']]) if ic['cod_cliente'] is not None else '',
+            'codCliente': ref_do_cliente(
+                r[ic['cod_cliente']] if ic['cod_cliente'] is not None else '',
+                r[ic['desc_cliente']] if ic['desc_cliente'] is not None else ''),
             'm': m,
         })
     return [c for c, _ in meses], produtos

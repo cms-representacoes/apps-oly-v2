@@ -84,7 +84,24 @@ ALIAS = {
     'pdv': ('PDV',),
     'sku': ('SKU',),
     'cod_cliente': ('COD_CLIENTE', 'REF. CLIENTE', 'REF CLIENTE'),
+    'desc_cliente': ('DESC_CLIENTE', 'REF/DESC'),
 }
+
+# A referência do produto no sistema do cliente muda de plano para plano:
+# na Olympikus ela vem pronta na coluna COD_CLIENTE; na Under Armour essa
+# coluna costuma vir vazia e a referência está no fim da REF/DESC, que
+# concatena descrição e referência ("TENIS UNDER ARMOUR SKYLINE 5
+# 6014736-BKBKCR"). Pegar a cauda resolve os dois.
+CAUDA_REF = re.compile(r'(\d{5,}\s*-\s*[A-Z0-9/_.]+)\s*$')
+
+
+def ref_do_cliente(cod_cliente, desc_cliente):
+    cc = norm(cod_cliente)
+    if cc:
+        return cc
+    m = CAUDA_REF.search(norm(desc_cliente))
+    return re.sub(r'\s+', '', m.group(1)) if m else ''
+
 
 
 def norm(t):
@@ -123,7 +140,8 @@ def ler_produtos(ws):
             raise SystemExit(f'Coluna {ALIAS[campo][0]} não encontrada na aba AG.')
         return None
 
-    ic = {c: onde(c, c not in ('grupo', 'sku', 'cod_cliente')) for c in ALIAS}
+    ic = {c: onde(c, c not in ('grupo', 'sku', 'cod_cliente', 'desc_cliente'))
+          for c in ALIAS}
     fora = []
     for r in linhas:
         if not r or not r[ic['codigo']]:
@@ -145,7 +163,9 @@ def ler_produtos(ws):
             'grupo': texto(r[ic['grupo']]) if ic['grupo'] is not None else '',
             'pdv': num(r[ic['pdv']]) or None,
             'sku': sku,
-            'ref': texto(r[ic['cod_cliente']]).upper() if ic['cod_cliente'] is not None else '',
+            'ref': ref_do_cliente(
+                r[ic['cod_cliente']] if ic['cod_cliente'] is not None else '',
+                r[ic['desc_cliente']] if ic['desc_cliente'] is not None else ''),
         })
     return fora
 
@@ -373,12 +393,20 @@ def gerar(cli, banco, nomes_lojas):
     #   sem-codigo   → a planilha não tem a referência do cliente (COD_CLIENTE)
     #   sem-cadastro → tem a referência, mas ela não existe no banco dele
     #   sem-giro     → está cadastrado e nunca teve venda, estoque ou compra
-    saida, faltando, lojas_vistas = [], {}, set()
+    saida, faltando, lojas_vistas, usados = [], {}, set(), set()
     for p in produtos:
         pid = p['sku'] if p['sku'] in por_id else por_ref.get(p['ref'])
+        # Último recurso, só para linha sem cor (vestuário, que o cliente
+        # cadastra pelo artigo): o próprio código. Com cor isso juntaria
+        # cores diferentes no mesmo produto.
+        if not pid and not p['cor']:
+            candidato = por_ref.get(norm(p['codigo']))
+            if candidato and candidato not in usados:
+                pid = candidato
         if not pid:
             faltando[p['k']] = 'sem-codigo' if (not p['ref'] and not p['sku']) else 'sem-cadastro'
             continue
+        usados.add(pid)
         lojas = {}
         for loja in sorted(nomes_lojas):
             n = ate.month
