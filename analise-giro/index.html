@@ -106,6 +106,24 @@ button{cursor:pointer}
 .nav-ic{width:18px;height:18px;flex:none;display:inline-flex}
 .nav-ic svg{width:100%;height:100%}
 .sidebar-foot{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:2px}
+/* Cards de cliente: com muitos planos, um seletor escondido no cabeçalho
+   não dá conta — aqui eles ficam à vista e a troca é um toque. */
+.nav-sep{margin:16px 0 6px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--mute)}
+.cli-cards{display:flex;flex-direction:column;gap:5px}
+.cli-card{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
+  border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 9px;
+  font:inherit;color:var(--ink);transition:border-color .12s,background .12s}
+.cli-card:hover{border-color:var(--accent);background:var(--line-2)}
+.cli-card.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+.cli-card .ini{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+  font:700 10.5px "Space Grotesk",sans-serif;background:var(--line-2);color:var(--slate)}
+.cli-card.on .ini{background:var(--accent);color:#fff}
+.cli-card .txt{min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.cli-card .nome{font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cli-card .meta{font-size:10px;color:var(--mute);font-weight:600;white-space:nowrap}
+.sidebar.collapsed .cli-card{justify-content:center;padding:7px 4px}
+.sidebar.collapsed .cli-card .txt,.sidebar.collapsed .nav-sep{display:none}
 .foot-btn{font-size:12.5px;padding:8px 10px}
 
 /* ── conteúdo ── */
@@ -221,6 +239,10 @@ tr.sel .btn-loja{background:var(--card)}
 .btn-extras:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .giro .corm{display:none;font-size:10.5px;font-weight:600;color:var(--slate)}
 .cli-pick[hidden]{display:none}
+/* No computador quem troca de cliente são os cards da lateral; deixar o
+   seletor antigo aparecer com o menu escondido jogava uma caixa solta em
+   cima dos KPIs. No celular, onde a lateral vira uma fileira, ele fica. */
+@media(min-width:861px){ .cli-pick{display:none !important} }
 .giro td.v{background:var(--venda-bg)}
 .giro td.e{background:var(--estoque-bg)}
 .giro td.c{font:700 12.5px "Space Grotesk",sans-serif;background:var(--cob-bg)}
@@ -507,6 +529,7 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
   .giro tbody tr{height:44px}
   .giro .corm{display:block}
   footer .det{display:none}
+  .cli-cards,.nav-sep{display:none}
   .cli-pick{width:100%}
   .cli-pick select{width:100%}
 }
@@ -523,6 +546,8 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
     </div>
     <nav class="nav">
       <a class="nav-item active" href="#" title="Análise de Giro"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5v-6.2"/><path d="M10.8 19.5V7.3"/><path d="M17 19.5V11"/><path d="M4 5.5l4.8 4 4-3 6.7 5.2"/></svg></span><span class="nav-label">Análise de Giro</span></a>
+      <div class="nav-sep nav-label">Clientes</div>
+      <div class="cli-cards" id="cliCards"></div>
     </nav>
     <div class="sidebar-foot">
       <a class="foot-btn" href="https://cms-representacoes.github.io/apps-oly/" title="Voltar ao Portal"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></span><span class="foot-label">Portal</span></a>
@@ -715,6 +740,9 @@ const FALTA_TXT = {
 // O ícone apagado avisa antes do clique: sem isso, a tela abre vazia e a
 // pessoa acha que é defeito — foi o que aconteceu na AG da Under Armour.
 function iconeLoja(p){
+  // cliente sem arquivo de lojas (a Talentus, por enquanto) não mostra o
+  // ícone: melhor não oferecer do que abrir uma tela vazia
+  if(E.lojasNao) return '';
   if(!E.lojasK) return ICONE_LOJA;
   if(E.lojasK.has(p.k)) return ICONE_LOJA;
   const t = FALTA_TXT[(E.lojasFalta || {})[p.k]] || 'Sem dados de loja para este produto';
@@ -728,7 +756,9 @@ function iconeLoja(p){
 const MARCAS_CFG = {
   oly: { nome:'Olympikus', curto:'Oly', logo:'../logo-oly-simbolo.png',
          chips:{ 'OLY FTW':'Tênis', 'OLY VEST':'Vestuário', 'OLY MEIAS':'Meias',
-                 'OLY ACC':'Acessórios', 'OLY CHI':'Chinelos' },
+                 'OLY ACC':'Acessórios', 'OLY CHI':'Chinelos',
+                 // a planilha da Talentus escreve o chinelo como OLY CHIN
+                 'OLY CHIN':'Chinelos' },
          // marca da Detalhada → marca do plano
          det:{ OLY:'OLY FTW', CFOLY:'OLY VEST', MEOLY:'OLY MEIAS',
                ACOLY:'OLY ACC', CHOLY:'OLY CHI' } },
@@ -1238,6 +1268,7 @@ async function carregar(){
     return;
   }
   $('cliSel').innerHTML = E.clientes.map(c => `<option value="${esc(c.id)}">${esc(c.nome)} · ${esc(c.codigo)}</option>`).join('');
+  pintarCards();
   $('cliPick').hidden = E.clientes.length < 2;
   const ult = lembrar('cliente');
   const inicial = E.clientes.some(c => c.id === ult) ? ult : E.clientes[0].id;
@@ -1245,6 +1276,28 @@ async function carregar(){
   await carregarFotos();
   await abrirCliente(inicial);
 }
+
+/* ── cards de cliente na lateral ─────────────────────────────────────── */
+const iniciais = nome => String(nome || '').trim().split(/\s+/).slice(0, 2)
+  .map(x => x[0]).join('').toUpperCase() || '—';
+
+function pintarCards(){
+  const atual = E.base && E.base.cliente ? E.base.cliente.id : lembrar('cliente');
+  $('cliCards').innerHTML = (E.clientes || []).map(c => `
+    <button type="button" class="cli-card${c.id === atual ? ' on' : ''}" data-cli="${esc(c.id)}"
+            title="${esc(c.nome)} · ${esc(c.codigo)}">
+      <span class="ini">${esc(iniciais(c.nome))}</span>
+      <span class="txt"><span class="nome">${esc(c.nome)}</span>
+        <span class="meta">${esc(c.codigo)} · ${c.lojas} ${c.lojas === 1 ? 'loja' : 'lojas'}</span></span>
+    </button>`).join('');
+}
+
+$('cliCards').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-cli]');
+  if(!b || (E.base && E.base.cliente && E.base.cliente.id === b.dataset.cli)) return;
+  $('cliSel').value = b.dataset.cli;
+  abrirCliente(b.dataset.cli);
+});
 
 /* ── troca de marca ──────────────────────────────────────────────────
    Um toque no logo leva ao plano da outra marca do mesmo cliente, como na
@@ -1326,6 +1379,7 @@ async function abrirCliente(id){
   rodape();
   pintar();
   medirCab();
+  pintarCards();
   carregarLojas(c);
   carregarCarteira(c, guardado);
 }
@@ -1335,15 +1389,19 @@ async function abrirCliente(id){
    precisa saber quem está lá dentro, para não mandar ninguém abrir uma tela
    vazia — o arquivo chega depois da tabela, sem segurar a pintura. */
 async function carregarLojas(c){
-  E.lojasK = null; E.lojasFalta = {};
+  E.lojasK = null; E.lojasFalta = {}; E.lojasNao = false;
   try{
     const r = await fetch(`dados/lojas-${encodeURIComponent(c.id)}.json` + bust(), { cache:'no-cache' });
+    if(!r.ok) throw new Error('sem arquivo de lojas');
     const d = await r.json();
     if(!E.base || E.base.cliente.id !== c.id) return;
     E.lojasK = new Set((d.produtos || []).map(p => p.k));
     E.lojasFalta = d.faltando || {};
-    pintar();
-  }catch(_){ E.lojasK = null; }
+  }catch(_){
+    if(!E.base || E.base.cliente.id !== c.id) return;
+    E.lojasK = null; E.lojasNao = true;
+  }
+  pintar();
 }
 
 /* ── carteira (Detalhada) ────────────────────────────────────────────── */

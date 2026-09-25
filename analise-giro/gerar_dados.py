@@ -71,6 +71,23 @@ CLIENTES = [
         'aba': 'AG',
         'aba_carteira': 'CARTEIRA',
     },
+    {
+        'id': 'talentus',
+        'nome': 'Talentus',
+        'razao': 'TALENTUS',
+        # A planilha abre com "CLIENTE: 17759", que é um código antigo: na
+        # Detalhada a Talentus compra pelos códigos abaixo, os dois com o
+        # JORGE. É por eles que a carteira vem.
+        'codigo': '18529',
+        'codigos': ['18529', '65218'],
+        'lider': '3616654',
+        'lojas': 10,
+        'vendedor': 'JORGE',
+        'marca': 'Olympikus',
+        'arquivo': PLANOS / 'OLYMPIKUS' / 'JORGE' / 'AG TALENTUS.xlsx',
+        'aba': 'AG',
+        'aba_carteira': 'CARTEIRA',
+    },
 ]
 
 
@@ -104,8 +121,11 @@ ALIAS = {
     'genero': ('GENERO',),
     'grupo': ('GRUPO_COLECAO', 'GRUPO COLECAO'),
     'pdv': ('PDV',),
-    'cod_cliente': ('COD_CLIENTE', 'REF. CLIENTE', 'REF CLIENTE'),
+    'cod_cliente': ('COD_CLIENTE', 'REF. CLIENTE', 'REF CLIENTE', 'COD CLIENTE'),
     'desc_cliente': ('DESC_CLIENTE', 'REF/DESC'),
+    # a coluna que junta código e cor numa chave só; na Degraus ela é a
+    # segunda coluna, sem título, e na Talentus se chama UPLOAD
+    'chave': ('UPLOAD', 'CONCATENAR', 'CHAVE'),
 }
 
 # A referência do produto no sistema do cliente muda de plano para plano:
@@ -149,7 +169,7 @@ def ler_ag(ws):
 
     ic = {
         'marca': 0,
-        'chave': 1,
+        'chave': onde('chave', False) if 'chave' in ALIAS else 1,
         'codigo': onde('codigo'),
         'descricao': onde('descricao'),
         'cor': onde('cor'),
@@ -159,6 +179,8 @@ def ler_ag(ws):
         'cod_cliente': onde('cod_cliente', False),
         'desc_cliente': onde('desc_cliente', False),
     }
+    if ic['chave'] is None:
+        ic['chave'] = 1
     # blocos de mês: a célula do cabeçalho é a data e é também a coluna de
     # venda; as seguintes são estoque, giro, cob., análise e OBS
     meses = []
