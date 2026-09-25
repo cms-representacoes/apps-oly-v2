@@ -1360,7 +1360,7 @@ async function abrirCliente(id){
   E.linhas = E.base.produtos;
   const c = E.base.cliente;
   pintarBotaoMarca();
-  $('eyebrow').textContent = `· ${c.lojas} lojas · vendedor ${c.vendedor}`;
+  $('eyebrow').textContent = `· ${c.lojas} ${c.lojas === 1 ? 'loja' : 'lojas'} · vendedor ${c.vendedor}`;
   $('tituloCod').textContent = ' - ' + c.codigo;
   $('tituloNome').textContent = c.nome;
   document.title = `${c.nome} ${MARCAS_CFG[MARCA].curto} · Análise de Giro`;

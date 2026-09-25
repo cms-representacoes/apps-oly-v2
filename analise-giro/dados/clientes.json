@@ -22,7 +22,7 @@
    "2026-08"
   ],
   "produtos": 749,
-  "atualizadoEm": "2026-09-25T17:17:40"
+  "atualizadoEm": "2026-09-25T20:11:10"
  },
  {
   "id": "degraus-ua",
@@ -47,7 +47,88 @@
    "2026-08"
   ],
   "produtos": 121,
-  "atualizadoEm": "2026-09-25T17:17:43"
+  "atualizadoEm": "2026-09-25T20:11:13"
+ },
+ {
+  "id": "fit-store",
+  "nome": "Fit Store",
+  "codigo": "2245855",
+  "codigos": [
+   "2245855"
+  ],
+  "lojas": 1,
+  "vendedor": "JORGE",
+  "marca": "Olympikus",
+  "ano": 2026,
+  "meses": [
+   "2026-01",
+   "2026-02",
+   "2026-03",
+   "2026-04",
+   "2026-05",
+   "2026-06",
+   "2026-07",
+   "2026-08"
+  ],
+  "produtos": 121,
+  "atualizadoEm": "2026-09-25T20:11:16"
+ },
+ {
+  "id": "ideal-magazine",
+  "nome": "Ideal Magazine",
+  "codigo": "21511",
+  "codigos": [
+   "21511",
+   "11948",
+   "105709",
+   "68621",
+   "121069",
+   "25931",
+   "63095",
+   "75383",
+   "76687",
+   "95206",
+   "137388",
+   "1026378",
+   "2373565",
+   "3132954",
+   "3309898"
+  ],
+  "lojas": 7,
+  "vendedor": "JORGE",
+  "marca": "Olympikus",
+  "ano": 2026,
+  "meses": [
+   "2026-06",
+   "2026-07",
+   "2026-08"
+  ],
+  "produtos": 385,
+  "atualizadoEm": "2026-09-25T20:11:17"
+ },
+ {
+  "id": "matriz-esportes",
+  "nome": "Matriz Esportes",
+  "codigo": "60437",
+  "codigos": [
+   "60437",
+   "1948498",
+   "3068604"
+  ],
+  "lojas": 3,
+  "vendedor": "JORGE",
+  "marca": "Olympikus",
+  "ano": 2026,
+  "meses": [
+   "2026-03",
+   "2026-04",
+   "2026-05",
+   "2026-06",
+   "2026-07",
+   "2026-08"
+  ],
+  "produtos": 68,
+  "atualizadoEm": "2026-09-25T20:11:17"
  },
  {
   "id": "talentus",
@@ -72,6 +153,6 @@
    "2026-08"
   ],
   "produtos": 243,
-  "atualizadoEm": "2026-09-25T17:17:45"
+  "atualizadoEm": "2026-09-25T20:11:15"
  }
 ]

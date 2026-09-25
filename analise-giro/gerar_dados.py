@@ -25,6 +25,9 @@ from pathlib import Path
 
 import openpyxl
 
+import shutil
+import tempfile
+
 # o console do Windows abre em cp1252 e engasga com a seta do resumo
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -88,7 +91,63 @@ CLIENTES = [
         'aba': 'AG',
         'aba_carteira': 'CARTEIRA',
     },
+    {
+        'id': 'fit-store',
+        'nome': 'Fit Store',
+        'razao': 'FIT STORE BY COMBATE',
+        'codigo': '2245855',
+        'codigos': ['2245855'],
+        'lider': '',
+        'lojas': 1,
+        'vendedor': 'JORGE',
+        'marca': 'Olympikus',
+        'arquivo': PLANOS / 'OLYMPIKUS' / 'JORGE' / 'AG FITSTORE.xlsx',
+        'aba': 'AG',
+        'aba_carteira': 'CARTEIRA',
+    },
+    {
+        'id': 'ideal-magazine',
+        'nome': 'Ideal Magazine',
+        'razao': 'GRUPO IDEAL',
+        # o grupo compra por 15 códigos na Detalhada; o 21511 é o líder
+        'codigo': '21511',
+        'codigos': ['21511', '11948', '105709', '68621', '121069', '25931', '63095',
+                    '75383', '76687', '95206', '137388', '1026378', '2373565',
+                    '3132954', '3309898'],
+        'lider': '21511',
+        'lojas': 7,
+        'vendedor': 'JORGE',
+        'marca': 'Olympikus',
+        'arquivo': PLANOS / 'OLYMPIKUS' / 'JORGE' / 'AG IDEAL MAGAZINE.xlsx',
+        'aba': 'AG',
+        'aba_carteira': 'CARTEIRA',
+    },
+    {
+        'id': 'matriz-esportes',
+        'nome': 'Matriz Esportes',
+        'razao': 'MATRIZ ESPORTE',
+        'codigo': '60437',
+        'codigos': ['60437', '1948498', '3068604'],
+        'lider': '',
+        'lojas': 3,
+        'vendedor': 'JORGE',
+        'marca': 'Olympikus',
+        'arquivo': PLANOS / 'OLYMPIKUS' / 'JORGE' / 'AG MATRIZ ESPORTE.xlsx',
+        'aba': 'AG',
+        'aba_carteira': 'CARTEIRA',
+    },
 ]
+
+
+def abrir(caminho):
+    """Abre a planilha mesmo com ela aberta no Excel (lê uma cópia)."""
+    try:
+        return openpyxl.load_workbook(caminho, read_only=True, data_only=True)
+    except PermissionError:
+        copia = Path(tempfile.gettempdir()) / f'ag_{abs(hash(str(caminho)))}.xlsx'
+        shutil.copy2(caminho, copia)
+        print('  (planilha aberta no Excel: li uma cópia)')
+        return openpyxl.load_workbook(copia, read_only=True, data_only=True)
 
 
 def norm(t):
@@ -114,6 +173,19 @@ def texto(v):
 # Under Armour com MARCAS; o código do cliente é COD_CLIENTE num e
 # REF. CLIENTE no outro. Fora isso os dois têm a mesma forma.
 CABECALHO = ('MARCA/SUB', 'MARCAS')
+# A mesma família aparece com nomes diferentes de plano para plano: a Matriz
+# escreve só FTW, a Fit Store escreve OLY MEIA, a Talentus OLY CHIN. Todas
+# viram o nome que os chips da tela conhecem.
+SUB_ALIAS = {
+    'FTW': 'OLY FTW', 'VEST': 'OLY VEST', 'MEIA': 'OLY MEIAS', 'MEIAS': 'OLY MEIAS',
+    'ACC': 'OLY ACC', 'CHI': 'OLY CHI', 'CHIN': 'OLY CHI',
+    'OLY MEIA': 'OLY MEIAS', 'OLY CHIN': 'OLY CHI',
+}
+
+
+def sub_marca(valor):
+    v = norm(valor)
+    return SUB_ALIAS.get(v, v)
 ALIAS = {
     'codigo': ('CODIGO',),
     'descricao': ('DESCRICAO PRODUTO', 'DESCRICAO'),
@@ -122,10 +194,10 @@ ALIAS = {
     'grupo': ('GRUPO_COLECAO', 'GRUPO COLECAO'),
     'pdv': ('PDV',),
     'cod_cliente': ('COD_CLIENTE', 'REF. CLIENTE', 'REF CLIENTE', 'COD CLIENTE'),
-    'desc_cliente': ('DESC_CLIENTE', 'REF/DESC'),
+    'desc_cliente': ('DESC_CLIENTE', 'REF/DESC', 'DESC. CLIENTE'),
     # a coluna que junta código e cor numa chave só; na Degraus ela é a
     # segunda coluna, sem título, e na Talentus se chama UPLOAD
-    'chave': ('UPLOAD', 'CONCATENAR', 'CHAVE'),
+    'chave': ('UPLOAD', 'CONCATENAR', 'CONCA', 'CHAVE'),
 }
 
 # A referência do produto no sistema do cliente muda de plano para plano:
@@ -145,17 +217,23 @@ def ref_do_cliente(cod_cliente, desc_cliente):
 
 
 
-def ler_ag(ws):
-    """Produtos e meses do ano, lidos pelo cabeçalho da aba."""
+def ler_ag(ws, marca='Olympikus'):
+    """Produtos e meses do ano, lidos pelo cabeçalho da aba.
+
+    `marca` diz qual plano é: linha de outra marca na planilha fica de fora.
+    A Ideal e a Matriz têm um punhado de linhas UA no meio do plano Olympikus.
+    """
+    # O cabeçalho nem sempre começa na coluna A: na Ideal e na Matriz a
+    # primeira coluna é a CONCA, e o MARCA/SUB vem depois.
     linhas = ws.iter_rows(values_only=True)
     cab = None
     for r in linhas:
-        if r and norm(r[0]) in CABECALHO:
+        if r and any(norm(v) in CABECALHO for v in r if isinstance(v, str)):
             cab = r
             break
     if cab is None:
         raise SystemExit('Cabeçalho da aba AG não encontrado '
-                         f'(esperava {" ou ".join(CABECALHO)} na coluna A).')
+                         f'(esperava {" ou ".join(CABECALHO)} em alguma coluna).')
 
     col = {norm(v): i for i, v in enumerate(cab) if isinstance(v, str)}
 
@@ -168,7 +246,7 @@ def ler_ag(ws):
         return None
 
     ic = {
-        'marca': 0,
+        'marca': next(col[n] for n in CABECALHO if n in col),
         'chave': onde('chave', False) if 'chave' in ALIAS else 1,
         'codigo': onde('codigo'),
         'descricao': onde('descricao'),
@@ -191,9 +269,15 @@ def ler_ag(ws):
     if not meses:
         raise SystemExit(f'Nenhum mês de {ANO} encontrado na aba AG.')
 
+    ehUA = marca.upper().startswith('UNDER')
     produtos = []
+    fora_da_marca = 0
     for r in linhas:
         if not r or not r[ic['codigo']]:
+            continue
+        sub = sub_marca(r[ic['marca']])
+        if sub.startswith('UA') != ehUA:
+            fora_da_marca += 1
             continue
         m = {}
         for chave, i in meses:
@@ -213,7 +297,7 @@ def ler_ag(ws):
         codigo = r[ic['codigo']]
         produtos.append({
             'k': texto(r[ic['chave']]) or f'{codigo}{texto(r[ic["cor"]])}',
-            'marca': texto(r[ic['marca']]),
+            'marca': sub,
             'codigo': str(int(codigo)) if isinstance(codigo, float) and codigo.is_integer() else texto(codigo),
             'descricao': texto(r[ic['descricao']]),
             'cor': texto(r[ic['cor']]),
@@ -225,6 +309,8 @@ def ler_ag(ws):
                 r[ic['desc_cliente']] if ic['desc_cliente'] is not None else ''),
             'm': m,
         })
+    if fora_da_marca:
+        print(f'  {fora_da_marca} linhas de outra marca ficaram de fora')
     return [c for c, _ in meses], produtos
 
 
@@ -250,8 +336,8 @@ def ler_carteira(ws):
 
 def gerar(cli):
     print(f'· {cli["nome"]}: lendo {cli["arquivo"].name}')
-    wb = openpyxl.load_workbook(cli['arquivo'], read_only=True, data_only=True)
-    meses, produtos = ler_ag(wb[cli['aba']])
+    wb = abrir(cli['arquivo'])
+    meses, produtos = ler_ag(wb[cli['aba']], cli['marca'])
     carteira = ler_carteira(wb[cli['aba_carteira']]) if cli.get('aba_carteira') in wb.sheetnames else {}
     wb.close()
 
