@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-marca="oly">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Produto loja a loja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Os tokens são os da Análise de Giro: esta tela abre de dentro dela. */
+:root{
+  --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
+  --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
+  --accent:#2C39E2; --accent-hover:#1B27B0;
+  --marca-claro:#5B69E8; --marca-escuro:#1B27B0;
+  --green:#0CA678; --amber:#E0A100; --orange:#E8590C; --red:#C92A2A;
+  --venda-bg:#F3FBF8; --estoque-bg:#FDF5F2;
+  --th-mes:#6D4FD6; --th-mes-ink:#FFFFFF;
+  --th-venda:#E1F5EE; --th-venda-ink:#085041;
+  --th-estoque:#FAECE7; --th-estoque-ink:#712B13;
+  --th-cob:#E3ECFA; --th-cob-ink:#1E3A6E; --cob-bg:#F3F7FD;
+  --envia:#E8590C; --envia-bg:#FEF1E8; --recebe:#C92A2A; --recebe-bg:#FDECEC;
+}
+:root[data-marca="ua"]{ --accent:#E52125; --accent-hover:#A81215; --th-mes:#C4161C; }
+[data-theme="dark"]{
+  --ink:#E8EBF1; --navy:#D6DDEA; --slate:#9AA4B5; --mute:#828DA0;
+  --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
+  --green:#34D399; --amber:#F4C430; --orange:#FB923C; --red:#F2868B;
+  --venda-bg:#0E1F1A; --estoque-bg:#241611;
+  --th-mes:#4B3BA8; --th-mes-ink:#EDE9FE;
+  --th-venda:#123328; --th-venda-ink:#8FE3C2;
+  --th-estoque:#3A1F16; --th-estoque-ink:#F7B69E;
+  --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
+  --accent:#5B69E8; --accent-hover:#7D89FF;
+  --envia:#FB923C; --envia-bg:#2A1A0E; --recebe:#F2868B; --recebe-bg:#2A1416;
+}
+[data-theme="dark"][data-marca="ua"]{ --accent:#F2494C; --th-mes:#8E1216; }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+.num{font-family:'Space Grotesk',Inter,sans-serif;font-variant-numeric:tabular-nums}
+
+/* ── a barra única: produto, botões e KPIs lado a lado ─────────────
+   Tudo numa fileira só, que rola para os dois lados quando não cabe. O
+   nome do produto é discreto de propósito: a tabela é o assunto.      */
+.barra{flex:none;background:var(--card);border-bottom:1px solid var(--line);
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.barra::-webkit-scrollbar{height:6px}
+.barra::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+.barra-in{display:flex;align-items:center;gap:10px;padding:9px 14px;min-width:max-content}
+.voltar{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);
+  border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--slate);cursor:pointer}
+.voltar:hover{border-color:var(--accent);color:var(--accent)}
+.prod{display:flex;align-items:center;gap:7px;padding-right:4px;cursor:pointer;border:0;background:none;font:inherit}
+.prod b{font-size:13.5px;font-weight:700;letter-spacing:-.01em;color:var(--ink);white-space:nowrap}
+.prod .seta{color:var(--mute);font-size:9px}
+.selo{border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.selo.ref{background:var(--th-cob);color:var(--th-cob-ink)}
+.selo.pdv{background:var(--venda-bg);color:var(--green);border:1px solid var(--th-venda)}
+.selo.cor{background:var(--paper);color:var(--slate);border:1px solid var(--line)}
+.risco{width:1px;height:26px;background:var(--line);flex:none;margin:0 2px}
+.kpi{display:flex;flex-direction:column;align-items:flex-start;padding:0 9px;white-space:nowrap}
+.kpi span{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.kpi b{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;line-height:1.15}
+.kpi.al b{color:var(--red)}
+.kpi.ok b{color:var(--green)}
+.acoes{margin-left:auto;display:flex;align-items:center;gap:8px}
+.bt{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);
+  border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--slate);cursor:pointer}
+.bt:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── tabela ────────────────────────────────────────────────────── */
+.wrap{flex:1;min-height:0;overflow:auto;padding:12px 14px 22px}
+/* width:100% e não min-width: com a tabela mais estreita que a tela, as
+   colunas grudadas na direita ficariam soltas, com um vão antes delas */
+/* sem overflow:hidden aqui — ele quebra o position:sticky das colunas
+   grudadas quando a tabela passa da largura da tela (o celular) */
+table{border-collapse:separate;border-spacing:0;font-size:12px;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;width:100%}
+th,td{padding:8px 10px;white-space:nowrap;text-align:center}
+thead th{position:sticky;top:0;z-index:2;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+thead tr.meses th{background:var(--th-mes);color:var(--th-mes-ink);border-bottom:1px solid rgba(255,255,255,.18)}
+thead tr.meses th.vazio{background:var(--card)}
+thead tr.sub th{background:var(--card);color:var(--slate);border-bottom:1px solid var(--line)}
+thead tr.sub th.v{background:var(--th-venda);color:var(--th-venda-ink)}
+thead tr.sub th.e{background:var(--th-estoque);color:var(--th-estoque-ink)}
+th.loja,td.loja{position:sticky;left:0;z-index:3;background:var(--card);text-align:left;
+  border-right:1px solid var(--line);font-weight:700;min-width:104px}
+thead th.loja{z-index:4}
+tbody td{border-bottom:1px solid var(--line-2)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--paper)}
+tbody tr:hover td.loja{background:var(--paper)}
+td.v{background:var(--venda-bg);font-family:'Space Grotesk',sans-serif;font-weight:600}
+td.e{background:var(--estoque-bg);font-family:'Space Grotesk',sans-serif;font-weight:600}
+td.neg{color:var(--red)}
+td.zero{color:var(--mute);opacity:.45;font-weight:500}
+/* Total, cobertura e ação ficam colados na direita: são a conclusão da
+   linha, e com 9 meses na tela eles sairiam do campo de visão. */
+/* as três têm largura fixa porque o encaixe delas é calculado em pixels */
+th.total,td.total{position:sticky;right:calc(var(--w-acao,176px) + var(--w-cob,92px));z-index:2;background:var(--card);
+  font-family:'Space Grotesk',sans-serif;font-weight:700;border-left:1px solid var(--line);
+  width:96px;min-width:96px;max-width:96px}
+th.cob,td.cob{position:sticky;right:var(--w-acao,176px);z-index:2;width:92px;min-width:92px;max-width:92px;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;background:var(--cob-bg)}
+th.acao,td.acao{position:sticky;right:0;z-index:2;background:var(--card);
+  width:176px;min-width:176px;max-width:176px;white-space:normal;
+  box-shadow:-6px 0 8px -6px rgba(15,23,42,.18)}
+thead th.total,thead th.cob,thead th.acao{z-index:4}
+tbody tr:hover td.total,tbody tr:hover td.acao{background:var(--paper)}
+td.cob.baixa{color:var(--red)} td.cob.alta{color:var(--envia)}
+tfoot td{background:var(--paper);font-weight:700;font-family:'Space Grotesk',sans-serif;
+  border-top:1px solid var(--line);position:sticky;bottom:0}
+tfoot td.loja{background:var(--paper)}
+.acao{border:0;border-radius:999px;padding:5px 13px;font:inherit;font-size:10.5px;font-weight:800;
+  letter-spacing:.03em;color:#fff;cursor:pointer;text-transform:uppercase}
+.acao.transf{background:var(--accent)}
+.acao.receber{background:var(--recebe)}
+.acao.parada{background:none;color:var(--mute);border:1px dashed var(--line);cursor:default}
+.tr-loja{color:var(--mute);font-size:10px;font-weight:600;display:block;margin-top:2px}
+.parada-l{color:var(--red);font-size:9.5px;font-weight:700;display:block}
+
+/* ── troca de produto ──────────────────────────────────────────── */
+.lista{position:absolute;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 20px 50px -20px rgba(15,23,42,.4);width:340px;max-height:60vh;overflow:auto;padding:8px;display:none}
+.lista.on{display:block}
+.lista input{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;
+  font-size:12.5px;background:var(--paper);color:var(--ink);outline:none;margin-bottom:6px}
+.lista input:focus{border-color:var(--accent)}
+.lista button{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12px;
+  padding:7px 9px;border-radius:9px;cursor:pointer;color:var(--ink)}
+.lista button:hover{background:var(--paper)}
+.lista button span{display:block;font-size:10.5px;color:var(--mute)}
+.rodape{padding:0 14px 20px;font-size:11.5px;color:var(--mute);line-height:1.55;max-width:1000px}
+.rodape b{color:var(--ink)}
+@media(max-width:700px){
+  .kpi{padding:0 7px}
+  .kpi b{font-size:14px}
+  .wrap{padding:10px 10px 18px}
+  /* no celular as três colunas grudadas comeriam a tela inteira: elas
+     voltam para o fim da linha e só a coluna da loja continua fixa */
+  th.total,td.total,th.cob,td.cob,th.acao,td.acao{position:static;box-shadow:none}
+  th.acao,td.acao{width:auto;min-width:150px;max-width:none}
+  th.loja,td.loja{min-width:92px}
+}
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <div class="barra-in">
+    <button class="voltar" id="btnVoltar">← Análise de Giro</button>
+    <button class="prod" id="btnProd" title="Trocar de produto">
+      <b id="pNome">—</b><span class="seta">▼</span>
+    </button>
+    <span class="selo ref" id="pRef"></span>
+    <span class="selo cor" id="pCor"></span>
+    <span class="selo pdv" id="pPdv"></span>
+    <span class="risco"></span>
+    <div class="kpi"><span>Compra</span><b class="num" id="kCompra">—</b></div>
+    <div class="kpi"><span>Venda</span><b class="num" id="kVenda">—</b></div>
+    <div class="kpi"><span>Estoque</span><b class="num" id="kEstoque">—</b></div>
+    <div class="kpi"><span>Média/mês</span><b class="num" id="kMedia">—</b></div>
+    <div class="kpi"><span>Cobertura</span><b class="num" id="kCob">—</b></div>
+    <span class="risco"></span>
+    <div class="kpi ok"><span>A transferir</span><b class="num" id="kTransf">—</b></div>
+    <div class="acoes">
+      <button class="bt" id="btnMarca">Olympikus ⇄</button>
+      <button class="bt" id="btnTema">◐</button>
+      <button class="bt" id="btnCheia">⛶ Tela cheia</button>
+    </div>
+  </div>
+</div>
+
+<div class="lista" id="lista">
+  <input id="busca" placeholder="buscar produto, código ou cor" autocomplete="off">
+  <div id="listaItens"></div>
+</div>
+
+<div class="wrap">
+  <table id="tab">
+    <thead></thead><tbody></tbody><tfoot></tfoot>
+  </table>
+  <div class="rodape" id="rodape"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const nf = n => Number(n || 0).toLocaleString('pt-BR');
+const nd = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 });
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+  ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const MES_NOME = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+
+const MARCAS = {
+  oly: { nome:'Olympikus', arq:'dados/lojas-degraus.json' },
+  ua:  { nome:'Under Armour', arq:'dados/lojas-degraus-ua.json' },
+};
+// mesma régua da tela de transferências: tudo em meses de venda
+const JANELA = 3, MIN_COB = 1, MAX_COB = 3;
+
+let DADOS = null, MARCA = 'oly', PROD = null, ATIVA = {};
+
+async function carregar(marca, manter){
+  MARCA = marca;
+  document.documentElement.setAttribute('data-marca', marca);
+  $('btnMarca').textContent = MARCAS[marca].nome + ' ⇄';
+  DADOS = await (await fetch(MARCAS[marca].arq, { cache:'no-cache' })).json();
+  medirLojas();
+  const alvo = manter && DADOS.produtos.find(p => p.k === manter);
+  escolher(alvo || maisVendido());
+}
+
+const vendaMes = (p, loja, i) => (p.l[loja] && p.l[loja].v && p.l[loja].v[i]) || 0;
+const saldoMes = (p, loja, i) => (p.l[loja] && p.l[loja].s && p.l[loja].s[i]) || 0;
+const estoque = (p, loja) => (p.l[loja] && p.l[loja].e) || 0;
+const compra = (p, loja) => (p.l[loja] && p.l[loja].c) || 0;
+
+// Mês em que a PORTA ficou sem vender não conta no ritmo dela: a LJ06 parou
+// em setembro e, sem isso, todo produto pareceria morto lá. A medida é a
+// venda da loja inteira, de todas as marcas — se fosse só a marca da tela,
+// loja que não vendeu Under Armour no mês pareceria fechada.
+function medirLojas(){
+  ATIVA = {};
+  for(const l of DADOS.lojas){
+    const id = String(l.id);
+    const porMes = l.v && l.v.length ? l.v : DADOS.meses.map((_, i) =>
+      DADOS.produtos.reduce((a, p) => a + vendaMes(p, id, i), 0));
+    // "vendeu alguma coisa" não basta: a LJ06 registrou 11 pares em setembro
+    // contra 3.331 em agosto — a porta está fechada, não devagar. O mês só
+    // conta se chegar a um quinto do mês típico daquela loja.
+    const positivos = porMes.filter(v => v > 0).sort((a, b) => a - b);
+    const tipico = positivos.length ? positivos[Math.floor(positivos.length / 2)] : 0;
+    const corte = tipico * 0.2;
+    const ativos = porMes.map((v, i) => v > corte ? i : -1).filter(i => i >= 0);
+    const ultimo = ativos.length ? ativos[ativos.length - 1] : -1;
+    ATIVA[id] = { meses:ativos, total:porMes.reduce((a, b) => a + b, 0),
+      parada: ultimo >= 0 && ultimo < DADOS.meses.length - 1 ? DADOS.meses[ultimo] : null,
+      viva: ultimo === DADOS.meses.length - 1 };
+  }
+}
+function ritmo(p, loja){
+  const r = p.l[loja]; if(!r || !r.v) return 0;
+  const ativos = (ATIVA[loja] && ATIVA[loja].meses) || r.v.map((_, i) => i);
+  const usar = ativos.slice(-JANELA);
+  if(!usar.length) return 0;
+  return Math.max(0, usar.reduce((a, i) => a + (r.v[i] || 0), 0)) / usar.length;
+}
+function cobertura(p, loja){
+  const m = ritmo(p, loja), e = estoque(p, loja);
+  if(m <= 0) return e > 0 ? Infinity : 0;
+  return e / m;
+}
+
+const maisVendido = () => [...DADOS.produtos].sort((a, b) =>
+  totalVenda(b) - totalVenda(a))[0];
+const totalVenda = p => Object.keys(p.l).reduce((a, l) =>
+  a + (p.l[l].v || []).reduce((x, y) => x + y, 0), 0);
+
+/* ── o que cada loja deve fazer com este produto ─────────────────────
+   Mesma conta da tela de transferências, só que olhando um produto de
+   cada vez: quem tem mais de MAX_COB meses de estoque (ou está parado)
+   pode mandar; quem vende e tem menos de MIN_COB mês precisa receber.  */
+function plano(p){
+  const lojas = DADOS.lojas.map(l => String(l.id));
+  const pede = [], sobra = [], acao = {};
+  for(const l of lojas){
+    if(!ATIVA[l] || !ATIVA[l].viva){ acao[l] = { tipo:'parada' }; continue; }
+    const m = ritmo(p, l), e = estoque(p, l), cob = cobertura(p, l);
+    if(m > 0 && cob < MIN_COB) pede.push({ l, falta: Math.max(1, Math.round(m * MIN_COB - e)), m, e });
+    else if(e > 0 && (m === 0 || cob > MAX_COB)){
+      const livre = e - Math.ceil(m * MAX_COB);
+      if(livre > 0) sobra.push({ l, livre, m, e, parado: m === 0 });
+    }
+  }
+  pede.sort((a, b) => b.m - a.m);
+  sobra.sort((a, b) => b.livre - a.livre);
+  const pares = [];
+  for(const r of pede){
+    let falta = r.falta;
+    for(const s of sobra){
+      if(falta <= 0 || s.livre <= 0) continue;
+      const qt = Math.min(falta, s.livre);
+      s.livre -= qt; falta -= qt;
+      pares.push({ de:s.l, para:r.l, qtd:qt });
+    }
+  }
+  for(const r of pede){
+    const recebe = pares.filter(x => x.para === r.l);
+    if(recebe.length) acao[r.l] = { tipo:'receber', qtd:recebe.reduce((a, x) => a + x.qtd, 0),
+      de:recebe.map(x => x.de) };
+    else acao[r.l] = { tipo:'falta' };
+  }
+  for(const s of sobra){
+    const envia = pares.filter(x => x.de === s.l);
+    if(envia.length) acao[s.l] = { tipo:'transferir', qtd:envia.reduce((a, x) => a + x.qtd, 0),
+      para:envia.map(x => x.para) };
+    else if(s.parado) acao[s.l] = { tipo:'parado' };
+  }
+  return { acao, pares };
+}
+
+/* ── pintura ─────────────────────────────────────────────────────── */
+const nomeLoja = id => (DADOS.lojas.find(l => String(l.id) === String(id)) || {}).nome || `LOJA ${id}`;
+const curto = id => nomeLoja(id).replace(/^LJ\d+\s*/, '');
+const dataBR = iso => iso ? iso.slice(8,10) + '/' + iso.slice(5,7) + '/' + iso.slice(0,4) : '—';
+
+function escolher(p){
+  PROD = p;
+  const n = DADOS.meses.length;
+  // mês em que a rede inteira não teve venda nem estoque deste produto não
+  // entra na tabela: com 9 meses na tela, coluna vazia só atrapalha
+  const idx = DADOS.meses.map((_, i) => i).filter(i =>
+    Object.keys(p.l).some(l => vendaMes(p, l, i) || saldoMes(p, l, i)));
+  const usar = idx.length ? idx : DADOS.meses.map((_, i) => i);
+  const meses = usar.map(i => DADOS.meses[i]);
+  const lojas = DADOS.lojas.map(l => String(l.id))
+    .sort((a, b) => (ATIVA[b] ? ATIVA[b].total : 0) - (ATIVA[a] ? ATIVA[a].total : 0));
+  const { acao, pares } = plano(p);
+
+  // topo
+  $('pNome').textContent = p.descricao || p.codigo;
+  $('pRef').textContent = 'REF ' + (p.ref || p.codigo);
+  $('pCor').textContent = p.cor || '';
+  $('pPdv').textContent = p.pdv ? 'PDV ' + p.pdv.toLocaleString('pt-BR', { style:'currency', currency:'BRL' }) : '';
+  const venda = lojas.reduce((a, l) => a + (p.l[l] ? (p.l[l].v || []).reduce((x, y) => x + y, 0) : 0), 0);
+  const est = lojas.reduce((a, l) => a + estoque(p, l), 0);
+  const cmp = lojas.reduce((a, l) => a + compra(p, l), 0);
+  const ritmoTotal = lojas.reduce((a, l) => a + ritmo(p, l), 0);
+  $('kCompra').textContent = nf(cmp);
+  $('kVenda').textContent = nf(venda);
+  $('kEstoque').textContent = nf(est);
+  $('kMedia').textContent = nd(venda / n);
+  $('kCob').textContent = ritmoTotal ? nd(est / ritmoTotal) : '—';
+  $('kCob').parentElement.className = 'kpi' + (ritmoTotal && est / ritmoTotal < MIN_COB ? ' al' : '');
+  const mover = pares.reduce((a, x) => a + x.qtd, 0);
+  $('kTransf').textContent = mover ? nf(mover) : '—';
+
+  // cabeçalho
+  $('tab').tHead.innerHTML = `
+    <tr class="meses">
+      <th class="loja vazio"></th>
+      <th class="vazio"></th>
+      ${meses.map(m => `<th colspan="2">${MES_NOME[+m.slice(5) - 1]}/${m.slice(0,4)}</th>`).join('')}
+      <th class="vazio total"></th><th class="vazio cob"></th><th class="vazio acao"></th>
+    </tr>
+    <tr class="sub">
+      <th class="loja">Loja</th>
+      <th>Última compra</th>
+      ${meses.map(() => '<th class="v">Venda</th><th class="e">Estoque</th>').join('')}
+      <th class="total">Total venda</th><th class="cob">Cobertura</th><th class="acao">Ação</th>
+    </tr>`;
+
+  // linhas
+  const linhas = lojas.map(l => {
+    const r = p.l[l] || {};
+    const tv = (r.v || []).reduce((a, b) => a + b, 0);
+    const cob = cobertura(p, l);
+    const a = acao[l] || {};
+    const cels = usar.map(i => {
+      const v = vendaMes(p, l, i), e = saldoMes(p, l, i);
+      return `<td class="v${v ? '' : ' zero'}">${v || 0}</td>` +
+             `<td class="e${e ? (e < 0 ? ' neg' : '') : ' zero'}">${e || 0}</td>`;
+    }).join('');
+    const botao = {
+      transferir: `<button class="acao transf" title="Mandar ${a.qtd} para ${(a.para || []).map(curto).join(', ')}">Transferir</button>`,
+      receber: `<button class="acao receber" title="Puxar ${a.qtd} de ${(a.de || []).map(curto).join(', ')}">Receber</button>`,
+      falta: '<span class="tr-loja">sem quem mande</span>',
+      parado: '<span class="tr-loja">parado</span>',
+      parada: '<span class="acao parada">loja parada</span>',
+    }[a.tipo] || '—';
+    const detalhe = a.tipo === 'transferir' ? `<span class="tr-loja">${a.qtd} p/ ${(a.para || []).map(curto).join(', ')}</span>`
+      : a.tipo === 'receber' ? `<span class="tr-loja">${a.qtd} de ${(a.de || []).map(curto).join(', ')}</span>` : '';
+    const cobTxt = cob === Infinity ? '∞' : (cob ? nd(cob) : '—');
+    const cobCls = cob === Infinity || cob > MAX_COB ? ' alta' : (cob && cob < MIN_COB ? ' baixa' : '');
+    return `<tr>
+      <td class="loja">${esc(curto(l))}
+        ${ATIVA[l] && ATIVA[l].parada ? `<span class="parada-l">parada desde ${esc(ATIVA[l].parada.slice(5,7))}/${esc(ATIVA[l].parada.slice(2,4))}</span>` : ''}</td>
+      <td>${dataBR(r.uc)}</td>
+      ${cels}
+      <td class="total">${tv || 0}</td>
+      <td class="cob${cobCls}">${cobTxt}</td>
+      <td class="acao">${botao}${detalhe}</td>
+    </tr>`;
+  });
+  $('tab').tBodies[0].innerHTML = linhas.join('');
+
+  // rodapé da tabela: a soma da rede
+  const somaV = usar.map(i => lojas.reduce((a, l) => a + vendaMes(p, l, i), 0));
+  const somaE = usar.map(i => lojas.reduce((a, l) => a + saldoMes(p, l, i), 0));
+  $('tab').tFoot.innerHTML = `<tr>
+      <td class="loja">Rede</td><td>—</td>
+      ${usar.map((_, j) => `<td class="v">${somaV[j]}</td><td class="e">${somaE[j]}</td>`).join('')}
+      <td class="total">${venda}</td>
+      <td class="cob">${ritmoTotal ? nd(est / ritmoTotal) : '—'}</td>
+      <td class="acao">—</td>
+    </tr>`;
+
+  // a largura real das colunas grudadas só se sabe depois de pintar
+  requestAnimationFrame(() => {
+    const th = $('tab').tHead.querySelector('tr.sub');
+    const acao = th.querySelector('.acao'), cob = th.querySelector('.cob');
+    if(acao) document.documentElement.style.setProperty('--w-acao', acao.getBoundingClientRect().width + 'px');
+    if(cob) document.documentElement.style.setProperty('--w-cob', cob.getBoundingClientRect().width + 'px');
+  });
+
+  $('rodape').innerHTML = `
+    <b>Como ler a ação:</b> a conta é em meses de venda, não em peças.
+    <b>Receber</b> é loja que vende e tem menos de ${MIN_COB} mês de estoque;
+    <b>Transferir</b> é loja com mais de ${MAX_COB} meses (ou parada há ${JANELA}), e o que sai dela é
+    só o que passa desses ${MAX_COB} meses. O ritmo é a média dos últimos ${JANELA} meses em que
+    <i>aquela loja</i> vendeu. Estoque é o do fim de cada mês, reconstruído do movimento do
+    banco — negativo é venda lançada sem a entrada correspondente, como já aparece na planilha.`;
+}
+
+/* ── troca de produto ────────────────────────────────────────────── */
+function pintarLista(){
+  const b = ($('busca').value || '').trim().toLowerCase();
+  const lista = DADOS.produtos
+    .filter(p => !b || (`${p.codigo} ${p.descricao} ${p.cor} ${p.ref}`).toLowerCase().includes(b))
+    .sort((x, y) => totalVenda(y) - totalVenda(x))
+    .slice(0, 60);
+  $('listaItens').innerHTML = lista.map(p =>
+    `<button data-k="${esc(p.k)}">${esc(p.descricao || p.codigo)}
+      <span>${esc(p.codigo)} · ${esc(p.cor)} · ${nf(totalVenda(p))} pares no ano</span></button>`).join('')
+    || '<button disabled><span>nada encontrado</span></button>';
+}
+$('btnProd').addEventListener('click', e => {
+  const l = $('lista');
+  const r = $('btnProd').getBoundingClientRect();
+  l.style.left = Math.max(8, r.left) + 'px';
+  l.style.top = (r.bottom + 6) + 'px';
+  l.classList.toggle('on');
+  if(l.classList.contains('on')){ pintarLista(); $('busca').focus(); }
+});
+$('busca').addEventListener('input', pintarLista);
+$('listaItens').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if(!b) return;
+  $('lista').classList.remove('on');
+  escolher(DADOS.produtos.find(p => p.k === b.dataset.k));
+});
+document.addEventListener('click', e => {
+  if(!e.target.closest('#lista') && !e.target.closest('#btnProd')) $('lista').classList.remove('on');
+});
+$('btnMarca').addEventListener('click', () => carregar(MARCA === 'oly' ? 'ua' : 'oly'));
+$('btnTema').addEventListener('click', () => {
+  const escuro = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', escuro ? 'light' : 'dark');
+});
+$('btnCheia').addEventListener('click', () => {
+  if(document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen();
+});
+$('btnVoltar').addEventListener('click', () => history.length > 1 ? history.back() : location.href = 'index.html');
+
+carregar(new URLSearchParams(location.search).get('marca') || 'oly');
+</script>
+</body>
+</html>

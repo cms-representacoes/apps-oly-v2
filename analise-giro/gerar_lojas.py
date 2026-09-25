@@ -70,7 +70,9 @@ CLIENTES = [
 # Operações do ERP que contam como venda de balcão, e as que a desfazem.
 # Venda no PDV entra sem código de operação (NFC-e ou sem documento fiscal).
 DEVOLVE = (1, 11)        # 1 = TROCA, 11 = DEVOLUCAO DO CLIENTE
+COMPRA = 3               # entrada vinda do fornecedor
 LOJA_MAX = 15            # acima disso é escritório, atacado (FPS) e DPA
+DESDE = 2022             # de quando em diante procurar a última entrada
 
 CABECALHO = ('MARCA/SUB', 'MARCAS')
 ALIAS = {
@@ -209,6 +211,67 @@ def ler_banco():
         pid, loja, mes, qt = linha
         venda[(pid, loja, int(mes))] -= float(qt or 0)
 
+    # Movimento LÍQUIDO do mês (tudo que entrou menos tudo que saiu): é com
+    # ele que se reconstrói o estoque de cada mês fechado, andando de trás
+    # para frente a partir do saldo de hoje. O banco não guarda foto mensal.
+    delta = defaultdict(float)
+    for pid, loja, mes, qt in puxar(con, """
+        SELECT it.FD_PRODUTO, m.FD_LOJA, EXTRACT(MONTH FROM m.FD_DATA_MOV),
+               SUM(CASE WHEN m.FD_ENTRADA_SAIDA = 'E' THEN i.FD_QUANTIDADE
+                        ELSE -i.FD_QUANTIDADE END)
+          FROM TB_MOVIMENTOS m
+          JOIN TB_MOVIMENTOS_ITENS i
+            ON i.FD_MOVIMENTO_ID = m.FD_MOVIMENTO_ID
+           AND i.FD_MOVIMENTO_DG = m.FD_MOVIMENTO_DG
+          JOIN TB_ITENS it ON it.FD_ITEM = i.FD_ITEM
+         WHERE m.FD_DATA_MOV >= ? AND m.FD_LOJA <= ?
+         GROUP BY 1, 2, 3""", (inicio, LOJA_MAX)):
+        delta[(pid, loja, int(mes))] += float(qt or 0)
+
+    # Compra do ano e o dia em que o produto entrou na loja pela última vez.
+    # "Última compra" aqui é a última ENTRADA: compra do fornecedor ou
+    # transferência recebida — as duas põem mercadoria na prateleira.
+    compra = defaultdict(float)
+    for pid, loja, qt in puxar(con, """
+        SELECT it.FD_PRODUTO, m.FD_LOJA, SUM(i.FD_QUANTIDADE)
+          FROM TB_MOVIMENTOS m
+          JOIN TB_MOVIMENTOS_ITENS i
+            ON i.FD_MOVIMENTO_ID = m.FD_MOVIMENTO_ID
+           AND i.FD_MOVIMENTO_DG = m.FD_MOVIMENTO_DG
+          JOIN TB_ITENS it ON it.FD_ITEM = i.FD_ITEM
+         WHERE m.FD_DATA_MOV >= ? AND m.FD_LOJA <= ?
+           AND m.FD_CODOPER = ? AND m.FD_ENTRADA_SAIDA = 'E'
+         GROUP BY 1, 2""", (inicio, LOJA_MAX, COMPRA)):
+        compra[(pid, loja)] += float(qt or 0)
+
+    ultima = {}
+    for pid, loja, dia in puxar(con, """
+        SELECT it.FD_PRODUTO, m.FD_LOJA, MAX(m.FD_DATA_MOV)
+          FROM TB_MOVIMENTOS m
+          JOIN TB_MOVIMENTOS_ITENS i
+            ON i.FD_MOVIMENTO_ID = m.FD_MOVIMENTO_ID
+           AND i.FD_MOVIMENTO_DG = m.FD_MOVIMENTO_DG
+          JOIN TB_ITENS it ON it.FD_ITEM = i.FD_ITEM
+         WHERE m.FD_DATA_MOV >= ? AND m.FD_LOJA <= ?
+           AND m.FD_ENTRADA_SAIDA = 'E' AND (m.FD_CODOPER IS NULL OR m.FD_CODOPER <> 11)
+         GROUP BY 1, 2""", (dt.date(DESDE, 1, 1), LOJA_MAX)):
+        ultima[(pid, loja)] = dia
+
+    # Venda da loja inteira, todas as marcas: é ela que diz se a porta estava
+    # aberta no mês. Sem isso, loja que não vendeu Under Armour em setembro
+    # pareceria fechada — e a UA vende pouco, então seria quase toda.
+    loja_mes = defaultdict(float)
+    for loja, mes, qt in puxar(con, """
+        SELECT m.FD_LOJA, EXTRACT(MONTH FROM m.FD_DATA_MOV), SUM(i.FD_QUANTIDADE)
+          FROM TB_MOVIMENTOS m
+          JOIN TB_MOVIMENTOS_ITENS i
+            ON i.FD_MOVIMENTO_ID = m.FD_MOVIMENTO_ID
+           AND i.FD_MOVIMENTO_DG = m.FD_MOVIMENTO_DG
+         WHERE m.FD_DATA_MOV >= ? AND m.FD_LOJA <= ?
+           AND m.FD_CODOPER IS NULL AND m.FD_ENTRADA_SAIDA = 'S'
+         GROUP BY 1, 2""", (inicio, LOJA_MAX)):
+        loja_mes[(loja, int(mes))] += float(qt or 0)
+
     estoque = defaultdict(float)
     for pid, loja, saldo in puxar(con, 'SELECT FD_PRODUTO, FD_LOJA, FD_SALDO '
                                        'FROM TB_SALDOS_PRODUTOS '
@@ -223,12 +286,33 @@ def ler_banco():
             por_ref.setdefault(ref.upper(), pid)
     ate = puxar(con, 'SELECT MAX(FD_DATA_MOV) FROM TB_MOVIMENTOS')[0][0]
     con.close()
-    return venda, estoque, por_ref, por_id, ate
+    return {'venda': venda, 'estoque': estoque, 'delta': delta, 'compra': compra,
+            'ultima': ultima, 'loja_mes': loja_mes, 'por_ref': por_ref,
+            'por_id': por_id, 'ate': ate}
 
 
 # ── junta tudo ────────────────────────────────────────────────────────
+def saldo_por_mes(estoque_hoje, deltas, n):
+    """Estoque no fim de cada mês, de trás para frente a partir de hoje.
+
+    saldo(m-1) = saldo(m) - (o que entrou menos o que saiu no mês m).
+    """
+    # O estoque negativo do ERP (venda lançada sem a entrada correspondente)
+    # fica como está: é assim que a planilha do cliente mostra, e esconder
+    # isso faria a conta fechar errado no mês seguinte.
+    saldos = [0] * n
+    atual = estoque_hoje
+    for i in range(n - 1, -1, -1):
+        saldos[i] = int(round(atual))
+        atual -= deltas[i]
+    return saldos
+
+
 def gerar(cli, banco, nomes_lojas):
-    venda, estoque, por_ref, por_id, ate = banco
+    venda, estoque = banco['venda'], banco['estoque']
+    delta, compra, ultima = banco['delta'], banco['compra'], banco['ultima']
+    loja_mes = banco['loja_mes']
+    por_ref, por_id, ate = banco['por_ref'], banco['por_id'], banco['ate']
     print(f'· {cli["nome"]} {cli["marca"]}: lendo {cli["arquivo"].name}')
     wb = openpyxl.load_workbook(cli['arquivo'], read_only=True, data_only=True)
     produtos = ler_produtos(wb[cli['aba']])
@@ -246,15 +330,23 @@ def gerar(cli, banco, nomes_lojas):
             continue
         lojas = {}
         for loja in range(1, LOJA_MAX + 1):
-            v = [int(round(venda.get((pid, loja, m), 0))) for m in range(1, ate.month + 1)]
+            n = ate.month
+            v = [int(round(venda.get((pid, loja, m), 0))) for m in range(1, n + 1)]
             e = int(round(estoque.get((pid, loja), 0)))
-            if not any(v) and not e:
+            cp = int(round(compra.get((pid, loja), 0)))
+            uc = ultima.get((pid, loja))
+            if not any(v) and not e and not cp:
                 continue
-            reg = {}
+            ds = [delta.get((pid, loja, m), 0) for m in range(1, n + 1)]
+            reg = {'s': saldo_por_mes(e, ds, n)}
             if any(v):
                 reg['v'] = v
             if e:
                 reg['e'] = e
+            if cp:
+                reg['c'] = cp
+            if uc:
+                reg['uc'] = uc.isoformat()
             lojas[str(loja)] = reg
             lojas_vistas.add(loja)
         if not lojas:
@@ -269,7 +361,10 @@ def gerar(cli, banco, nomes_lojas):
         'meses': meses,
         'atualizadoEm': dt.datetime.now().isoformat(timespec='seconds'),
         'banco': {'arquivo': Path(BANCO).name, 'ate': ate.isoformat()},
-        'lojas': [{'id': l, 'nome': nomes_lojas.get(l, f'LOJA {l:02d}')}
+        # 'v' é a venda da LOJA INTEIRA no mês (todas as marcas): serve para
+        # saber se a porta estava aberta, e para medir o peso da marca lá
+        'lojas': [{'id': l, 'nome': nomes_lojas.get(l, f'LOJA {l:02d}'),
+                   'v': [int(round(loja_mes.get((l, m), 0))) for m in range(1, ate.month + 1)]}
                   for l in sorted(lojas_vistas)],
         'produtos': saida,
     }
@@ -288,7 +383,7 @@ def gerar(cli, banco, nomes_lojas):
 def main():
     print(f'Banco: {BANCO}')
     banco = ler_banco()
-    print(f'  movimento até {banco[4]:%d/%m/%Y}')
+    print(f'  movimento até {banco["ate"]:%d/%m/%Y}')
     nomes = {}
     for cli in CLIENTES:
         nomes.update(ler_nomes_das_lojas(cli['arquivo'], cli['aba_lojas']))

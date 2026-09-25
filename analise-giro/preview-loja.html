@@ -315,9 +315,16 @@ function medirLojas(){
   ATIVA = {};
   for(const l of DADOS.lojas){
     const id = String(l.id);
-    const porMes = DADOS.meses.map((_, i) =>
+    // venda da loja inteira (todas as marcas): é ela que diz se a porta abriu
+    const porMes = l.v && l.v.length ? l.v : DADOS.meses.map((_, i) =>
       DADOS.produtos.reduce((a, p) => a + vendaMes(p, id, i), 0));
-    const ativos = porMes.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
+    // "vendeu alguma coisa" não basta: a LJ06 registrou 11 pares em setembro
+    // contra 3.331 em agosto — a porta está fechada, não devagar. O mês só
+    // conta se chegar a um quinto do mês típico daquela loja.
+    const positivos = porMes.filter(v => v > 0).sort((a, b) => a - b);
+    const tipico = positivos.length ? positivos[Math.floor(positivos.length / 2)] : 0;
+    const corte = tipico * 0.2;
+    const ativos = porMes.map((v, i) => v > corte ? i : -1).filter(i => i >= 0);
     const ultimo = ativos.length ? ativos[ativos.length - 1] : -1;
     ATIVA[id] = {
       meses: ativos,
