@@ -184,7 +184,13 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 /* larguras fixas: é assim que as três colunas presas sabem onde começa a
    seguinte. A cor fica presa porque o mesmo código aparece várias vezes. */
 .giro .fx1{left:0;width:118px;min-width:118px;max-width:118px;font-weight:700}
-.giro .fx2{left:118px;width:230px;min-width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.giro .fx2{left:118px;width:230px;min-width:230px;max-width:230px;overflow:hidden;position:sticky}
+.giro td.fx2{display:flex;align-items:center;gap:4px}
+.giro td.fx2 .desc-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-loja{flex:none;margin-left:auto;width:21px;height:21px;border-radius:6px;border:1px solid var(--line);
+  background:var(--card);color:var(--mute);display:grid;place-items:center;cursor:pointer;padding:0}
+.btn-loja:hover{border-color:var(--accent);color:var(--accent);background:var(--card)}
+tr.sel .btn-loja{background:var(--card)}
 .giro .fx3{left:348px;width:92px;min-width:92px;max-width:92px;
   overflow:hidden;text-overflow:ellipsis;font-weight:600}
 /* PDV é a última coluna presa, então a borda que separa o que rola fica nela */
@@ -233,6 +239,11 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .obs-edit:focus{outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
 
 /* balão da célula da carteira: as notas por trás daquele número */
+/* Loja a loja por cima da AG: a tabela de trás continua onde estava, com
+   os mesmos filtros e a mesma rolagem, e o Esc devolve a tela. */
+.lj-fundo{position:fixed;inset:0;z-index:95;background:var(--paper);display:flex}
+.lj-fundo[hidden]{display:none}
+.lj-fundo iframe{flex:1;border:0;width:100%;height:100%}
 .balao{position:fixed;z-index:70;width:min(300px,92vw);background:var(--card);border:1px solid var(--line);
   border-radius:12px;box-shadow:0 18px 40px -16px rgba(15,20,30,.5);padding:11px 13px 12px}
 .balao[hidden]{display:none}
@@ -565,6 +576,10 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
     <footer id="rodape"></footer>
   </main>
 
+  <div class="lj-fundo" id="ljFundo" role="dialog" aria-modal="true" aria-label="Loja a loja" hidden>
+    <iframe id="ljQuadro" title="Loja a loja"></iframe>
+  </div>
+
   <div class="balao" id="balao" role="dialog" aria-label="Notas do mês" hidden>
     <button type="button" class="balao-x" id="balaoX" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
     <div class="balao-tit" id="balaoTit"></div>
@@ -675,6 +690,10 @@ function alertaCob(p, c){
 const SVG_FOTO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">` +
   `<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="M4 17l5-4.5 4.5 4 3-2.5L20 17"/></svg>`;
 const ICONE_FOTO = `<button type="button" class="btn-foto" data-foto="1" title="Ver a foto do produto" aria-label="Ver a foto do produto">${SVG_FOTO}</button>`;
+// Loja a loja: a AG mostra o cliente inteiro; este ícone abre o mesmo
+// produto aberto por porta, com venda, estoque e o que transferir.
+const SVG_LOJA = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 4.6 4.2A1 1 0 0 1 5.6 3.5h12.8a1 1 0 0 1 1 .7L21 9.5"/><path d="M3 9.5h18"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-5.5h5V20"/></svg>`;
+const ICONE_LOJA = `<button type="button" class="btn-loja" data-loja="1" title="Ver loja a loja" aria-label="Ver este produto loja a loja">${SVG_LOJA}</button>`;
 
 /* ── as duas marcas ──────────────────────────────────────────────────
    O plano de contas é um por marca: a Degraus tem um de Olympikus e um de
@@ -1818,7 +1837,7 @@ function pintar(){
     }
     return `<tr data-k="${esc(p.k)}" class="${E.sel === p.k ? 'sel' : ''}">
       <td class="fx1">${fotoDe(p) ? ICONE_FOTO : ''}${esc(p.codigo)}<span class="corm">${esc(p.cor)}</span></td>
-      <td class="fx2" title="${esc(p.descricao)}">${esc(p.descricao)}</td>
+      <td class="fx2" title="${esc(p.descricao)}"><span class="desc-t">${esc(p.descricao)}</span>${ICONE_LOJA}</td>
       <td class="fx3" title="${esc(p.cor)}">${esc(p.cor)}</td>
       <td class="fx4">${brl(p.pdv)}</td>
       ${E.extras ? `<td class="gen">${esc(p.genero.charAt(0) + p.genero.slice(1).toLowerCase())}</td>
@@ -1922,6 +1941,8 @@ function pintar(){
     if(foto){ abrirFoto(foto.closest('tr').dataset.k); return; }
     const vit = ev.target.closest('[data-vit]');
     if(vit){ abrirVitrine(vit.closest('tr').dataset.k); return; }
+    const lj = ev.target.closest('[data-loja]');
+    if(lj){ abrirLojaALoja(lj.closest('tr').dataset.k); return; }
     const cel = ev.target.closest('td.obsc');
     if(cel){ editarObs(cel); return; }   // a OBS abre para escrever, não seleciona
     const tr = ev.target.closest('tr');
@@ -2047,6 +2068,22 @@ function abrirBalao(td){
   b.style.left = Math.round(x0) + 'px';
   b.style.top = Math.round(y0) + 'px';
 }
+/* ── loja a loja ─────────────────────────────────────────────────────── */
+function abrirLojaALoja(k){
+  const q = new URLSearchParams({ k, marca: MARCA, embed:'1' });
+  $('ljQuadro').src = 'loja-a-loja.html?' + q;
+  $('ljFundo').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function fecharLojaALoja(){
+  $('ljFundo').hidden = true;
+  $('ljQuadro').src = 'about:blank';
+  document.body.style.overflow = '';
+}
+addEventListener('message', ev => {
+  if(ev.data && ev.data.lojaALoja === 'fechar') fecharLojaALoja();
+});
+
 const fecharBalao = () => { $('balao').hidden = true; };
 $('balaoX').onclick = fecharBalao;
 $('balao').onclick = ev => ev.stopPropagation();

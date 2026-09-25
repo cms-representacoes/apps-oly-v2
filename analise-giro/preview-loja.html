@@ -420,7 +420,7 @@ function sugerir(){
 const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const mesCurto = m => `${MES_NOME[+m.slice(5) - 1]}/${m.slice(2,4)}`;
 const nomeLoja = id => (DADOS.lojas.find(l => String(l.id) === String(id)) || {}).nome || `LOJA ${id}`;
-const curto = id => nomeLoja(id).replace(/^LJ\d+\s*/, '');
+const curto = id => nomeLoja(id).replace(/^LJ\s*\d+\s*-?\s*/, '');
 
 function filtrados(){
   const b = BUSCA.trim().toLowerCase();

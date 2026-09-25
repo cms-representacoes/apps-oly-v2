@@ -162,6 +162,9 @@ tfoot td.loja{background:var(--paper)}
   padding:2px 9px;font:700 12.5px 'Space Grotesk',sans-serif;color:var(--ink);cursor:pointer;
   font-variant-numeric:tabular-nums}
 .qtd-bt:hover{border-color:var(--accent);color:var(--accent)}
+.sem-dados{margin:40px auto;max-width:420px;text-align:center;color:var(--mute)}
+.sem-dados h3{margin:0 0 6px;font-size:15px;color:var(--ink)}
+.sem-dados p{margin:0;font-size:12.5px;line-height:1.5}
 .pil{border:0;border-radius:999px;padding:5px 13px;font:inherit;font-size:10.5px;font-weight:800;
   letter-spacing:.03em;color:#fff;cursor:pointer;text-transform:uppercase}
 .pil.transferir{background:var(--accent)}
@@ -218,6 +221,12 @@ tfoot td.loja{background:var(--paper)}
   <div id="listaItens"></div>
 </div>
 
+<div class="sem-dados" id="semDados" hidden>
+  <h3>Sem movimento nas lojas</h3>
+  <p>Este produto ainda não teve venda nem estoque em nenhuma das portas —
+     costuma ser lançamento que ainda não chegou.</p>
+</div>
+
 <div class="balao" id="balao" role="dialog" aria-label="Sugestão" hidden>
   <button type="button" class="balao-x" id="balaoX" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
   <div class="balao-tit" id="balaoTit"></div>
@@ -269,7 +278,15 @@ async function carregar(marca, manter){
   document.documentElement.setAttribute('data-marca', marca);
   DADOS = await (await fetch(MARCAS[marca].arq, { cache:'no-cache' })).json();
   medirLojas();
-  const alvo = manter && DADOS.produtos.find(p => p.k === manter);
+  const pedido = new URLSearchParams(location.search).get('k');
+  const alvo = (manter || pedido) &&
+    DADOS.produtos.find(p => p.k === (manter || pedido));
+  if(pedido && !alvo && !manter){
+    // produto da AG que ainda não tem venda nem estoque em nenhuma loja
+    $('semDados').hidden = false;
+    $('pNome').textContent = 'Produto sem movimento nas lojas';
+    return;
+  }
   escolher(alvo || maisVendido());
 }
 
@@ -651,7 +668,17 @@ $('listaItens').addEventListener('click', e => {
 document.addEventListener('click', e => {
   if(!e.target.closest('#lista') && !e.target.closest('#btnProd')) $('lista').classList.remove('on');
 });
-$('btnVoltar').addEventListener('click', () => history.length > 1 ? history.back() : location.href = 'index.html');
+// Aberta de dentro da AG, a tela vive numa camada por cima dela: o botão
+// volta fechando a camada, em vez de navegar — a AG continua como estava.
+const DENTRO = new URLSearchParams(location.search).get('embed') === '1';
+if(DENTRO) $('btnVoltar').textContent = '← Voltar para a AG';
+$('btnVoltar').addEventListener('click', () => {
+  if(DENTRO){ parent.postMessage({ lojaALoja:'fechar' }, '*'); return; }
+  history.length > 1 ? history.back() : location.href = 'index.html';
+});
+document.addEventListener('keydown', ev => {
+  if(ev.key === 'Escape' && DENTRO && $('balao').hidden) parent.postMessage({ lojaALoja:'fechar' }, '*');
+});
 
 carregar(new URLSearchParams(location.search).get('marca') || 'oly');
 </script>
