@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-marca="oly">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loja a loja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mesma linguagem da Análise de Giro: os tokens, a fonte dos números e a
+   troca de marca são os da tela principal. */
+:root{
+  --ink:#0E1726; --navy:#15233B; --slate:#5B6678; --mute:#8A93A3;
+  --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
+  --accent:#2C39E2; --accent-hover:#1B27B0;
+  --marca-claro:#5B69E8; --marca-escuro:#1B27B0;
+  --green:#0CA678; --amber:#E0A100; --orange:#E8590C; --red:#C92A2A;
+  --venda-bg:#F3FBF8; --estoque-bg:#FDF5F2;
+  --th-venda:#E1F5EE; --th-venda-ink:#085041;
+  --th-estoque:#FAECE7; --th-estoque-ink:#712B13;
+  --th-cob:#E3ECFA; --th-cob-ink:#1E3A6E; --cob-bg:#F3F7FD;
+  --envia:#E8590C; --envia-bg:#FEF1E8; --recebe:#0CA678; --recebe-bg:#E8F8F3;
+}
+:root[data-marca="ua"]{
+  --accent:#E52125; --accent-hover:#A81215;
+  --marca-claro:#F2494C; --marca-escuro:#A81215;
+}
+[data-theme="dark"]{
+  --ink:#E8EBF1; --navy:#D6DDEA; --slate:#9AA4B5; --mute:#828DA0;
+  --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
+  --green:#34D399; --amber:#F4C430; --orange:#FB923C; --red:#F2868B;
+  --venda-bg:#0E1F1A; --estoque-bg:#241611;
+  --th-venda:#123328; --th-venda-ink:#8FE3C2;
+  --th-estoque:#3A1F16; --th-estoque-ink:#F7B69E;
+  --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
+  --accent:#5B69E8; --accent-hover:#7D89FF;
+  --marca-claro:#8791FF; --marca-escuro:#2C39E2;
+  --envia:#FB923C; --envia-bg:#2A1A0E; --recebe:#34D399; --recebe-bg:#0E2019;
+}
+[data-theme="dark"][data-marca="ua"]{
+  --accent:#F2494C; --accent-hover:#FF7477;
+  --marca-claro:#FF7477; --marca-escuro:#A81215;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.num{font-family:'Space Grotesk',Inter,sans-serif;font-variant-numeric:tabular-nums}
+
+/* ── cabeçalho ───────────────────────────────────────────────────── */
+header{position:sticky;top:0;z-index:30;background:var(--card);border-bottom:1px solid var(--line)}
+.topo{display:flex;align-items:center;gap:12px;padding:11px 16px;max-width:1680px;margin:0 auto;flex-wrap:wrap}
+.marca-btn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);
+  border-radius:999px;padding:5px 12px 5px 6px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink)}
+.marca-btn:hover{border-color:var(--accent)}
+.marca-btn img{width:26px;height:26px;object-fit:contain;border-radius:50%}
+.tit{min-width:0}
+.tit h1{margin:0;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.tit p{margin:1px 0 0;font-size:11px;color:var(--mute);font-weight:500}
+.dir{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.icone{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);
+  color:var(--slate);cursor:pointer;display:grid;place-items:center;font-size:14px}
+.icone:hover{border-color:var(--accent);color:var(--accent)}
+.abas{display:flex;gap:6px;padding:0 16px 10px;max-width:1680px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.abas::-webkit-scrollbar{display:none}
+.aba{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;
+  font:inherit;font-size:12.5px;font-weight:700;color:var(--slate);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.aba:hover{border-color:var(--mute)}
+.aba.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.aba .n{background:rgba(0,0,0,.08);border-radius:999px;padding:1px 7px;font-size:11px}
+.aba.on .n{background:rgba(255,255,255,.25)}
+
+/* ── filtros ─────────────────────────────────────────────────────── */
+.filtros{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px 0;max-width:1680px;margin:0 auto}
+.campo{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);
+  border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600;color:var(--mute)}
+.campo:focus-within{border-color:var(--accent)}
+.campo input,.campo select{border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);outline:none;min-width:0}
+.campo input{width:210px}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;
+  font:inherit;font-size:11.5px;font-weight:700;color:var(--slate);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--mute)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .n{margin-left:5px;opacity:.7;font-size:10.5px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;color:var(--slate);
+  padding:7px 13px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+
+/* ── KPIs ────────────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;
+  padding:12px 16px 0;max-width:1680px;margin:0 auto}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 14px}
+.kpi b{display:block;font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700;letter-spacing:-.02em}
+.kpi span{display:block;font-size:11px;color:var(--mute);font-weight:600;margin-top:2px}
+.kpi.al b{color:var(--red)}
+.kpi.ok b{color:var(--green)}
+
+main{max-width:1680px;margin:0 auto;padding:12px 16px 60px}
+.vista{display:none}
+.vista.on{display:block}
+
+/* ── matriz ──────────────────────────────────────────────────────── */
+.tabela-wrap{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:auto;max-height:calc(100dvh - 300px)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+th,td{padding:7px 9px;white-space:nowrap}
+thead th{position:sticky;top:0;z-index:2;background:var(--card);border-bottom:1px solid var(--line);
+  font-size:10.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.04em;text-align:center}
+thead th.prod{text-align:left;left:0;z-index:3}
+tbody td{border-bottom:1px solid var(--line-2);text-align:center}
+td.prod,th.prod{position:sticky;left:0;background:var(--card);text-align:left;min-width:260px;max-width:260px;
+  white-space:normal;border-right:1px solid var(--line)}
+tbody tr:hover td{background:var(--paper)}
+tbody tr:hover td.prod{background:var(--paper)}
+.p-nome{font-weight:700;font-size:12.5px;line-height:1.25}
+.p-sub{font-size:10.5px;color:var(--mute);margin-top:1px}
+td.v{font-family:'Space Grotesk',sans-serif;font-weight:600}
+td.zero{color:var(--line);font-weight:500}
+td.tot{background:var(--venda-bg);font-weight:700;font-family:'Space Grotesk',sans-serif}
+td.rup{background:#FEF0F0;color:var(--red);font-weight:700}
+[data-theme="dark"] td.rup{background:#2A1416}
+td.par{background:var(--envia-bg);color:var(--envia)}
+.marca-col{border-left:1px solid var(--line)}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mute);padding:10px 2px 0}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ── cards de loja ───────────────────────────────────────────────── */
+.lojas{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.loja{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+.loja h3{margin:0;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.loja h3 em{font-style:normal;font-size:10.5px;color:var(--mute);font-weight:600}
+.barra{height:6px;border-radius:999px;background:var(--line-2);margin:10px 0 12px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.linhas{display:grid;gap:7px}
+.linha{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:12px}
+.linha span{color:var(--mute);font-weight:600}
+.linha b{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13.5px}
+.tag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700}
+.tag.rec{background:var(--recebe-bg);color:var(--recebe)}
+.tag.env{background:var(--envia-bg);color:var(--envia)}
+.tag.rup{background:#FEF0F0;color:var(--red)}
+[data-theme="dark"] .tag.rup{background:#2A1416}
+
+/* ── transferências ──────────────────────────────────────────────── */
+.rotas{display:grid;gap:12px}
+.rota{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.rota-top{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;flex-wrap:wrap}
+.rota-top .de,.rota-top .para{font-size:13px;font-weight:700}
+.rota-top .de{color:var(--envia)}
+.rota-top .para{color:var(--recebe)}
+.rota-top .seta{color:var(--mute);font-size:12px}
+.rota-top .qt{margin-left:auto;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px}
+.rota-top .qt em{font-style:normal;font-size:11px;color:var(--mute);font-weight:600;margin-left:4px}
+.rota-itens{display:none;border-top:1px solid var(--line-2);padding:4px 14px 12px}
+.rota.aberta .rota-itens{display:block}
+.item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+.item:last-child{border-bottom:0}
+.item .nm{font-weight:700;min-width:0;flex:1}
+.item .nm span{display:block;font-size:10.5px;color:var(--mute);font-weight:600;margin-top:1px}
+.item .pq{font-size:10.5px;color:var(--mute);text-align:right;max-width:290px}
+.item .qtd{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;min-width:54px;text-align:right}
+.vazio{background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:40px 20px;text-align:center;color:var(--mute)}
+.vazio h3{margin:0 0 4px;font-size:15px;color:var(--ink)}
+.corte-linha{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.corte-linha > span{font-size:11.5px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.parada{color:var(--red);margin-left:3px;font-size:13px;line-height:0}
+.parada-aviso{margin-top:6px;font-size:10.5px;font-weight:700;color:var(--red);
+  background:#FEF0F0;border-radius:8px;padding:4px 8px;display:inline-block}
+[data-theme="dark"] .parada-aviso{background:#2A1416}
+.vazio p{margin:0;font-size:12.5px}
+.aviso{display:flex;gap:10px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:12px;padding:11px 14px;font-size:12px;line-height:1.5;color:var(--slate);margin-bottom:12px}
+.aviso b{color:var(--ink)}
+@media(max-width:700px){
+  .campo input{width:140px}
+  td.prod,th.prod{min-width:186px;max-width:186px}
+  .tabela-wrap{max-height:calc(100dvh - 340px)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="topo">
+    <button class="marca-btn" id="btnMarca" title="Trocar de marca">
+      <img id="logoMarca" src="../logo-oly-simbolo.png" alt="">
+      <span id="nomeMarca">Olympikus</span>
+    </button>
+    <div class="tit">
+      <h1>Loja a loja · Degraus</h1>
+      <p id="sub">—</p>
+    </div>
+    <div class="dir">
+      <button class="icone" id="btnTema" title="Claro / escuro">◐</button>
+    </div>
+  </div>
+  <div class="abas">
+    <button class="aba on" data-vista="matriz">Matriz por loja</button>
+    <button class="aba" data-vista="lojas">Resumo das lojas</button>
+    <button class="aba" data-vista="transf">Transferências <span class="n" id="nTransf">0</span></button>
+  </div>
+</header>
+
+<div class="filtros" id="filtros">
+  <div class="campo">
+    <span>🔎</span>
+    <input id="busca" placeholder="produto, código ou cor" autocomplete="off">
+  </div>
+  <div class="campo">
+    <span>Mês</span>
+    <select id="mes"></select>
+  </div>
+  <div class="seg" id="modo">
+    <button data-modo="v" class="on">Venda</button>
+    <button data-modo="e">Estoque</button>
+    <button data-modo="c">Cobertura</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<main>
+  <section class="vista on" id="v-matriz">
+    <div class="tabela-wrap"><table id="tab"><thead></thead><tbody></tbody></table></div>
+    <div class="leg">
+      <span><i style="background:#FEF0F0;border:1px solid #F5C2C2"></i>vendeu e está sem estoque na loja</span>
+      <span><i style="background:var(--envia-bg);border:1px solid var(--envia)"></i>estoque parado há 3 meses</span>
+      <span><i style="background:var(--venda-bg);border:1px solid var(--line)"></i>total do produto</span>
+    </div>
+  </section>
+
+  <section class="vista" id="v-lojas">
+    <div class="lojas" id="cardsLojas"></div>
+  </section>
+
+  <section class="vista" id="v-transf">
+    <div class="corte-linha">
+      <span>Tamanho mínimo da rota</span>
+      <div class="seg" id="corte"></div>
+    </div>
+    <div class="aviso" id="avisoTransf"></div>
+    <div class="rotas" id="rotas"></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const nf = n => Number(n || 0).toLocaleString('pt-BR');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+  ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+const MARCAS = {
+  oly: { nome:'Olympikus', logo:'../logo-oly-simbolo.png', arq:'dados/lojas-degraus.json' },
+  ua:  { nome:'Under Armour', logo:'../logo-ua-simbolo.png', arq:'dados/lojas-degraus-ua.json' },
+};
+
+// ── regras da sugestão de transferência ───────────────────────────────
+// Tudo aqui é pensado em PARES e em MESES DE VENDA, que é como a loja
+// raciocina. Os três números abaixo são os únicos botões a girar.
+const JANELA = 3;      // meses recentes que definem o ritmo da loja
+const MIN_COB = 1;     // abaixo de 1 mês de estoque, a loja pede
+const MAX_COB = 3;     // acima de 3 meses, a loja tem de sobra
+
+let DADOS = null, MARCA = 'oly', VISTA = 'matriz', MODO = 'v';
+let MES = null, CHIP = '', BUSCA = '', SUG = null;
+let CORTE = 3;            // rota só aparece a partir deste tamanho
+let ATIVA = {};           // loja -> { meses ativos, parada em qual mês }
+
+/* ── carga ───────────────────────────────────────────────────────── */
+async function carregar(marca){
+  MARCA = marca;
+  document.documentElement.setAttribute('data-marca', marca);
+  $('logoMarca').src = MARCAS[marca].logo;
+  $('nomeMarca').textContent = MARCAS[marca].nome;
+  const r = await fetch(MARCAS[marca].arq, { cache:'no-cache' });
+  DADOS = await r.json();
+  MES = DADOS.meses.length - 1;              // abre no mês mais recente
+  montarMes();
+  montarChips();
+  medirLojas();
+  SUG = sugerir();
+  const paradas = Object.entries(ATIVA).filter(([, a]) => a.parada).map(([l]) => l);
+  if(paradas.length) console.info('lojas sem venda no mês corrente:', paradas.map(nomeLoja));
+  $('sub').textContent = `${DADOS.produtos.length} produtos · ${DADOS.lojas.length} lojas · ` +
+    `banco até ${new Date(DADOS.banco.ate + 'T12:00').toLocaleDateString('pt-BR')}`;
+  pintar();
+}
+
+function montarMes(){
+  const nomes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  $('mes').innerHTML = DADOS.meses.map((m, i) =>
+    `<option value="${i}"${i === MES ? ' selected' : ''}>${nomes[+m.slice(5) - 1]}/${m.slice(2,4)}</option>`
+  ).join('') + `<option value="-1">ano todo</option>`;
+}
+
+function montarChips(){
+  const conta = {};
+  for(const p of DADOS.produtos) conta[p.marca] = (conta[p.marca] || 0) + 1;
+  const ordem = Object.keys(conta).sort((a, b) => conta[b] - conta[a]);
+  $('chips').innerHTML = [`<button class="chip${CHIP ? '' : ' on'}" data-chip="">Todos<span class="n">${DADOS.produtos.length}</span></button>`]
+    .concat(ordem.map(m => `<button class="chip${CHIP === m ? ' on' : ''}" data-chip="${esc(m)}">${esc(m)}<span class="n">${conta[m]}</span></button>`))
+    .join('');
+}
+
+/* ── a loja está operando? ────────────────────────────────────────────
+   A LJ06 vendeu 250 pares em agosto e nada em setembro — a loja parou de
+   registrar venda, não foi o produto que morreu. Sem isso, o mês vazio
+   derruba o ritmo dela e o motor sai esvaziando a loja para as outras.
+   Então o ritmo só conta os meses em que a porta realmente vendeu.      */
+function medirLojas(){
+  ATIVA = {};
+  for(const l of DADOS.lojas){
+    const id = String(l.id);
+    const porMes = DADOS.meses.map((_, i) =>
+      DADOS.produtos.reduce((a, p) => a + vendaMes(p, id, i), 0));
+    const ativos = porMes.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
+    const ultimo = ativos.length ? ativos[ativos.length - 1] : -1;
+    ATIVA[id] = {
+      meses: ativos,
+      total: porMes.reduce((a, b) => a + b, 0),
+      parada: ultimo >= 0 && ultimo < DADOS.meses.length - 1 ? DADOS.meses[ultimo] : null,
+      viva: ultimo === DADOS.meses.length - 1,
+    };
+  }
+}
+
+/* ── números por produto e loja ──────────────────────────────────── */
+const vendaMes = (p, loja, i) => {
+  const r = p.l[loja]; if(!r || !r.v) return 0;
+  return i < 0 ? r.v.reduce((a, b) => a + b, 0) : (r.v[i] || 0);
+};
+const estoque = (p, loja) => (p.l[loja] && p.l[loja].e) || 0;
+
+// Ritmo = média por mês OPERADO, nos últimos meses em que a porta vendeu.
+// Mês em que a loja inteira ficou parada não entra na conta.
+function ritmo(p, loja){
+  const r = p.l[loja]; if(!r || !r.v) return 0;
+  const ativos = (ATIVA[loja] && ATIVA[loja].meses) || r.v.map((_, i) => i);
+  const usar = ativos.slice(-JANELA);
+  if(!usar.length) return 0;
+  const soma = usar.reduce((a, i) => a + (r.v[i] || 0), 0);
+  return Math.max(0, soma) / usar.length;
+}
+function cobertura(p, loja){
+  const m = ritmo(p, loja), e = estoque(p, loja);
+  if(m <= 0) return e > 0 ? Infinity : 0;
+  return e / m;
+}
+
+/* ── o motor das transferências ──────────────────────────────────────
+   Para cada produto, olha as lojas duas a duas: quem vende e está sem
+   estoque puxa de quem tem estoque parado ou cobertura alta. A conta é
+   sempre "meses de venda", nunca peça solta — mandar 5 pares para uma
+   loja que vende 1 por mês só muda o problema de lugar.              */
+function sugerir(){
+  // loja que parou de vender fica fora: não dá para mandar mercadoria para
+  // uma porta fechada, nem tirar dela como se estivesse encalhada
+  const lojas = DADOS.lojas.map(l => String(l.id)).filter(l => ATIVA[l] && ATIVA[l].viva);
+  const itens = [];
+  for(const p of DADOS.produtos){
+    const pede = [], sobra = [];
+    for(const l of lojas){
+      const m = ritmo(p, l), e = estoque(p, l), cob = cobertura(p, l);
+      if(m > 0 && cob < MIN_COB){
+        pede.push({ loja:l, falta: Math.max(1, Math.round(m * MIN_COB - e)), ritmo:m, est:e,
+                    rup: e === 0 });
+      }else if(e > 0 && (m === 0 || cob > MAX_COB)){
+        // deixa na loja o equivalente a MAX_COB meses de venda dela
+        const guarda = Math.ceil(m * MAX_COB);
+        const livre = e - guarda;
+        if(livre > 0) sobra.push({ loja:l, livre, ritmo:m, est:e, parado: m === 0 });
+      }
+    }
+    if(!pede.length || !sobra.length) continue;
+    // quem vende mais é servido primeiro; sai de quem tem mais encalhado
+    pede.sort((a, b) => b.ritmo - a.ritmo);
+    sobra.sort((a, b) => b.livre - a.livre);
+    for(const r of pede){
+      let falta = r.falta;
+      for(const s of sobra){
+        if(falta <= 0) break;
+        if(s.livre <= 0) continue;
+        const qt = Math.min(falta, s.livre);
+        s.livre -= qt; falta -= qt;
+        itens.push({
+          produto:p, de:s.loja, para:r.loja, qtd:qt,
+          motivo: (r.rup ? 'vendeu e zerou' : 'menos de 1 mês de estoque') +
+                  ' · ' + (s.parado ? 'parado há ' + JANELA + ' meses na origem'
+                                    : 'origem com ' + Math.floor(cobertura(p, s.loja)) + ' meses'),
+          ritmoDestino:r.ritmo, estOrigem:s.est,
+        });
+      }
+    }
+  }
+  // agrupa por rota: na prática a transferência é uma viagem só
+  const rotas = new Map();
+  for(const it of itens){
+    const k = it.de + '>' + it.para;
+    if(!rotas.has(k)) rotas.set(k, { de:it.de, para:it.para, qtd:0, itens:[] });
+    const r = rotas.get(k);
+    r.qtd += it.qtd; r.itens.push(it);
+  }
+  const lista = [...rotas.values()].sort((a, b) => b.qtd - a.qtd);
+  for(const r of lista) r.itens.sort((a, b) => b.qtd - a.qtd || b.ritmoDestino - a.ritmoDestino);
+  return { itens, rotas:lista };
+}
+
+/* ── pintura ─────────────────────────────────────────────────────── */
+const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const mesCurto = m => `${MES_NOME[+m.slice(5) - 1]}/${m.slice(2,4)}`;
+const nomeLoja = id => (DADOS.lojas.find(l => String(l.id) === String(id)) || {}).nome || `LOJA ${id}`;
+const curto = id => nomeLoja(id).replace(/^LJ\d+\s*/, '');
+
+function filtrados(){
+  const b = BUSCA.trim().toLowerCase();
+  return DADOS.produtos.filter(p => {
+    if(CHIP && p.marca !== CHIP) return false;
+    if(!b) return true;
+    return (`${p.codigo} ${p.descricao} ${p.cor} ${p.ref}`).toLowerCase().includes(b);
+  });
+}
+
+function pintar(){
+  const prods = filtrados();
+  pintarKpis(prods);
+  if(VISTA === 'matriz') pintarMatriz(prods);
+  if(VISTA === 'lojas') pintarLojas(prods);
+  if(VISTA === 'transf') pintarTransf();
+  $('nTransf').textContent = SUG ? SUG.itens.length : 0;
+  $('filtros').style.display = VISTA === 'transf' ? 'none' : '';
+}
+
+function pintarKpis(prods){
+  const lojas = DADOS.lojas.map(l => String(l.id));
+  let venda = 0, est = 0, rup = 0, parado = 0;
+  for(const p of prods){
+    for(const l of lojas){
+      venda += vendaMes(p, l, MES);
+      est += estoque(p, l);
+      if(ritmo(p, l) > 0 && estoque(p, l) === 0) rup++;
+      if(ritmo(p, l) === 0 && estoque(p, l) > 0) parado += estoque(p, l);
+    }
+  }
+  const mesLabel = MES < 0 ? 'no ano' : 'em ' + $('mes').selectedOptions[0].textContent;
+  $('kpis').innerHTML = `
+    <div class="kpi"><b class="num">${nf(venda)}</b><span>pares vendidos ${esc(mesLabel)}</span></div>
+    <div class="kpi"><b class="num">${nf(est)}</b><span>pares em estoque hoje</span></div>
+    <div class="kpi al"><b class="num">${nf(rup)}</b><span>produto/loja vendendo sem estoque</span></div>
+    <div class="kpi"><b class="num">${nf(parado)}</b><span>pares parados há ${JANELA} meses</span></div>
+    <div class="kpi ok"><b class="num">${nf(SUG ? SUG.itens.length : 0)}</b><span>transferências sugeridas</span></div>`;
+}
+
+function ordemLojas(){
+  // a coluna da loja que mais vende vem primeiro: é ela que se olha antes
+  return DADOS.lojas.map(l => String(l.id))
+    .sort((a, b) => (ATIVA[b] ? ATIVA[b].total : 0) - (ATIVA[a] ? ATIVA[a].total : 0));
+}
+
+function pintarMatriz(prods){
+  const lojas = ordemLojas();
+  const tab = $('tab');
+  tab.tHead.innerHTML = `<tr>
+      <th class="prod">Produto</th>
+      ${lojas.map(l => {
+        const a = ATIVA[l] || {};
+        const dica = a.parada ? `${nomeLoja(l)} — sem venda desde ${mesCurto(a.parada)}`
+                              : nomeLoja(l);
+        return `<th title="${esc(dica)}">${esc(curto(l))}${a.parada ? '<span class="parada">•</span>' : ''}</th>`;
+      }).join('')}
+      <th class="marca-col">Total</th>
+    </tr>`;
+  const linhas = prods.map(p => {
+    const cels = lojas.map(l => {
+      const dica = `${nomeLoja(l)}: ${vendaMes(p, l, MES)} vendidos · ${estoque(p, l)} em estoque`;
+      const v = vendaMes(p, l, MES), e = estoque(p, l), m = ritmo(p, l);
+      let txt = '', cls = 'v';
+      if(MODO === 'v'){ txt = v || ''; }
+      else if(MODO === 'e'){ txt = e || ''; }
+      else { const c = cobertura(p, l); txt = c === Infinity ? '∞' : (c ? c.toFixed(1).replace('.', ',') : ''); }
+      if(!txt) cls += ' zero';
+      if(m > 0 && e === 0) cls += ' rup';
+      else if(m === 0 && e > 0) cls += ' par';
+      return `<td class="${cls}" title="${esc(dica)}">${txt || '·'}</td>`;
+    }).join('');
+    const total = MODO === 'e'
+      ? lojas.reduce((a, l) => a + estoque(p, l), 0)
+      : lojas.reduce((a, l) => a + vendaMes(p, l, MES), 0);
+    return `<tr>
+      <td class="prod">
+        <div class="p-nome">${esc(p.descricao || p.codigo)}</div>
+        <div class="p-sub">${esc(p.codigo)} · ${esc(p.cor)}${p.grupo ? ' · ' + esc(p.grupo) : ''}</div>
+      </td>${cels}<td class="tot marca-col">${nf(total)}</td></tr>`;
+  });
+  tab.tBodies[0].innerHTML = linhas.join('') ||
+    `<tr><td class="prod" colspan="${lojas.length + 2}">Nada com esse filtro.</td></tr>`;
+}
+
+function pintarLojas(prods){
+  const lojas = ordemLojas();
+  const dados = lojas.map(l => {
+    let venda = 0, est = 0, rup = 0, parado = 0;
+    for(const p of prods){
+      venda += vendaMes(p, l, MES);
+      est += estoque(p, l);
+      if(ritmo(p, l) > 0 && estoque(p, l) === 0) rup++;
+      if(ritmo(p, l) === 0 && estoque(p, l) > 0) parado += estoque(p, l);
+    }
+    const recebe = SUG.itens.filter(i => i.para === l).reduce((a, i) => a + i.qtd, 0);
+    const envia = SUG.itens.filter(i => i.de === l).reduce((a, i) => a + i.qtd, 0);
+    const ritmoLoja = prods.reduce((a, p) => a + ritmo(p, l), 0);
+    return { l, venda, est, rup, parado, recebe, envia,
+             cob: ritmoLoja ? est / ritmoLoja : 0 };
+  }).sort((a, b) => b.venda - a.venda);
+  const maior = Math.max(1, ...dados.map(d => d.venda));
+  $('cardsLojas').innerHTML = dados.map(d => `
+    <div class="loja">
+      <h3>${esc(curto(d.l))} <em>${esc(nomeLoja(d.l).split(' ')[0])}</em></h3>
+      ${(ATIVA[d.l] && ATIVA[d.l].parada)
+        ? `<div class="parada-aviso">Sem venda registrada desde ${esc(mesCurto(ATIVA[d.l].parada))}</div>` : ''}
+      <div class="barra"><i style="width:${(d.venda / maior * 100).toFixed(1)}%"></i></div>
+      <div class="linhas">
+        <div class="linha"><span>Vendeu</span><b class="num">${nf(d.venda)} pares</b></div>
+        <div class="linha"><span>Estoque hoje</span><b class="num">${nf(d.est)}</b></div>
+        <div class="linha"><span>Cobertura</span><b class="num">${d.cob ? d.cob.toFixed(1).replace('.', ',') + ' meses' : '—'}</b></div>
+        <div class="linha"><span>Parado</span><b class="num">${nf(d.parado)}</b></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:11px">
+        ${d.rup ? `<span class="tag rup">${d.rup} sem estoque</span>` : ''}
+        ${d.recebe ? `<span class="tag rec">↓ receber ${d.recebe}</span>` : ''}
+        ${d.envia ? `<span class="tag env">↑ enviar ${d.envia}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function pintarTransf(){
+  // com poucas sugestões (é o caso da UA), o corte esconderia tudo
+  if(CORTE > 1 && !SUG.rotas.some(r => r.qtd >= CORTE)) CORTE = 1;
+  const rotas = SUG.rotas.filter(r => r.qtd >= CORTE);
+  const n = rotas.reduce((a, r) => a + r.itens.length, 0);
+  const pares = rotas.reduce((a, r) => a + r.qtd, 0);
+  $('corte').innerHTML = [1, 3, 5, 10].map(c =>
+    `<button data-corte="${c}" class="${CORTE === c ? 'on' : ''}">${c === 1 ? 'todas' : '≥ ' + c + ' pares'}</button>`).join('');
+  $('avisoTransf').innerHTML = n
+    ? `<div><b>${nf(pares)} pares</b> em <b>${nf(n)} movimentos</b>, agrupados em <b>${rotas.length} rotas</b>.
+       A conta é sempre em meses de venda: só sai de quem tem mais de ${MAX_COB} meses de estoque
+       (ou está parado há ${JANELA}) e só entra em quem vende e tem menos de ${MIN_COB} mês.
+       Toque na rota para ver produto a produto.</div>`
+    : '<div>Nenhuma transferência sugerida com as regras de hoje.</div>';
+  $('rotas').innerHTML = rotas.map((r, i) => `
+    <div class="rota${i === 0 ? ' aberta' : ''}" data-rota="${i}">
+      <div class="rota-top">
+        <span class="de">${esc(curto(r.de))}</span>
+        <span class="seta">──▶</span>
+        <span class="para">${esc(curto(r.para))}</span>
+        <span class="qt num">${nf(r.qtd)}<em>pares · ${r.itens.length} ${r.itens.length === 1 ? 'produto' : 'produtos'}</em></span>
+      </div>
+      <div class="rota-itens">
+        ${r.itens.map(it => `
+          <div class="item">
+            <div class="nm">${esc(it.produto.descricao || it.produto.codigo)}
+              <span>${esc(it.produto.codigo)} · ${esc(it.produto.cor)}</span></div>
+            <div class="pq">${esc(it.motivo)}</div>
+            <div class="qtd">${nf(it.qtd)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('') || '<div class="vazio"><h3>Nada para mover</h3><p>Com as regras de hoje, nenhuma loja precisa puxar de outra.</p></div>';
+}
+
+/* ── eventos ─────────────────────────────────────────────────────── */
+document.querySelectorAll('.aba').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.aba').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  VISTA = b.dataset.vista;
+  document.querySelectorAll('.vista').forEach(v => v.classList.remove('on'));
+  $('v-' + VISTA).classList.add('on');
+  pintar();
+}));
+$('chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if(!c) return;
+  CHIP = c.dataset.chip;
+  document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c));
+  pintar();
+});
+$('modo').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  MODO = b.dataset.modo;
+  document.querySelectorAll('#modo button').forEach(x => x.classList.toggle('on', x === b));
+  pintar();
+});
+$('mes').addEventListener('change', e => { MES = +e.target.value; pintar(); });
+$('busca').addEventListener('input', e => { BUSCA = e.target.value; pintar(); });
+$('corte').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  CORTE = +b.dataset.corte;
+  pintarTransf();
+});
+$('rotas').addEventListener('click', e => {
+  const r = e.target.closest('.rota'); if(!r) return;
+  r.classList.toggle('aberta');
+});
+$('btnMarca').addEventListener('click', () => carregar(MARCA === 'oly' ? 'ua' : 'oly'));
+$('btnTema').addEventListener('click', () => {
+  const escuro = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', escuro ? 'light' : 'dark');
+});
+
+carregar('oly');
+</script>
+</body>
+</html>
