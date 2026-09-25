@@ -369,14 +369,15 @@ def gerar(cli, banco, nomes_lojas):
     wb.close()
 
     meses = [f'{ANO}-{m:02d}' for m in range(1, ate.month + 1)]
-    saida, sem_codigo, sem_cadastro, lojas_vistas = [], 0, 0, set()
+    # quem não entrou e o motivo: a AG usa isso para avisar antes do clique
+    #   sem-codigo   → a planilha não tem a referência do cliente (COD_CLIENTE)
+    #   sem-cadastro → tem a referência, mas ela não existe no banco dele
+    #   sem-giro     → está cadastrado e nunca teve venda, estoque ou compra
+    saida, faltando, lojas_vistas = [], {}, set()
     for p in produtos:
         pid = p['sku'] if p['sku'] in por_id else por_ref.get(p['ref'])
         if not pid:
-            if not p['ref'] and not p['sku']:
-                sem_codigo += 1
-            else:
-                sem_cadastro += 1
+            faltando[p['k']] = 'sem-codigo' if (not p['ref'] and not p['sku']) else 'sem-cadastro'
             continue
         lojas = {}
         for loja in sorted(nomes_lojas):
@@ -403,6 +404,7 @@ def gerar(cli, banco, nomes_lojas):
             lojas[str(loja)] = reg
             lojas_vistas.add(loja)
         if not lojas:
+            faltando[p['k']] = 'sem-giro'
             continue
         prog = carteira.get(f"{norm(p['codigo'])}|{norm(p['cor'])}", 0)
         saida.append({**{c: p[c] for c in ('k', 'marca', 'codigo', 'descricao', 'cor',
@@ -422,6 +424,7 @@ def gerar(cli, banco, nomes_lojas):
                    'v': [int(round(loja_mes.get((l, m), 0))) for m in range(1, ate.month + 1)]}
                   for l in sorted(lojas_vistas)],
         'produtos': saida,
+        'faltando': faltando,
     }
     PASTA.mkdir(exist_ok=True)
     destino = PASTA / f'lojas-{cli["id"]}.json'
@@ -431,9 +434,12 @@ def gerar(cli, banco, nomes_lojas):
     est = sum(r.get('e', 0) for p in saida for r in p['l'].values())
     comprog = sum(1 for x in saida if x.get('prog'))
     print(f'  {comprog} produtos com programação em aberto')
+    motivos = {}
+    for m in faltando.values():
+        motivos[m] = motivos.get(m, 0) + 1
     print(f'  {len(saida)} produtos em {len(lojas_vistas)} lojas · '
           f'{pares:,} pares vendidos · {est:,} em estoque'.replace(',', '.'))
-    print(f'  fora: {sem_codigo} sem código do cliente, {sem_cadastro} sem cadastro no banco')
+    print('  fora: ' + ', '.join(f'{n} {m}' for m, n in sorted(motivos.items())))
     print(f'  → {destino.name} ({destino.stat().st_size // 1024} KB)')
 
 

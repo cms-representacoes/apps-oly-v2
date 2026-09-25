@@ -282,9 +282,23 @@ async function carregar(marca, manter){
   const alvo = (manter || pedido) &&
     DADOS.produtos.find(p => p.k === (manter || pedido));
   if(pedido && !alvo && !manter){
-    // produto da AG que ainda não tem venda nem estoque em nenhuma loja
+    // o gerador diz qual é o caso; sem isso, a resposta genérica
+    const motivo = (DADOS.faltando || {})[pedido];
+    const texto = {
+      'sem-codigo': ['Falta o código do cliente na planilha',
+        'A coluna COD_CLIENTE desta linha está em branco, e é ela que liga o produto ao sistema da Degraus. ' +
+        'Preenchendo na planilha, a loja a loja aparece na próxima atualização.'],
+      'sem-cadastro': ['Código não encontrado no sistema da Degraus',
+        'A planilha tem a referência do cliente, mas ela não existe no cadastro de produtos dele. ' +
+        'Costuma ser referência trocada ou produto ainda não cadastrado na loja.'],
+      'sem-giro': ['Cadastrado, mas ainda sem movimento',
+        'O produto existe no sistema da Degraus e nunca teve venda, estoque ou compra em nenhuma das portas.'],
+    }[motivo] || ['Sem movimento nas lojas',
+      'Este produto ainda não teve venda nem estoque em nenhuma das portas — costuma ser lançamento que ainda não chegou.'];
     $('semDados').hidden = false;
-    $('pNome').textContent = 'Produto sem movimento nas lojas';
+    $('semDados').querySelector('h3').textContent = texto[0];
+    $('semDados').querySelector('p').textContent = texto[1];
+    $('pNome').textContent = texto[0];
     return;
   }
   escolher(alvo || maisVendido());

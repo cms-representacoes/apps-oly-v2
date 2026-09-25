@@ -190,6 +190,8 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .btn-loja{flex:none;margin-left:auto;width:21px;height:21px;border-radius:6px;border:1px solid var(--line);
   background:var(--card);color:var(--mute);display:grid;place-items:center;cursor:pointer;padding:0}
 .btn-loja:hover{border-color:var(--accent);color:var(--accent);background:var(--card)}
+.btn-loja.off{opacity:.3;border-style:dashed}
+.btn-loja.off:hover{border-color:var(--line);color:var(--mute)}
 tr.sel .btn-loja{background:var(--card)}
 .giro .fx3{left:348px;width:92px;min-width:92px;max-width:92px;
   overflow:hidden;text-overflow:ellipsis;font-weight:600}
@@ -694,6 +696,19 @@ const ICONE_FOTO = `<button type="button" class="btn-foto" data-foto="1" title="
 // produto aberto por porta, com venda, estoque e o que transferir.
 const SVG_LOJA = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 4.6 4.2A1 1 0 0 1 5.6 3.5h12.8a1 1 0 0 1 1 .7L21 9.5"/><path d="M3 9.5h18"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-5.5h5V20"/></svg>`;
 const ICONE_LOJA = `<button type="button" class="btn-loja" data-loja="1" title="Ver loja a loja" aria-label="Ver este produto loja a loja">${SVG_LOJA}</button>`;
+const FALTA_TXT = {
+  'sem-codigo': 'Sem loja a loja: falta o código do cliente (COD_CLIENTE) na planilha',
+  'sem-cadastro': 'Sem loja a loja: o código do cliente não existe no sistema da Degraus',
+  'sem-giro': 'Sem loja a loja: cadastrado, mas sem venda, estoque ou compra nas portas',
+};
+// O ícone apagado avisa antes do clique: sem isso, a tela abre vazia e a
+// pessoa acha que é defeito — foi o que aconteceu na AG da Under Armour.
+function iconeLoja(p){
+  if(!E.lojasK) return ICONE_LOJA;
+  if(E.lojasK.has(p.k)) return ICONE_LOJA;
+  const t = FALTA_TXT[(E.lojasFalta || {})[p.k]] || 'Sem dados de loja para este produto';
+  return `<button type="button" class="btn-loja off" data-loja="1" title="${esc(t)}" aria-label="${esc(t)}">${SVG_LOJA}</button>`;
+}
 
 /* ── as duas marcas ──────────────────────────────────────────────────
    O plano de contas é um por marca: a Degraus tem um de Olympikus e um de
@@ -1300,7 +1315,24 @@ async function abrirCliente(id){
   rodape();
   pintar();
   medirCab();
+  carregarLojas(c);
   carregarCarteira(c, guardado);
+}
+
+/* ── loja a loja: quais produtos têm dado ────────────────────────────── */
+/* A tela por loja é um arquivo à parte, gerado do banco do cliente. A AG só
+   precisa saber quem está lá dentro, para não mandar ninguém abrir uma tela
+   vazia — o arquivo chega depois da tabela, sem segurar a pintura. */
+async function carregarLojas(c){
+  E.lojasK = null; E.lojasFalta = {};
+  try{
+    const r = await fetch(`dados/lojas-${encodeURIComponent(c.id)}.json` + bust(), { cache:'no-cache' });
+    const d = await r.json();
+    if(!E.base || E.base.cliente.id !== c.id) return;
+    E.lojasK = new Set((d.produtos || []).map(p => p.k));
+    E.lojasFalta = d.faltando || {};
+    pintar();
+  }catch(_){ E.lojasK = null; }
 }
 
 /* ── carteira (Detalhada) ────────────────────────────────────────────── */
@@ -1837,7 +1869,7 @@ function pintar(){
     }
     return `<tr data-k="${esc(p.k)}" class="${E.sel === p.k ? 'sel' : ''}">
       <td class="fx1">${fotoDe(p) ? ICONE_FOTO : ''}${esc(p.codigo)}<span class="corm">${esc(p.cor)}</span></td>
-      <td class="fx2" title="${esc(p.descricao)}"><span class="desc-t">${esc(p.descricao)}</span>${ICONE_LOJA}</td>
+      <td class="fx2" title="${esc(p.descricao)}"><span class="desc-t">${esc(p.descricao)}</span>${iconeLoja(p)}</td>
       <td class="fx3" title="${esc(p.cor)}">${esc(p.cor)}</td>
       <td class="fx4">${brl(p.pdv)}</td>
       ${E.extras ? `<td class="gen">${esc(p.genero.charAt(0) + p.genero.slice(1).toLowerCase())}</td>
