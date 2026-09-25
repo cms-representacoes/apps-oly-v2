@@ -150,8 +150,40 @@ def ler_produtos(ws):
     return fora
 
 
+def ler_carteira(wb):
+    """Pares com pedido em aberto, por produto: { 'CODIGO|COR': pares }.
+
+    É a "programação": o que já está comprado e a caminho. Produto com
+    programação não entra na sugestão de agrupar — a reposição resolve.
+    """
+    if 'CARTEIRA' not in wb.sheetnames:
+        return {}
+    linhas = wb['CARTEIRA'].iter_rows(values_only=True)
+    cab = next(linhas)
+    col = {norm(v): i for i, v in enumerate(cab) if isinstance(v, str)}
+    faltam = [c for c in ('REFERENCIA', 'COR', 'PREV FAT', 'CART') if c not in col]
+    if faltam:
+        return {}
+    ir, ic, ip, iq = col['REFERENCIA'], col['COR'], col['PREV FAT'], col['CART']
+    fora = {}
+    for r in linhas:
+        if not r or not r[ir] or not isinstance(r[ip], dt.datetime) or r[ip].year != ANO:
+            continue
+        pares = num(r[iq])
+        if not pares:
+            continue
+        chave = f'{norm(r[ir])}|{norm(r[ic])}'
+        fora[chave] = fora.get(chave, 0) + pares
+    return fora
+
+
 def ler_nomes_das_lojas(caminho, aba):
-    """As portas têm nome na planilha ("LJ05 SHOP ILHA"); no banco são LOJA 05."""
+    """As portas têm nome na planilha ("LJ05 SHOP ILHA"); no banco são LOJA 05.
+
+    O nome sai daqui como "LJ05 - SHOP ILHA", e esta lista é também o
+    filtro: loja que não está na planilha não entra no relatório. São as
+    que já não operam (03, 09, 13) e a 08, fechada desde 2025.
+    """
     if not aba:
         return {}
     wb = openpyxl.load_workbook(caminho, read_only=True, data_only=True)
@@ -166,7 +198,8 @@ def ler_nomes_das_lojas(caminho, aba):
             continue
         nome = texto(r[6])
         if nome and loja not in nomes:
-            nomes[loja] = nome
+            # "LJ05 SHOP ILHA" -> "LJ05 - SHOP ILHA"
+            nomes[loja] = re.sub(r'^(LJ\s*\d+)\s+', lambda m: m.group(1) + ' - ', nome)
     wb.close()
     return nomes
 
@@ -244,6 +277,22 @@ def ler_banco():
          GROUP BY 1, 2""", (inicio, LOJA_MAX, COMPRA)):
         compra[(pid, loja)] += float(qt or 0)
 
+    # Dia da última VENDA do produto naquela loja. É com ele que se sabe se a
+    # peça está parada há mais de 30 dias — o mês fechado não serve, porque
+    # no dia 24 um mês sem venda ainda pode ser só 24 dias.
+    venda_ult = {}
+    for pid, loja, dia in puxar(con, """
+        SELECT it.FD_PRODUTO, m.FD_LOJA, MAX(m.FD_DATA_MOV)
+          FROM TB_MOVIMENTOS m
+          JOIN TB_MOVIMENTOS_ITENS i
+            ON i.FD_MOVIMENTO_ID = m.FD_MOVIMENTO_ID
+           AND i.FD_MOVIMENTO_DG = m.FD_MOVIMENTO_DG
+          JOIN TB_ITENS it ON it.FD_ITEM = i.FD_ITEM
+         WHERE m.FD_DATA_MOV >= ? AND m.FD_LOJA <= ?
+           AND m.FD_CODOPER IS NULL AND m.FD_ENTRADA_SAIDA = 'S'
+         GROUP BY 1, 2""", (dt.date(DESDE, 1, 1), LOJA_MAX)):
+        venda_ult[(pid, loja)] = dia
+
     ultima = {}
     for pid, loja, dia in puxar(con, """
         SELECT it.FD_PRODUTO, m.FD_LOJA, MAX(m.FD_DATA_MOV)
@@ -287,8 +336,8 @@ def ler_banco():
     ate = puxar(con, 'SELECT MAX(FD_DATA_MOV) FROM TB_MOVIMENTOS')[0][0]
     con.close()
     return {'venda': venda, 'estoque': estoque, 'delta': delta, 'compra': compra,
-            'ultima': ultima, 'loja_mes': loja_mes, 'por_ref': por_ref,
-            'por_id': por_id, 'ate': ate}
+            'ultima': ultima, 'venda_ult': venda_ult, 'loja_mes': loja_mes,
+            'por_ref': por_ref, 'por_id': por_id, 'ate': ate}
 
 
 # ── junta tudo ────────────────────────────────────────────────────────
@@ -311,11 +360,12 @@ def saldo_por_mes(estoque_hoje, deltas, n):
 def gerar(cli, banco, nomes_lojas):
     venda, estoque = banco['venda'], banco['estoque']
     delta, compra, ultima = banco['delta'], banco['compra'], banco['ultima']
-    loja_mes = banco['loja_mes']
+    loja_mes, venda_ult = banco['loja_mes'], banco['venda_ult']
     por_ref, por_id, ate = banco['por_ref'], banco['por_id'], banco['ate']
     print(f'· {cli["nome"]} {cli["marca"]}: lendo {cli["arquivo"].name}')
     wb = openpyxl.load_workbook(cli['arquivo'], read_only=True, data_only=True)
     produtos = ler_produtos(wb[cli['aba']])
+    carteira = ler_carteira(wb)
     wb.close()
 
     meses = [f'{ANO}-{m:02d}' for m in range(1, ate.month + 1)]
@@ -329,12 +379,13 @@ def gerar(cli, banco, nomes_lojas):
                 sem_cadastro += 1
             continue
         lojas = {}
-        for loja in range(1, LOJA_MAX + 1):
+        for loja in sorted(nomes_lojas):
             n = ate.month
             v = [int(round(venda.get((pid, loja, m), 0))) for m in range(1, n + 1)]
             e = int(round(estoque.get((pid, loja), 0)))
             cp = int(round(compra.get((pid, loja), 0)))
             uc = ultima.get((pid, loja))
+            uv = venda_ult.get((pid, loja))
             if not any(v) and not e and not cp:
                 continue
             ds = [delta.get((pid, loja, m), 0) for m in range(1, n + 1)]
@@ -347,13 +398,17 @@ def gerar(cli, banco, nomes_lojas):
                 reg['c'] = cp
             if uc:
                 reg['uc'] = uc.isoformat()
+            if uv:
+                reg['uv'] = uv.isoformat()
             lojas[str(loja)] = reg
             lojas_vistas.add(loja)
         if not lojas:
             continue
+        prog = carteira.get(f"{norm(p['codigo'])}|{norm(p['cor'])}", 0)
         saida.append({**{c: p[c] for c in ('k', 'marca', 'codigo', 'descricao', 'cor',
                                            'genero', 'grupo', 'pdv')},
-                      'sku': pid, 'ref': p['ref'], 'l': lojas})
+                      'sku': pid, 'ref': p['ref'], **({'prog': prog} if prog else {}),
+                      'l': lojas})
 
     base = {
         'cliente': {'id': cli['id'], 'nome': cli['nome'], 'marca': cli['marca']},
@@ -363,7 +418,7 @@ def gerar(cli, banco, nomes_lojas):
         'banco': {'arquivo': Path(BANCO).name, 'ate': ate.isoformat()},
         # 'v' é a venda da LOJA INTEIRA no mês (todas as marcas): serve para
         # saber se a porta estava aberta, e para medir o peso da marca lá
-        'lojas': [{'id': l, 'nome': nomes_lojas.get(l, f'LOJA {l:02d}'),
+        'lojas': [{'id': l, 'nome': nomes_lojas[l],
                    'v': [int(round(loja_mes.get((l, m), 0))) for m in range(1, ate.month + 1)]}
                   for l in sorted(lojas_vistas)],
         'produtos': saida,
@@ -374,6 +429,8 @@ def gerar(cli, banco, nomes_lojas):
                        encoding='utf-8')
     pares = sum(sum(r.get('v', [])) for p in saida for r in p['l'].values())
     est = sum(r.get('e', 0) for p in saida for r in p['l'].values())
+    comprog = sum(1 for x in saida if x.get('prog'))
+    print(f'  {comprog} produtos com programação em aberto')
     print(f'  {len(saida)} produtos em {len(lojas_vistas)} lojas · '
           f'{pares:,} pares vendidos · {est:,} em estoque'.replace(',', '.'))
     print(f'  fora: {sem_codigo} sem código do cliente, {sem_cadastro} sem cadastro no banco')
