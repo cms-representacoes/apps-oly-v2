@@ -20,8 +20,11 @@
   --th-estoque:#FAECE7; --th-estoque-ink:#712B13;
   --th-cob:#E3ECFA; --th-cob-ink:#1E3A6E; --cob-bg:#F3F7FD;
   --envia:#E8590C; --envia-bg:#FEF1E8; --recebe:#C92A2A; --recebe-bg:#FDECEC;
+  /* mês em vigência: azul fechado no cabeçalho e o dobro de tinta nas
+     colunas, para o olho cair nele antes de qualquer outro */
+  --mes-hoje:#111C6E; --v-hoje:#C9EDE0; --e-hoje:#F6D9CB;
 }
-:root[data-marca="ua"]{ --accent:#E52125; --accent-hover:#A81215; }
+:root[data-marca="ua"]{ --accent:#E52125; --accent-hover:#A81215; --mes-hoje:#6E0C0F; }
 [data-theme="dark"]{
   --ink:#E8EBF1; --navy:#D6DDEA; --slate:#9AA4B5; --mute:#828DA0;
   --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
@@ -32,8 +35,9 @@
   --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
   --accent:#5B69E8; --accent-hover:#7D89FF;
   --envia:#FB923C; --envia-bg:#2A1A0E; --recebe:#F2868B; --recebe-bg:#2A1416;
+  --mes-hoje:#2C39E2; --v-hoje:#153C30; --e-hoje:#48291C;
 }
-[data-theme="dark"][data-marca="ua"]{ --accent:#F2494C; }
+[data-theme="dark"][data-marca="ua"]{ --accent:#F2494C; --mes-hoje:#8E1216; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%}
 body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -58,6 +62,15 @@ body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple
 .selo.ref{background:var(--th-cob);color:var(--th-cob-ink)}
 .selo.pdv{background:var(--venda-bg);color:var(--green);border:1px solid var(--th-venda)}
 .selo.cor{background:var(--paper);color:var(--slate);border:1px solid var(--line)}
+/* ver a cor sozinha ou o artigo inteiro: é a mesma tabela, trocando o que
+   entra na soma */
+.selo.cores{border:1px solid var(--line);background:var(--card);color:var(--slate);
+  cursor:pointer;font:inherit;font-size:10.5px;font-weight:700;padding:4px 10px}
+.selo.cores:hover{border-color:var(--accent);color:var(--accent)}
+.selo.cores.on{background:var(--accent);border-color:var(--accent);color:#fff}
+td.parte{font-family:'Space Grotesk',sans-serif;font-weight:700}
+td.parte .barra{display:block;height:4px;border-radius:999px;background:var(--line-2);margin-top:4px}
+td.parte .barra i{display:block;height:100%;border-radius:999px;background:var(--accent)}
 .risco{width:1px;height:26px;background:var(--line);flex:none;margin:0 2px}
 .kpi{display:flex;flex-direction:column;align-items:flex-start;padding:0 9px;white-space:nowrap}
 .kpi span{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
@@ -83,6 +96,11 @@ thead tr.meses th{top:0;height:34px}
 thead tr.sub th{top:34px;height:34px}
 /* a faixa dos meses usa o mesmo azul/vermelho da AG, que troca com a marca */
 thead tr.meses th{background:var(--accent);color:#fff;border-bottom:1px solid var(--accent-hover)}
+thead tr.meses th.hoje{background:var(--mes-hoje)}
+thead tr.sub th.v.hoje{background:var(--v-hoje)}
+thead tr.sub th.e.hoje{background:var(--e-hoje)}
+td.v.hoje{background:var(--v-hoje)}
+td.e.hoje{background:var(--e-hoje)}
 /* as células vazias acima de Total e Cobertura seguem a faixa da marca,
    senão fica um bloco branco flutuando sobre as colunas presas */
 thead tr.meses th.vazio{background:var(--accent);border-bottom:1px solid var(--accent-hover)}
@@ -185,6 +203,9 @@ tfoot td.loja{background:var(--paper)}
   padding:7px 9px;border-radius:9px;cursor:pointer;color:var(--ink)}
 .lista button:hover{background:var(--paper)}
 .lista button span{display:block;font-size:10.5px;color:var(--mute)}
+.lista button.atual{background:var(--paper);box-shadow:inset 2px 0 0 var(--accent)}
+.lista .grupo{padding:9px 9px 4px;font-size:10px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mute)}
 @media(max-width:700px){
   .kpi{padding:0 7px}
   .kpi b{font-size:14px}
@@ -207,6 +228,7 @@ tfoot td.loja{background:var(--paper)}
       <b id="pNome">—</b><span class="seta">▼</span>
     </button>
     <span class="selo pdv" id="pPdv"></span>
+    <button class="selo cores" id="btnCores" hidden></button>
     <span class="risco"></span>
     <div class="kpi"><span>Compra</span><b class="num" id="kCompra">—</b></div>
     <div class="kpi"><span>Venda</span><b class="num" id="kVenda">—</b></div>
@@ -269,6 +291,38 @@ const MIN_RESTO = 10;    // se sobrar menos que isso na origem, manda tudo
 const DIAS_PARADO = 30;  // sem vender há mais de 30 dias, a peça sai inteira
 
 let DADOS = null, MARCA = 'oly', PROD = null, ATIVA = {};
+// PROD pode ser um produto de verdade ou a soma das cores do artigo;
+// BASE guarda a cor que estava aberta, para o botão saber voltar.
+let BASE = null, AGRUPADO = false;
+
+/* Soma as cores do mesmo artigo numa linha só: venda, estoque mês a mês,
+   estoque de hoje, compra, e as datas mais recentes de cada loja. Serve
+   para comparar as portas sem a cor atrapalhar — uma loja pode ir mal numa
+   cor e bem no artigo. */
+function somarCores(p){
+  const cores = DADOS.produtos.filter(x => x.codigo === p.codigo);
+  const n = DADOS.meses.length;
+  const l = {};
+  for(const x of cores){
+    for(const loja in x.l){
+      const r = x.l[loja];
+      const d = l[loja] || (l[loja] = { v:Array(n).fill(0), s:Array(n).fill(0), e:0, c:0 });
+      (r.v || []).forEach((q, i) => { d.v[i] += q; });
+      (r.s || []).forEach((q, i) => { d.s[i] += q; });
+      d.e += r.e || 0;
+      d.c += r.c || 0;
+      if(r.uc && (!d.uc || r.uc > d.uc)) d.uc = r.uc;
+      if(r.uv && (!d.uv || r.uv > d.uv)) d.uv = r.uv;
+    }
+  }
+  return { ...p, cor:`${cores.length} cores`, agrupado:cores.length, l,
+    prog: cores.reduce((a, x) => a + (x.prog || 0), 0) };
+}
+
+function trocarAgrupamento(){
+  AGRUPADO = !AGRUPADO;
+  escolher(AGRUPADO ? somarCores(BASE) : BASE, true);
+}
 // ordem das linhas: por padrão a loja que mais vende primeiro; clicando num
 // mês, por aquela coluna, do maior para o menor
 let ORD = { tipo:null, mes:0, dir:-1 };
@@ -473,9 +527,18 @@ const nomeLoja = id => (DADOS.lojas.find(l => String(l.id) === String(id)) || {}
 const curto = id => nomeLoja(id).replace(/^LJ\s*\d+\s*-?\s*/, '');
 const dataBR = iso => iso ? iso.slice(8,10) + '/' + iso.slice(5,7) + '/' + iso.slice(0,4) : '—';
 
-function escolher(p){
+function escolher(p, mantendoArtigo){
   const trocou = PROD !== p;
   PROD = p;
+  if(!mantendoArtigo){ BASE = p; AGRUPADO = false; }
+  const irmas = DADOS.produtos.filter(x => x.codigo === p.codigo).length;
+  const bt = $('btnCores');
+  bt.hidden = irmas < 2;
+  // o mesmo botão liga e desliga: aceso, mostra o artigo inteiro; apagado,
+  // volta para a cor que estava sendo analisada
+  bt.textContent = AGRUPADO ? 'Desagrupar' : 'Agrupar';
+  bt.title = AGRUPADO ? `Voltar para ${BASE.cor}` : `Somar as ${irmas} cores deste artigo`;
+  bt.classList.toggle('on', AGRUPADO);
   const n = DADOS.meses.length;
   // mês em que a rede inteira não teve venda nem estoque deste produto não
   // entra na tabela: com 9 meses na tela, coluna vazia só atrapalha
@@ -483,8 +546,10 @@ function escolher(p){
     Object.keys(p.l).some(l => vendaMes(p, l, i) || saldoMes(p, l, i)));
   const usar = idx.length ? idx : DADOS.meses.map((_, i) => i);
   const meses = usar.map(i => DADOS.meses[i]);
-  const lojas = DADOS.lojas.map(l => String(l.id))
-    .sort((a, b) => (ATIVA[b] ? ATIVA[b].total : 0) - (ATIVA[a] ? ATIVA[a].total : 0));
+  const mesHoje = DADOS.meses[DADOS.meses.length - 1];   // o mês em vigência
+  // abre na ordem das portas, que é como o vendedor conhece a rede; para
+  // ver quem mais vendeu, é só clicar no cabeçalho do mês
+  const lojas = DADOS.lojas.map(l => String(l.id)).sort((a, b) => a - b);
   if(ORD.tipo === 'loja'){
     lojas.sort((a, b) => nomeLoja(a).localeCompare(nomeLoja(b), 'pt-BR') * (ORD.dir === 1 ? 1 : -1));
   }else if(ORD.tipo){
@@ -494,9 +559,15 @@ function escolher(p){
   const { acao, pares, modo } = plano(p);
   PLANO = { acao, modo };
   const mover = pares.reduce((a, x) => a + x.qtd, 0);
+  // agrupado, a coluna deixa de sugerir e passa a mostrar o peso da loja
+  const parte = (v, tot) => {
+    if(!tot) return '—';
+    const pc = v / tot * 100;
+    return `${nd(pc)}%<span class="barra"><i style="width:${Math.max(2, pc).toFixed(1)}%"></i></span>`;
+  };
 
   // topo
-  $('pNome').textContent = p.descricao || p.codigo;
+  $('pNome').textContent = (p.descricao || p.codigo) + (p.agrupado ? ' · todas as cores' : '');
   $('pPdv').textContent = p.pdv ? 'PDV ' + p.pdv.toLocaleString('pt-BR', { style:'currency', currency:'BRL' }) : '';
   const venda = lojas.reduce((a, l) => a + (p.l[l] ? (p.l[l].v || []).reduce((x, y) => x + y, 0) : 0), 0);
   const est = lojas.reduce((a, l) => a + estoque(p, l), 0);
@@ -519,20 +590,21 @@ function escolher(p){
       <th class="loja marca${ORD.tipo === 'loja' ? ' ord' + (ORD.dir === 1 ? ' asc' : '') : ''}"
           rowspan="2" data-ord="loja:0">Loja</th>
       <th class="marca uc" rowspan="2">Última compra</th>
-      ${meses.map(m => `<th colspan="2">${rotuloMes(m)}</th>`).join('')}
+      ${meses.map(m => `<th colspan="2"${m === mesHoje ? ' class="hoje"' : ''}>${rotuloMes(m)}</th>`).join('')}
       <th class="marca total">Total venda</th>
       <th class="marca cob">Cobertura</th>
-      <th class="marca acao">Ação</th>
+      <th class="marca acao">${p.agrupado ? 'Participação' : 'Ação'}</th>
     </tr>
     <tr class="sub">
       ${usar.map((i, j) => {
         const marca = (t) => ORD.tipo === t && ORD.mes === i ? ' ord' + (ORD.dir === 1 ? ' asc' : '') : '';
-        return `<th class="v${marca('v')}" data-ord="v:${i}">Venda<span class="somacol">${nf(somaV[j])}</span></th>` +
-          `<th class="e${marca('e')}" data-ord="e:${i}">Estoque<span class="somacol">${nf(somaE[j])}</span></th>`;
+        const h = DADOS.meses[i] === mesHoje ? ' hoje' : '';
+        return `<th class="v${h}${marca('v')}" data-ord="v:${i}">Venda<span class="somacol">${nf(somaV[j])}</span></th>` +
+          `<th class="e${h}${marca('e')}" data-ord="e:${i}">Estoque<span class="somacol">${nf(somaE[j])}</span></th>`;
       }).join('')}
       <th class="total"><span class="somacol so">${nf(venda)}</span></th>
       <th class="cob"><span class="somacol so">${ritmoTotal ? nd(est / ritmoTotal) : '—'}</span></th>
-      <th class="acao"><span class="somacol so">${mover ? nf(mover) + ' pares' : '—'}</span></th>
+      <th class="acao"><span class="somacol so">${p.agrupado ? '100%' : (mover ? nf(mover) + ' pares' : '—')}</span></th>
     </tr>`;
 
   // linhas
@@ -543,8 +615,9 @@ function escolher(p){
     const a = acao[l] || {};
     const cels = usar.map(i => {
       const v = vendaMes(p, l, i), e = saldoMes(p, l, i);
-      return `<td class="v${v ? '' : ' zero'}">${v || 0}</td>` +
-             `<td class="e${e ? (e < 0 ? ' neg' : '') : ' zero'}">${e || 0}</td>`;
+      const h = DADOS.meses[i] === mesHoje ? ' hoje' : '';
+      return `<td class="v${h}${v ? '' : ' zero'}">${v || 0}</td>` +
+             `<td class="e${h}${e ? (e < 0 ? ' neg' : '') : ' zero'}">${e || 0}</td>`;
     }).join('');
     // rótulo + quantidade: o porquê fica no balão, para a linha não virar texto
     const rotulo = { transferir:'Transferir', receber:'Receber', agrupar:'Agrupar' }[a.tipo];
@@ -562,7 +635,7 @@ function escolher(p){
       ${cels}
       <td class="total">${tv || 0}</td>
       <td class="cob${cobCls}">${cobTxt}</td>
-      <td class="acao">${botao}${detalhe}</td>
+      <td class="${p.agrupado ? 'acao parte' : 'acao'}">${p.agrupado ? parte(tv, venda) : botao + detalhe}</td>
     </tr>`;
   });
   $('tab').tBodies[0].innerHTML = linhas.join('');
@@ -592,14 +665,23 @@ function escolher(p){
 /* ── troca de produto ────────────────────────────────────────────── */
 function pintarLista(){
   const b = ($('busca').value || '').trim().toLowerCase();
-  const lista = DADOS.produtos
-    .filter(p => !b || (`${p.codigo} ${p.descricao} ${p.cor} ${p.ref}`).toLowerCase().includes(b))
+  const casa = p => !b || (`${p.codigo} ${p.descricao} ${p.cor} ${p.ref}`).toLowerCase().includes(b);
+  const item = p => `<button data-k="${esc(p.k)}"${p === PROD ? ' class="atual"' : ''}>` +
+    `${esc(p.descricao || p.codigo)}<span>${esc(p.codigo)} · ${esc(p.cor)} · ` +
+    `${nf(totalVenda(p))} pares no ano</span></button>`;
+  // As outras cores do mesmo artigo vêm primeiro: trocar de cor é o pulo
+  // mais comum, e procurar pelo código de novo é trabalho à toa.
+  const cores = PROD ? DADOS.produtos.filter(p => p.codigo === PROD.codigo && casa(p))
+    .sort((x, y) => totalVenda(y) - totalVenda(x)) : [];
+  const resto = DADOS.produtos
+    .filter(p => casa(p) && !cores.includes(p))
     .sort((x, y) => totalVenda(y) - totalVenda(x))
     .slice(0, 60);
-  $('listaItens').innerHTML = lista.map(p =>
-    `<button data-k="${esc(p.k)}">${esc(p.descricao || p.codigo)}
-      <span>${esc(p.codigo)} · ${esc(p.cor)} · ${nf(totalVenda(p))} pares no ano</span></button>`).join('')
-    || '<button disabled><span>nada encontrado</span></button>';
+  $('listaItens').innerHTML =
+    (cores.length > 1 ? `<div class="grupo">Outras cores de ${esc(PROD.descricao || PROD.codigo)}</div>` +
+      cores.map(item).join('') + (resto.length ? '<div class="grupo">Todos os produtos</div>' : '') : '') +
+    resto.map(item).join('') ||
+    '<button disabled><span>nada encontrado</span></button>';
 }
 /* ── o porquê da sugestão, no balão ─────────────────────────────── */
 let PLANO = null;
@@ -665,6 +747,7 @@ $('tab').tHead.addEventListener('click', e => {
   else ORD = { tipo, mes:+mes, dir: tipo === 'loja' ? 1 : -1 };
   escolher(PROD);
 });
+$('btnCores').addEventListener('click', trocarAgrupamento);
 $('btnProd').addEventListener('click', e => {
   const l = $('lista');
   const r = $('btnProd').getBoundingClientRect();

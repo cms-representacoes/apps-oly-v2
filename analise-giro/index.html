@@ -24,6 +24,11 @@
   --th-venda:#E1F5EE; --th-venda-ink:#085041;
   --th-estoque:#FAECE7; --th-estoque-ink:#712B13;
   --th-cob:#E3ECFA; --th-cob-ink:#1E3A6E; --cob-bg:#F3F7FD;
+  /* mês em vigência: azul fechado no cabeçalho e mais tinta nas colunas */
+  --mes-hoje:#111C6E; --v-hoje:#C9EDE0; --e-hoje:#F6D9CB;
+  /* linha selecionada: um véu da cor da marca, com o texto de sempre —
+     pintar a linha inteira de azul apagava os números */
+  --sel-bg:color-mix(in srgb, var(--accent) 12%, var(--card));
   /* carteira: as cores da planilha — cabeçalho amarelo, verde forte no que
      ainda está em aberto e suave no que já faturou */
   --k-head:#FFE14D; --k-head-ink:#3D3300; --k-sub:#FFF4B8; --k-sub-ink:#5A4A00;
@@ -41,6 +46,8 @@
   --th-venda:#123328; --th-venda-ink:#8FE3C2;
   --th-estoque:#3A1F16; --th-estoque-ink:#F7B69E;
   --th-cob:#1A2740; --th-cob-ink:#A9C4F5; --cob-bg:#111A2A;
+  --mes-hoje:#2C39E2; --v-hoje:#153C30; --e-hoje:#48291C;
+  --sel-bg:color-mix(in srgb, var(--accent) 26%, var(--card));
   --accent:#5B69E8; --accent-hover:#7D89FF;
   --marca-claro:#8791FF; --marca-escuro:#2C39E2;
   --k-head:#5C4E00; --k-head-ink:#FFE98A; --k-sub:#342D07; --k-sub-ink:#F2DE80;
@@ -53,10 +60,12 @@
 :root[data-marca="ua"]{
   --accent:#E52125; --accent-hover:#A81215;
   --marca-claro:#F2494C; --marca-escuro:#A81215;
+  --mes-hoje:#6E0C0F;
 }
 [data-theme="dark"][data-marca="ua"]{
   --accent:#F2494C; --accent-hover:#FF7B7D;
   --marca-claro:#FF7B7D; --marca-escuro:#E52125;
+  --mes-hoje:#8E1216;
 }
 *{box-sizing:border-box}
 /* No touchpad, deslizar dois dedos para o lado no fim da tabela fazia o
@@ -168,6 +177,11 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .giro thead tr.h1 th{top:0;height:34px}
 .giro thead tr.h2 th{top:34px}
 .giro thead th.roxo{background:var(--accent);color:#fff;border-bottom:1px solid var(--accent-hover)}
+.giro thead th.roxo.hoje{background:var(--mes-hoje)}
+.giro thead th.tv.hoje{background:var(--v-hoje)}
+.giro thead th.te.hoje{background:var(--e-hoje)}
+.giro td.v.hoje{background:var(--v-hoje)}
+.giro td.e.hoje{background:var(--e-hoje)}
 .giro thead th.tv{background:var(--th-venda);color:var(--th-venda-ink)}
 .giro thead th.te{background:var(--th-estoque);color:var(--th-estoque-ink)}
 .giro thead th.tc{background:var(--th-cob);color:var(--th-cob-ink)}
@@ -206,7 +220,6 @@ tr.sel .btn-loja{background:var(--card)}
 .btn-extras:hover{background:rgba(255,255,255,.3)}
 .btn-extras:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .giro .corm{display:none;font-size:10.5px;font-weight:600;color:var(--slate)}
-.giro tbody tr.sel .corm{color:#fff}
 .cli-pick[hidden]{display:none}
 .giro td.v{background:var(--venda-bg)}
 .giro td.e{background:var(--estoque-bg)}
@@ -223,12 +236,13 @@ tr.sel .btn-loja{background:var(--card)}
 .giro tbody tr.vazia td{padding:0;border:none;background:var(--card)}
 .giro tbody tr.vazia:hover td{background:var(--card)}
 .giro tbody tr:hover td{background:var(--line-2)}
-.giro tbody tr.sel td{background:var(--accent);color:#fff}
-.giro tbody tr.sel td.c.low,.giro tbody tr.sel td.c.high,.giro tbody tr.sel td.zero{color:#fff}
+.giro tbody tr.sel td{background:var(--sel-bg)}
+/* a barra na primeira coluna é o que diz "esta é a linha", agora que o
+   fundo é leve */
+.giro tbody tr.sel td.fx1{box-shadow:inset 3px 0 0 var(--accent)}
 .giro td.obsc{min-width:104px;padding-right:14px}
 .obs{display:inline-block;font:700 10px "Space Grotesk",sans-serif;letter-spacing:.03em;padding:2px 8px;border-radius:99px;
   background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
-.giro tbody tr.sel .obs{background:rgba(255,255,255,.22);color:#fff}
 .obs.so{background:color-mix(in srgb,var(--k-abe) 30%,transparent);color:var(--k-tot-ink)}
 /* OBS escrita aqui: um ponto marca que ainda não está na planilha */
 .obs.ed::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
@@ -334,7 +348,6 @@ button.sino.cab{width:17px;height:17px;margin:0;vertical-align:-3px;
   background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
 button.sino.cab:hover{background:var(--red);color:#fff}
 button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--red) 28%,transparent)}
-.giro tbody tr.sel .sino{background:rgba(255,255,255,.22);color:#fff}
 
 /* janela do que a vitrine tem */
 .foto-cx.vit-cx{width:min(700px,94vw);max-width:none;padding:0;overflow:hidden;max-height:92dvh;display:flex;flex-direction:column}
@@ -432,7 +445,6 @@ button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-m
 .btn-foto svg{width:12px;height:12px}
 .btn-foto:hover{border-color:var(--accent);color:var(--accent)}
 .btn-foto:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.giro tbody tr.sel .btn-foto{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.18);color:#fff}
 .foto-fundo{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(8,12,20,.62);backdrop-filter:blur(2px)}
 .foto-fundo.aberta{display:flex}
@@ -445,7 +457,6 @@ button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-m
 .foto-fechar{position:absolute;top:-10px;right:-10px;width:32px;height:32px;border-radius:50%;border:none;
   background:var(--accent);color:#fff;font-size:17px;line-height:1;box-shadow:0 8px 18px -8px rgba(44,57,226,.7)}
 .gen{font-size:11px;font-weight:600;color:var(--slate)}
-.giro tbody tr.sel .gen{color:#fff}
 
 /* Descendo a tabela, o nome do cliente sobe junto — como a página da
    Detalhada, que rola inteira. A altura acompanha a rolagem na medida
@@ -1783,10 +1794,10 @@ function pintar(){
   // estoque, e a tabela encolhe pela metade.
   meses.forEach(m => {
     const atual = m === ult;
-    h1 += `<th class="roxo mes" colspan="${atual ? 4 : 2}" data-ord="" style="cursor:default">${rotuloMes(m)}</th>`;
+    h1 += `<th class="roxo mes${atual ? ' hoje' : ''}" colspan="${atual ? 4 : 2}" data-ord="" style="cursor:default">${rotuloMes(m)}</th>`;
     const v = soma(m, 'v'), e = soma(m, 'e'), c = cobertura(v, e);
-    h2 += th('v:' + m, `Venda<span class="sub">${nf(v)}</span>`, 'tv mes') +
-          th('e:' + m, `Estoque<span class="sub">${nf(e)}</span>`, 'te') +
+    h2 += th('v:' + m, `Venda<span class="sub">${nf(v)}</span>`, 'tv mes' + (atual ? ' hoje' : '')) +
+          th('e:' + m, `Estoque<span class="sub">${nf(e)}</span>`, 'te' + (atual ? ' hoje' : '')) +
           (atual ? th('c:' + m, `Cob.<span class="sub ${cobClasse(c)}">` +
                      `<span class="cob-cab">${cobTexto(c)}${botaoAlerta()}</span></span>`, 'tc') +
                    th('o:' + m, 'OBS', 'to') : '');
@@ -1846,8 +1857,9 @@ function pintar(){
       const v = x.v || 0, e = x.e || 0, c = cobertura(v, e);
       // produto que só existe na carteira não tem venda nem estoque no
       // plano: fica em branco, não zero
-      cel += `<td class="v mes${v ? '' : ' zero'}">${v ? nf(v) : p.soCart ? '' : '0'}</td>` +
-             `<td class="e${e ? '' : ' zero'}">${e ? nf(e) : p.soCart ? '' : '0'}</td>`;
+      const hj = m === ult ? ' hoje' : '';
+      cel += `<td class="v mes${hj}${v ? '' : ' zero'}">${v ? nf(v) : p.soCart ? '' : '0'}</td>` +
+             `<td class="e${hj}${e ? '' : ' zero'}">${e ? nf(e) : p.soCart ? '' : '0'}</td>`;
       if(m === ult){
         const txt = obsEfetiva(p, m);
         const meu = obsEditada(p) !== undefined;
