@@ -25,6 +25,12 @@ from pathlib import Path
 
 import openpyxl
 
+# o console do Windows abre em cp1252 e engasga com a seta do resumo
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 ANO = 2026
 PASTA = Path(__file__).resolve().parent / 'dados'
 # as fotos dos produtos, as mesmas da Carteira e da Detalhada
