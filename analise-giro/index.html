@@ -1079,26 +1079,38 @@ function coresNaVitrine(p){
 
 const naSacola = k => E.sac.has(k);
 
+/* O modal mostra todas as cores do artigo, e cada card é uma cor. A escolha
+   tem de marcar a LINHA daquela cor, não a linha de onde a janela foi
+   aberta — senão três cores escolhidas viram um número só, no lugar errado.
+   Cor que não está no plano não tem linha: a quantidade segue para a
+   sacola, mas não pinta carteira nenhuma. */
+function linhaDaCor(o){
+  const cor = chaveCor(o.cor);
+  return (E.linhas || []).find(x => norm(x.codigo) === o.artigo && chaveCor(x.cor) === cor) || null;
+}
+const chaveInt = c => c.pk ? `${c.pk}|${c.mes}` : `sem:${c.key}`;
+
 /* ── a quantidade escolhida ──────────────────────────────────────────
    Estoque e produção pedem o número na mão — é o vendedor que sabe quanto
    quer. Repasse não pergunta: o lote é o que é. O número não vira pedido:
    ele aparece na carteira da AG para lembrar o que está sendo pensado e
    segue junto na sacola, onde a grade se fecha.                        */
 function campoQtd(c){
-  const chave = `${E.vitProduto.k}|${c.mes}`;
-  const it = E.int[chave];
+  const it = E.int[chaveInt(c)];
   const qt = it && it.key === c.key ? it.q : sugestaoQtd(c);
+  const rot = `${esc(c.rot)} · ${rotuloMes(c.mes)}` +
+    (c.pk ? '' : ' <span title="esta cor não está no plano de contas">(fora do plano)</span>');
   if(c.origem === 'repasse')
-    return `<div class="vqtd"><span class="rot">${esc(c.rot)} · ${rotuloMes(c.mes)}</span>` +
+    return `<div class="vqtd"><span class="rot">${rot}</span>` +
       `<span class="fixo">${nf(c.fixa)}</span> pares</div>`;
-  return `<div class="vqtd"><span class="rot">${esc(c.rot)} · ${rotuloMes(c.mes)}</span>` +
+  return `<div class="vqtd"><span class="rot">${rot}</span>` +
     `<input type="number" min="1" step="1" value="${qt}" data-q="${esc(c.key)}" ` +
     `data-mes="${c.mes}" aria-label="Quantidade em pares"> pares</div>`;
 }
 
 // quanto falta para chegar a dois meses de cobertura, em caixas de 12
 function sugestaoQtd(c){
-  const p = E.vitProduto;
+  const p = c.linha || E.vitProduto;
   const ult = E.base.meses[E.base.meses.length - 1];
   const x = (p.m || {})[ult] || {};
   const falta = Math.max(0, Math.round((x.v || 0) * COB_ALERTA - (x.e || 0)));
@@ -1108,10 +1120,10 @@ function sugestaoQtd(c){
 
 // guarda (ou tira) a escolha do produto naquele mês
 function marcarIntencao(c, qtd){
-  const chave = `${E.vitProduto.k}|${c.mes}`;
+  const chave = chaveInt(c);
   if(!qtd || qtd <= 0) delete E.int[chave];
   else E.int[chave] = { q:qtd, origem:c.origem, rot:c.rot, key:c.key,
-    cor:E.vitProduto.cor, em:new Date().toISOString() };
+    cor:c.cor || '', em:new Date().toISOString() };
   guardarInt(E.base.cliente.id);
   pintar();
 }
@@ -1138,17 +1150,19 @@ function pintarCards(){
     return f ? FOTO_PASTA + f.arq : '';
   };
   const chipsDe = o => {
+    const linha = linhaDaCor(o);
+    const pk = linha ? linha.k : '';
     const c = [];
     if(o.pronta) c.push({ cls:'c-est', rot:'Pronta', q:o.pronta.total, key:`est|${o.k}`,
-      origem:'estoque', mes:mesCorrente(), item:() => itemEstoque(o) });
+      origem:'estoque', mes:mesCorrente(), pk, linha, cor:o.cor, item:() => itemEstoque(o) });
     o.lotes.forEach(l => c.push({ cls:'c-rep', rot:'Repasse Nº ' + l.num, q:l.saldo,
       key:`rep|${o.k}|${l.num}`, origem:'repasse', mes:mesDaData(l.entrega) || mesCorrente(),
-      fixa:l.saldo, item:() => itemRepasse(o, l) }));
+      fixa:l.saldo, pk, linha, cor:o.cor, item:() => itemRepasse(o, l) }));
     if(o.meta){
       const q = o.meta.itens[0];
       c.push({ cls:'c-pro', rot:'Produção · ' + q.rot, q:o.meta.total,
         key:`pro|${o.k}|${q.mes}`, origem:'producao', mes:q.mes || mesCorrente(),
-        item:() => itemProducao(o, q) });
+        pk, linha, cor:o.cor, item:() => itemProducao(o, q) });
     }
     return c;
   };
