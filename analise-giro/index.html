@@ -441,6 +441,58 @@ button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-m
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vcod{font-size:9.5px;font-weight:600;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vpreco{font-size:13.5px;font-weight:900;color:var(--marca);letter-spacing:-.025em}
+/* ── carteira de outros clientes ── */
+#outrasFundo{z-index:80}
+.foto-cx.outras-cx{width:min(920px,96vw);max-width:none;max-height:min(92dvh,900px);display:flex;flex-direction:column;padding:0;overflow:hidden}
+.outras-cx .foto-fechar{top:10px;right:10px;width:29px;height:29px;font-size:15px;z-index:3;box-shadow:none}
+.outras-cab{padding:15px 48px 12px 18px;border-bottom:1px solid var(--line);flex:none}
+.outras-cab h3{margin:0;font-size:15.5px;font-weight:700;line-height:1.3}
+.outras-cab p{margin:3px 0 0;font-size:11.5px;color:var(--mute);font-weight:600}
+.outras-filtros{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+.outras-filtros .of{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;
+  font:600 11.5px Inter,sans-serif;color:var(--slate);cursor:pointer}
+.outras-filtros .of b{font-family:"Space Grotesk",sans-serif;margin-left:3px}
+.outras-filtros .of.minha{border-color:var(--accent);color:var(--accent)}
+.outras-filtros .of.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.outras-corpo{flex:1;overflow:auto}
+.outras-tab{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.outras-tab th{position:sticky;top:0;z-index:2;background:var(--paper);border-bottom:1px solid var(--line);
+  font:700 10px "Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);
+  padding:9px 12px;text-align:left;white-space:nowrap}
+.outras-tab td{padding:8px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;vertical-align:middle}
+.outras-tab th.n,.outras-tab td.n{text-align:right;font-family:"Space Grotesk",sans-serif;font-variant-numeric:tabular-nums}
+.outras-tab td.pares{font-weight:700}
+.outras-tab tr.gp>td{border-top:1px solid var(--line)}
+.outras-tab tr.mesma>td:not(.cli):not(.soma){background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.outras-tab td.cli,.outras-tab td.soma{vertical-align:top}
+.outras-tab td.cli b{display:block;font-weight:700}
+.outras-tab td.cli span{font-size:10.5px;color:var(--mute);font-weight:600}
+.outras-tab td.soma{font-weight:700;color:var(--slate);background:var(--paper)}
+.outras-tab .sinal{font-size:9.5px;font-weight:700;color:var(--accent);border:1px solid var(--accent);
+  border-radius:999px;padding:1px 6px;margin-left:5px;vertical-align:1px}
+.outras-tab tfoot td{position:sticky;bottom:0;background:var(--paper);font-weight:700;
+  border-top:1px solid var(--line);border-bottom:none}
+.vit-outras{margin:10px 2px 0;font-size:12.5px;color:var(--slate);line-height:1.55;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vit-outras.tem{border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--card)}
+.vit-outras b{color:var(--ink)}
+.vit-outras.indo{color:var(--mute)}
+.bt-outras{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:999px;
+  padding:6px 14px;font:700 11.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.bt-outras:hover{filter:brightness(1.08)}
+
+/* no celular cabe o essencial: quem, qual cor, quando e quantos */
+@media (max-width:620px){
+  .outras-tab .col-soma{display:none}
+  .outras-tab td,.outras-tab th{padding:8px 9px}
+}
+@media (max-width:470px){
+  .outras-tab .col-gci{display:none}
+  .outras-tab{font-size:12px}
+  .outras-tab td,.outras-tab th{padding:8px 7px}
+  .outras-cab{padding:14px 44px 11px 14px}
+}
+
 /* ── lotes de repasse ── */
 #lotesFundo{z-index:78}
 .lotes-cx{width:min(560px,94vw);max-height:88dvh;display:flex;flex-direction:column;padding:0;overflow:hidden}
@@ -672,6 +724,14 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
   </div>
 
   <datalist id="obsLista"></datalist>
+
+  <div class="foto-fundo" id="outrasFundo" role="dialog" aria-modal="true" aria-label="Carteira de outros clientes">
+    <div class="foto-cx outras-cx">
+      <button type="button" class="foto-fechar" id="outrasFechar" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
+      <div class="outras-cab" id="outrasCab"></div>
+      <div class="outras-corpo" id="outrasCorpo"></div>
+    </div>
+  </div>
 
   <div class="foto-fundo" id="lotesFundo" role="dialog" aria-modal="true" aria-label="Lotes de repasse">
     <div class="foto-cx lotes-cx">
@@ -1249,11 +1309,118 @@ function pintarCards(){
     : 'Nenhuma cor deste artigo na vitrine';
   $('vitCorpo').innerHTML =
     `<div class="secao"><h5>${titulo}</h5></div>` +
-    (lista.length ? `<div class="vgrade">${cards}</div>` : '<div class="vit-nada">Nem esta cor nem outras cores deste artigo estão na vitrine.</div>') +
+    (lista.length ? `<div class="vgrade">${cards}</div>`
+      : `<div class="vit-nada">Nem esta cor nem outras cores deste artigo estão na vitrine.</div>${avisoOutras(p)}`) +
     `<div class="vit-pe"><span class="vit-fonte">Saldos de hoje, já sem o que está oculto e sem o que outros pedidos reservaram</span>` +
     `<a class="vit-link" href="${VIT_LINK}" target="_blank" rel="noopener">Abrir a vitrine CMS →</a></div>`;
+  // Sem cor na vitrine, vale olhar a carteira dos outros clientes. A busca
+  // repinta o card quando termina — e só se faz enquanto falta, senão a
+  // repintura chamaria a busca outra vez, sem fim.
+  if(!lista.length && !outrasProntas() && !E.outrasErro)
+    garantirOutras().then(() => { if(E.vitProduto === p) pintarCards(); });
   barraSacola();
 }
+
+/* ── a carteira dos outros clientes ──────────────────────────────────
+   Artigo que a vitrine não tem pode estar em carteira de outro cliente: com
+   a liberação do vendedor, aquele pedido vira repasse. O aviso aparece no
+   modal da vitrine e o botão abre a Detalhada focada só neste artigo.    */
+const outrasDe = p => outrasProntas() ? (E.outras[norm(p.codigo)] || null) : null;
+
+function avisoOutras(p){
+  if(!outrasProntas() && !E.outrasErro)
+    return '<div class="vit-outras indo">Procurando este artigo na carteira de outros clientes…</div>';
+  if(E.outrasErro)
+    return '<div class="vit-outras">Não deu para consultar as outras carteiras agora.</div>';
+  const o = outrasDe(p);
+  if(!o) return '<div class="vit-outras">Também não há nada deste artigo em carteira de outros clientes.</div>';
+  const n = new Set(o.linhas.map(l => l.cli)).size;
+  return `<div class="vit-outras tem"><span><b>${nf(o.total)} pares</b> deste artigo estão em carteira de ` +
+    `${n === 1 ? 'outro cliente' : n + ' outros clientes'} — pode dar para negociar um repasse.</span>` +
+    `<button type="button" class="bt-outras" data-outras="1">Ver na Detalhada →</button></div>`;
+}
+
+function abrirOutras(){
+  if(!outrasDe(E.vitProduto)) return;
+  E.outrasCor = '';
+  pintarOutras();
+  $('outrasFundo').classList.add('aberta');
+  $('outrasFechar').focus();
+}
+function fecharOutras(){ $('outrasFundo').classList.remove('aberta'); }
+
+// as linhas soltas viram cores, clientes e um total
+function dadosOutras(){
+  const p = E.vitProduto, o = outrasDe(p);
+  if(!o) return null;
+  const minha = chaveCor(p.cor);
+  const cores = new Map();
+  o.linhas.forEach(l => {
+    const k = chaveCor(l.cor);
+    const c = cores.get(k) || (cores.set(k, { k, cor:l.cor, q:0, minha:k === minha }), cores.get(k));
+    c.q += l.q;
+  });
+  const sel = E.outrasCor || '';
+  const porCli = new Map();
+  o.linhas.filter(l => !sel || chaveCor(l.cor) === sel).forEach(l => {
+    const c = porCli.get(l.cli) || (porCli.set(l.cli, { cli:l.cli, nome:l.nome, prep:l.prep, q:0, itens:new Map() }), porCli.get(l.cli));
+    c.q += l.q;
+    if(!c.prep && l.prep) c.prep = l.prep;
+    const ik = `${chaveCor(l.cor)}|${l.gci}|${l.dia}`;
+    const it = c.itens.get(ik) || (c.itens.set(ik, { cor:l.cor, gci:l.gci, dia:l.dia, q:0, mesma:chaveCor(l.cor) === minha }), c.itens.get(ik));
+    it.q += l.q;
+  });
+  const clientes = [...porCli.values()].sort((a, b) => b.q - a.q).map(c =>
+    ({ ...c, itens:[...c.itens.values()].sort((a, b) => b.q - a.q || a.dia - b.dia) }));
+  return { p, minha, sel,
+    cores:[...cores.values()].sort((a, b) => b.q - a.q),
+    clientes, total: clientes.reduce((s2, c) => s2 + c.q, 0) };
+}
+
+function pintarOutras(){
+  const d = dadosOutras();
+  if(!d) return;
+  const chip = (k, rot, q, on, minha) =>
+    `<button type="button" class="of${on ? ' on' : ''}${minha ? ' minha' : ''}" data-cor="${esc(k)}">` +
+    `${esc(rot)} <b>${nf(q)}</b></button>`;
+  $('outrasCab').innerHTML =
+    `<h3>${esc(d.p.descricao)}</h3>` +
+    `<p>Artigo ${esc(d.p.codigo)} · carteira em aberto de outros clientes` +
+    `${E.outrasEm ? ' · Detalhada de ' + new Date(E.outrasEm).toLocaleDateString('pt-BR') : ''}</p>` +
+    `<div class="outras-filtros">` +
+    chip('', 'Todas as cores', d.cores.reduce((s2, c) => s2 + c.q, 0), !d.sel, false) +
+    d.cores.map(c => chip(c.k, c.cor + (c.minha ? ' · esta cor' : ''), c.q, d.sel === c.k, c.minha)).join('') +
+    `</div>`;
+
+  const linhas = d.clientes.map(c => c.itens.map((it, i) => `<tr class="${i ? '' : 'gp'}${it.mesma ? ' mesma' : ''}">` +
+    (i ? '' : `<td class="cli" rowspan="${c.itens.length}"><b>${esc(c.nome)}</b>` +
+      `<span>${esc(c.cli)}${c.prep ? ' · ' + esc(c.prep) : ''}</span></td>`) +
+    `<td>${esc(it.cor)}${it.mesma ? ' <span class="sinal">esta cor</span>' : ''}</td>` +
+    `<td class="n col-gci">${it.gci ? esc(String(it.gci)) : '—'}</td>` +
+    `<td class="n">${diaBR(it.dia)}</td>` +
+    `<td class="n pares">${nf(it.q)}</td>` +
+    (i ? '' : c.itens.length > 1
+      ? `<td class="n soma col-soma" rowspan="${c.itens.length}">${nf(c.q)}</td>`
+      : '<td class="col-soma"></td>') +
+    `</tr>`).join('')).join('');
+
+  $('outrasCorpo').innerHTML = d.clientes.length ? `<table class="outras-tab">
+    <thead><tr><th>Cliente</th><th>Cor</th><th class="n col-gci">GCI</th><th class="n">Previsão</th>
+      <th class="n">Pares</th><th class="n col-soma">Do cliente</th></tr></thead>
+    <tbody>${linhas}</tbody>
+    <tfoot><tr><td colspan="4">${d.clientes.length} ${d.clientes.length === 1 ? 'cliente' : 'clientes'}</td>
+      <td class="n pares">${nf(d.total)}</td><td class="col-soma"></td></tr></tfoot>
+  </table>` : '<div class="vit-nada">Nada desta cor em carteira de outro cliente.</div>';
+}
+
+$('outrasFechar').onclick = fecharOutras;
+$('outrasFundo').onclick = ev => { if(ev.target === $('outrasFundo')) fecharOutras(); };
+$('outrasCab').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-cor]');
+  if(!b) return;
+  E.outrasCor = b.dataset.cor;
+  pintarOutras();
+});
 
 function barraSacola(){
   const n = E.sac.size;
@@ -1423,6 +1590,7 @@ $('vitCorpo').addEventListener('change', ev => {
 
 // foto da cor listada, sem sair da janela da vitrine
 $('vitCorpo').addEventListener('click', ev => {
+  if(ev.target.closest('[data-outras]')){ abrirOutras(); return; }
   const lotes = ev.target.closest('[data-lotes]');
   if(lotes){ abrirLotes(lotes.dataset.lotes); return; }
   const sac = ev.target.closest('[data-sac]');
@@ -1440,9 +1608,11 @@ $('vitCorpo').addEventListener('click', ev => {
 $('vitFechar').onclick = fecharVitrine;
 $('sacEnviar').onclick = enviarSacola;
 $('vitFundo').onclick = ev => { if(ev.target === $('vitFundo')) fecharVitrine(); };
+// com uma janela aberta por cima, o Esc fecha só ela
+const temPorCima = () => ['fotoFundo', 'lotesFundo', 'outrasFundo']
+  .some(id => $(id).classList.contains('aberta'));
 document.addEventListener('keydown', ev => {
-  // com a foto aberta por cima, o Esc fecha só ela
-  if(ev.key === 'Escape' && !$('fotoFundo').classList.contains('aberta')) fecharVitrine();
+  if(ev.key === 'Escape' && !temPorCima()) fecharVitrine();
 });
 
 /* ── fotos ───────────────────────────────────────────────────────────── */
@@ -1499,6 +1669,7 @@ $('fotoFechar').onclick = fecharFoto;
 $('fotoFundo').onclick = ev => { if(ev.target === $('fotoFundo')) fecharFoto(); };
 document.addEventListener('keydown', ev => {
   if(ev.key !== 'Escape') return;
+  if($('outrasFundo').classList.contains('aberta')) return fecharOutras();
   if($('lotesFundo').classList.contains('aberta')) return fecharLotes();
   fecharFoto();
 });
@@ -1722,6 +1893,66 @@ async function cacheSalvar(chave, valor){
 
 // Pedido por referência + cor e mês do ano: f = já faturado, a = em aberto.
 // O mês é o da previsão de faturamento, que é como a planilha organiza.
+/* ── o que os outros clientes têm em carteira ────────────────────────
+   Quando a vitrine não tem o produto, a mercadoria pode estar em carteira
+   de outro cliente e dar para negociar um repasse. O índice é montado no
+   mesmo passo em que a base é lida: fica só na memória da sessão, porque
+   é a base inteira e não cabe no armazenamento do aparelho.            */
+function extrairOutras(base, codigos){
+  const nossos = new Set(codigos.map(String));
+  const fora = {};
+  for(const l of base.l){
+    if(!(l[DC.CART] > 0)) continue;
+    const cli = base.dic.cli[l[DC.CLI]] || ['', ''];
+    if(nossos.has(String(cli[0]))) continue;
+    const marca = MARCA_DET[base.dic.marca[l[DC.MARCA]]];
+    if(!marca) continue;
+    const [ref] = base.dic.ref[l[DC.REF]] || [''];
+    if(!ref) continue;
+    const k = norm(ref);
+    const it = fora[k] || (fora[k] = { total:0, linhas:[] });
+    it.total += l[DC.CART];
+    it.linhas.push({
+      cli: cli[0], nome: cli[1],
+      prep: (base.dic.prep || [])[l[0]] || '',
+      cor: String(base.dic.cor[l[DC.COR]] || '').toUpperCase(),
+      gci: l[DC.GCI] || 0, dia: l[DC.PREV], q: l[DC.CART],
+    });
+  }
+  return fora;
+}
+
+function guardarOutras(base, codigos, quando){
+  E.outras = extrairOutras(base, codigos);
+  E.outrasEm = base.gerado || quando || null;
+  E.outrasCli = E.base ? E.base.cliente.id : '';
+  E.outrasErro = false;
+}
+const outrasProntas = () => !!E.outras && E.base && E.outrasCli === E.base.cliente.id;
+
+/* A carteira do cliente vem do cache quase sempre, e aí a base inteira não
+   é baixada — o índice dos outros precisa buscá-la quando alguém pergunta.
+   Vale só enquanto a aba está aberta: são 3 MB e não cabem no aparelho. */
+let OUTRAS_INDO = null;
+function garantirOutras(){
+  if(outrasProntas() || E.outrasErro) return Promise.resolve();
+  if(OUTRAS_INDO) return OUTRAS_INDO;
+  const cli = E.base.cliente;
+  const serve = b => b && b.v === DET_VERSAO && Array.isArray(b.l) ? b : null;
+  OUTRAS_INDO = (async () => {
+    let base = null;
+    try{ base = serve(await chamarWorker('getDetalhada', 45000)); }catch(_){}
+    if(!base) try{
+      const r = await fetch(RESERVA, { cache:'no-cache' });
+      base = r.ok ? serve(await r.json()) : null;
+    }catch(_){}
+    if(!E.base || E.base.cliente.id !== cli.id) return;   // trocou de cliente
+    if(base) guardarOutras(base, codigosDe(cli));
+    else E.outrasErro = true;
+  })().finally(() => { OUTRAS_INDO = null; });
+  return OUTRAS_INDO;
+}
+
 function extrairCarteira(base, codigos, ano){
   const clis = new Set();
   base.dic.cli.forEach((c, i) => { if(codigos.includes(String(c[0]))) clis.add(i); });
@@ -1896,6 +2127,7 @@ async function carregarCarteira(cli, guardado){
     if(valido && guardado.gerado === info.gerado) return;
     const base = await chamarWorker('getDetalhada', 45000);
     if(!base || base.v !== DET_VERSAO || !Array.isArray(base.l)) throw new Error('base inválida');
+    guardarOutras(base, codigos, info.gerado);
     const pacote = { v:CART_V, gerado: base.gerado || info.gerado, codigos: codigos.join(','), ano,
                      ...extrairCarteira(base, codigos, ano), salvoEm: Date.now() };
     cacheSalvar(chave, pacote);
@@ -1923,6 +2155,7 @@ async function carregarCarteira(cli, guardado){
         cacheSalvar(chave, { ...guardado, salvoEm: Date.now(), marcaReserva: marca });
         return;
       }
+      guardarOutras(base, codigos);
       const pacote = { v:CART_V, gerado: base.gerado, codigos: codigos.join(','), ano,
                        ...extrairCarteira(base, codigos, ano), reserva:true,
                        salvoEm: Date.now(), marcaReserva: marca };
