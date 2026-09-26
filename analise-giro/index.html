@@ -820,6 +820,15 @@ function aplicarMenu(aberto){
   b.setAttribute('aria-expanded', String(aberto));
 }
 aplicarMenu(lembrar('menu') === 'aberto');
+// Com o menu aberto, um clique fora dele fecha: no computador a lateral
+// rouba largura da tabela, e ninguém volta na setinha só para recuperá-la.
+document.addEventListener('click', ev => {
+  const app = document.querySelector('.app');
+  if(app.classList.contains('sem-menu')) return;
+  if(ev.target.closest('#sidebar') || ev.target.closest('#menuSeta')) return;
+  guardar('menu', 'fechado');
+  aplicarMenu(false);
+});
 $('menuSeta').onclick = () => {
   const aberto = document.querySelector('.app').classList.contains('sem-menu');
   guardar('menu', aberto ? 'aberto' : 'fechado');
