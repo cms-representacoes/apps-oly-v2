@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cor da intenção</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E1726; --slate:#5B6678; --mute:#8A93A3; --paper:#F6F7F9; --card:#fff;
+  --line:#E7EAEF; --line-2:#EFF1F5;
+  /* as quatro cores que a carteira já usa hoje */
+  --k-head:#FFE14D; --k-head-ink:#3D3300;
+  --k-abe:#92D050; --k-abe-ink:#1D3A0A;      /* em aberto */
+  --k-fat:#EEF6E6; --k-fat-ink:#6B8A55;      /* faturado, sem chegar */
+  --k-chegou:#E3ECFA; --k-chegou-ink:#1D4ED8;/* faturado e no estoque */
+  --k-parcial:#FBE7B0; --k-parcial-ink:#7A5600;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,sans-serif;padding:26px 18px 60px}
+.wrap{max-width:980px;margin:0 auto}
+h1{font-size:21px;margin:0 0 6px;letter-spacing:-.02em}
+p.sub{margin:0 0 22px;font-size:13.5px;color:var(--slate);max-width:72ch;line-height:1.55}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:26px 0 8px}
+table{border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;width:100%;font-size:12.5px}
+th,td{padding:7px 10px;text-align:center;white-space:nowrap}
+thead th{background:var(--k-head);color:var(--k-head-ink);font:700 10.5px 'Space Grotesk',sans-serif;
+  text-transform:uppercase;letter-spacing:.05em}
+th.p,td.p{text-align:left;background:var(--card);border-right:1px solid var(--line);
+  font-weight:700;min-width:190px}
+td{font-family:'Space Grotesk',sans-serif;font-weight:700;border-bottom:1px solid var(--line-2)}
+tr:last-child td{border-bottom:0}
+.k-abe{background:var(--k-abe);color:var(--k-abe-ink)}
+.k-fat{background:var(--k-fat);color:var(--k-fat-ink)}
+.k-chegou{background:var(--k-chegou);color:var(--k-chegou-ink)}
+.k-parcial{background:var(--k-parcial);color:var(--k-parcial-ink)}
+.op{background:var(--c);color:var(--ci);position:relative}
+.op::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.55}
+.opcao{margin-bottom:26px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.opcao h3{margin:0 0 3px;font-size:14px;display:flex;align-items:center;gap:9px}
+.opcao h3 i{width:15px;height:15px;border-radius:5px;background:var(--c);border:1px solid rgba(0,0,0,.08)}
+.opcao p{margin:0 0 11px;font-size:12px;color:var(--slate)}
+.leg{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--slate);margin-top:10px}
+.leg span{display:inline-flex;align-items:center;gap:6px}
+.leg i{width:12px;height:12px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Que azul usar para a quantidade escolhida na vitrine</h1>
+  <p class="sub">A carteira já usa quatro cores: verde forte no que está em aberto, verde claro no
+     faturado que ainda não chegou, azul claro no faturado que já entrou no estoque e âmbar no
+     faturamento parcial. A cor nova precisa não se confundir com nenhuma delas — principalmente
+     com o azul claro. Abaixo, a mesma linha de carteira com cada candidata, e um pontinho no
+     canto para marcar que aquilo é escolha da vitrine, não pedido.</p>
+
+  <div class="leg">
+    <span><i class="k-abe" style="background:var(--k-abe)"></i> em aberto</span>
+    <span><i style="background:var(--k-fat)"></i> faturado sem chegar</span>
+    <span><i style="background:var(--k-chegou)"></i> faturado e no estoque</span>
+    <span><i style="background:var(--k-parcial)"></i> parcial</span>
+  </div>
+
+  <div id="opcoes"></div>
+</div>
+
+<script>
+const OPCOES = [
+  ['A · Índigo cheio', '#4C4FE0', '#FFFFFF', 'Azul forte, texto branco. É o que mais salta — e é a cara da marca.'],
+  ['B · Índigo suave', '#DDE0FD', '#2A2FB5', 'Mesma família da marca, em tom claro. Discreto, combina com a tabela.'],
+  ['C · Turquesa', '#CDF0F2', '#0B6B73', 'Sai da família dos azuis já usados; não briga com o azul do faturado.'],
+  ['D · Violeta', '#E6DDFB', '#5B21B6', 'Some do vocabulário atual: ninguém confunde com nada da carteira.'],
+  ['E · Azul petróleo', '#2A6A86', '#FFFFFF', 'Escuro e sóbrio, texto branco, sem puxar para o roxo da marca.'],
+];
+const MESES = ['Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+document.getElementById('opcoes').innerHTML = OPCOES.map(([nome, c, ci, txt]) => `
+  <div class="opcao" style="--c:${c};--ci:${ci}">
+    <h3><i></i>${nome} <span style="font:600 11px 'Space Grotesk';color:var(--mute)">${c}</span></h3>
+    <p>${txt}</p>
+    <table>
+      <thead><tr><th class="p">Produto</th>${MESES.map(m => `<th>${m}</th>`).join('')}<th>2S26</th></tr></thead>
+      <tbody>
+        <tr><td class="p">ELEVADO · PTO/PT</td>
+          <td class="k-fat">96</td><td class="k-chegou">48</td><td></td>
+          <td class="op">24</td><td class="k-abe">168</td><td></td><td class="k-abe">336</td></tr>
+        <tr><td class="p">CORRE 5 · ARTPTO</td>
+          <td></td><td class="k-parcial">60</td><td class="op">36</td>
+          <td class="k-abe">96</td><td></td><td></td><td class="k-abe">192</td></tr>
+        <tr><td class="p">VELOZ 4 · ARENML</td>
+          <td></td><td></td><td></td><td class="op">12</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>`).join('');
+</script>
+</body>
+</html>
