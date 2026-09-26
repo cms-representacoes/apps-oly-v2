@@ -109,13 +109,17 @@ CLIENTES = [
         'id': 'ideal-magazine',
         'nome': 'Ideal Magazine',
         'razao': 'GRUPO IDEAL',
-        # o grupo compra por 15 códigos na Detalhada; o 21511 é o líder
+        # O grupo aparece com 15 códigos na Detalhada, mas só estas nove lojas
+        # entram no plano de contas. Puxar a carteira das quinze deixava o
+        # número desproporcional em relação à venda analisada.
+        #   Bacabal 11948 · Balsas 95206 · Buriticupu 3309898 · Caxias 21511
+        #   Codó 121069 · Imperatriz 75383 · Lago da Pedra 137388
+        #   Presidente Dutra 2373565 · Santa Inês 68621
         'codigo': '21511',
-        'codigos': ['21511', '11948', '105709', '68621', '121069', '25931', '63095',
-                    '75383', '76687', '95206', '137388', '1026378', '2373565',
-                    '3132954', '3309898'],
+        'codigos': ['11948', '95206', '3309898', '21511', '121069',
+                    '75383', '137388', '2373565', '68621'],
         'lider': '21511',
-        'lojas': 7,
+        'lojas': 9,
         'vendedor': 'JORGE',
         'marca': 'Olympikus',
         'arquivo': PLANOS / 'OLYMPIKUS' / 'JORGE' / 'AG IDEAL MAGAZINE.xlsx',

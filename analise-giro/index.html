@@ -215,20 +215,27 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .giro .fx1,.giro .fx2,.giro .fx3,.giro .fx4{position:sticky;z-index:3;text-align:center}
 /* larguras fixas: é assim que as três colunas presas sabem onde começa a
    seguinte. A cor fica presa porque o mesmo código aparece várias vezes. */
-.giro .fx1{left:0;width:118px;min-width:118px;max-width:118px;font-weight:700}
-.giro .fx2{left:118px;width:230px;min-width:230px;max-width:230px;overflow:hidden;position:sticky}
-.giro td.fx2{display:flex;align-items:center;gap:4px}
-.giro td.fx2 .desc-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.btn-loja{flex:none;margin-left:auto;width:21px;height:21px;border-radius:6px;border:1px solid var(--line);
+.giro .fx1{left:0;width:132px;min-width:132px;max-width:132px;font-weight:700}
+/* Os ícones ficam presos na direita da coluna, um embaixo do outro: soltos
+   no meio da célula, eles dançavam conforme o tamanho do código. Presos por
+   posição, e não por flex — flex numa célula desalinha a linha inteira. */
+.giro td.fx1{text-align:left;padding-right:26px}
+.giro td.fx1 .cod-t{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.giro td.fx1 .btn-foto{position:absolute;right:5px;top:50%;transform:translateY(-50%)}
+.giro .fx2{left:132px;width:230px;min-width:230px;max-width:230px;overflow:hidden;position:sticky}
+.giro td.fx2{padding-right:28px}
+.giro td.fx2 .desc-t{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.btn-loja{position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:21px;height:21px;border-radius:6px;border:1px solid var(--line);
   background:var(--card);color:var(--mute);display:grid;place-items:center;cursor:pointer;padding:0}
 .btn-loja:hover{border-color:var(--accent);color:var(--accent);background:var(--card)}
 .btn-loja.off{opacity:.3;border-style:dashed}
 .btn-loja.off:hover{border-color:var(--line);color:var(--mute)}
 tr.sel .btn-loja{background:var(--card)}
-.giro .fx3{left:348px;width:92px;min-width:92px;max-width:92px;
+.giro .fx3{left:362px;width:92px;min-width:92px;max-width:92px;
   overflow:hidden;text-overflow:ellipsis;font-weight:600}
 /* PDV é a última coluna presa, então a borda que separa o que rola fica nela */
-.giro .fx4{left:440px;width:86px;min-width:86px;max-width:86px;box-shadow:2px 0 0 var(--line);
+.giro .fx4{left:454px;width:86px;min-width:86px;max-width:86px;box-shadow:2px 0 0 var(--line);
   font-variant-numeric:tabular-nums;font-weight:600}
 .giro thead .fx1,.giro thead .fx2,.giro thead .fx3,.giro thead .fx4{z-index:6}
 .cor-cab{display:flex;align-items:center;justify-content:center;gap:6px}
@@ -463,7 +470,7 @@ button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-m
 
 /* foto do produto: ícone ao lado do código e a janela com a imagem */
 .btn-foto{flex:none;width:19px;height:19px;border-radius:5px;border:1px solid var(--line);background:var(--card);
-  color:var(--slate);display:inline-grid;place-items:center;padding:0;vertical-align:-4px;margin-right:6px}
+  color:var(--slate);display:inline-grid;place-items:center;padding:0}
 .btn-foto svg{width:12px;height:12px}
 .btn-foto:hover{border-color:var(--accent);color:var(--accent)}
 .btn-foto:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -1938,7 +1945,7 @@ function pintar(){
       cel += celS(p, S2);
     }
     return `<tr data-k="${esc(p.k)}" class="${E.sel === p.k ? 'sel' : ''}">
-      <td class="fx1">${fotoDe(p) ? ICONE_FOTO : ''}${esc(p.codigo)}<span class="corm">${esc(p.cor)}</span></td>
+      <td class="fx1"><span class="cod-t">${esc(p.codigo)}<span class="corm">${esc(p.cor)}</span></span>${fotoDe(p) ? ICONE_FOTO : ''}</td>
       <td class="fx2" title="${esc(p.descricao)}"><span class="desc-t">${esc(p.descricao)}</span>${iconeLoja(p)}</td>
       <td class="fx3" title="${esc(p.cor)}">${esc(p.cor)}</td>
       <td class="fx4">${brl(p.pdv)}</td>
@@ -1964,7 +1971,7 @@ function pintar(){
   // Larguras declaradas de uma vez. Sem isto, cada remontagem da faixa fazia
   // o navegador medir todas as células de novo — eram os solavancos de 100 ms
   // na rolagem, e as colunas ainda dançavam de largura.
-  const L = { fx1:118, fx2:230, fx3:92, gen:82, pdv:86, faixa:126, cod:166, v:58, e:69, c:62, o:104, k:54, ks:60 };
+  const L = { fx1:132, fx2:230, fx3:92, gen:82, pdv:86, faixa:126, cod:166, v:58, e:69, c:62, o:104, k:54, ks:60 };
   let cols = `<col style="width:${L.fx1}px"><col style="width:${L.fx2}px"><col style="width:${L.fx3}px">` +
     `<col style="width:${L.pdv}px">` +
     (E.extras ? `<col style="width:${L.gen}px"><col style="width:${L.faixa}px"><col style="width:${L.cod}px">` : '');
