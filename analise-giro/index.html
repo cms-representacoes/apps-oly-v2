@@ -1268,7 +1268,7 @@ async function carregar(){
     return;
   }
   $('cliSel').innerHTML = E.clientes.map(c => `<option value="${esc(c.id)}">${esc(c.nome)} · ${esc(c.codigo)}</option>`).join('');
-  pintarCards();
+  pintarClientes();
   $('cliPick').hidden = E.clientes.length < 2;
   const ult = lembrar('cliente');
   const inicial = E.clientes.some(c => c.id === ult) ? ult : E.clientes[0].id;
@@ -1281,7 +1281,7 @@ async function carregar(){
 const iniciais = nome => String(nome || '').trim().split(/\s+/).slice(0, 2)
   .map(x => x[0]).join('').toUpperCase() || '—';
 
-function pintarCards(){
+function pintarClientes(){
   const atual = E.base && E.base.cliente ? E.base.cliente.id : lembrar('cliente');
   $('cliCards').innerHTML = (E.clientes || []).map(c => `
     <button type="button" class="cli-card${c.id === atual ? ' on' : ''}" data-cli="${esc(c.id)}"
@@ -1379,7 +1379,7 @@ async function abrirCliente(id){
   rodape();
   pintar();
   medirCab();
-  pintarCards();
+  pintarClientes();
   carregarLojas(c);
   carregarCarteira(c, guardado);
 }
