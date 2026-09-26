@@ -441,6 +441,29 @@ button.sino.cab.on{background:var(--red);color:#fff;box-shadow:0 0 0 2px color-m
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vcod{font-size:9.5px;font-weight:600;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vpreco{font-size:13.5px;font-weight:900;color:var(--marca);letter-spacing:-.025em}
+/* ── lotes de repasse ── */
+#lotesFundo{z-index:78}
+.lotes-cx{width:min(560px,94vw);max-height:88dvh;display:flex;flex-direction:column;padding:0;overflow:hidden}
+/* o X fica dentro da caixa: no canto de fora ele caía em cima do X da
+   janela da vitrine, que está logo atrás */
+.lotes-cx .foto-fechar{top:9px;right:9px;width:29px;height:29px;font-size:15px;z-index:3;box-shadow:none}
+.lotes-cab{padding:15px 46px 12px 18px;border-bottom:1px solid var(--line)}
+.lotes-cab h3{margin:0;font-size:15px;font-weight:700}
+.lotes-cab p{margin:2px 0 0;font-size:11.5px;color:var(--mute);font-weight:600}
+.lotes-corpo{padding:10px 14px 16px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.lote{border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--card)}
+.lote.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
+.lote-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.lote-top .num{font:700 12.5px "Space Grotesk",sans-serif}
+.lote-top .meta{font-size:11px;color:var(--mute);font-weight:600}
+.lote-top .pares{margin-left:auto;font:700 13px "Space Grotesk",sans-serif}
+.lote-top .por{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 11px;
+  font:700 11px Inter,sans-serif;color:var(--accent);cursor:pointer}
+.lote-top .por.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.lote-grade{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.lote-grade span{min-width:32px;border:1px solid var(--line);border-radius:7px;padding:3px 5px;text-align:center;
+  font:700 10.5px "Space Grotesk",sans-serif;color:var(--slate);background:var(--paper)}
+.lote-grade span b{display:block;font-size:11.5px;color:var(--ink)}
 .vchips{display:flex;flex-direction:column;gap:4px;margin-top:auto;padding-top:4px}
 .vchip{display:flex;align-items:center;gap:5px;border:1px solid transparent;border-radius:9px;padding:4px 7px;
   font:600 10px "Space Grotesk",sans-serif;letter-spacing:.02em;text-align:left;width:100%}
@@ -649,6 +672,14 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
   </div>
 
   <datalist id="obsLista"></datalist>
+
+  <div class="foto-fundo" id="lotesFundo" role="dialog" aria-modal="true" aria-label="Lotes de repasse">
+    <div class="foto-cx lotes-cx">
+      <button type="button" class="foto-fechar" id="lotesFechar" title="Fechar (Esc)" aria-label="Fechar">&times;</button>
+      <div class="lotes-cab" id="lotesCab"></div>
+      <div class="lotes-corpo" id="lotesCorpo"></div>
+    </div>
+  </div>
 
   <div class="foto-fundo" id="vitFundo" role="dialog" aria-modal="true" aria-label="Onde este produto está">
     <div class="foto-cx vit-cx">
@@ -1077,6 +1108,7 @@ function coresNaVitrine(p){
   return lista.sort((a, b) => (b.mesma - a.mesma) || (b.total - a.total));
 }
 
+const LOTES_RESUMO = 2;   // acima disso, os repasses viram um chip só
 const naSacola = k => E.sac.has(k);
 
 /* O modal mostra todas as cores do artigo, e cada card é uma cor. A escolha
@@ -1155,9 +1187,19 @@ function pintarCards(){
     const c = [];
     if(o.pronta) c.push({ cls:'c-est', rot:'Pronta', q:o.pronta.total, key:`est|${o.k}`,
       origem:'estoque', mes:mesCorrente(), pk, linha, cor:o.cor, item:() => itemEstoque(o) });
-    o.lotes.forEach(l => c.push({ cls:'c-rep', rot:'Repasse Nº ' + l.num, q:l.saldo,
+    // Até dois lotes cabem na cara do card. Daí para cima vira um chip só,
+    // com o total, e os lotes se abrem numa janela — com doze repasses a
+    // lista empurrava o resto do card para fora da tela.
+    const lote = l => ({ cls:'c-rep', rot:'Repasse Nº ' + l.num, q:l.saldo,
       key:`rep|${o.k}|${l.num}`, origem:'repasse', mes:mesDaData(l.entrega) || mesCorrente(),
-      fixa:l.saldo, pk, linha, cor:o.cor, item:() => itemRepasse(o, l) }));
+      fixa:l.saldo, pk, linha, cor:o.cor, lote:l, card:o, item:() => itemRepasse(o, l) });
+    if(o.lotes.length > LOTES_RESUMO){
+      const total = o.lotes.reduce((s2, l) => s2 + l.saldo, 0);
+      c.push({ cls:'c-rep', rot:`Repasse · ${o.lotes.length} lotes`, q:total,
+        key:`lotes|${o.k}`, origem:'repasse', abre:o.k, chips:o.lotes.map(lote) });
+    }else{
+      o.lotes.forEach(l => c.push(lote(l)));
+    }
     if(o.meta){
       const q = o.meta.itens[0];
       c.push({ cls:'c-pro', rot:'Produção · ' + q.rot, q:o.meta.total,
@@ -1169,7 +1211,10 @@ function pintarCards(){
   E.chipItens = new Map();
   const cards = lista.map((o, i) => {
     const cs = chipsDe(o);
-    cs.forEach(c => E.chipItens.set(c.key, c));
+    cs.forEach(c => {
+      E.chipItens.set(c.key, c);
+      (c.chips || []).forEach(x => E.chipItens.set(x.key, x));
+    });
     const dentro = cs.filter(c => naSacola(c.key)).length;
     const img = fotoDe2(o);
     return `<article class="vcard${dentro ? ' na-sacola' : ''}">
@@ -1179,11 +1224,18 @@ function pintarCards(){
         <span class="vnome" title="${esc(o.nome)}">${esc(o.nome)}</span>
         <span class="vcod">${esc(o.artigo)} · ${esc(o.cor)}</span>
         ${o.pdv ? `<span class="vpreco">${brl(o.pdv)}</span>` : ''}
-        <span class="vchips">${cs.map(c =>
-          `<button type="button" class="vchip ${c.cls}${naSacola(c.key) ? ' on' : ''}" data-sac="${esc(c.key)}" ` +
-          `title="${naSacola(c.key) ? 'Tirar da sacola' : 'Pôr na sacola'}">${esc(c.rot)} <b>${nf(c.q)}</b>` +
-          `<span class="mais">${naSacola(c.key) ? '✓' : '+'}</span></button>`).join('')}</span>
-        ${cs.filter(c => naSacola(c.key)).map(c => campoQtd(c)).join('')}
+        <span class="vchips">${cs.map(c => {
+          if(c.abre){
+            const n = c.chips.filter(x => naSacola(x.key)).length;
+            return `<button type="button" class="vchip ${c.cls}" data-lotes="${esc(c.key)}" ` +
+              `title="Ver os ${c.chips.length} lotes e as grades">${esc(c.rot)} <b>${nf(c.q)}</b>` +
+              `<span class="mais">${n ? n + ' ✓' : '⋯'}</span></button>`;
+          }
+          return `<button type="button" class="vchip ${c.cls}${naSacola(c.key) ? ' on' : ''}" data-sac="${esc(c.key)}" ` +
+            `title="${naSacola(c.key) ? 'Tirar da sacola' : 'Pôr na sacola'}">${esc(c.rot)} <b>${nf(c.q)}</b>` +
+            `<span class="mais">${naSacola(c.key) ? '✓' : '+'}</span></button>`;
+        }).join('')}</span>
+        ${cs.flatMap(c => c.chips || [c]).filter(c => naSacola(c.key)).map(c => campoQtd(c)).join('')}
       </div></article>`;
   }).join('');
 
@@ -1297,6 +1349,67 @@ async function abrirVitrine(k){
   }
 }
 function fecharVitrine(){ $('vitFundo').classList.remove('aberta'); }
+
+/* ── a janela dos lotes ──────────────────────────────────────────────
+   Um repasse é um lote fechado: o que importa para decidir é o número, a
+   entrega e a grade. A janela mostra os três e deixa pôr na sacola de lá
+   mesmo, sem voltar ao card.                                           */
+let LOTES_ABERTO = null;
+function abrirLotes(chave){
+  const c = E.chipItens && E.chipItens.get(chave);
+  if(!c || !c.chips) return;
+  LOTES_ABERTO = chave;
+  pintarLotes();
+  $('lotesFundo').classList.add('aberta');
+  $('lotesFechar').focus();
+}
+function fecharLotes(){ $('lotesFundo').classList.remove('aberta'); LOTES_ABERTO = null; }
+
+function pintarLotes(){
+  const c = E.chipItens && E.chipItens.get(LOTES_ABERTO);
+  if(!c) return;
+  const o = c.chips[0].card;
+  const total = c.chips.reduce((s2, x) => s2 + x.fixa, 0);
+  const naSac = c.chips.filter(x => naSacola(x.key));
+  $('lotesCab').innerHTML = `<h3>${esc(o.nome)} · ${esc(o.cor)}</h3>` +
+    `<p>${c.chips.length} lotes de repasse · ${nf(total)} pares` +
+    `${naSac.length ? ` · ${naSac.length} na sacola` : ''}</p>`;
+  $('lotesCorpo').innerHTML = c.chips.map(x => {
+    const l = x.lote;
+    const tam = Object.entries(l.grade || {}).sort((a, b) => ordemTam(a[0]) - ordemTam(b[0]));
+    const dentro = naSacola(x.key);
+    return `<div class="lote${dentro ? ' on' : ''}">
+      <div class="lote-top">
+        <span class="num">Nº ${esc(l.num)}</span>
+        <span class="meta">${l.gci ? 'GCI ' + esc(l.gci) + ' · ' : ''}${l.entrega ? 'entrega ' + esc(diaCurto(l.entrega)) : 'sem data'}</span>
+        <span class="pares">${nf(l.saldo)} pares</span>
+        <button type="button" class="por${dentro ? ' on' : ''}" data-lote="${esc(x.key)}">${dentro ? '✓ na sacola' : '+ sacola'}</button>
+      </div>
+      ${tam.length ? `<div class="lote-grade">${tam.map(([t, q]) =>
+        `<span>${esc(t)}<b>${nf(q)}</b></span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// "2026-10-15" ou "15/10/2026" → "15/10"
+function diaCurto(v){
+  const t = String(v || '').trim();
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[3]}/${m[2]}`;
+  m = t.match(/^(\d{2})\/(\d{2})/);
+  return m ? `${m[1]}/${m[2]}` : t;
+}
+
+$('lotesFechar').onclick = fecharLotes;
+$('lotesFundo').onclick = ev => { if(ev.target === $('lotesFundo')) fecharLotes(); };
+$('lotesCorpo').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-lote]');
+  if(!b) return;
+  const c = E.chipItens.get(b.dataset.lote);
+  if(!c) return;
+  mexerSacola(c.key, c.item(), c);   // pintarCards redesenha o card por trás
+  pintarLotes();
+});
 // a quantidade digitada entra na carteira assim que o campo muda
 $('vitCorpo').addEventListener('change', ev => {
   const inp = ev.target.closest('input[data-q]');
@@ -1310,6 +1423,8 @@ $('vitCorpo').addEventListener('change', ev => {
 
 // foto da cor listada, sem sair da janela da vitrine
 $('vitCorpo').addEventListener('click', ev => {
+  const lotes = ev.target.closest('[data-lotes]');
+  if(lotes){ abrirLotes(lotes.dataset.lotes); return; }
   const sac = ev.target.closest('[data-sac]');
   if(sac){
     const k = sac.dataset.sac, c = E.chipItens && E.chipItens.get(k);
@@ -1382,7 +1497,11 @@ function fotoDaCor(codigo, cor){
 function fecharFoto(){ $('fotoFundo').classList.remove('aberta'); $('fotoImg').removeAttribute('src'); }
 $('fotoFechar').onclick = fecharFoto;
 $('fotoFundo').onclick = ev => { if(ev.target === $('fotoFundo')) fecharFoto(); };
-document.addEventListener('keydown', ev => { if(ev.key === 'Escape') fecharFoto(); });
+document.addEventListener('keydown', ev => {
+  if(ev.key !== 'Escape') return;
+  if($('lotesFundo').classList.contains('aberta')) return fecharLotes();
+  fecharFoto();
+});
 
 /* ── dados ───────────────────────────────────────────────────────────── */
 const bust = () => '?v=' + Math.floor(Date.now() / 60000);
