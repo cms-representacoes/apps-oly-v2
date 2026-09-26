@@ -713,7 +713,11 @@ function cobTexto(c){
 // abaixo de 1 mês falta produto; acima de 6 sobra
 const cobClasse = c => c === null ? '' : (c === Infinity || c > 6) ? 'high' : c < 1 ? 'low' : '';
 
-const COB_ALERTA = 1.5;   // daqui para baixo, o estoque não cobre o mês
+const COB_ALERTA = 2;      // daqui para baixo, o estoque não cobre o giro
+// Carteira pequena não resolve produto que gira bem: até este tanto de
+// pares em aberto o alerta continua valendo, e a vitrine entra como
+// reforço. Acima disso, a reposição já está encaminhada.
+const CART_LIBERA = 36;
 const ICONE_SINO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">` +
   `<path d="M12 4.5 2.8 20h18.4Z"/><path d="M12 10.5v4"/><path d="M12 17.3v.2"/></svg>`;
 // Cobertura baixa pede ação. Com carteira em aberto já há resposta a caminho,
@@ -723,12 +727,17 @@ function pedeAcao(p){
   const ult = E.base.meses[E.base.meses.length - 1];
   const x = p.m[ult] || {};
   const c = cobertura(x.v || 0, x.e || 0);
-  return c !== null && c <= COB_ALERTA && !temAberto(p);
+  return c !== null && c <= COB_ALERTA && abertoDe(p) <= CART_LIBERA;
 }
 function alertaCob(p, c){
   if(c === null || c > COB_ALERTA) return '';
-  if(temAberto(p)) return `<span class="sino calmo" title="Cobertura baixa, mas já há pedido em aberto">${ICONE_SINO}</span>`;
-  return `<button type="button" class="sino" data-vit="1" title="Cobertura baixa e sem carteira — ver o que a vitrine tem" ` +
+  const ab = abertoDe(p);
+  if(ab > CART_LIBERA)
+    return `<span class="sino calmo" title="Cobertura baixa, mas já há ${nf(ab)} pares em aberto">${ICONE_SINO}</span>`;
+  const dica = ab
+    ? `Cobertura baixa e só ${nf(ab)} pares em aberto — ver o que a vitrine tem`
+    : 'Cobertura baixa e sem carteira — ver o que a vitrine tem';
+  return `<button type="button" class="sino" data-vit="1" title="${dica}" ` +
     `aria-label="Ver o que a vitrine tem deste produto">${ICONE_SINO}</button>`;
 }
 
@@ -1519,6 +1528,8 @@ function extrairCarteira(base, codigos, ano){
 }
 
 const temAberto = p => !!p.c && Object.values(p.c).some(x => x.a > 0);
+// pares ainda em aberto na carteira do produto, somando os meses
+const abertoDe = p => !p.c ? 0 : Object.values(p.c).reduce((s, x) => s + (x.a || 0), 0);
 
 /* ── o faturado já chegou ao estoque do cliente? ─────────────────────
    O plano traz venda e estoque de cada mês, e daí sai o que entrou:
@@ -1849,7 +1860,7 @@ function pintar(){
     const n = E.linhas.filter(p => pedeAcao(p)).length;
     if(!n && !E.soAlerta) return '';
     return `<button type="button" class="sino cab${E.soAlerta ? ' on' : ''}" id="btnAlerta" ` +
-      `title="${E.soAlerta ? 'Mostrar todos os produtos' : `Só os ${nf(n)} com cobertura até ${cobTexto(COB_ALERTA)} e sem carteira`}" ` +
+      `title="${E.soAlerta ? 'Mostrar todos os produtos' : `Só os ${nf(n)} com cobertura até ${cobTexto(COB_ALERTA)} e no máximo ${CART_LIBERA} pares em aberto`}" ` +
       `aria-pressed="${E.soAlerta}">${ICONE_SINO}</button>`;
   };
   const seta = `<button type="button" class="btn-extras" id="btnExtras"
