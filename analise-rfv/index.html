@@ -675,12 +675,13 @@ function getPortalSession(){
   }catch(_){ return null; }
 }
 
-// Trava o filtro de vendedor com quem está logado no Portal (exceto CMS, que vê todos).
+// Trava o filtro de vendedor com quem está logado no Portal (exceto CMS e quem
+// desenvolve, que veem todos).
 function aplicarTravaVendedor(){
   const sel = document.getElementById('fVend');
   if(!sel) return;
   const session = getPortalSession();
-  if(!session || session.nome === 'CMS'){
+  if(!session || session.nome === 'CMS' || session.nome === 'MARCOS (DEV)'){
     sel.disabled = false;
     return;
   }

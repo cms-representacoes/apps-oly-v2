@@ -645,10 +645,12 @@ const PORTAL_SESSION = getPortalSession();
 if(!PORTAL_SESSION){
   window.location.replace('https://cms-representacoes.github.io/apps-oly/');
 }
-// CMS e Christian Lucas têm acesso total (igual admin) — os demais vendedores
-// só veem a própria aba, sem poder trocar pra ver a de outra pessoa.
+// CMS, Christian Lucas e quem desenvolve têm acesso total (igual admin) — os
+// demais vendedores só veem a própria aba, sem poder trocar pra ver a de outra
+// pessoa.
 const SESSION_NOME = String(PORTAL_SESSION?.nome || '').trim().toUpperCase();
-const IS_ADMIN_LIKE = SESSION_NOME === 'CMS' || SESSION_NOME === 'CHRISTIAN LUCAS';
+const IS_ADMIN_LIKE = SESSION_NOME === 'CMS' || SESSION_NOME === 'CHRISTIAN LUCAS'
+  || SESSION_NOME === 'MARCOS (DEV)';
 
 const FAIXAS = [
   {key:'ftw',      label:'FTW Olympikus', sub:'Calçados Olympikus',  cls:'ftw'},

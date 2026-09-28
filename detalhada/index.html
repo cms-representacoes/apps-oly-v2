@@ -2793,6 +2793,8 @@ const PREPOSTOS = [
   { nome: 'LEANDRO',   papel: 'vendedor' },
   { nome: 'CHRISTIAN', papel: 'vendedor' },
   { nome: 'C M S',     papel: 'admin'    },
+  // quem mexe nos aplicativos: entra como admin, vê tudo
+  { nome: 'MARCOS (DEV)', papel: 'admin' },
 ];
 
 // Nomes que a planilha usa e que precisam virar o nome oficial acima.
@@ -4568,10 +4570,11 @@ function rfvAbrir() {
 /* ============================================================
    LOGIN
    ============================================================ */
-/** "JORGE" -> JO, "C M S" -> CMS. Nomes escritos letra a letra viram a
- *  sigla inteira; os demais, primeira e ultima inicial. */
+/** "JORGE" -> JO, "C M S" -> CMS, "MARCOS (DEV)" -> MD. Nomes escritos letra
+ *  a letra viram a sigla inteira; os demais, primeira e ultima inicial. */
 function iniciaisDe(nome) {
-  const partes = String(nome).trim().split(/\s+/).filter(Boolean);
+  // sem os parênteses: "M(" não é sigla de ninguém
+  const partes = String(nome).replace(/[()]/g, ' ').trim().split(/\s+/).filter(Boolean);
   if (!partes.length) return '?';
   if (partes.every(x => x.length === 1)) return partes.join('').slice(0, 3).toUpperCase();
   if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
@@ -6822,7 +6825,7 @@ function reatBarraSacola() {
 
 const REAT_CODIGO = { 'C M S': '25846', 'LEANDRO': '25745', 'CHRISTIAN': '4322318',
                       'JORGE': '114611', 'MARIANA': '109839', 'RAFAEL': '1333497',
-                      'WILLAME': '25471' };
+                      'WILLAME': '25471', 'MARCOS (DEV)': '3616654' };
 
 async function reatEnviarSacola() {
   const codigo = REAT_CODIGO[(APP.sessao && APP.sessao.nome) || ''] || '';

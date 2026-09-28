@@ -790,8 +790,9 @@ function sessao(){
 const SESSAO = sessao() || (LOCAL ? { nome:'CMS' } : null);
 if(!SESSAO){ location.replace('https://cms-representacoes.github.io/apps-oly/'); return; }
 const NOME = String(SESSAO.nome || '').trim().toUpperCase();
-// A CMS e o Christian veem todos os clientes; cada vendedor, os seus.
-const VE_TUDO = NOME === 'CMS' || NOME === 'CHRISTIAN LUCAS';
+// A CMS, o Christian e quem desenvolve veem todos os clientes; cada
+// vendedor, os seus.
+const VE_TUDO = NOME === 'CMS' || NOME === 'CHRISTIAN LUCAS' || NOME === 'MARCOS (DEV)';
 
 /* ── utilitários ─────────────────────────────────────────────────────── */
 const $ = id => document.getElementById(id);
