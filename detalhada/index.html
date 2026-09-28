@@ -11368,15 +11368,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (op) { e.stopPropagation(); reatMexerSacola(op.dataset.sac); return; }
     const lot = e.target.closest('[data-lotes]');
     if (lot) { e.stopPropagation(); reatAbrirLotes(lot.dataset.lotes); return; }
-    if (e.target.closest('[data-mais]')) {
+    const mais = e.target.closest('[data-mais]');
+    if (mais) {
       e.stopPropagation();
-      const fita = e.target.closest('.reat-fita-cx').querySelector('.reat-fita');
-      const onde = fita ? fita.scrollLeft : 0;
-      REAT.ver += REAT_PASSO;
-      reatPintar();
-      // a fita volta para onde estava, senão ela salta para o começo
-      const nova = document.querySelectorAll('.reat-fita')[1];
-      if (nova) nova.scrollLeft = onde;
+      // Os novos entram antes do botão, no próprio DOM: repintar a tela
+      // inteira jogaria a fita de volta para o começo.
+      const de = REAT.ver;
+      const ate = Math.min(de + REAT_PASSO, REAT.parecidos.length);
+      mais.insertAdjacentHTML('beforebegin', REAT.parecidos.slice(de, ate).map(reatCard).join(''));
+      REAT.ver = ate;
+      const faltam = REAT.parecidos.length - REAT.ver;
+      if (faltam <= 0) mais.remove();
+      else {
+        mais.querySelector('.sb').textContent =
+          `+${formatarNumero(Math.min(REAT_PASSO, faltam))} de ${formatarNumero(faltam)}`;
+        mais.title = `Ver mais ${formatarNumero(faltam)} sugestões`;
+      }
+      const conta = document.querySelector('.reat-conta');
+      if (conta) conta.textContent =
+        `${formatarNumero(REAT.ver)} de ${formatarNumero(REAT.parecidos.length)}`;
+      // um passo curto à frente: a fita fica onde estava, mas o primeiro
+      // card novo aparece — senão o toque parece não ter feito nada
+      const fita = mais.parentElement;
+      if (fita) fita.scrollBy({ left: 175, behavior: 'smooth' });
+      reatSetas();
       return;
     }
     const seta = e.target.closest('[data-fita]');
