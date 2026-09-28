@@ -6329,6 +6329,7 @@ const REAT = {
   aberto: null,      // qual filtro está com a lista aberta
   foco: null,        // cliente em foco (código)
   cards: [],         // o que a fita do cliente aberto mostra
+  ver: 14,           // quantos parecidos estão à mostra
   sac: new Map(),    // o que vai para a sacola da vitrine
 };
 let reatBase = '';
@@ -6373,7 +6374,15 @@ async function reatVitrine() {
      que linha e para quem. A vitrine traz isso; o cadastro de produtos
      completa o que só existe no repasse. */
   const attr = new Map();
-  const perfilDe = a => a ? [a.tipo, a.linha, a.gen].filter(Boolean).join('|') : '';
+  /* Três níveis, do mais parecido ao menos: tipo+linha+público,
+     tipo+público e só o tipo. O primeiro abastece as sugestões; os
+     outros entram quando o vendedor pede mais. */
+  const NIVEIS = [
+    a => [a.tipo, a.linha, a.gen].filter(Boolean).join('|'),
+    a => [a.tipo, a.gen].filter(Boolean).join('|'),
+    a => a.tipo || '',
+  ];
+  const perfilDe = (a, n = 0) => a ? NIVEIS[n](a) : '';
   for (const p of (Array.isArray(prods) ? prods : [])) {
     const k = String(p.codigo || '').trim().toUpperCase();
     if (!k || attr.has(k)) continue;
@@ -6431,15 +6440,19 @@ async function reatVitrine() {
     o.lotes.sort((a, b) => a.dia - b.dia || b.saldo - a.saldo);
     guardar(o.art, o);
   }
-  // um índice por perfil, para achar o parecido sem varrer tudo de novo
-  const porPerfil = new Map();
+  // um índice por nível, para achar o parecido sem varrer tudo de novo
+  const porPerfil = NIVEIS.map(() => new Map());
   for (const art of porArtigo.keys()) {
-    const pf = perfilDe(attr.get(art));
-    if (!pf) continue;
-    if (!porPerfil.has(pf)) porPerfil.set(pf, []);
-    porPerfil.get(pf).push(art);
+    const a = attr.get(art);
+    if (!a) continue;
+    NIVEIS.forEach((_, n) => {
+      const pf = perfilDe(a, n);
+      if (!pf) return;
+      if (!porPerfil[n].has(pf)) porPerfil[n].set(pf, []);
+      porPerfil[n].get(pf).push(art);
+    });
   }
-  return { porArtigo, tipos, attr, porPerfil, perfilDe, em: new Date() };
+  return { porArtigo, tipos, attr, porPerfil, perfilDe, niveis: NIVEIS.length, em: new Date() };
 }
 
 /* O corte é o mesmo do RFV: quem faturou até junho e, de julho em diante,
@@ -6494,16 +6507,27 @@ function reatApurar() {
     const semelhantes = [];
     if (vit && vit.porPerfil) {
       const jaTem = new Set(ofertas.map(o => String(o.artigo).toUpperCase()));
-      const perfis = new Set();
-      for (const [ref] of [...art.get(c).entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)) {
-        const pf = vit.perfilDe(vit.attr.get(String(ref).trim().toUpperCase()));
-        if (pf) perfis.add(pf);
+      const dele = [...art.get(c).entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
+        .map(([ref]) => vit.attr.get(String(ref).trim().toUpperCase())).filter(Boolean);
+      const vistos = new Set();
+      // Nível a nível: o mais parecido primeiro, e dentro de cada nível o
+      // repasse antes da pronta entrega. "Mostrar mais" desce a lista.
+      for (let n = 0; n < vit.niveis; n++) {
+        const lote = [];
+        const perfis = new Set(dele.map(a => vit.perfilDe(a, n)).filter(Boolean));
+        for (const pf of perfis) for (const outro of (vit.porPerfil[n].get(pf) || [])) {
+          if (jaTem.has(outro)) continue;
+          for (const o of (vit.porArtigo.get(outro) || [])) {
+            const k = outro + '|' + String(o.cor).toUpperCase() + '|' + o.tipo;
+            if (vistos.has(k)) continue;
+            vistos.add(k);
+            lote.push({ ...o, artigo: outro, comprou: 0 });
+          }
+        }
+        lote.sort((a, b) => (b.tipo === 'repasse') - (a.tipo === 'repasse') || b.q - a.q);
+        semelhantes.push(...lote);
+        if (semelhantes.length > 200) break;   // ninguém rola mais que isso
       }
-      for (const pf of perfis) for (const outro of (vit.porPerfil.get(pf) || [])) {
-        if (jaTem.has(outro)) continue;
-        for (const o of (vit.porArtigo.get(outro) || [])) semelhantes.push({ ...o, artigo: outro, comprou: 0 });
-      }
-      semelhantes.sort((a, b) => (b.tipo === 'repasse') - (a.tipo === 'repasse') || b.q - a.q);
     }
     lista.push({ ci: c, cod: String(cod), nome, prep: APP.dic.prep[prep.get(c)] || '', semelhantes,
                  cidade: cid ? cid.cidade + (cid.uf ? '/' + cid.uf : '') : '',
@@ -6603,6 +6627,7 @@ function reatPorCor(c) {
 const reatNaSacola = k => REAT.sac.has(k);
 
 const REAT_LOTES_RESUMO = 1;   // acima disso, os lotes abrem numa janela
+const REAT_PASSO = 14;         // quantos parecidos o "mostrar mais" acrescenta
 
 function reatChipsCard(g) {
   const chips = [];
@@ -6636,10 +6661,16 @@ function reatChipsCard(g) {
   return chips.join('');
 }
 
-function reatFitaHtml(cards) {
+function reatFitaHtml(cards, faltam = 0) {
   return `<div class="reat-fita-cx">
     <button type="button" class="reat-seta esq" data-fita="-1" aria-label="Ver os anteriores"><i class="fa-solid fa-chevron-left"></i></button>
-    <div class="reat-fita">${cards.map(reatCard).join('')}</div>
+    <div class="reat-fita">${cards.map(reatCard).join('')}${faltam > 0
+      ? `<button type="button" class="reat-mais-card" data-mais="1" title="Ver mais ${
+          formatarNumero(faltam)} sugestões">
+          <span class="ic"><i class="fa-solid fa-plus"></i></span>
+          <span class="tx">Mostrar mais</span>
+          <span class="sb">+${formatarNumero(Math.min(REAT_PASSO, faltam))} de ${formatarNumero(faltam)}</span>
+        </button>` : ''}</div>
     <button type="button" class="reat-seta dir" data-fita="1" aria-label="Ver os próximos"><i class="fa-solid fa-chevron-right"></i></button>
   </div>`;
 }
@@ -6840,8 +6871,10 @@ function reatLinha(c) {
            href="https://cms-representacoes.github.io/apps-oly/vitrine/">Abrir a vitrine CMS →</a>
         <button type="button" class="reat-voltar" data-voltar="1"><i class="fa-solid fa-xmark"></i> ver todos</button></div>
       ${reatFitaHtml(REAT.cards)}
-      ${REAT.parecidos.length ? `<div class="reat-ficha-tit sub"><span>Parecidos com o que ele compra</span></div>
-        ${reatFitaHtml(REAT.parecidos)}` : ''}
+      ${REAT.parecidos.length ? `<div class="reat-ficha-tit sub"><span>Parecidos com o que ele compra</span>
+        <span class="reat-conta">${formatarNumero(Math.min(REAT.ver, REAT.parecidos.length))} de ${
+          formatarNumero(REAT.parecidos.length)}</span></div>
+        ${reatFitaHtml(REAT.parecidos.slice(0, REAT.ver), REAT.parecidos.length - REAT.ver)}` : ''}
     </td></tr>` : '');
 }
 
@@ -6857,7 +6890,7 @@ function reatPintar() {
   const naTela = REAT.foco ? lista.filter(c => c.cod === REAT.foco) : lista;
   const aberto = REAT.foco && naTela.length ? naTela[0] : null;
   REAT.cards = aberto ? reatPorCor(aberto) : [];
-  REAT.parecidos = aberto ? reatPorCor({ ofertas: (aberto.semelhantes || []) }).slice(0, 14) : [];
+  REAT.parecidos = aberto ? reatPorCor({ ofertas: (aberto.semelhantes || []) }) : [];
   reatBotoes();
 
   const corpo = REAT.carregando
@@ -11335,6 +11368,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (op) { e.stopPropagation(); reatMexerSacola(op.dataset.sac); return; }
     const lot = e.target.closest('[data-lotes]');
     if (lot) { e.stopPropagation(); reatAbrirLotes(lot.dataset.lotes); return; }
+    if (e.target.closest('[data-mais]')) {
+      e.stopPropagation();
+      const fita = e.target.closest('.reat-fita-cx').querySelector('.reat-fita');
+      const onde = fita ? fita.scrollLeft : 0;
+      REAT.ver += REAT_PASSO;
+      reatPintar();
+      // a fita volta para onde estava, senão ela salta para o começo
+      const nova = document.querySelectorAll('.reat-fita')[1];
+      if (nova) nova.scrollLeft = onde;
+      return;
+    }
     const seta = e.target.closest('[data-fita]');
     if (seta) {
       e.stopPropagation();
@@ -11348,6 +11392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tr = e.target.closest('tr[data-cli]');
     if (!tr) return;
     REAT.foco = REAT.foco === tr.dataset.cli ? null : tr.dataset.cli;
+    REAT.ver = REAT_PASSO;
     reatPintar();
   });
   const kpisReatRecolhidos = () => { try { return localStorage.getItem('detalhada.kpisReat') === 'recolhido'; } catch { return false; } };
@@ -14262,6 +14307,19 @@ html:not(.vn) #screen-reat .reat-quadro.foco .reat-ficha td > *{ position:relati
 .reat-op.on{ background:var(--ds-accent); border-color:var(--ds-accent); color:#fff; }
 .reat-op.on .mais{ color:#fff; }
 .reat-op.mais-n{ justify-content:center; cursor:default; color:var(--ds-ghost); background:none; border-style:dashed; }
+/* o card que revela mais sugestões, no fim da fita */
+.reat-mais-card{ flex:none; width:158px; border:1px dashed var(--ds-line-strong);
+  background:var(--ds-card); border-radius:14px; cursor:pointer; display:flex;
+  flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  color:var(--ds-accent); font:inherit; padding:10px; scroll-snap-align:start; }
+.reat-mais-card:hover{ background:var(--ds-accent-bg); border-color:var(--ds-accent); }
+.reat-mais-card .ic{ display:grid; place-items:center; width:34px; height:34px;
+  border-radius:50%; background:var(--ds-accent-bg); font-size:13px; }
+.reat-mais-card .tx{ font-size:12px; font-weight:700; }
+.reat-mais-card .sb{ font-size:10.5px; color:var(--ds-muted); }
+.reat-conta{ margin-left:auto; font-family:var(--ds-mono); font-size:10.5px;
+  font-weight:400; color:var(--ds-ghost); letter-spacing:0; text-transform:none; }
+
 /* setas: só no computador, e só quando há para onde ir */
 .reat-seta{ position:absolute; top:38px; z-index:2; width:28px; height:28px; border-radius:50%;
   border:1px solid var(--ds-line); background:var(--ds-card); color:var(--ds-muted);
