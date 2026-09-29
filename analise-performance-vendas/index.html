@@ -830,6 +830,14 @@ const TVW = {
   branch: 'main',
 };
 function tvwToken(){ return (localStorage.getItem(TVW.KEY_TOKEN)||'').trim(); }
+/** "29/09 07:50" — o mesmo formato curto que o resumo já usava. */
+function fmtCurto(iso){
+  try{
+    const d = new Date(iso); if(isNaN(d)) return '';
+    return d.toLocaleString('pt-BR',
+      {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','');
+  }catch(_){ return ''; }
+}
 function tvwTrimestreAtual(){
   const q = Math.floor(new Date().getMonth()/3);   // 0..3
   return { id:'T'+(q+1),
@@ -838,6 +846,13 @@ function tvwTrimestreAtual(){
 async function tvwPublicar(vendors){
   try{
     const tok = tvwToken();
+    // Sem token neste navegador nada é publicado, e o portal seguiria
+    // mostrando o resumo antigo sem ninguém perceber. O botão avisa.
+    if(!tok && IS_ADMIN_LIKE){
+      const b = document.getElementById('tvBtn');
+      if(b){ b.classList.add('tv-err');
+        b.title = 'Painel TV: sem token neste navegador — o resumo da carta campanha não está sendo publicado. Clique para conectar.'; }
+    }
     if(!tok || !IS_ADMIN_LIKE) return;
     const tri = tvwTrimestreAtual();
     // só publica quando o recorte na tela é o trimestre corrente do ano corrente
@@ -869,6 +884,12 @@ async function tvwPublicar(vendors){
       elegivel: escr.ratio >= CC_META,
     };
 
+    // Quando a BASE foi publicada (o Worker grava updatedAt na importação).
+    // É esta a data que interessa a quem lê o resumo: diz de quando são os
+    // números. A hora do commit, abaixo, só diz quando este arquivo foi
+    // gravado — e os dois podem ser dias diferentes.
+    const per = CURRENT_KEY ? PERIODS[CURRENT_KEY] : null;
+    const baseIso = per && per.updatedAt ? per.updatedAt : '';
     const corpo = {
       ano: String(new Date().getFullYear()),
       trimestre: tri.rotulo,
@@ -877,8 +898,12 @@ async function tvwPublicar(vendors){
       empresa: empresa,
       vendedores: lista,
       linhas: lista.map(v=>v.nome+' '+String(v.ratio).replace('.',',')+'% '+(v.elegivel?'✓':'✗')),
+      base: baseIso,
+      baseRotulo: baseIso ? fmtCurto(baseIso) : '',
     };
-    // evita commit repetido: só publica se os números mudaram
+    // Evita commit repetido: só publica se algo mudou. A data da base entra
+    // na conta — importar uma planilha que não muda nenhum percentual ainda
+    // assim precisa atualizar o "de quando é este número".
     const assin = JSON.stringify(corpo);
     if(localStorage.getItem('apv_tv_hash') === assin) return;
     corpo.atualizado = new Date().toLocaleString('pt-BR',
@@ -1510,7 +1535,12 @@ async function confirmPublish(){
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ action:'savePerformance', data:{ key, ano:p.ano, sem:p.sem, name:p.name, b64:p.b64 } }) });
     if(!res.ok){ showToast('Falha ao publicar'); return; }
-    showToast('Publicado para todos os dispositivos');
+    // O resumo da carta campanha sai daqui, junto com a base. Sem token
+    // neste navegador ele não sai, e o portal continuaria mostrando os
+    // números da importação anterior — isso precisa aparecer na hora.
+    if(IS_ADMIN_LIKE && !tvwToken())
+      showToast('Base publicada — mas o resumo da carta campanha NÃO: falta o token do Painel TV neste navegador');
+    else showToast('Publicado para todos os dispositivos');
   }catch(_){ showToast('Sem conexão — salvo só neste navegador'); }
 }
 
