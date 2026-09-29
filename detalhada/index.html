@@ -2043,6 +2043,13 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
       </div>
 
       <div class="topbar-actions cab-acoes" role="toolbar" aria-label="Ações">
+        <!-- Volta para a casa dos aplicativos sem encerrar a sessão; quem
+             quer encerrar usa o Sair, na outra ponta. Vem primeiro porque
+             no celular a barra rola e só os primeiros ficam à vista. -->
+        <a class="btn-icon" id="btn-portal-topo" href="#" title="Voltar ao Portal">
+          <i class="fa-solid fa-table-cells-large"></i>
+        </a>
+        <span class="cab-div" aria-hidden="true"></span>
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
           <i class="fa-solid fa-file-arrow-up"></i>
         </button>
@@ -4658,6 +4665,8 @@ function pintarLoginPortal(dono) {
   const btn = $('btn-login');
   const link = $('btn-portal');
   if (link) link.href = URL_PORTAL;
+  const linkTopo = $('btn-portal-topo');
+  if (linkTopo) linkTopo.href = URL_PORTAL;
   const semPortal = !dono && !EH_LOCAL;
   const naoServe = !!dono && !prepostoDoPortal(dono);
   const mostrarPortal = semPortal || naoServe;
@@ -12730,6 +12739,9 @@ html.dark .product-thumb, html.dark .product-thumb-fallback{ background:var(--ds
 .cab-acoes .btn-icon:hover{ background:var(--ds-sunk); color:var(--ds-ink); transform:none; box-shadow:none; }
 .cab-acoes .btn-icon:focus-visible{ outline:2px solid var(--ds-accent); outline-offset:1px; }
 .cab-acoes #btn-sair:hover{ color:var(--ds-erro); }
+/* o Portal é um link, e sem isto não se alinharia com os botões ao lado */
+.cab-acoes #btn-portal-topo{ display:inline-flex; align-items:center; justify-content:center;
+  text-decoration:none; }
 .cab-acoes .cab-div{ width:1px; height:18px; background:var(--ds-line); margin:0 3px; }
 
 /* ── 2 · NÚMEROS ───────────────────────────────────────────────────────
