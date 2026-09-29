@@ -11377,9 +11377,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.stopPropagation();
       // Os novos entram antes do botão, no próprio DOM: repintar a tela
       // inteira jogaria a fita de volta para o começo.
+      //
+      // Duas armadilhas na segunda vez em diante: o botão fica com o foco do
+      // clique anterior e o navegador o mantém à vista, arrastando a fita
+      // para o novo fim; e, mesmo sem foco, ele ancora a rolagem sozinho.
+      // Por isso o foco sai, a posição é guardada e devolvida na mão, e a
+      // fita não anima enquanto isso.
+      const fita = mais.parentElement;
+      const onde = fita ? fita.scrollLeft : 0;
+      const animacao = fita ? fita.style.scrollBehavior : '';
+      if (fita) fita.style.scrollBehavior = 'auto';
+      mais.blur();
       const de = REAT.ver;
       const ate = Math.min(de + REAT_PASSO, REAT.parecidos.length);
       mais.insertAdjacentHTML('beforebegin', REAT.parecidos.slice(de, ate).map(reatCard).join(''));
+      if (fita) fita.scrollLeft = onde;
       REAT.ver = ate;
       const faltam = REAT.parecidos.length - REAT.ver;
       if (faltam <= 0) mais.remove();
@@ -11393,8 +11405,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         `${formatarNumero(REAT.ver)} de ${formatarNumero(REAT.parecidos.length)}`;
       // um passo curto à frente: a fita fica onde estava, mas o primeiro
       // card novo aparece — senão o toque parece não ter feito nada
-      const fita = mais.parentElement;
-      if (fita) fita.scrollBy({ left: 175, behavior: 'smooth' });
+      if (fita) {
+        fita.style.scrollBehavior = animacao;
+        fita.scrollBy({ left: 175, behavior: 'smooth' });
+      }
       reatSetas();
       return;
     }
@@ -14283,7 +14297,9 @@ html:not(.vn) #screen-reat .reat-quadro.foco .reat-ficha td > *{ position:relati
 /* a fita: rola para os dois lados, no tamanho da de "vistos há pouco" */
 .reat-fita-cx{ position:relative; }
 .reat-fita{ display:flex; gap:9px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
-  padding:6px 3px 10px; scroll-snap-type:x proximity; scroll-behavior:smooth; }
+  padding:6px 3px 10px; scroll-snap-type:x proximity; scroll-behavior:smooth;
+  /* quem manda na rolagem ao entrar card novo é o código, não o navegador */
+  overflow-anchor:none; }
 .reat-fita::-webkit-scrollbar{ display:none; }
 /* o card da vitrine CMS: foto quadrada encostada nas bordas, fio embaixo
    dela e o corpo preenchido com nome, código, preço e as origens */
