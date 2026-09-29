@@ -402,6 +402,12 @@
     }
     html.dark .login-error { background: #7F1D1D; color: #FECACA; }
     .login-error.show { display: block; }
+    /* o display das classes vence o [hidden] do navegador: sem estas
+       linhas, o botão Entrar e a lista de nomes ficavam na tela junto
+       com o aviso do Portal */
+    #login-portal[hidden], #btn-login[hidden], #login-escolha[hidden] { display: none; }
+    .login-portal-txt { font-size: 13.5px; line-height: 1.5; color: var(--text-2);
+                        text-align: center; margin: 2px 0 18px; }
 
     /* =========================================================
        BUSCA COM X
@@ -1975,7 +1981,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
 
         <div id="login-error" class="login-error"></div>
 
-        <div class="field">
+        <div class="field" id="login-escolha">
           <label id="rot-quem">Quem é você?</label>
           <div class="lista-quem" id="lista-quem" aria-labelledby="rot-quem"></div>
           <!-- Guarda a escolha com o mesmo id de antes: quem lê o nome para
@@ -1986,6 +1992,17 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <button class="btn-primary" id="btn-login" style="width:100%; justify-content:center; margin-top:8px;">
           Entrar <i class="fa-solid fa-arrow-right"></i>
         </button>
+
+        <!-- Sem senha própria: quem entra é o Portal. Este bloco aparece no
+             lugar da escolha quando não há sessão dele. -->
+        <div id="login-portal" hidden>
+          <p class="login-portal-txt">A Detalhada usa o mesmo login dos outros
+             aplicativos. Entre pelo Portal e ela abre no seu nome.</p>
+          <a class="btn-primary" id="btn-portal" href="#"
+             style="width:100%; justify-content:center; margin-top:4px; text-decoration:none;">
+            Ir para o Portal <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
 
         <p class="fonte-info" id="login-fonte" style="margin-top:18px;">Carregando dados…</p>
       </div>
@@ -2800,6 +2817,32 @@ const PREPOSTOS = [
 
 // Nomes que a planilha usa e que precisam virar o nome oficial acima.
 const PREPOSTO_MAP = { 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO', 'CMS': 'C M S', 'C': 'C M S' };
+
+/* ── quem entra é o Portal ────────────────────────────────────────────────
+   A Detalhada não tem senha própria: ela lê a sessão que o Portal grava
+   (a mesma chave dos outros aplicativos) e traduz o nome de lá para o
+   preposto daqui. Sem essa sessão, a tela de entrada só oferece o Portal.
+   Na própria máquina a lista de nomes continua valendo, para conferir o
+   que cada pessoa enxerga sem ter de logar a cada vez. */
+const PORTAL_KEY = 'cms_portal_session_v1';
+const EH_LOCAL = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+const URL_PORTAL = EH_LOCAL ? 'http://127.0.0.1:5502/' : '../../apps-oly/';
+// O Portal escreve o nome completo; aqui alguns são escritos de outro jeito.
+const PORTAL_PREPOSTO = { 'CMS': 'C M S', 'CHRISTIAN LUCAS': 'CHRISTIAN', 'LÉO': 'LEANDRO', 'LEO': 'LEANDRO' };
+
+function sessaoDoPortal() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PORTAL_KEY) || 'null');
+    if (!s || !s.expiraEm || new Date(s.expiraEm).getTime() < Date.now()) return null;
+    return s;
+  } catch (_) { return null; }
+}
+function prepostoDoPortal(s) {
+  const nome = String(s && s.nome || '').trim().toUpperCase();
+  if (!nome) return null;
+  const oficial = PORTAL_PREPOSTO[nome] || nome;
+  return PREPOSTOS.find(x => x.nome === oficial) || null;
+}
 
 const STORAGE = { sessao: 'detalhada.sessao', tema: 'detalhada.tema', acoes: 'detalhada.acoes',
                   visual: 'detalhada.visual', cor: 'detalhada.cor',
@@ -4608,6 +4651,26 @@ function escolherQuem(nome) {
   campo.dispatchEvent(new Event('change'));
 }
 
+/** Escolha de nome só na própria máquina; publicado, o caminho é o Portal. */
+function pintarLoginPortal(dono) {
+  const cx = $('login-portal');
+  const escolha = $('login-escolha');
+  const btn = $('btn-login');
+  const link = $('btn-portal');
+  if (link) link.href = URL_PORTAL;
+  const semPortal = !dono && !EH_LOCAL;
+  const naoServe = !!dono && !prepostoDoPortal(dono);
+  const mostrarPortal = semPortal || naoServe;
+  if (cx) cx.hidden = !mostrarPortal;
+  if (escolha) escolha.hidden = mostrarPortal;
+  if (btn) btn.hidden = mostrarPortal;
+  if (naoServe) {
+    const err = $('login-error');
+    err.textContent = `${dono.nome} ainda não tem acesso à Detalhada.`;
+    err.classList.add('show');
+  }
+}
+
 function entrar() {
   const nome = $('login-preposto').value;
   const p = PREPOSTOS.find(x => x.nome === nome);
@@ -4626,6 +4689,10 @@ function entrar() {
 function logout() {
   localStorage.removeItem(STORAGE.sessao);
   APP.sessao = null;
+  // Login único: sair daqui é sair do Portal. Quem só fechasse a sessão
+  // local entraria de novo sozinho no próximo carregamento.
+  const tinhaPortal = !!sessaoDoPortal();
+  if (tinhaPortal) localStorage.removeItem(PORTAL_KEY);
   // Quem entrar depois pode ter outro papel: o filtro de vendedor do RFV
   // é montado uma vez, e precisa ser montado de novo para a pessoa certa.
   RFV.montado = false;
@@ -4647,6 +4714,8 @@ function logout() {
   $('busca').value = '';
   limparFiltros();
   show('screen-login');
+  pintarLoginPortal(null);
+  if (tinhaPortal) location.href = URL_PORTAL;
 }
 
 function irParaProdutos() {
@@ -11605,17 +11674,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  const ses = localStorage.getItem(STORAGE.sessao);
-  if (ses) {
-    try {
-      const guardada = JSON.parse(ses);
-      const p = PREPOSTOS.find(x => x.nome === (guardada && guardada.nome));
-      if (p) {
-        APP.sessao = { nome: p.nome, papel: p.papel };
-        if (p.papel !== guardada.papel) localStorage.setItem(STORAGE.sessao, JSON.stringify(APP.sessao));
-      }
-    } catch {}
+  // Quem manda é o Portal: se há sessão lá, ela vale aqui — inclusive
+  // quando trocam de pessoa sem passar por esta tela.
+  const dono = sessaoDoPortal();
+  const doPortal = dono ? prepostoDoPortal(dono) : null;
+  if (doPortal) {
+    APP.sessao = { nome: doPortal.nome, papel: doPortal.papel };
+    localStorage.setItem(STORAGE.sessao, JSON.stringify(APP.sessao));
+  } else if (dono || !EH_LOCAL) {
+    // sem sessão do Portal (ou com um nome que a Detalhada não conhece),
+    // a sessão guardada aqui não pode servir de atalho
+    APP.sessao = null;
+    localStorage.removeItem(STORAGE.sessao);
+  } else {
+    const ses = localStorage.getItem(STORAGE.sessao);
+    if (ses) {
+      try {
+        const guardada = JSON.parse(ses);
+        const p = PREPOSTOS.find(x => x.nome === (guardada && guardada.nome));
+        if (p) {
+          APP.sessao = { nome: p.nome, papel: p.papel };
+          if (p.papel !== guardada.papel) localStorage.setItem(STORAGE.sessao, JSON.stringify(APP.sessao));
+        }
+      } catch {}
+    }
   }
+  pintarLoginPortal(dono);
   if (APP.sessao && APP.base) irParaProdutos();
 
   const r = await carregarBase({ silencioso: !!cache });
@@ -12367,6 +12451,9 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 /* `display` de classe vence o [hidden] do navegador — sem esta linha o
    botão continua na tela depois de escondido pelo JS. */
 .rfv-tgl[hidden]{ display:none; }
+/* mesma armadilha: o filtro de prepostos é escondido para quem não vê
+   tudo, e sem esta linha o inline-flex da .rfv-dd o deixava na tela */
+.rfv-dd[hidden]{ display:none; }
 .rfv-tgl.on{ background:var(--primary-bg); border-color:var(--primary); color:var(--primary-2); }
 .rfv-tgl i{ font-size:12px; }
 
