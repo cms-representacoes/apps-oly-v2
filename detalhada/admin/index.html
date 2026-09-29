@@ -473,7 +473,9 @@ function sessaoDoPortal() {
     return s;
   } catch (_) { return null; }
 }
-const ehCms = () => { const s = sessaoDoPortal(); return !!(s && s.nome === 'CMS'); };
+// a CMS e quem desenvolve: a mesma chave
+const ehCms = () => { const s = sessaoDoPortal();
+  return !!(s && (s.nome === 'CMS' || s.nome === 'MARCOS (DEV)')); };
 
 /* ---------- dados ---------- */
 async function buscar() {

@@ -3316,6 +3316,7 @@
                   <option value="25745">25745 – LEANDRO</option>
                   <option value="4322318">4322318 – CHRISTIAN LUCAS</option>
                   <option value="25846">25846 – CMS</option>
+                  <option value="3616654">3616654 – MARCOS (DEV)</option>
                 </select>
               </div>
               <div>
@@ -11238,9 +11239,12 @@ const CAT_IMG_CATEGORIES = [
 
 // Configurações (imagens da tela inicial e prepostos) são do CMS: a
 // engrenagem só aparece para essa sessão, e abrir confere de novo.
+// Quem desenvolve tem a mesma chave — é ele quem ajusta o aplicativo.
+const NOMES_MANDA = ["CMS", "MARCOS (DEV)"];
+const mandaEmTudo = nome => NOMES_MANDA.includes(String(nome || "").trim().toUpperCase());
 function ehSessaoCMS(){
   const s = (typeof getPortalSession === "function") ? getPortalSession() : null;
-  return !!(s && s.nome === "CMS");
+  return !!(s && mandaEmTudo(s.nome));
 }
 function mostrarEngrenagemCMS(){
   const b = $("btnCatImagesConfig");
@@ -11829,6 +11833,7 @@ const COMISSIONISTAS = [
   { codigo:"25745",   nome:"LEANDRO" },
   { codigo:"4322318", nome:"CHRISTIAN LUCAS" },
   { codigo:"25846",   nome:"CMS" },
+  { codigo:"3616654", nome:"MARCOS (DEV)" },
 ];
 
 function getComissionistaNome(codigo){
@@ -11854,7 +11859,7 @@ function _travarComissionistaPortal(){
   const session = getPortalSession();
   const sel = document.getElementById("oxCommission");
   if(!session || !sel) return;
-  if(session.nome === "CMS"){
+  if(mandaEmTudo(session.nome)){
     if(!sel.value) sel.value = session.codigo;
     sel.disabled = false;
     sel.classList.remove("opacity-70", "cursor-not-allowed");
@@ -11886,7 +11891,7 @@ const CLI = {
 // Comissionista escolhido no formulário (ele lança em nome de qualquer um).
 function cliComissionistaAtual(){
   const session = getPortalSession();
-  const isCms = session && session.nome === "CMS";
+  const isCms = session && mandaEmTudo(session.nome);
   if(session && !isCms) return String(session.codigo || "").trim();
   return String($("oxCommission")?.value || "").trim();
 }
@@ -11979,7 +11984,7 @@ function cliAplicar(lista, chave, falhas){
 // codigoForcado: usado pelo histórico, que tem o próprio filtro de comissionista
 async function cliCarregar(codigoForcado){
   const session = getPortalSession();
-  const isCms = !!(session && session.nome === "CMS");
+  const isCms = !!(session && mandaEmTudo(session.nome));
   const cod = (codigoForcado === undefined || codigoForcado === null)
     ? cliComissionistaAtual()
     : String(codigoForcado).trim();
@@ -12504,7 +12509,7 @@ function _mpFiltrarPedidos(lista){
 let _mpClientesTentado = "";
 function _mpGarantirClientes(){
   const session = getPortalSession();
-  const isCms = !!(session && session.nome === "CMS");
+  const isCms = !!(session && mandaEmTudo(session.nome));
   const cod = String(MP.filtroComissionista || "").trim();
   const chave = cod || (isCms ? "todos" : "");
   if(!chave || CLI.loading || CLI.loadedFor === chave || _mpClientesTentado === chave) return;
@@ -13101,7 +13106,7 @@ function mpBaixarPDF(id){
 function openMeusPedidosModal(){
   const sel = $("mpComissionista");
   const session = getPortalSession();
-  const isCms = session && session.nome === "CMS";
+  const isCms = session && mandaEmTudo(session.nome);
 
   if(session && !isCms){
     // Vendedor comum logado pelo Portal: só vê os próprios pedidos, sem escolha.
