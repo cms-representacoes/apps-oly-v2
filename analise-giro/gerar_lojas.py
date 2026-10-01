@@ -17,6 +17,7 @@ arquivo novo, é só rodar este script de novo.
 
 Uso:  python gerar_lojas.py
 """
+import calendar
 import datetime as dt
 import json
 import re
@@ -360,9 +361,16 @@ def ler_banco():
             por_ref.setdefault(ref.upper(), pid)
     ate = puxar(con, 'SELECT MAX(FD_DATA_MOV) FROM TB_MOVIMENTOS')[0][0]
     con.close()
+    # O último mês da tela é o último mês FECHADO. Uma cópia feita no dia 1º
+    # traz um dia de venda em outubro: o mês apareceria zerado e toda porta
+    # seria dada como parada. O movimento desse mês continua entrando na
+    # conta do estoque — só não vira coluna.
+    fim = ate.month if ate.day >= calendar.monthrange(ate.year, ate.month)[1] else ate.month - 1
+    if fim < 1:
+        fim = 1
     return {'venda': venda, 'estoque': estoque, 'delta': delta, 'compra': compra,
             'ultima': ultima, 'venda_ult': venda_ult, 'loja_mes': loja_mes,
-            'por_ref': por_ref, 'por_id': por_id, 'ate': ate}
+            'por_ref': por_ref, 'por_id': por_id, 'ate': ate, 'fim': fim}
 
 
 # ── junta tudo ────────────────────────────────────────────────────────
@@ -370,12 +378,16 @@ def saldo_por_mes(estoque_hoje, deltas, n):
     """Estoque no fim de cada mês, de trás para frente a partir de hoje.
 
     saldo(m-1) = saldo(m) - (o que entrou menos o que saiu no mês m).
+    `deltas` pode ir além de `n` (o mês ainda aberto do backup): esses meses
+    são desfeitos primeiro, para o saldo do mês n ser o do fim do mês.
     """
     # O estoque negativo do ERP (venda lançada sem a entrada correspondente)
     # fica como está: é assim que a planilha do cliente mostra, e esconder
     # isso faria a conta fechar errado no mês seguinte.
     saldos = [0] * n
     atual = estoque_hoje
+    for j in range(len(deltas) - 1, n - 1, -1):
+        atual -= deltas[j]
     for i in range(n - 1, -1, -1):
         saldos[i] = int(round(atual))
         atual -= deltas[i]
@@ -387,13 +399,14 @@ def gerar(cli, banco, nomes_lojas):
     delta, compra, ultima = banco['delta'], banco['compra'], banco['ultima']
     loja_mes, venda_ult = banco['loja_mes'], banco['venda_ult']
     por_ref, por_id, ate = banco['por_ref'], banco['por_id'], banco['ate']
+    fim = banco['fim']                      # último mês fechado: o que a tela mostra
     print(f'· {cli["nome"]} {cli["marca"]}: lendo {cli["arquivo"].name}')
     wb = openpyxl.load_workbook(cli['arquivo'], read_only=True, data_only=True)
     produtos = ler_produtos(wb[cli['aba']])
     carteira = ler_carteira(wb)
     wb.close()
 
-    meses = [f'{ANO}-{m:02d}' for m in range(1, ate.month + 1)]
+    meses = [f'{ANO}-{m:02d}' for m in range(1, fim + 1)]
     # quem não entrou e o motivo: a AG usa isso para avisar antes do clique
     #   sem-codigo   → a planilha não tem a referência do cliente (COD_CLIENTE)
     #   sem-cadastro → tem a referência, mas ela não existe no banco dele
@@ -414,7 +427,7 @@ def gerar(cli, banco, nomes_lojas):
         usados.add(pid)
         lojas = {}
         for loja in sorted(nomes_lojas):
-            n = ate.month
+            n = fim
             v = [int(round(venda.get((pid, loja, m), 0))) for m in range(1, n + 1)]
             e = int(round(estoque.get((pid, loja), 0)))
             cp = int(round(compra.get((pid, loja), 0)))
@@ -422,7 +435,7 @@ def gerar(cli, banco, nomes_lojas):
             uv = venda_ult.get((pid, loja))
             if not any(v) and not e and not cp:
                 continue
-            ds = [delta.get((pid, loja, m), 0) for m in range(1, n + 1)]
+            ds = [delta.get((pid, loja, m), 0) for m in range(1, ate.month + 1)]
             reg = {'s': saldo_por_mes(e, ds, n)}
             if any(v):
                 reg['v'] = v
@@ -454,7 +467,7 @@ def gerar(cli, banco, nomes_lojas):
         # 'v' é a venda da LOJA INTEIRA no mês (todas as marcas): serve para
         # saber se a porta estava aberta, e para medir o peso da marca lá
         'lojas': [{'id': l, 'nome': nomes_lojas[l],
-                   'v': [int(round(loja_mes.get((l, m), 0))) for m in range(1, ate.month + 1)]}
+                   'v': [int(round(loja_mes.get((l, m), 0))) for m in range(1, fim + 1)]}
                   for l in sorted(lojas_vistas)],
         'produtos': saida,
         'faltando': faltando,
