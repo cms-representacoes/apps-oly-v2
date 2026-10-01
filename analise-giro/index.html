@@ -217,15 +217,15 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .giro .fx1,.giro .fx2,.giro .fx3,.giro .fx4{position:sticky;z-index:3;text-align:center}
 /* larguras fixas: é assim que as três colunas presas sabem onde começa a
    seguinte. A cor fica presa porque o mesmo código aparece várias vezes. */
-.giro .fx1{left:0;width:132px;min-width:132px;max-width:132px;font-weight:700}
+.giro .fx1{left:0;width:118px;min-width:118px;max-width:118px;font-weight:700}
 /* Os ícones ficam presos na direita da coluna, um embaixo do outro: soltos
    no meio da célula, eles dançavam conforme o tamanho do código. Presos por
    posição, e não por flex — flex numa célula desalinha a linha inteira. */
-.giro td.fx1{text-align:left;padding-left:30px;padding-right:8px}
+.giro td.fx1{text-align:left;padding-left:27px;padding-right:6px}
 .giro td.fx1 .cod-t{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .giro td.fx1 .btn-foto{position:absolute;left:6px;top:50%;transform:translateY(-50%)}
-.giro .fx2{left:132px;width:230px;min-width:230px;max-width:230px;overflow:hidden;position:sticky}
-.giro td.fx2{padding-right:28px}
+.giro .fx2{left:118px;width:196px;min-width:196px;max-width:196px;overflow:hidden;position:sticky}
+.giro td.fx2{padding-right:26px}
 .giro td.fx2 .desc-t{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
 .btn-loja{position:absolute;right:5px;top:50%;transform:translateY(-50%);
   width:21px;height:21px;border-radius:6px;border:1px solid var(--line);
@@ -234,10 +234,10 @@ table.giro{border-collapse:separate;border-spacing:0;width:max-content;min-width
 .btn-loja.off{opacity:.3;border-style:dashed}
 .btn-loja.off:hover{border-color:var(--line);color:var(--mute)}
 tr.sel .btn-loja{background:var(--card)}
-.giro .fx3{left:362px;width:92px;min-width:92px;max-width:92px;
+.giro .fx3{left:314px;width:78px;min-width:78px;max-width:78px;
   overflow:hidden;text-overflow:ellipsis;font-weight:600}
 /* PDV é a última coluna presa, então a borda que separa o que rola fica nela */
-.giro .fx4{left:454px;width:86px;min-width:86px;max-width:86px;box-shadow:2px 0 0 var(--line);
+.giro .fx4{left:392px;width:74px;min-width:74px;max-width:74px;box-shadow:2px 0 0 var(--line);
   font-variant-numeric:tabular-nums;font-weight:600}
 .giro thead .fx1,.giro thead .fx2,.giro thead .fx3,.giro thead .fx4{z-index:6}
 .cor-cab{display:flex;align-items:center;justify-content:center;gap:6px}
@@ -271,7 +271,7 @@ tr.sel .btn-loja{background:var(--card)}
 /* a barra na primeira coluna é o que diz "esta é a linha", agora que o
    fundo é leve */
 .giro tbody tr.sel td.fx1{box-shadow:inset 3px 0 0 var(--accent)}
-.giro td.obsc{min-width:104px;padding-right:14px}
+.giro td.obsc{min-width:58px;padding-right:8px}
 .obs{display:inline-block;font:700 10px "Space Grotesk",sans-serif;letter-spacing:.03em;padding:2px 8px;border-radius:99px;
   background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
 .obs.so{background:color-mix(in srgb,var(--k-abe) 30%,transparent);color:var(--k-tot-ink)}
@@ -2481,20 +2481,30 @@ function pintar(){
   // Larguras declaradas de uma vez. Sem isto, cada remontagem da faixa fazia
   // o navegador medir todas as células de novo — eram os solavancos de 100 ms
   // na rolagem, e as colunas ainda dançavam de largura.
-  const L = { fx1:132, fx2:230, fx3:92, gen:82, pdv:86, faixa:126, cod:166, v:58, e:69, c:62, o:104, k:54, ks:60 };
-  let cols = `<col style="width:${L.fx1}px"><col style="width:${L.fx2}px"><col style="width:${L.fx3}px">` +
-    `<col style="width:${L.pdv}px">` +
-    (E.extras ? `<col style="width:${L.gen}px"><col style="width:${L.faixa}px"><col style="width:${L.cod}px">` : '');
+  // Medidas pensadas para a tela cheia: as quatro presas somam 466px, e o
+  // que rola (três meses + a carteira do semestre) cabe em ~760px.
+  const L = { fx1:118, fx2:196, fx3:78, gen:74, pdv:74, faixa:112, cod:148, v:50, e:58, c:54, o:58, k:45, ks:52 };
+  // A soma das colunas vira a largura da tabela: com width:max-content o
+  // navegador esticava cada coluna para caber o cabeçalho, e o colgroup
+  // virava sugestão. Somando aqui, a medida escrita é a medida que sai.
+  let largura = 0;
+  const col = n => { largura += n; return `<col style="width:${n}px">`; };
+  let cols = col(L.fx1) + col(L.fx2) + col(L.fx3) + col(L.pdv) +
+    (E.extras ? col(L.gen) + col(L.faixa) + col(L.cod) : '');
   meses.forEach(m => {
-    cols += `<col style="width:${L.v}px"><col style="width:${L.e}px">`;
-    if(m === ult) cols += `<col style="width:${L.c}px"><col style="width:${L.o}px">`;
+    cols += col(L.v) + col(L.e);
+    if(m === ult) cols += col(L.c) + col(L.o);
   });
   if(E.cart){
     const nMes = (s1Aberto ? 6 : 0) + 6;
-    cols += `<col style="width:${L.k}px">`.repeat(nMes) + `<col style="width:${L.ks}px">`.repeat(s1Aberto ? 2 : 1);
+    for(let i = 0; i < nMes; i++) cols += col(L.k);
+    for(let i = 0; i < (s1Aberto ? 2 : 1); i++) cols += col(L.ks);
   }
   E.janela = { de:-1, ate:-1 };
-  wrap.innerHTML = `<table class="giro"><colgroup>${cols}</colgroup>` +
+  const presas = L.fx1 + L.fx2 + L.fx3 + L.pdv + (E.extras ? L.gen + L.faixa + L.cod : 0);
+  wrap.style.scrollPaddingLeft = presas + 'px';
+  ligarEncaixe(wrap);
+  wrap.innerHTML = `<table class="giro" style="width:${largura}px"><colgroup>${cols}</colgroup>` +
     `<thead><tr class="h1">${h1}</tr><tr class="h2">${h2}</tr></thead><tbody></tbody></table>`;
   const tbody = wrap.querySelector('tbody');
   E.tbody = tbody;
@@ -2774,6 +2784,50 @@ const FOLGA = 20;   // linhas desenhadas a mais, acima e abaixo da vista
 // Medidas da tabela. Lê-las a cada quadro obrigava o navegador a refazer o
 // layout no meio da rolagem — era daí que vinha boa parte do arrasto. Agora
 // só são medidas quando a tabela muda ou a janela é redimensionada.
+/* Meio mês à mostra não serve para nada: quando a rolagem horizontal para,
+   ela se encaixa no começo do bloco mais próximo. Só corrige quando já está
+   perto (menos de meio bloco), então arrastar de ponta a ponta continua
+   livre. O scroll-snap do CSS não serve aqui: numa tabela de cabeçalho
+   preso ele mede pelo lugar onde a célula está grudada, não pelo layout. */
+let _snapT = null, _snapX = -1;
+function encaixarMes(wrap){
+  const tab = wrap.querySelector('table.giro');
+  if(!tab) return;
+  const recuo = parseFloat(wrap.style.scrollPaddingLeft) || 0;
+  const atual = wrap.scrollLeft;
+  // no celular as colunas deixam de ser presas e a tabela rola inteira:
+  // encaixar ali só atrapalharia
+  if(recuo > wrap.clientWidth / 2) return;
+  // nas duas pontas não há o que encaixar — e puxar de volta no fim
+  // esconderia a carteira, que é justamente o que se quer ver ali
+  const fimR = wrap.scrollWidth - wrap.clientWidth;
+  if(atual < 4 || fimR - atual < 4) return;
+  const limite = Math.min(90, (wrap.clientWidth - recuo) / 4);
+  // posição na tela, e não offsetLeft: com as colunas presas e o cabeçalho
+  // grudado, só o retângulo desenhado diz onde o bloco começa de verdade
+  const borda = wrap.getBoundingClientRect().left + recuo;
+  const fim = fimR;
+  let alvo = null;
+  for(const th of tab.querySelectorAll('thead tr.h1 th.mes')){
+    const x = Math.round(atual + th.getBoundingClientRect().left - borda);
+    if(x < 0 || x > fim) continue;
+    if(alvo === null || Math.abs(x - atual) < Math.abs(alvo - atual)) alvo = x;
+  }
+  const d = alvo === null ? 0 : Math.abs(alvo - atual);
+  if(alvo !== null && d > 2 && d <= limite)
+    wrap.scrollTo({ left: alvo, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
+}
+function ligarEncaixe(wrap){
+  if(!wrap || wrap._encaixe) return;
+  wrap._encaixe = true;
+  wrap.addEventListener('scroll', () => {
+    if(wrap.scrollLeft === _snapX) return;        // rolagem vertical não conta
+    _snapX = wrap.scrollLeft;
+    clearTimeout(_snapT);
+    _snapT = setTimeout(() => encaixarMes(wrap), 160);
+  }, { passive:true });
+}
+
 function medirTabela(){
   const wrap = $('tabela');
   if(!wrap) return;
