@@ -69,6 +69,10 @@ CLIENTES = [
 
 # Operações do ERP que contam como venda de balcão, e as que a desfazem.
 # Venda no PDV entra sem código de operação (NFC-e ou sem documento fiscal).
+# A TROCA tem dois lados: a peça que volta (entrada) e a que o cliente leva no
+# lugar (saída) — essa saída é venda e precisa entrar na conta, senão o mês
+# fecha abaixo do que o relatório do próprio ERP mostra.
+VENDE = (1,)             # saídas que também são venda: 1 = TROCA
 DEVOLVE = (1, 11)        # 1 = TROCA, 11 = DEVOLUCAO DO CLIENTE
 COMPRA = 3               # entrada vinda do fornecedor
 LOJA_MAX = 15            # acima disso é escritório, atacado (FPS) e DPA
@@ -254,7 +258,8 @@ def ler_banco():
     inicio = dt.date(ANO, 1, 1)
     venda = defaultdict(float)      # (produto, loja, mes) -> pares
     for linha in puxar(con, SQL_MOV.format(
-            condicao="m.FD_CODOPER IS NULL AND m.FD_ENTRADA_SAIDA = 'S'"), (inicio, LOJA_MAX)):
+            condicao="(m.FD_CODOPER IS NULL OR m.FD_CODOPER IN (1))"
+                     " AND m.FD_ENTRADA_SAIDA = 'S'"), (inicio, LOJA_MAX)):
         pid, loja, mes, qt = linha
         venda[(pid, loja, int(mes))] += float(qt or 0)
     # troca e devolução do cliente voltam para a prateleira: saem da venda
