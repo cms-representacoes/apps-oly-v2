@@ -291,7 +291,32 @@ tr.sel .btn-loja{background:var(--card)}
 .lj-fundo{position:fixed;inset:0;z-index:95;background:var(--paper);display:flex}
 .lj-fundo[hidden]{display:none}
 .lj-fundo iframe{flex:1;border:0;width:100%;height:100%}
-.balao{position:fixed;z-index:70;width:min(300px,92vw);background:var(--card);border:1px solid var(--line);
+.cortar-chip{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
+.cortar-chip:hover{background:var(--red);color:#fff;filter:brightness(1.08)}
+.cortar-chip[hidden]{display:none}
+.corte-fundo{position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.45);display:grid;place-items:center;padding:20px}
+.corte-fundo[hidden]{display:none}
+.corte-cx{background:var(--card);border-radius:16px;width:min(760px,96vw);max-height:88vh;display:flex;
+  flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,.3)}
+.corte-topo{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.corte-topo h3{margin:0;font:800 15px "Space Grotesk",sans-serif;color:var(--ink)}
+.corte-topo .n{font:700 12px "Space Grotesk",sans-serif;color:var(--red)}
+.corte-lista{overflow:auto;padding:6px 0}
+.corte-l{display:grid;grid-template-columns:86px 1fr 86px 72px 76px 34px;gap:10px;align-items:center;
+  padding:8px 18px;font-size:12.5px;border-bottom:1px solid var(--line-2)}
+.corte-l .q{font:700 13px "Space Grotesk",sans-serif;text-align:right;font-variant-numeric:tabular-nums}
+.corte-l .x{border:0;background:none;color:var(--slate);cursor:pointer;font-size:15px;justify-self:end}
+.corte-l .x:hover{color:var(--red)}
+.corte-cab{font:700 9.5px "Space Grotesk",sans-serif;letter-spacing:.07em;color:var(--slate);
+  text-transform:uppercase;background:var(--line-2)}
+.corte-pe{display:flex;gap:10px;align-items:center;padding:12px 18px;border-top:1px solid var(--line)}
+.btn-acao{font:600 12.5px "Space Grotesk",sans-serif;padding:8px 14px;border-radius:10px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.btn-acao:hover{border-color:var(--accent);color:var(--accent)}
+.btn-acao.forte{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-acao.forte:hover{filter:brightness(1.07);color:#fff}
+.corte-pe .cresce{flex:1}
+.balao{position:fixed;z-index:70;width:min(560px,94vw);background:var(--card);border:1px solid var(--line);
   border-radius:12px;box-shadow:0 18px 40px -16px rgba(15,20,30,.5);padding:11px 13px 12px}
 .balao[hidden]{display:none}
 .balao-x{position:absolute;top:6px;right:7px;width:22px;height:22px;border-radius:50%;border:none;
@@ -301,11 +326,27 @@ tr.sel .btn-loja{background:var(--card)}
 .balao-tit small{display:block;font:600 10.5px "Space Grotesk",sans-serif;letter-spacing:.05em;
   text-transform:uppercase;color:var(--mute);margin-top:2px}
 .balao-corpo{margin-top:8px;display:flex;flex-direction:column;gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:9px;overflow:hidden;max-height:210px;overflow-y:auto}
-.balao-l{display:flex;align-items:baseline;gap:8px;background:var(--card);padding:6px 9px;font-size:12px}
-.balao-l .doc{font:700 12px "Space Grotesk",sans-serif;color:var(--ink);user-select:all}
-.balao-l .dia{color:var(--slate);font-size:11.5px}
-.balao-l .q{margin-left:auto;font:600 12px "Space Grotesk",sans-serif;color:var(--slate);font-variant-numeric:tabular-nums}
+  border:1px solid var(--line);border-radius:9px;overscroll-behavior:contain;
+  max-height:min(46vh,340px);overflow-y:auto}
+.balao-l{display:grid;grid-template-columns:92px 1fr 96px 62px 92px;align-items:center;gap:10px;
+  background:var(--card);padding:8px 11px;font-size:12.5px}
+.balao-l .doc{font:700 12.5px "Space Grotesk",sans-serif;color:var(--ink);user-select:all}
+.balao-l .oc{font:600 12px Inter,sans-serif;color:var(--slate);user-select:all;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.balao-l .dia{color:var(--slate);font-size:12px;text-align:right}
+.balao-l .q{font:700 13px "Space Grotesk",sans-serif;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+/* a linha marcada para cancelar se anuncia sozinha, inclusive na lista */
+.balao-l.cortar{background:var(--red);color:#fff}
+.balao-l.cortar .doc,.balao-l.cortar .dia,.balao-l.cortar .q,.balao-l.cortar .oc{color:#fff}
+.balao-cab{display:grid;grid-template-columns:92px 1fr 96px 62px 92px;gap:10px;background:var(--line-2);
+  padding:6px 11px;font:700 9.5px "Space Grotesk",sans-serif;letter-spacing:.07em;color:var(--slate);
+  text-transform:uppercase}
+.balao-cab span:nth-child(3),.balao-cab span:nth-child(4){text-align:right}
+.bt-cortar{justify-self:end;border:1px solid var(--line);background:var(--card);color:var(--slate);
+  font:700 10.5px "Space Grotesk",sans-serif;letter-spacing:.04em;border-radius:999px;padding:4px 10px;
+  cursor:pointer;white-space:nowrap}
+.bt-cortar:hover{border-color:var(--red);color:var(--red)}
+.balao-l.cortar .bt-cortar{background:#fff;border-color:#fff;color:var(--red)}
 .balao-pe{margin-top:8px;font-size:11.5px;color:var(--slate);display:flex;align-items:center;gap:6px}
 .balao-pe .pt{width:8px;height:8px;border-radius:3px;flex:none;background:var(--k-abe)}
 .balao-pe.chegou .pt{background:var(--k-chegou-ink)}
@@ -313,6 +354,8 @@ tr.sel .btn-loja{background:var(--card)}
 .giro td.k.tem{cursor:pointer}
 /* escolha da vitrine: o pontinho no canto diz que aquilo ainda não é pedido */
 .giro td.k.ki{background:var(--k-int);color:var(--k-int-ink)}
+.giro td.k.cortar{background:var(--red) !important;color:#fff !important}
+.giro td.k.cortar span,.giro td.k.cortar b{color:#fff !important}
 .giro td.k.ki::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;
   border-radius:50%;background:currentColor;opacity:.6}
 .giro td.k{position:relative}
@@ -703,6 +746,8 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
         </div>
       </div>
       <div class="chips" id="marcas"></div>
+      <button type="button" class="chip cortar-chip" id="cortarChip" hidden
+              title="O que está marcado para cancelar">0 para cancelar</button>
       <button type="button" class="chip-limpar" id="limparChip" title="Limpar os filtros" aria-label="Limpar os filtros">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.6 7.6v5.1l-3.8 2.1v-7.2Z"/><path d="M16.5 16.5l4 4"/><path d="M20.5 16.5l-4 4"/></svg>
       </button>
@@ -714,6 +759,23 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
 
   <div class="lj-fundo" id="ljFundo" role="dialog" aria-modal="true" aria-label="Loja a loja" hidden>
     <iframe id="ljQuadro" title="Loja a loja"></iframe>
+  </div>
+
+  <div class="corte-fundo" id="corteFundo" role="dialog" aria-modal="true" aria-label="Marcados para cancelar" hidden>
+    <div class="corte-cx">
+      <div class="corte-topo">
+        <h3>Marcados para cancelar</h3>
+        <span class="n" id="corteN"></span>
+        <span style="flex:1"></span>
+        <button type="button" class="btn-acao" id="corteX" title="Fechar (Esc)">Fechar</button>
+      </div>
+      <div class="corte-lista" id="corteLista"></div>
+      <div class="corte-pe">
+        <span class="cresce" id="corteTot"></span>
+        <button type="button" class="btn-acao" id="corteLimpar">Desmarcar tudo</button>
+        <button type="button" class="btn-acao forte" id="corteXls">Baixar relatório</button>
+      </div>
+    </div>
   </div>
 
   <div class="balao" id="balao" role="dialog" aria-label="Notas do mês" hidden>
@@ -1802,6 +1864,7 @@ async function abrirCliente(id){
     generos.map(g => `<option value="${esc(g)}">${esc(g.charAt(0) + g.slice(1).toLowerCase())}</option>`).join('');
   // a carteira guardada no aparelho entra já na primeira pintura: a tabela
   // aparece uma vez só, completa, em vez de redesenhar quando ela chega
+  lerCortes();
   E.obs = (await cacheLer('obs:' + c.id)) || {};
   E.int = (await cacheLer('int:' + c.id)) || {};
   const guardado = await cacheLer('cart:' + c.id);
@@ -1845,19 +1908,21 @@ async function carregarLojas(c){
    base mudou (o resumo tem poucos bytes) antes de baixar de novo. */
 const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
 const DET_VERSAO = 1;   // ordem dos campos da linha da Detalhada (v1)
-const DC = { CLI:1, MARCA:2, REF:5, COR:6, GCI:7, NF:8, PREV:10, CART:11, FAT:12, DFAT:13, FAIXA:14 };
+const DC = { CLI:1, MARCA:2, REF:5, COR:6, GCI:7, NF:8, OC:9, PREV:10, CART:11, FAT:12, DFAT:13, FAIXA:14 };
 // marca da Detalhada → marca do plano. UA fica de fora: o plano é Olympikus.
 const MARCA_DET = MARCAS_CFG[MARCA].det;
 // "PTO/PT", "PTO_PT" e "PTO / PT" são a mesma cor
 const chaveCor = c => norm(c).replace(/\s*[\/_]\s*/g, '/').trim();
 
-async function chamarWorker(action, ms){
+async function chamarWorker(acao, ms){
+  // aceita 'getDetalhada' ou { action:'...', ...resto }
+  const corpo = typeof acao === 'string' ? { action: acao } : acao;
   for(let tentativa = 1; tentativa <= 2; tentativa++){
     const corta = new AbortController();
     const t = setTimeout(() => corta.abort(), ms);
     try{
       const r = await fetch(WORKER_URL, { method:'PATCH', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ action }), signal: corta.signal });
+        body: JSON.stringify(corpo), signal: corta.signal });
       if(!r.ok) throw new Error('worker ' + r.status);
       return await r.json();
     }catch(e){
@@ -1987,7 +2052,7 @@ function extrairCarteira(base, codigos, ano){
     // previsão no que está em aberto. É o que o balão da célula mostra.
     if(l[DC.CART] > 0){
       x.a += l[DC.CART];
-      x.n.push({ t:'a', q:l[DC.CART], gci:l[DC.GCI] || 0, d:l[DC.PREV] });
+      x.n.push({ t:'a', q:l[DC.CART], gci:l[DC.GCI] || 0, oc:l[DC.OC] || '', d:l[DC.PREV] });
     }else if(l[DC.FAT] > 0){
       x.f += l[DC.FAT];
       x.n.push({ t:'f', q:l[DC.FAT], nf:l[DC.NF] || 0, d:l[DC.DFAT] });
@@ -2391,6 +2456,7 @@ function pintar(){
   // total do mês — o que é de cada lado sai no balão, ao clicar.
   const celK = (p, x, cls = '', mes = '') => {
     const f = x ? x.f : 0, a = x ? x.a : 0;
+    if(CORTE_CEL.has(p.k + '|' + mes)) cls += ' cortar';
     const int = intDe(p, mes);
     if(!f && !a){
       // só a escolha da vitrine: a célula existe mesmo sem carteira
@@ -2660,6 +2726,223 @@ document.addEventListener('keydown', ev => { if(ev.key === 'Escape') abrirPop(nu
 /* ── balão da célula: as notas daquele mês ───────────────────────────── */
 const diaBR = d => d == null || d < 0 ? '—' : new Date(d * 864e5).toLocaleDateString('pt-BR', { timeZone:'UTC' });
 
+/* ── xlsx escrito à mão ───────────────────────────────────────────────
+   O SheetJS da versão aberta não grava estilo: cabeçalho colorido e texto
+   centralizado só saem escrevendo o pacote. São quatro arquivinhos XML
+   dentro de um zip — sem compressão, que para 50 linhas não faz falta e
+   dispensa biblioteca. */
+function zipXlsx(arquivos){
+  const enc = new TextEncoder();
+  const tabela = (() => {
+    const t = new Uint32Array(256);
+    for(let i = 0; i < 256; i++){
+      let c = i;
+      for(let j = 0; j < 8; j++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      t[i] = c >>> 0;
+    }
+    return t;
+  })();
+  const crc32 = u8 => {
+    let c = 0xFFFFFFFF;
+    for(let i = 0; i < u8.length; i++) c = tabela[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  const partes = [], entradas = [];
+  let desloc = 0;
+  for(const [nome, texto] of arquivos){
+    const dados = enc.encode(texto), nm = enc.encode(nome), crc = crc32(dados);
+    const local = new Uint8Array(30 + nm.length);
+    const dv = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true);
+    dv.setUint32(14, crc, true); dv.setUint32(18, dados.length, true);
+    dv.setUint32(22, dados.length, true); dv.setUint16(26, nm.length, true);
+    local.set(nm, 30);
+    partes.push(local, dados);
+    entradas.push({ nome: nm, crc, tam: dados.length, desloc });
+    desloc += local.length + dados.length;
+  }
+  const central = [];
+  let tamCentral = 0;
+  for(const e of entradas){
+    const c = new Uint8Array(46 + e.nome.length);
+    const dv = new DataView(c.buffer);
+    dv.setUint32(0, 0x02014b50, true); dv.setUint16(4, 20, true); dv.setUint16(6, 20, true);
+    dv.setUint32(16, e.crc, true); dv.setUint32(20, e.tam, true); dv.setUint32(24, e.tam, true);
+    dv.setUint16(28, e.nome.length, true); dv.setUint32(42, e.desloc, true);
+    c.set(e.nome, 46);
+    central.push(c); tamCentral += c.length;
+  }
+  const fim = new Uint8Array(22);
+  const dvf = new DataView(fim.buffer);
+  dvf.setUint32(0, 0x06054b50, true);
+  dvf.setUint16(8, entradas.length, true); dvf.setUint16(10, entradas.length, true);
+  dvf.setUint32(12, tamCentral, true); dvf.setUint32(16, desloc, true);
+  return new Blob([...partes, ...central, fim],
+    { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function baixarXlsx(cabecalho, linhas, nomeArquivo){
+  const esc = v => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const col = i => {
+    let n = i + 1, r = '';
+    while(n > 0){ const m = (n - 1) % 26; r = String.fromCharCode(65 + m) + r; n = (n - m - 1) / 26; }
+    return r;
+  };
+  const cel = (v, lin, i, estilo) => {
+    const ref = col(i) + lin;
+    if(typeof v === 'number' && isFinite(v))
+      return `<c r="${ref}" s="${estilo}"><v>${v}</v></c>`;
+    return `<c r="${ref}" s="${estilo}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
+  };
+  const largura = cabecalho.map((h, i) => {
+    const maior = Math.max(String(h).length, ...linhas.map(l => String(l[i] == null ? '' : l[i]).length));
+    return Math.min(46, Math.max(11, maior + 4));
+  });
+  const corpo =
+    `<row r="1" ht="26" customHeight="1">${cabecalho.map((h, i) => cel(h, 1, i, 1)).join('')}</row>` +
+    linhas.map((l, j) =>
+      `<row r="${j + 2}" ht="19" customHeight="1">${l.map((v, i) => cel(v, j + 2, i, 2)).join('')}</row>`).join('');
+  const sheet =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+    `<sheetViews><sheetView workbookViewId="0" tabSelected="1">` +
+    `<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>` +
+    `<cols>${largura.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` +
+    `<sheetData>${corpo}</sheetData>` +
+    `<autoFilter ref="A1:${col(cabecalho.length - 1)}${linhas.length + 1}"/></worksheet>`;
+  // s=1 cabeçalho (fundo escuro, branco, negrito); s=2 dados (centralizados)
+  const styles =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+    `<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font>` +
+    `<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>` +
+    `<font><sz val="11"/><color rgb="FF1F2937"/><name val="Calibri"/></font></fonts>` +
+    `<fills count="3"><fill><patternFill patternType="none"/></fill>` +
+    `<fill><patternFill patternType="gray125"/></fill>` +
+    `<fill><patternFill patternType="solid"><fgColor rgb="FF1F3864"/><bgColor indexed="64"/></patternFill></fill></fills>` +
+    `<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>` +
+    `<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right>` +
+    `<top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>` +
+    `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>` +
+    `<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
+    `<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">` +
+    `<alignment horizontal="center" vertical="center" wrapText="1"/></xf>` +
+    `<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">` +
+    `<alignment horizontal="center" vertical="center"/></xf></cellXfs>` +
+    `<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const arquivos = [
+    ['[Content_Types].xml',
+     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+     `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+     `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+     `<Default Extension="xml" ContentType="application/xml"/>` +
+     `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+     `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>` +
+     `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+    ['_rels/.rels',
+     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+     `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+     `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ['xl/workbook.xml',
+     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+     `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ` +
+     `xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
+     `<sheets><sheet name="Cancelar" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels',
+     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+     `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+     `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>` +
+     `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['xl/styles.xml', styles],
+    ['xl/worksheets/sheet1.xml', sheet],
+  ];
+  const url = URL.createObjectURL(zipXlsx(arquivos));
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeArquivo;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* ── marcar pedido para cancelar ──────────────────────────────────────
+   O dono do cliente vai cortando o que não quer enquanto a carteira está
+   na tela. Fica guardado neste aparelho (por cliente), e sai num xlsx que
+   ele leva para a fábrica: GCI, referência, descrição, cor, previsão e
+   pares. Ainda não volta para a Detalhada — isso é o passo seguinte. */
+const CORTES = new Map();
+const CORTE_CEL = new Set();        // "produto|mês" com algum corte marcado
+const chaveCortes = () => `ag.cortes.${E.base && E.base.cliente ? E.base.cliente.id : '?'}`;
+function idCorte(p, mes, n){
+  return [p.k, mes, n.gci || '', n.oc || '', n.d || ''].join('|');
+}
+function lerCortes(){
+  CORTES.clear();
+  try{
+    const g = JSON.parse(localStorage.getItem(chaveCortes()) || '[]');
+    for(const x of g) CORTES.set(x.id, x);
+  }catch(_){}
+  pintarCortes();
+  buscarCortes();                    // o servidor manda, e chega logo depois
+}
+/* O que foi marcado fica no servidor, por cliente: amanhã, no computador
+   do escritório ou no celular, a lista é a mesma. O aparelho guarda uma
+   cópia para a tela abrir na hora e para não se perder sem internet. */
+async function buscarCortes(){
+  const cli = E.base && E.base.cliente ? E.base.cliente.id : null;
+  if(!cli) return;
+  try{
+    const r = await chamarWorker({ action:'getCortesGiro', cliente: cli }, 12000);
+    if(!E.base || E.base.cliente.id !== cli) return;      // trocou de cliente no meio
+    if(!r || !Array.isArray(r.itens)) return;
+    CORTES.clear();
+    for(const x of r.itens) if(x && x.id) CORTES.set(x.id, x);
+    try{ localStorage.setItem(chaveCortes(), JSON.stringify([...CORTES.values()])); }catch(_){}
+    pintarCortes();
+    if(!$('corteFundo').hidden) abrirCortes();
+  }catch(_){ /* sem servidor: fica o que está no aparelho */ }
+}
+let _cortesT = null;
+function gravarCortes(){
+  try{ localStorage.setItem(chaveCortes(), JSON.stringify([...CORTES.values()])); }
+  catch(_){ /* sem espaço: segue só nesta sessão */ }
+  // manda para o servidor sem atropelar quem está clicando rápido
+  clearTimeout(_cortesT);
+  _cortesT = setTimeout(enviarCortes, 700);
+}
+async function enviarCortes(){
+  const cli = E.base && E.base.cliente ? E.base.cliente.id : null;
+  if(!cli) return;
+  const chip = $('cortarChip');
+  try{
+    await chamarWorker({ action:'saveCortesGiro', cliente: cli,
+                         itens:[...CORTES.values()], por: NOME || '' }, 15000);
+    if(chip) chip.title = 'O que está marcado para cancelar · salvo no servidor';
+  }catch(_){
+    if(chip) chip.title = 'Marcado neste aparelho — não deu para salvar no servidor agora';
+  }
+}
+function marcarCorte(id, dados){
+  if(CORTES.has(id)) CORTES.delete(id); else CORTES.set(id, { id, ...dados });
+  gravarCortes();
+  pintarCortes();
+}
+function pintarCortes(){
+  const chip = $('cortarChip');
+  if(chip){
+    const n = CORTES.size;
+    chip.hidden = !n;
+    chip.textContent = n === 1 ? '1 para cancelar' : `${nf(n)} para cancelar`;
+  }
+  // a célula do mês fica vermelha quando tem corte marcado dentro dela
+  CORTE_CEL.clear();
+  for(const x of CORTES.values()) CORTE_CEL.add(x.k + '|' + x.mes);
+  for(const td of document.querySelectorAll('.giro td.k[data-mes]')){
+    const tr = td.closest('tr');
+    const k = tr && tr.dataset.k;
+    td.classList.toggle('cortar', !!k && CORTE_CEL.has(k + '|' + td.dataset.mes));
+  }
+}
+
 function abrirBalao(td){
   const tr = td.closest('tr');
   const p = E.linhas.find(x => x.k === tr.dataset.k);
@@ -2676,14 +2959,31 @@ function abrirBalao(td){
   if(int) partes.push(nf(int.q) + ' escolhidos na vitrine');
   $('balaoTit').innerHTML = `${esc(p.descricao)} · ${esc(p.cor)}` +
     `<small>${rotuloMes(mes)} · ${partes.join(' · ')}</small>`;
+  const temAberto = abertos.length > 0;
   $('balaoCorpo').innerHTML =
+    (fat.length || temAberto
+      ? `<div class="balao-cab"><span>Documento</span><span>OC</span><span>Previsão</span><span>Pares</span><span></span></div>`
+      : '') +
     fat.map(n => `<div class="balao-l"><span class="doc">${n.nf ? 'NF ' + esc(n.nf) : 'sem NF'}</span>` +
-      `<span class="dia">${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span></div>`).join('') +
-    abertos.map(n => `<div class="balao-l"><span class="doc">${n.gci ? 'GCI ' + esc(n.gci) : 'em aberto'}</span>` +
-      `<span class="dia">prev. ${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span></div>`).join('') +
+      `<span class="oc">${n.oc ? esc(n.oc) : ''}</span>` +
+      `<span class="dia">${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span>` +
+      `<span style="justify-self:end;font-size:11px;color:var(--slate)">faturado</span></div>`).join('') +
+    abertos.map(n => {
+      const id = idCorte(p, mes, n);
+      const on = CORTES.has(id);
+      const dados = { k:p.k, mes, gci:n.gci || '', oc:n.oc || '', prev:n.d || 0, q:n.q || 0,
+                      ref:p.codigo, desc:p.descricao, cor:p.cor };
+      return `<div class="balao-l${on ? ' cortar' : ''}" data-corte="${esc(id)}" ` +
+        `data-dados='${esc(JSON.stringify(dados))}'>` +
+        `<span class="doc">${n.gci ? 'GCI ' + esc(n.gci) : 'em aberto'}</span>` +
+        `<span class="oc">${n.oc ? esc(n.oc) : '—'}</span>` +
+        `<span class="dia">${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span>` +
+        `<button type="button" class="bt-cortar">${on ? 'cancelado ✕' : 'cancelar'}</button></div>`;
+    }).join('') +
     (int ? `<div class="balao-l"><span class="doc">Vitrine</span>` +
-      `<span class="dia">${esc(int.rot)}<button type="button" class="tirar" data-tirar="${esc(p.k)}|${mes}">tirar</button></span>` +
-      `<span class="q">${nf(int.q)}</span></div>` : '');
+      `<span class="oc">${esc(int.rot)}</span><span class="dia"></span>` +
+      `<span class="q">${nf(int.q)}</span>` +
+      `<button type="button" class="tirar" data-tirar="${esc(p.k)}|${mes}">tirar</button></div>` : '');
   const pe = $('balaoPe');
   if(int && !(x && (x.f || x.a))){
     pe.className = 'balao-pe';
@@ -2727,6 +3027,17 @@ addEventListener('message', ev => {
 
 const fecharBalao = () => { $('balao').hidden = true; };
 $('balaoCorpo').addEventListener('click', ev => {
+  const cortar = ev.target.closest('.bt-cortar');
+  if(cortar){
+    ev.stopPropagation();
+    const linha = cortar.closest('[data-corte]');
+    const d = JSON.parse(linha.dataset.dados);
+    marcarCorte(linha.dataset.corte, d);
+    const on = CORTES.has(linha.dataset.corte);
+    linha.classList.toggle('cortar', on);
+    cortar.textContent = on ? 'cancelado ✕' : 'cancelar';
+    return;
+  }
   const b = ev.target.closest('[data-tirar]');
   if(!b) return;
   ev.stopPropagation();
@@ -2735,6 +3046,51 @@ $('balaoCorpo').addEventListener('click', ev => {
   fecharBalao();
   pintar();
 });
+/* ── a lista do que foi marcado ─────────────────────────────────────── */
+function abrirCortes(){
+  const lista = [...CORTES.values()].sort((a, b) => (a.prev || 0) - (b.prev || 0));
+  $('corteN').textContent = lista.length === 1 ? '1 pedido' : `${nf(lista.length)} pedidos`;
+  $('corteTot').textContent = `${nf(lista.reduce((t, x) => t + (x.q || 0), 0))} pares`;
+  $('corteLista').innerHTML =
+    `<div class="corte-l corte-cab"><span>GCI</span><span>Produto</span><span>Cor</span>` +
+    `<span>Prev. fat.</span><span style="text-align:right">Pares</span><span></span></div>` +
+    (lista.length ? lista.map(x =>
+      `<div class="corte-l" data-id="${esc(x.id)}"><span>${esc(x.gci || '—')}</span>` +
+      `<span>${esc(x.ref)} · ${esc(x.desc)}</span><span>${esc(x.cor)}</span>` +
+      `<span>${x.prev ? diaBR(x.prev) : '—'}</span><span class="q">${nf(x.q)}</span>` +
+      `<button type="button" class="x" title="Desmarcar">&times;</button></div>`).join('')
+      : '<div class="corte-l"><span style="grid-column:1/-1;color:var(--slate)">Nada marcado ainda.</span></div>');
+  $('corteFundo').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function fecharCortes(){
+  $('corteFundo').hidden = true;
+  document.body.style.overflow = '';
+}
+$('cortarChip').onclick = abrirCortes;
+$('corteX').onclick = fecharCortes;
+$('corteFundo').onclick = ev => { if(ev.target === $('corteFundo')) fecharCortes(); };
+$('corteLimpar').onclick = () => {
+  if(!CORTES.size || !confirm('Desmarcar tudo?')) return;
+  CORTES.clear(); gravarCortes(); pintarCortes(); abrirCortes();
+};
+$('corteLista').addEventListener('click', ev => {
+  const b = ev.target.closest('.x');
+  if(!b) return;
+  CORTES.delete(b.closest('[data-id]').dataset.id);
+  gravarCortes(); pintarCortes(); abrirCortes();
+});
+$('corteXls').onclick = () => {
+  const lista = [...CORTES.values()].sort((a, b) => (a.prev || 0) - (b.prev || 0));
+  if(!lista.length) return;
+  const cli = E.base && E.base.cliente ? E.base.cliente.nome : 'cliente';
+  baixarXlsx(
+    ['GCI', 'REFERÊNCIA', 'DESCRIÇÃO', 'COR', 'PREV FAT', 'QTDE CARTEIRA'],
+    lista.map(x => [x.gci || '', x.ref || '', x.desc || '', x.cor || '',
+                    x.prev ? diaBR(x.prev) : '', x.q || 0]),
+    `cancelar ${cli} ${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+};
+
 $('balaoX').onclick = fecharBalao;
 $('balao').onclick = ev => ev.stopPropagation();
 document.addEventListener('click', fecharBalao);
