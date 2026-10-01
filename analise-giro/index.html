@@ -2168,7 +2168,10 @@ const codigosDe = cli => ((cli.codigos && cli.codigos.length) ? cli.codigos : [c
 // Versão do recorte guardado. Mudou o que se extrai da Detalhada (faixa,
 // notas fiscais), sobe este número: o que está no aparelho é refeito, em vez
 // de ficar valendo um recorte sem a informação nova.
-const CART_V = 3;
+// v4: a carteira guardada passou a trazer a OC de cada pedido — o recorte
+// gravado antes disso não tem o campo, e sem subir a versão ele continuaria
+// valendo e a coluna apareceria vazia
+const CART_V = 4;
 // o recorte guardado só vale para os mesmos códigos, o mesmo ano e a versão
 const cartValida = (g, cli, ano) => !!g && g.v === CART_V && g.codigos === codigosDe(cli).join(',') && g.ano === ano;
 const UM_DIA = 864e5;
