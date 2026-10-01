@@ -2052,7 +2052,10 @@ function extrairCarteira(base, codigos, ano){
     // previsão no que está em aberto. É o que o balão da célula mostra.
     if(l[DC.CART] > 0){
       x.a += l[DC.CART];
-      x.n.push({ t:'a', q:l[DC.CART], gci:l[DC.GCI] || 0, oc:l[DC.OC] || '', d:l[DC.PREV] });
+      // a OC é texto ("CORRE NOV", "LJ02 CENTRO1") e vem dicionarizada na
+      // base compacta: sem traduzir, o que aparece é o número do índice
+      const oc = (base.dic.oc || [])[l[DC.OC]];
+      x.n.push({ t:'a', q:l[DC.CART], gci:l[DC.GCI] || 0, oc: oc == null ? '' : String(oc), d:l[DC.PREV] });
     }else if(l[DC.FAT] > 0){
       x.f += l[DC.FAT];
       x.n.push({ t:'f', q:l[DC.FAT], nf:l[DC.NF] || 0, d:l[DC.DFAT] });
