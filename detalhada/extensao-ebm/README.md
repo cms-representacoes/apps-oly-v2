@@ -166,11 +166,25 @@ ver exatamente em que tela travou.
 O passo a passo completo sai no console da Detalhada quando dá erro, e também em
 `chrome://extensions` → **service worker** da extensão.
 
+## O status da consulta
+
+É o combo `form1:cmbEncomendaStatus`, escolhido **antes** dos critérios: mudá-lo
+depois recarrega a tela e derruba o que já foi montado. Carteira (`A`) e faturado
+(`F`) são duas consultas, não uma — a encomenda já faturada não aparece na de
+carteira, e é por isso que a Detalhada manda um arquivo para cada.
+
+Filtrar é obrigatório, e não um capricho: o EBM reaproveita número de encomenda,
+e uma busca por GCI sem status traz a antiga junto com a nova. Por isso `T`
+(todos) existe mas não é o padrão.
+
+A opção é procurada pelo `value` e, não achando, pelo **rótulo** — o value é
+código do EBM e já pode mudar sem aviso. Não achando por nenhum dos dois, a
+consulta **para com erro**, e o erro traz a lista do que o combo tem. Antes
+disso, o status pedido e não encontrado virava um aviso no log e a consulta
+seguia no status anterior: pedir faturado devolvia a carteira de novo, num
+arquivo com nome de faturado, e nada avisava.
+
 ## O que ainda não faz
 
-- **Só um GCI ou alguns selecionados.** A emissão em lote (o semestre inteiro de
-  um cliente) fica para depois. Quando vier, vai precisar separar os GCIs por
-  status — o EBM reaproveita número de encomenda, e uma busca por GCI sem filtrar
-  status traz a antiga junto com a nova.
 - Um PDF por vez. Dois pedidos simultâneos brigariam pela sessão do EBM, que é
   única.

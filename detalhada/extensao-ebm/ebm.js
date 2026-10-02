@@ -56,6 +56,17 @@
   const OPERADOR_IGUAL = '=';    // para um GCI só
   const FORMATO_PDF = 'pdf';
 
+  /* O que procurar no combo de status da consulta. O `value` vem primeiro,
+     porque é exato; os rótulos ficam de reserva, para o dia em que o EBM
+     trocar o código e ninguém avisar. 'T' é o "todos" — uma consulta só,
+     mas o EBM reaproveita número de encomenda, e sem filtrar status a
+     antiga vem junto com a nova: por isso 'T' não é o padrão. */
+  const STATUS = {
+    A: { candidatos: ['A'], padroes: ['abert', 'carteira', 'pendent'] },
+    F: { candidatos: ['F'], padroes: ['fatur', 'encerrad', 'fechad', 'atendid'] },
+    T: { candidatos: ['T'], padroes: ['^[^a-z]*tod[oa]s'] },
+  };
+
   const DOC = Math.random().toString(36).slice(2, 10);
   const $ = (id) => document.getElementById(id);
   const espera = (ms) => new Promise(r => setTimeout(r, ms));
@@ -397,11 +408,19 @@
 
       // O status vem ANTES da linha: mudá-lo depois recarrega a tela e
       // derruba o critério já montado.
+      //
+      // Quem pede faturado tem de receber faturado: não achando a opção no
+      // combo, a consulta para aqui. Antes ela seguia no status em que
+      // estava, e o PDF do faturado saía com a carteira dentro.
       const st = await ate(() => $(ID.status));
-      if (st && st.value !== status) {
-        const r = await naPagina('definirStatus', { id: ID.status, valor: status });
-        relatar({ aviso: `status: ${r.ok ? r.valor : r.erro}` });
-        await espera(900);
+      if (st) {
+        const alvo = STATUS[status] || STATUS.A;
+        const r = await naPagina('definirStatus',
+          { id: ID.status, valor: status, ...alvo, obrigatorio: status !== 'A' });
+        if (!r.ok) throw new Error('status da consulta: ' + r.erro);
+        const v = r.valor || {};
+        relatar({ aviso: `status ${status}: ${v.texto || v}` });
+        if (v.mudou) await espera(900);
       }
 
       // Sobras da consulta anterior atrapalham o filtro

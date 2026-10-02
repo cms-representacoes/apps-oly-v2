@@ -160,16 +160,48 @@
     return 'ok (evento)';
   }
 
-  function definirStatus({ id, valor }) {
+  /** Escolhe o status da consulta de encomendas (carteira, faturado, todos).
+   *
+   *  Escolhe pelo `value` e, não achando, pelo RÓTULO: o value é código do
+   *  EBM e não está escrito em lugar nenhum que vá continuar o mesmo; o
+   *  rótulo é o que a pessoa lê na tela.
+   *
+   *  Não achando nem por um nem por outro, LEVANTA ERRO — e o erro leva a
+   *  lista do que o combo tem. Antes isso voltava como aviso e a consulta
+   *  seguia no status em que estava: pedir faturado trazia a carteira de
+   *  novo, o PDF saía com os pedidos errados e nada avisava. O único caso
+   *  em que seguir é aceitável é o status que o EBM já abre selecionado,
+   *  e quem diz isso é `obrigatorio`.
+   */
+  function definirStatus({ id, valor, candidatos, padroes, obrigatorio }) {
     const s = $(id);
-    if (!s) return 'sem combo';
-    const i = [...s.options].findIndex(o => o.value === valor);
-    if (i < 0) return 'sem a opção ' + valor;
+    if (!s) return { texto: 'sem combo', mudou: false };
+    const ops = [...s.options];
+    const rotulo = o => String(o.text || '').trim();
+    const alvos = (candidatos && candidatos.length ? candidatos : [valor]).map(String);
+
+    let i = ops.findIndex(o => alvos.includes(o.value));
+    if (i < 0 && padroes && padroes.length) {
+      const res = padroes.map(x => new RegExp(x, 'i'));
+      i = ops.findIndex(o => res.some(re => re.test(rotulo(o))));
+    }
+    if (i < 0) {
+      const lista = ops.map(o => `${o.value}=${rotulo(o)}`).join(' | ') || '(sem opções)';
+      if (obrigatorio) throw new Error(
+        `o combo de status não tem ${alvos.join(' nem ')} — ele traz: ${lista}`);
+      return { texto: `mantido em "${rotulo(s.options[s.selectedIndex] || {})}"`, mudou: false,
+               naoAchou: true, opcoes: lista };
+    }
+
+    const mudou = s.selectedIndex !== i;
+    const texto = `${rotulo(ops[i])} [${ops[i].value}]`;
+    if (!mudou) return { texto, mudou: false };
+
     s.selectedIndex = i;
     s.options[i].selected = true;
     s.dispatchEvent(new Event('change', { bubbles: true }));
     try { if (typeof s.onchange === 'function') s.onchange(); } catch (e) {}
-    return s.options[i].text.trim();
+    return { texto, mudou: true };
   }
 
   /** Janela de opções: escolhe Adobe PDF e todas as páginas.

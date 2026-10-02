@@ -1210,10 +1210,20 @@
     }
     .bs-gerar:hover:not(:disabled) { background: #f1f5f9; }
     .bs-gerar:disabled { opacity: .5; cursor: not-allowed; }
+    /* o que a fila vai gerar: fica à esquerda dos botões, no mesmo tom da
+       barra, porque é conferência e não ação */
+    .bs-info {
+      color: #fff; font-size: 11.5px; font-weight: 600; line-height: 1.3;
+      padding: 0 4px 0 8px; max-width: 24ch; text-wrap: balance;
+    }
+    .bs-info[hidden] { display: none; }
     .btn-icon.ativo { background: var(--primary); color: #fff; }
     @media (max-width: 560px) {
       .barra-selecao { gap: 7px; padding-left: 12px; }
       .barra-selecao button { padding: 9px 11px; }
+      /* na barra do celular não cabe: a mesma conferência fica na tarja de
+         andamento e no aviso antes da fila */
+      .bs-info { display: none; }
     }
 
     .tarja-pdf {
@@ -2764,6 +2774,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
 
   <!-- Seleção de várias encomendas -->
   <div class="barra-selecao" id="barra-selecao">
+    <span class="bs-info" id="bs-info" hidden></span>
     <button class="bs-secundario" id="bs-tudo">Marcar tudo</button>
     <button class="bs-secundario" id="bs-limpar">Limpar</button>
     <button class="bs-secundario" id="bs-copiar" disabled title="Copiar os GCIs marcados, separados por vírgula">
@@ -9385,8 +9396,15 @@ function marcarTudoFiltrado() {
  *
  *  O status continua separando: no EBM ele é um combo da tela de consulta
  *  (`cmbEncomendaStatus`), escolhido antes dos critérios. Carteira e
- *  faturado são duas consultas, não uma.
+ *  faturado são duas consultas, não uma — e a encomenda faturada só
+ *  aparece na consulta de faturado.
+ *
+ *  Quando o mesmo cliente cai nos dois, o nome do arquivo diz qual é. Os
+ *  dois se chamavam igual, o Chrome salvava o segundo como "nome (1)", e
+ *  de fora parecia que um pedaço do pedido tinha ficado de fora.
  */
+
+const ROTULO_STATUS = { A: 'carteira', F: 'faturado' };
 
 function gruposDaSelecao() {
   const mapa = new Map();
@@ -9400,7 +9418,54 @@ function gruposDaSelecao() {
     mapa.get(chave).gcis.add(String(r[C.GCI]));
   }
 
-  return [...mapa.values()].map(g => ({ ...g, gcis: [...g.gcis] }));
+  // Pedido com saldo em carteira é pedido aberto no EBM, mesmo que parte
+  // dele já tenha saído — e a consulta de carteira já o traz inteiro, com
+  // as linhas faturadas dentro. Mandá-lo também para a consulta de
+  // faturado só rendia um arquivo repetido ou uma busca que não acha nada.
+  for (const g of mapa.values()) {
+    if (g.status !== 'F') continue;
+    const aberto = mapa.get(g.codigo + '|A');
+    if (!aberto) continue;
+    for (const gci of aberto.gcis) g.gcis.delete(gci);
+    if (!g.gcis.size) mapa.delete(g.codigo + '|F');
+  }
+
+  // carteira primeiro: é o que se vai usar para falar com o cliente
+  const grupos = [...mapa.values()].sort((a, b) =>
+    a.nome.localeCompare(b.nome, 'pt-BR') || (a.status === 'F') - (b.status === 'F'));
+
+  const vezes = new Map();
+  for (const g of grupos) vezes.set(g.codigo, (vezes.get(g.codigo) || 0) + 1);
+
+  return grupos.map(g => ({
+    ...g,
+    gcis: [...g.gcis],
+    arquivo: vezes.get(g.codigo) > 1 ? `${g.nome} - ${ROTULO_STATUS[g.status]}` : g.nome,
+  }));
+}
+
+/** O que a fila vai gerar, em uma linha — é por ela que se confere se saiu
+ *  tudo. Marcar 23 itens pode dar 18 pedidos (um pedido tem várias
+ *  referências) e 4 arquivos (dois clientes, cada um com carteira e
+ *  faturado): sem isso escrito, a conta não fecha na cabeça de ninguém. */
+function resumoDaSelecao(grupos) {
+  const pedidos = new Set();
+  const clientes = new Set();
+  let cart = 0, fat = 0;
+  for (const g of grupos) {
+    clientes.add(g.codigo);
+    g.gcis.forEach(x => pedidos.add(x));
+    if (g.status === 'A') cart++; else fat++;
+  }
+  const parte = [];
+  if (cart) parte.push(`${cart} carteira`);
+  if (fat) parte.push(`${fat} faturado`);
+  return {
+    pedidos: pedidos.size, clientes: clientes.size, cart, fat,
+    texto: `${pedidos.size} pedido${pedidos.size > 1 ? 's' : ''} · ` +
+           `${clientes.size} cliente${clientes.size > 1 ? 's' : ''}` +
+           (parte.length > 1 ? ` · ${parte.join(' · ')}` : ''),
+  };
 }
 
 function renderBarraSelecao() {
@@ -9411,6 +9476,11 @@ function renderBarraSelecao() {
 
   const n = APP.selecao.size;
   const grupos = gruposDaSelecao();
+  const resumo = resumoDaSelecao(grupos);
+
+  const info = $('bs-info');
+  info.hidden = !grupos.length;
+  info.textContent = resumo.texto;
 
   // Sem a extensao nao ha como gerar PDF; o botao sai em vez de ficar
   // convidando para um erro. O de copiar continua, que e o motivo de a
@@ -9420,6 +9490,11 @@ function renderBarraSelecao() {
   $('bs-gerar-label').textContent = n
     ? `Gerar ${grupos.length} PDF${grupos.length > 1 ? 's' : ''}`
     : 'Gerar';
+  $('bs-gerar').title = grupos.length
+    ? `${grupos.length} arquivo${grupos.length > 1 ? 's' : ''} — ${resumo.texto}` +
+      (resumo.fat ? ' — o EBM consulta carteira e faturado em telas separadas, ' +
+        'um arquivo para cada' : '')
+    : 'Marque as encomendas que entram no PDF';
 
   const gcis = gcisDaSelecao();
   $('bs-copiar').disabled = !gcis.length;
@@ -9447,9 +9522,10 @@ function gerarSelecionados() {
     const tempo = min >= 60
       ? `${Math.round(min / 60 * 10) / 10} hora${min >= 90 ? 's' : ''}`
       : `${Math.round(min)} minutos`;
-    const clientes = new Set(grupos.map(g => g.codigo)).size;
+    const r = resumoDaSelecao(grupos);
+    const clientes = r.clientes;
     const ok = confirm([
-      `São ${grupos.length} arquivos, de ${clientes} cliente${clientes > 1 ? 's' : ''}.`,
+      `São ${grupos.length} arquivos — ${r.texto}.`,
       `O EBM gera um por vez — isso deve levar perto de ${tempo}.`,
       'Se você queria os pedidos de um cliente só, cancele e filtre por ele antes de marcar.',
     ].join('\n\n'));
@@ -9479,7 +9555,7 @@ function proximoDaFila() {
   }
 
   const g = f.grupos[f.atual];
-  pedirPdf(g.gcis, g.nome, g.status);
+  pedirPdf(g.gcis, g.arquivo || g.nome, g.status);
 }
 
 /** Continua a fila depois de um arquivo pronto ou falhado. */
