@@ -335,6 +335,7 @@ tr.sel .btn-loja{background:var(--card)}
 .balao-l .oc{font:600 12px Inter,sans-serif;color:var(--slate);user-select:all;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .balao-l .dia{color:var(--slate);font-size:12px;text-align:right}
+.balao-l .dia i{font-style:normal;font-size:10px;letter-spacing:.03em;opacity:.75;text-transform:uppercase}
 .balao-l .q{font:700 13px "Space Grotesk",sans-serif;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
 /* a linha marcada para cancelar se anuncia sozinha, inclusive na lista */
 .balao-l.cortar{background:var(--red);color:#fff}
@@ -2990,11 +2991,11 @@ function abrirBalao(td){
   const temAberto = abertos.length > 0;
   $('balaoCorpo').innerHTML =
     (fat.length || temAberto
-      ? `<div class="balao-cab"><span>Documento</span><span>OC</span><span>Previsão</span><span>Pares</span><span></span></div>`
+      ? `<div class="balao-cab"><span>Documento</span><span>OC</span><span>Data</span><span>Pares</span><span></span></div>`
       : '') +
     fat.map(n => `<div class="balao-l"><span class="doc">${n.nf ? 'NF ' + esc(n.nf) : 'sem NF'}</span>` +
       `<span class="oc">${n.oc ? esc(n.oc) : ''}</span>` +
-      `<span class="dia">${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span>` +
+      `<span class="dia">${n.d >= 0 ? '<i>fat.</i> ' + diaBR(n.d) : '—'}</span><span class="q">${nf(n.q)}</span>` +
       `<span style="justify-self:end;font-size:11px;color:var(--slate)">faturado</span></div>`).join('') +
     abertos.map(n => {
       const id = idCorte(p, mes, n);
@@ -3005,7 +3006,7 @@ function abrirBalao(td){
         `data-dados='${esc(JSON.stringify(dados))}'>` +
         `<span class="doc">${n.gci ? 'GCI ' + esc(n.gci) : 'em aberto'}</span>` +
         `<span class="oc">${n.oc ? esc(n.oc) : '—'}</span>` +
-        `<span class="dia">${diaBR(n.d)}</span><span class="q">${nf(n.q)}</span>` +
+        `<span class="dia">${n.d >= 0 ? '<i>prev.</i> ' + diaBR(n.d) : '—'}</span><span class="q">${nf(n.q)}</span>` +
         `<button type="button" class="bt-cortar">${on ? 'cancelado ✕' : 'cancelar'}</button></div>`;
     }).join('') +
     (int ? `<div class="balao-l"><span class="doc">Vitrine</span>` +
