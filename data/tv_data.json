@@ -1,54 +1,50 @@
 {
-  "generatedAt": "2026-10-01T07:32:38.654768-03:00",
+  "generatedAt": "2026-10-02T07:32:55.698076-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 362136,
+    "total": 364650,
     "meses": [
       {
-        "label": "SET",
-        "v": 898
-      },
-      {
         "label": "OUT",
-        "v": 140695
+        "v": 139093
       },
       {
         "label": "NOV",
-        "v": 167015
+        "v": 169847
       },
       {
         "label": "DEZ",
-        "v": 53394
+        "v": 54702
       }
     ],
     "horizonte": "ate dez/26"
   },
   "mes": {
-    "label": "SETEMBRO",
-    "dia": 30,
-    "faturado": 177546,
-    "anterior": 122688,
-    "anteriorLabel": "agosto",
-    "falta": 898,
-    "diasUteis": 1,
-    "paresDia": 898,
-    "projecao": 177546,
-    "barW": 99,
-    "markW": 69
+    "label": "OUTUBRO",
+    "dia": 1,
+    "faturado": 953,
+    "anterior": 177546,
+    "anteriorLabel": "setembro",
+    "falta": 139093,
+    "diasUteis": 21,
+    "paresDia": 6623,
+    "projecao": 20966,
+    "barW": 1,
+    "markW": 100
   },
   "novHoje": {
-    "total": 2442,
+    "total": 6828,
     "linhas": [
       [
         "Jorge",
         [
-          72,
+          456,
           0,
-          10,
-          36,
+          11,
+          61,
           0
         ]
       ],
@@ -76,7 +72,7 @@
         "Rafael",
         [
           0,
-          884,
+          1968,
           0,
           0,
           0
@@ -89,13 +85,13 @@
           0,
           0,
           0,
-          0
+          24
         ]
       ],
       [
         "Cms",
         [
-          1440,
+          4308,
           0,
           0,
           0,
@@ -105,66 +101,66 @@
     ]
   },
   "novMes": {
-    "total": 98287,
+    "total": 6828,
     "linhas": [
       [
         "Jorge",
         [
-          6684,
-          893,
-          164,
-          102,
-          408
+          456,
+          0,
+          11,
+          61,
+          0
         ]
       ],
       [
         "Willame",
         [
-          7956,
-          1634,
-          294,
           0,
-          1536
+          0,
+          0,
+          0,
+          0
         ]
       ],
       [
         "Leandro",
         [
-          12546,
-          3180,
-          180,
           0,
-          720
+          0,
+          0,
+          0,
+          0
         ]
       ],
       [
         "Rafael",
         [
-          5640,
-          2403,
-          342,
           0,
-          480
+          1968,
+          0,
+          0,
+          0
         ]
       ],
       [
         "Mariana",
         [
-          6302,
-          2066,
-          301,
-          21,
-          852
+          0,
+          0,
+          0,
+          0,
+          24
         ]
       ],
       [
         "Cms",
         [
-          40547,
+          4308,
           0,
           0,
           0,
-          3036
+          0
         ]
       ]
     ]
@@ -172,29 +168,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 898 pares para zerar a carteira de setembro"
+      "t": "faltam 139.093 pares para zerar a carteira de outubro"
     },
     {
       "c": "#2BC48A",
-      "t": "+2.442 pares novos entraram na carteira hoje"
+      "t": "+6.828 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "setembro acumula 98.287 pares novos na carteira"
+      "t": "outubro acumula 6.828 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 362.136 pares"
+      "t": "carteira aberta do periodo: 364.650 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 167.015 pares"
+      "t": "NOV e o maior mes da carteira: 169.847 pares"
     },
     {
       "c": "#9B6BF0",
       "t": "proximo grande faturamento: 01/11 - CASA PIO (35.544 pares)"
     }
   ],
-  "publicadoEm": "2026-10-01T10:32:41.051Z",
+  "publicadoEm": "2026-10-02T10:32:56.491Z",
   "por": "script diario"
 }
