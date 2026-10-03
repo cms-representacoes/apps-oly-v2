@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-10-02T07:32:55.698076-03:00",
+  "generatedAt": "2026-10-03T07:32:43.255605-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 364650,
+    "total": 363763,
     "meses": [
       {
         "label": "OUT",
-        "v": 139093
+        "v": 140966
       },
       {
         "label": "NOV",
-        "v": 169847
+        "v": 167087
       },
       {
         "label": "DEZ",
@@ -24,27 +24,27 @@
   },
   "mes": {
     "label": "OUTUBRO",
-    "dia": 1,
-    "faturado": 953,
+    "dia": 2,
+    "faturado": 1853,
     "anterior": 177546,
     "anteriorLabel": "setembro",
-    "falta": 139093,
-    "diasUteis": 21,
-    "paresDia": 6623,
-    "projecao": 20966,
+    "falta": 140966,
+    "diasUteis": 20,
+    "paresDia": 7048,
+    "projecao": 20383,
     "barW": 1,
     "markW": 100
   },
   "novHoje": {
-    "total": 6828,
+    "total": 1957,
     "linhas": [
       [
         "Jorge",
         [
-          456,
           0,
-          11,
-          61,
+          0,
+          0,
+          0,
           0
         ]
       ],
@@ -72,7 +72,7 @@
         "Rafael",
         [
           0,
-          1968,
+          0,
           0,
           0,
           0
@@ -83,15 +83,15 @@
         [
           0,
           0,
+          13,
           0,
-          0,
-          24
+          0
         ]
       ],
       [
         "Cms",
         [
-          4308,
+          1944,
           0,
           0,
           0,
@@ -101,7 +101,7 @@
     ]
   },
   "novMes": {
-    "total": 6828,
+    "total": 8785,
     "linhas": [
       [
         "Jorge",
@@ -148,7 +148,7 @@
         [
           0,
           0,
-          0,
+          13,
           0,
           24
         ]
@@ -156,7 +156,7 @@
       [
         "Cms",
         [
-          4308,
+          6252,
           0,
           0,
           0,
@@ -168,29 +168,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 139.093 pares para zerar a carteira de outubro"
+      "t": "faltam 140.966 pares para zerar a carteira de outubro"
     },
     {
       "c": "#2BC48A",
-      "t": "+6.828 pares novos entraram na carteira hoje"
+      "t": "+1.957 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "outubro acumula 6.828 pares novos na carteira"
+      "t": "outubro acumula 8.785 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 364.650 pares"
+      "t": "carteira aberta do periodo: 363.763 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 169.847 pares"
+      "t": "NOV e o maior mes da carteira: 167.087 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "proximo grande faturamento: 01/11 - CASA PIO (35.544 pares)"
+      "t": "proximo grande faturamento: 01/11 - CASA PIO (25.284 pares)"
     }
   ],
-  "publicadoEm": "2026-10-02T10:32:56.491Z",
+  "publicadoEm": "2026-10-03T10:32:44.699Z",
   "por": "script diario"
 }
