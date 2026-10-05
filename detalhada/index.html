@@ -7856,8 +7856,10 @@ function linhasDoGrupo(g, chave) {
     const gciCel = r[C.GCI]
       ? `<button class="copiar-btn" data-copiar="${escAttr(r[C.GCI])}" title="Copiar GCI ${r[C.GCI]}"><i class="fa-solid fa-copy"></i></button><span>${r[C.GCI]}</span>`
       : vazio;
-    const ocCel = r[C.OC] >= 0 ? escHtml(APP.dic.oc[r[C.OC]])
-      : (!emCarteira && r[C.NF] ? 'NF ' + r[C.NF] : vazio);
+    // OC e NF dividiam a mesma coluna, uma aparecendo quando a outra
+    // faltava — e sem rótulo não dava para saber qual número estava ali.
+    const ocCel = r[C.OC] >= 0 ? escHtml(APP.dic.oc[r[C.OC]]) : vazio;
+    const nfCel = r[C.NF] ? escHtml(String(r[C.NF])) : vazio;
     const classes = [
       'gci-item',
       APP.veTudo ? 'gi-prep' : '',
@@ -7882,6 +7884,7 @@ function linhasDoGrupo(g, chave) {
         })()}</span>
         <span class="gc gc-gci">${gciCel}</span>
         <span class="gc gc-oc">${ocCel}</span>
+        <span class="gc gc-nf">${nfCel}</span>
         ${APP.veTudo ? `<span class="gc gc-prep">${escHtml(APP.dic.prep[r[C.PREP]])}</span>` : ''}
         <span class="gc gc-cart">${emCarteira ? `${formatarNumero(r[C.CART])} <small>pares</small>` : vazio}</span>
         <span class="gc gc-fat">${r[C.FAT] ? `${formatarNumero(r[C.FAT])} <small>pares</small>` : vazio}</span>
@@ -7903,7 +7906,7 @@ function linhasDoGrupo(g, chave) {
     // os títulos das colunas, só na tela larga
     `<div class="gci-cols ${APP.veTudo ? 'gi-prep' : ''}"><span>Código</span><span>Cliente</span>` +
     `<button type="button" class="gr-tgl" title="Mostrar ou ocultar as grades">Grade<i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>` +
-    `<span>GCI</span><span>OC / NF</span>` +
+    `<span>GCI</span><span>OC</span><span>NF</span>` +
     `${APP.veTudo ? '<span>Preposto</span>' : ''}<span>Carteira</span><span>Faturado</span><span>Prev. / Fat.</span><span>Ações</span></div>`;
   const mais = ate < linhas.length
     ? `<button class="gci-mais" data-vertudo="${chave}">Ver os ${formatarNumero(linhas.length - ate)} restantes</button>`
@@ -13829,26 +13832,32 @@ html.dark .cab-trilho #btn-mais-filtros i{ color:var(--ds-accent); }
 
   /* encomendas */
   .painel-detalhada .product-card.expanded .gci-head{ display:none; }
+  /* código · cliente · grade · GCI · OC · NF · [preposto] · carteira ·
+     faturado · prev./fat. · ações */
   .painel-detalhada .gci-cols,
   .painel-detalhada .product-card.expanded .gci-item{
-    grid-template-columns:minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr)
-                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
-    column-gap:14px;
+    grid-template-columns:minmax(92px,.7fr) minmax(184px,2.1fr) minmax(70px,.55fr) minmax(116px,.95fr)
+                          minmax(92px,.8fr) minmax(86px,.75fr)
+                          minmax(78px,.72fr) minmax(78px,.72fr) minmax(88px,.8fr) minmax(214px,1.5fr);
+    column-gap:12px;
   }
   .painel-detalhada .gci-cols.gi-prep,
   .painel-detalhada .product-card.expanded .gci-item.gi-prep{
-    grid-template-columns:minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr) minmax(86px,.9fr)
-                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+    grid-template-columns:minmax(92px,.7fr) minmax(184px,2.1fr) minmax(70px,.55fr) minmax(116px,.95fr)
+                          minmax(92px,.8fr) minmax(86px,.75fr) minmax(82px,.75fr)
+                          minmax(78px,.72fr) minmax(78px,.72fr) minmax(88px,.8fr) minmax(214px,1.5fr);
   }
   .painel-detalhada #lista:has(.sel-chk) .gci-cols,
   .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item{
-    grid-template-columns:19px minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr)
-                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+    grid-template-columns:19px minmax(92px,.7fr) minmax(184px,2.1fr) minmax(70px,.55fr) minmax(116px,.95fr)
+                          minmax(92px,.8fr) minmax(86px,.75fr)
+                          minmax(78px,.72fr) minmax(78px,.72fr) minmax(88px,.8fr) minmax(214px,1.5fr);
   }
   .painel-detalhada #lista:has(.sel-chk) .gci-cols.gi-prep,
   .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item.gi-prep{
-    grid-template-columns:19px minmax(100px,.8fr) minmax(200px,2.4fr) minmax(128px,1.1fr) minmax(86px,.9fr) minmax(86px,.9fr)
-                          minmax(84px,.8fr) minmax(84px,.8fr) minmax(96px,.9fr) minmax(240px,1.8fr);
+    grid-template-columns:19px minmax(92px,.7fr) minmax(184px,2.1fr) minmax(70px,.55fr) minmax(116px,.95fr)
+                          minmax(92px,.8fr) minmax(86px,.75fr) minmax(82px,.75fr)
+                          minmax(78px,.72fr) minmax(78px,.72fr) minmax(88px,.8fr) minmax(214px,1.5fr);
   }
   .painel-detalhada #lista:has(.sel-chk) .gci-cols::before{ content:''; }
   .painel-detalhada #lista:has(.sel-chk) .gci-head{ padding-left:14px; }
@@ -13875,7 +13884,14 @@ html.dark .cab-trilho #btn-mais-filtros i{ color:var(--ds-accent); }
   html.dark .painel-detalhada .gc-gci .copiar-btn,
   html.dark .painel-detalhada .gc-gci .pdf-btn{ background:rgba(255,255,255,.08); }
   .painel-detalhada .gc-oc,
+  .painel-detalhada .gc-nf,
   .painel-detalhada .gc-prep{ font-family:var(--ds-mono); font-size:11px; font-weight:500; color:var(--ds-muted); letter-spacing:.02em; }
+  /* a NF é do que já saiu: fica no tom do faturado, para a leitura da linha
+     dizer de cara se aquela encomenda ainda está em carteira */
+  .painel-detalhada .gc-nf:not(:has(.gc-vazio)){ color:var(--ds-faturado-ink); font-weight:600; }
+  html.dark .painel-detalhada .gc-nf:not(:has(.gc-vazio)){ color:var(--ds-faturado); }
+  .painel-detalhada .gc-oc,
+  .painel-detalhada .gc-nf{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .painel-detalhada .gc-cart,
   .painel-detalhada .gc-fat{ font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
   .painel-detalhada .gc-cart{ color:var(--ds-ink); }
@@ -14196,26 +14212,62 @@ html.grades-on .painel-detalhada .gci-grade .gr-botao{ display:none !important; 
 html.dark .painel-detalhada .tag-gen.g-fem{ color:var(--ds-atencao); }
 
 @media (min-width:1100px){
-  /* a grade das encomendas ganha mais uma coluna */
+  /* Onze colunas (dez para quem não vê preposto). Os mínimos aqui são os
+     que cabem numa tela de 1100: somados com os vãos e o recuo, fecham em
+     pouco menos do que isso. Antes a conta já estourava com dez colunas e
+     a de ações saía da tela sem avisar. */
   .painel-detalhada .gci-cols,
   .painel-detalhada .product-card.expanded .gci-item{
-    grid-template-columns:minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr)
-                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+    grid-template-columns:minmax(76px,.7fr) minmax(150px,2fr) minmax(56px,.5fr) minmax(100px,.95fr)
+                          minmax(78px,.8fr) minmax(76px,.72fr)
+                          minmax(66px,.7fr) minmax(66px,.7fr) minmax(76px,.78fr) minmax(150px,1.45fr);
+    column-gap:12px;
   }
   .painel-detalhada .gci-cols.gi-prep,
   .painel-detalhada .product-card.expanded .gci-item.gi-prep{
-    grid-template-columns:minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr) minmax(84px,.85fr)
-                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+    grid-template-columns:minmax(76px,.7fr) minmax(150px,2fr) minmax(56px,.5fr) minmax(100px,.95fr)
+                          minmax(78px,.8fr) minmax(76px,.72fr) minmax(70px,.72fr)
+                          minmax(66px,.7fr) minmax(66px,.7fr) minmax(76px,.78fr) minmax(138px,1.45fr);
   }
   .painel-detalhada #lista:has(.sel-chk) .gci-cols,
   .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item{
-    grid-template-columns:19px minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr)
-                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+    grid-template-columns:19px minmax(76px,.7fr) minmax(140px,2fr) minmax(56px,.5fr) minmax(100px,.95fr)
+                          minmax(78px,.8fr) minmax(76px,.72fr)
+                          minmax(66px,.7fr) minmax(66px,.7fr) minmax(76px,.78fr) minmax(120px,1.45fr);
   }
   .painel-detalhada #lista:has(.sel-chk) .gci-cols.gi-prep,
   .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item.gi-prep{
-    grid-template-columns:19px minmax(100px,.8fr) minmax(190px,2.2fr) minmax(72px,.6fr) minmax(124px,1fr) minmax(84px,.85fr)
-                          minmax(84px,.85fr) minmax(82px,.8fr) minmax(82px,.8fr) minmax(92px,.9fr) minmax(228px,1.7fr);
+    grid-template-columns:19px minmax(76px,.7fr) minmax(140px,2fr) minmax(56px,.5fr) minmax(100px,.95fr)
+                          minmax(78px,.8fr) minmax(76px,.72fr) minmax(70px,.72fr)
+                          minmax(66px,.7fr) minmax(66px,.7fr) minmax(76px,.78fr) minmax(110px,1.45fr);
+  }
+}
+
+@media (min-width:1340px){
+  /* da tela cheia em diante sobra espaço: as colunas voltam a respirar */
+  .painel-detalhada .gci-cols,
+  .painel-detalhada .product-card.expanded .gci-item{
+    grid-template-columns:minmax(92px,.72fr) minmax(176px,2fr) minmax(70px,.55fr) minmax(114px,.95fr)
+                          minmax(90px,.8fr) minmax(84px,.72fr)
+                          minmax(76px,.7fr) minmax(76px,.7fr) minmax(86px,.78fr) minmax(206px,1.45fr);
+  }
+  .painel-detalhada .gci-cols.gi-prep,
+  .painel-detalhada .product-card.expanded .gci-item.gi-prep{
+    grid-template-columns:minmax(92px,.72fr) minmax(176px,2fr) minmax(70px,.55fr) minmax(114px,.95fr)
+                          minmax(90px,.8fr) minmax(84px,.72fr) minmax(80px,.72fr)
+                          minmax(76px,.7fr) minmax(76px,.7fr) minmax(86px,.78fr) minmax(206px,1.45fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols,
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item{
+    grid-template-columns:19px minmax(92px,.72fr) minmax(176px,2fr) minmax(70px,.55fr) minmax(114px,.95fr)
+                          minmax(90px,.8fr) minmax(84px,.72fr)
+                          minmax(76px,.7fr) minmax(76px,.7fr) minmax(86px,.78fr) minmax(206px,1.45fr);
+  }
+  .painel-detalhada #lista:has(.sel-chk) .gci-cols.gi-prep,
+  .painel-detalhada #lista:has(.sel-chk) .product-card.expanded .gci-item.gi-prep{
+    grid-template-columns:19px minmax(92px,.72fr) minmax(176px,2fr) minmax(70px,.55fr) minmax(114px,.95fr)
+                          minmax(90px,.8fr) minmax(84px,.72fr) minmax(80px,.72fr)
+                          minmax(76px,.7fr) minmax(76px,.7fr) minmax(86px,.78fr) minmax(206px,1.45fr);
   }
 }
 </style>
