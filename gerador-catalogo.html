@@ -303,6 +303,30 @@
   .cad-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
   @media(max-width:520px){ .cad-grid{ grid-template-columns:1fr; } }
 
+  /* ── escolha do método de importação ───────────────────────────── */
+  .modos{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:2px 0 14px; }
+  @media(max-width:560px){ .modos{ grid-template-columns:1fr; } }
+  .modo{
+    display:flex; align-items:center; gap:11px; text-align:left; cursor:pointer;
+    border:1.5px solid #e4e4e7; background:#fff; border-radius:14px; padding:12px 14px;
+    font-family:inherit; color:#18181b; transition:border-color .15s, background .15s;
+  }
+  .modo:hover{ border-color:#c4b5fd; }
+  .modo i{ font-size:16px; color:#a1a1aa; flex:none; }
+  .modo span{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .modo b{ font-size:13.5px; font-weight:800; }
+  .modo small{ font-size:11px; color:#71717a; font-weight:600; }
+  .modo.on{ border-color:#7c3aed; background:#f5f3ff; }
+  .modo.on i{ color:#7c3aed; }
+  .modo.on b{ color:#5b21b6; }
+
+  /* preços no cartão de conferência do modo oportunidade */
+  .prev-promo{ display:flex; gap:14px; flex-wrap:wrap; margin-top:5px; font-size:11.5px; font-weight:700; }
+  .prev-promo span{ color:#71717a; font-weight:600; }
+  .prev-promo b{ color:#18181b; font-weight:800; }
+  .prev-promo .promo{ color:#15803d; }
+  .prev-de{ font-size:11px; color:#a1a1aa; text-decoration:line-through; font-weight:600; }
+
   .aviso-pages{ display:block; margin-top:6px; font-size:11px; font-weight:600;
     color:#92400e; line-height:1.45; }
 </style>
@@ -328,14 +352,28 @@
     </div>
   </div>
 
-  <!-- Passo 2: importar carteira -->
+  <!-- Passo 2: importar planilha -->
   <div class="card">
-    <div class="card-title"><span class="step-num">2</span> Importar planilha da carteira</div>
-    <div class="card-desc">Selecione o arquivo .xlsx exportado da carteira. Colunas esperadas: REFERENCIA, DESCRICAO, COR, PREV FAT, CART.</div>
+    <div class="card-title"><span class="step-num">2</span> <span id="tit2">Importar planilha da carteira</span></div>
+
+    <!-- Dois métodos: a carteira de sempre e a planilha de oportunidade, que
+         já traz preço, markup e custo promocional prontos. -->
+    <div class="modos" id="modos">
+      <button type="button" class="modo on" data-modo="carteira">
+        <i class="fa-solid fa-boxes-stacked"></i>
+        <span><b>Carteira</b><small>encomendas por mês de faturamento</small></span>
+      </button>
+      <button type="button" class="modo" data-modo="promocao">
+        <i class="fa-solid fa-tags"></i>
+        <span><b>Oportunidade</b><small>estoque com preço promocional</small></span>
+      </button>
+    </div>
+
+    <div class="card-desc" id="desc2">Selecione o arquivo .xlsx exportado da carteira. Colunas esperadas: REFERENCIA, DESCRICAO, COR, PREV FAT, CART.</div>
     <div id="drop" class="drop">
       <i class="fa-solid fa-file-arrow-up"></i>
       <div class="drop-txt">Clique ou arraste a planilha aqui</div>
-      <div class="drop-sub">Formato .xlsx</div>
+      <div class="drop-sub" id="dropSub">Formato .xlsx</div>
     </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
     <div id="cartStatus" class="status"></div>
@@ -375,6 +413,16 @@
       </div>
       <label class="switch">
         <input type="checkbox" id="tgGrade" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row" id="rowTotal" hidden>
+      <div class="tg-txt">
+        <div class="tg-title">Mostrar o total de pares</div>
+        <div class="tg-desc">A soma da grade, no canto direito de cada produto.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="tgTotal" checked>
         <span class="slider"></span>
       </label>
     </div>
@@ -564,6 +612,50 @@ async function carregarBase(){
   }
 }
 
+/* ───────── Método de importação ─────────
+   São dois: a carteira de sempre e a planilha de oportunidade. A diferença
+   não é só o layout da planilha — na oportunidade os dados de venda (preço,
+   markup, custo promocional) vêm prontos na linha, e o cadastro de produtos
+   só é consultado para achar a imagem. */
+let MODO = "carteira";
+const ehPromo = () => MODO === "promocao";
+
+const TEXTOS_MODO = {
+  carteira: {
+    titulo: "Importar planilha da carteira",
+    desc: "Selecione o arquivo .xlsx exportado da carteira. Colunas esperadas: REFERENCIA, DESCRICAO, COR, PREV FAT, CART.",
+    sub: "Formato .xlsx",
+  },
+  promocao: {
+    titulo: "Importar planilha de oportunidade",
+    desc: "Selecione o .xlsx da oportunidade. Colunas esperadas: ARTIGO, DESCRIÇÃO, COR, PDV, MKP PROM, PDC PROM, STK TOTAL e os tamanhos. O cabeçalho pode estar em qualquer linha das primeiras — ele é achado sozinho.",
+    sub: "Formato .xlsx · o preço vem da planilha",
+  },
+};
+
+document.querySelectorAll("#modos .modo").forEach(bt=>{
+  bt.addEventListener("click", ()=>{
+    const novo = bt.dataset.modo;
+    if(novo === MODO) return;
+    MODO = novo;
+    document.querySelectorAll("#modos .modo").forEach(b=> b.classList.toggle("on", b === bt));
+    const t = TEXTOS_MODO[MODO];
+    $("tit2").textContent = t.titulo;
+    $("desc2").textContent = t.desc;
+    $("dropSub").textContent = t.sub;
+    $("rowTotal").hidden = !ehPromo();
+    // trocar de método zera o que estava importado: as duas planilhas não
+    // falam a mesma língua, e misturar as duas daria um PDF sem sentido
+    linhasBrutas = []; carteira = []; selecionados = new Set();
+    filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
+    $("previewCard").classList.add("hidden");
+    $("pendCard").classList.add("hidden");
+    $("genCard").classList.add("hidden");
+    $("cartStatus").className = "status";
+    $("cartStatus").innerHTML = "";
+  });
+});
+
 // ───────── Passo 2: importar carteira ─────────
 $("drop").addEventListener("click", ()=> $("fileInput").click());
 $("drop").addEventListener("dragover", e=>{ e.preventDefault(); $("drop").classList.add("drag"); });
@@ -587,8 +679,115 @@ function excelDateToJS(v){
   return isNaN(d) ? null : d;
 }
 
+/* A planilha de oportunidade começa com título e totais antes do cabeçalho
+   de verdade. Em vez de fixar "linha 3", procura-se a primeira linha que
+   tenha ARTIGO e DESCRIÇÃO — assim ela aguenta uma linha a mais no topo. */
+function acharCabecalho(linhas){
+  for(let i = 0; i < Math.min(12, linhas.length); i++){
+    const celulas = (linhas[i] || []).map(x => String(x || "").trim().toUpperCase());
+    if(celulas.includes("ARTIGO") && celulas.some(c => c.startsWith("DESCRI"))) return i;
+  }
+  return -1;
+}
+
+const soNum = v => {
+  if(typeof v === "number") return v;
+  let t = String(v ?? "").replace(/\s/g, "").replace(/R\$/i, "");
+  if(!t) return 0;
+  // com vírgula é número brasileiro (1.234,56); sem vírgula o ponto já é o
+  // separador decimal (229.99), e apagá-lo viraria 22999
+  if(t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+  const n = Number(t);
+  return isNaN(n) ? 0 : n;
+};
+
+// Cabeçalho com quebra de linha ("MKP\nPROM") vira "MKP PROM"
+const chaveCab = v => String(v ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+
+async function processarPromocao(file){
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, { type:"array", cellDates:true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const matriz = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
+  const iCab = acharCabecalho(matriz);
+  if(iCab < 0) throw new Error("Não achei o cabeçalho com ARTIGO e DESCRIÇÃO");
+
+  const cab = matriz[iCab].map(chaveCab);
+  const ondeEsta = nomes => {
+    for(const n of nomes){ const i = cab.indexOf(n); if(i >= 0) return i; }
+    return -1;
+  };
+  const col = {
+    empresa:  ondeEsta(["EMPRESA"]),
+    artigo:   ondeEsta(["ARTIGO", "REFERENCIA", "REFERÊNCIA"]),
+    desc:     ondeEsta(["DESCRIÇÃO", "DESCRICAO"]),
+    cor:      ondeEsta(["COR"]),
+    linha:    ondeEsta(["LINHA"]),
+    genero:   ondeEsta(["GÉNERO", "GÊNERO", "GENERO"]),
+    categoria:ondeEsta(["CATEGORIA"]),
+    pdv:      ondeEsta(["PDV"]),
+    mkp:      ondeEsta(["MKP PROM", "MKP"]),
+    custo:    ondeEsta(["PDC PROM", "CUSTO PROM"]),
+    custoOrig:ondeEsta(["PDC ORIG", "CUSTO"]),
+    total:    ondeEsta(["STK TOTAL", "T. GER", "TOTAL"]),
+  };
+  if(col.artigo < 0) throw new Error("A planilha não tem a coluna ARTIGO");
+
+  // tamanho é toda coluna cujo título é só número (26, 28, 34...)
+  const colsTam = [];
+  cab.forEach((nome, i)=>{
+    if(/^\d{1,2}(,5|\.5)?$/.test(nome)) colsTam.push({ i, tam:nome });
+  });
+
+  const linhas = [];
+  for(let r = iCab + 1; r < matriz.length; r++){
+    const row = matriz[r] || [];
+    const artigo = String(row[col.artigo] ?? "").trim();
+    if(!artigo || artigo.toUpperCase() === "ARTIGO") continue;
+    const grade = [];
+    let somaGrade = 0;
+    for(const ct of colsTam){
+      const q = soNum(row[ct.i]);
+      if(q > 0){ grade.push({ tam:ct.tam, qtd:q }); somaGrade += q; }
+    }
+    const total = col.total >= 0 ? soNum(row[col.total]) : 0;
+    linhas.push({
+      ref: artigo,
+      desc: col.desc >= 0 ? String(row[col.desc] ?? "").trim() : "",
+      cor:  col.cor  >= 0 ? String(row[col.cor]  ?? "").trim() : "",
+      linha:    col.linha     >= 0 ? String(row[col.linha] ?? "").trim() : "",
+      genero:   col.genero    >= 0 ? String(row[col.genero] ?? "").trim() : "",
+      categoria:col.categoria >= 0 ? String(row[col.categoria] ?? "").trim() : "",
+      porta: col.empresa >= 0 ? String(row[col.empresa] ?? "").trim() : "",
+      pdv:   col.pdv   >= 0 ? soNum(row[col.pdv]) : 0,
+      mkp:   col.mkp   >= 0 ? soNum(row[col.mkp]) : 0,
+      custo: col.custo >= 0 ? soNum(row[col.custo]) : 0,
+      custoOrig: col.custoOrig >= 0 ? soNum(row[col.custoOrig]) : 0,
+      grade, somaGrade,
+      cart: total || somaGrade,
+      marca:"", cliente:"", fat:null,
+    });
+  }
+  if(!linhas.length) throw new Error("Nenhuma linha de produto encontrada");
+  return linhas;
+}
+
 async function processarArquivo(file){
   setStatus($("cartStatus"), "info", `<i class="fa-solid fa-circle-notch spin"></i> Lendo "${file.name}"…`);
+  if(ehPromo()){
+    try{
+      linhasBrutas = await processarPromocao(file);
+      temColuna.marca = false; temColuna.porta = false; temColuna.cliente = false;
+      nomesClientes.clear();
+      filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
+      selecionados = new Set();
+      await recalcular(true);
+    }catch(err){
+      console.error(err);
+      setStatus($("cartStatus"), "err", `<i class="fa-solid fa-triangle-exclamation"></i> Erro ao ler a planilha: ${err.message}`);
+    }
+    return;
+  }
   try{
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data, { type:"array", cellDates:true });
@@ -671,6 +870,62 @@ async function processarArquivo(file){
   }
 }
 
+/* No modo oportunidade cada linha da planilha já é um produto+cor, com
+   preço e grade próprios. O cadastro só entra para achar a imagem — e, não
+   achando, o nome ARTIGO_COR resolve, que é como as fotos são guardadas. */
+async function recalcularPromo(reset){
+  const linhasFil = linhasBrutas.filter(l =>
+    !filtros.desc || String(l.desc || "").toLowerCase().includes(filtros.desc.toLowerCase()));
+
+  const grupos = new Map();
+  for(const l of linhasFil){
+    const chave = `${norm(l.ref)}|${norm(l.cor)}`;
+    if(!grupos.has(chave)){
+      grupos.set(chave, { ...l, chave, grade:new Map(), total:0 });
+    }
+    const g = grupos.get(chave);
+    g.total += l.cart;
+    for(const cel of l.grade) g.grade.set(cel.tam, (g.grade.get(cel.tam) || 0) + cel.qtd);
+  }
+
+  carteira = [];
+  for(const [chave, g] of grupos){
+    const prod = acharProduto(g.ref, g.cor);
+    const grade = Array.from(g.grade.entries())
+      .map(([tam, qtd]) => ({ tam, qtd }))
+      .sort((a, b) => Number(a.tam) - Number(b.tam));
+    const somaGrade = grade.reduce((x, c) => x + c.qtd, 0);
+    carteira.push({
+      chave, ref:g.ref, cor:g.cor,
+      produto: g.desc || (prod ? prod.produto : g.ref),
+      genero: g.genero || (prod ? prod.genero : ""),
+      linhaProd: g.linha, categoria: g.categoria,
+      tam: "",
+      preco: g.pdv || (prod ? prod.preco : 0),
+      mkp: g.mkp, custo: g.custo, custoOrig: g.custoOrig,
+      // a foto está no cadastro ou, na falta dele, no nome ARTIGO_COR
+      imagem: (prod && prod.imagem) ? prod.imagem : `${g.ref}_${String(g.cor).trim().replace(/[\/\s]+/g, "_")}`,
+      temBase: true,          // a planilha basta: o que falta é a foto
+      meses: [{ nome:"Estoque", qtd:g.total || somaGrade, ordem:0, grade }],
+      total: g.total || somaGrade,
+      somaGrade, temGrade: somaGrade > 0,
+    });
+  }
+  carteira.sort((a, b) =>
+    String(a.produto).localeCompare(String(b.produto), "pt-BR") ||
+    String(a.cor).localeCompare(String(b.cor), "pt-BR"));
+
+  for(const c of carteira){
+    c.estado = c.imagem ? "checando" : "semImagem";
+    c.imagemUrl = "";
+  }
+  renderFiltros();
+  await conferirImagens();
+  if(reset) selecionados = new Set(carteira.filter(c => c.estado === "ok").map(c => c.chave));
+  else for(const c of carteira) if(c.estado !== "ok") selecionados.delete(c.chave);
+  renderPreview();
+}
+
 // Aplica os filtros sobre uma linha bruta
 function passaFiltros(l){
   if(filtros.marca.size && !filtros.marca.has(l.marca)) return false;
@@ -690,6 +945,7 @@ function passaFiltros(l){
 // Re-filtra linhasBrutas → re-agrupa → re-renderiza
 // reset=true: também reseta seleção (marca todos os grupos resultantes)
 async function recalcular(reset){
+  if(ehPromo()) return recalcularPromo(reset);
   const linhasFil = linhasBrutas.filter(passaFiltros);
   const grupos = new Map(); // "ref|cor" → grupo
   for(const l of linhasFil){
@@ -880,8 +1136,15 @@ function renderPreview(){
     }
 
     const aviso = (c.temGrade && c.somaGrade !== c.total)
-      ? `<div class="grade-aviso"><i class="fa-solid fa-triangle-exclamation"></i> CART (${numBR(c.total)}) diverge da soma da grade (${numBR(c.somaGrade)}) — verificar planilha</div>`
+      ? `<div class="grade-aviso"><i class="fa-solid fa-triangle-exclamation"></i> ${ehPromo() ? "Estoque" : "CART"} (${numBR(c.total)}) diverge da soma da grade (${numBR(c.somaGrade)}) — verificar planilha</div>`
       : "";
+
+    // no modo oportunidade os números de venda vêm da planilha
+    const promo = ehPromo() ? `<div class="prev-promo">
+        ${c.mkp ? `<span>MKP</span> <b>${c.mkp.toLocaleString("pt-BR",{minimumFractionDigits:1, maximumFractionDigits:2})}</b>` : ""}
+        ${c.custo ? `<span>Custo prom.</span> <b class="promo">${moneyBR(c.custo)}</b>` : ""}
+        ${c.custoOrig && c.custoOrig !== c.custo ? `<span class="prev-de">${moneyBR(c.custoOrig)}</span>` : ""}
+      </div>` : "";
 
     const marcado = selecionados.has(c.chave);
     return `<div class="prev-item ${marcado?"":"unchecked"}" data-chave="${escAttr(c.chave)}">
@@ -891,6 +1154,7 @@ function renderPreview(){
         <div class="prev-name">${escHtml(c.produto)} · ${escHtml(c.ref)}</div>
         <div class="prev-meta">${escHtml(meta) || "—"}${c.tam?` · Tam ${escHtml(c.tam)}`:""}</div>
         ${blocoMeses}
+        ${promo}
         ${aviso}
       </div>
       <div class="prev-right">
@@ -1036,7 +1300,8 @@ function renderFiltros(){
     }));
     drops.push(dropdownHTML("cliente", "Cliente", ops, filtros.cliente));
   }
-  drops.push(dropdownHTML("mes", "Prev fat", opcoesMeses(), filtros.mes));
+  // na oportunidade não há data de faturamento: o filtro de mês sairia vazio
+  if(!ehPromo()) drops.push(dropdownHTML("mes", "Prev fat", opcoesMeses(), filtros.mes));
   drops.push(`<input type="text" id="fltDesc" class="flt-busca" placeholder="Buscar descrição…" value="${escAttr(filtros.desc)}">`);
 
   const hasAny = filtros.marca.size || filtros.porta.size || filtros.cliente.size || filtros.mes.size || filtros.desc;
@@ -1362,6 +1627,7 @@ function montarTextoFiltros(){
 async function gerarPDF(){
   if(!carteira.length){ return; }
   const mostrarGradePDF = $("tgGrade").checked;
+  const mostrarTotalPDF = ehPromo() ? $("tgTotal").checked : true;
   // Só os marcados E visíveis (na carteira filtrada atual)
   const itensSelecionados = carteira.filter(c => selecionados.has(c.chave));
   if(!itensSelecionados.length){
@@ -1455,6 +1721,7 @@ async function gerarPDF(){
 
     // Calcula a altura necessária do card conforme o conteúdo
     function calcCardH(c){
+      if(ehPromo()) return calcCardPromoH(c);
       // nome(13) + ref(14) + atributos(14)
       let texto = 13 + 13 + 14 + 14;
       if(!c.temBase) texto += 13;
@@ -1472,7 +1739,141 @@ async function gerarPDF(){
       return conteudo + CARD_PAD_Y * 2;
     }
 
+    /* ─── Card da oportunidade ───
+       Mesmo desenho do card da carteira — imagem, textos, lado direito —
+       trocando o bloco de meses pela grade do estoque e acrescentando, à
+       direita, markup e custo promocional abaixo do PDV. */
+    function calcCardPromoH(c){
+      let texto = 13 + 13 + 14 + 14;          // nome, ref, atributos, linha/categoria
+      if(mostrarGradePDF && c.meses[0] && c.meses[0].grade.length){
+        const porLinha = Math.max(1, Math.floor(contentW * 0.58 / (GRADE_CEL_W + GRADE_GAP)));
+        texto += Math.ceil(c.meses[0].grade.length / porLinha) * (GRADE_CEL_H + 4) + 8;
+      }
+      texto += 8;
+      // o lado direito tem PDV, MKP, custo e (talvez) o total — ele costuma
+      // ser o mais alto, então entra na conta
+      const direita = 13 + 20 + 16 + 16 + (mostrarTotalPDF ? 34 : 0);
+      return Math.max(IMG_SZ, texto, direita, 100) + CARD_PAD_Y * 2;
+    }
+
+    function drawCardPromo(c, y){
+      const cardH = calcCardPromoH(c);
+      doc.setDrawColor(241,245,249); doc.setLineWidth(0.5);
+      doc.line(margin, y, margin+contentW, y);
+      let cy = y + CARD_PAD_Y;
+
+      const im = imgCache[c.imagem];
+      doc.setFillColor(243,244,246);
+      doc.roundedRect(margin, cy, IMG_SZ, IMG_SZ, 8, 8, "F");
+      if(im && im.data){
+        let w = IMG_SZ, h = IMG_SZ;
+        if(im.w && im.h){ const r = im.w/im.h; if(r>1) h = IMG_SZ/r; else w = IMG_SZ*r; }
+        doc.addImage(im.data, "PNG", margin+(IMG_SZ-w)/2, cy+(IMG_SZ-h)/2, w, h);
+      }
+
+      const tx = margin + IMG_SZ + 16;
+      let ty = cy + 13;
+      doc.setTextColor(24,24,27);
+      doc.setFont("helvetica","bold"); doc.setFontSize(14);
+      doc.text(String(c.produto || "—"), tx, ty);
+      ty += 13;
+      doc.setTextColor(161,161,170);
+      doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text(`Art. ${c.ref}`, tx, ty);
+      ty += 14;
+      doc.setTextColor(24,24,27);
+      doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+      doc.text([c.cor, c.genero].filter(Boolean).join("   ·   ") || "—", tx, ty);
+      ty += 13;
+      const extra = [c.linhaProd, c.categoria].filter(Boolean).join("   ·   ");
+      if(extra){
+        doc.setTextColor(161,161,170);
+        doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+        doc.text(extra, tx, ty);
+      }
+      ty += 8;
+
+      const grade = (c.meses[0] && c.meses[0].grade) || [];
+      if(mostrarGradePDF && grade.length){
+        const porLinha = Math.max(1, Math.floor(contentW * 0.58 / (GRADE_CEL_W + GRADE_GAP)));
+        let col = 0, gx = tx, gy = ty + 8;
+        for(const cel of grade){
+          if(col >= porLinha){ col = 0; gx = tx; gy += GRADE_CEL_H + 4; }
+          doc.setFillColor(243,244,246);
+          doc.roundedRect(gx, gy-8, GRADE_CEL_W, GRADE_CEL_H, 5, 5, "F");
+          doc.setTextColor(113,113,122);
+          doc.setFont("helvetica","normal"); doc.setFontSize(6.5);
+          doc.text(String(cel.tam), gx+GRADE_CEL_W/2, gy, { align:"center" });
+          doc.setTextColor(124,58,237);
+          doc.setFont("helvetica","bold"); doc.setFontSize(9);
+          doc.text(numBR(cel.qtd), gx+GRADE_CEL_W/2, gy+9, { align:"center" });
+          gx += GRADE_CEL_W + GRADE_GAP;
+          col++;
+        }
+      }
+
+      // ─── lado direito: PDV, markup e custo promocional ───
+      const rx = margin + contentW;
+      let ry = cy + 13;
+      doc.setTextColor(161,161,170);
+      doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+      doc.text("PDV", rx, ry, { align:"right" });
+      ry += 14;
+      doc.setTextColor(124,58,237);
+      doc.setFont("helvetica","bold"); doc.setFontSize(15);
+      doc.text(c.preco ? moneyBR(c.preco) : "—", rx, ry, { align:"right" });
+      ry += 16;
+
+      if(c.mkp){
+        doc.setTextColor(161,161,170);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+        doc.text("MKP", rx - 62, ry, { align:"right" });
+        doc.setTextColor(63,63,70);
+        doc.setFont("helvetica","bold"); doc.setFontSize(10);
+        doc.text(c.mkp.toLocaleString("pt-BR",{minimumFractionDigits:1, maximumFractionDigits:2}), rx, ry, { align:"right" });
+        ry += 15;
+      }
+      if(c.custo){
+        doc.setTextColor(161,161,170);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+        doc.text("CUSTO PROM.", rx - 62, ry, { align:"right" });
+        doc.setTextColor(21,128,61);
+        doc.setFont("helvetica","bold"); doc.setFontSize(12);
+        doc.text(moneyBR(c.custo), rx, ry, { align:"right" });
+        ry += 15;
+        // o custo de tabela, riscado, mostra o tamanho do desconto
+        if(c.custoOrig && c.custoOrig > c.custo){
+          doc.setTextColor(161,161,170);
+          doc.setFont("helvetica","normal"); doc.setFontSize(8);
+          const de = moneyBR(c.custoOrig);
+          doc.text(de, rx, ry, { align:"right" });
+          const w = doc.getTextWidth(de);
+          doc.setDrawColor(161,161,170); doc.setLineWidth(0.6);
+          doc.line(rx - w, ry - 2.6, rx, ry - 2.6);
+          ry += 13;
+        }
+      }
+      if(mostrarTotalPDF){
+        ry += 6;
+        doc.setDrawColor(234,88,12); doc.setLineWidth(0.8);
+        doc.line(rx-86, ry-12, rx, ry-12);
+        doc.setTextColor(161,161,170);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+        doc.text("TOTAL DE PARES", rx, ry, { align:"right" });
+        ry += 16;
+        doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+        const unitW = doc.getTextWidth(" pares");
+        doc.setTextColor(161,161,170);
+        doc.text("pares", rx, ry, { align:"right" });
+        doc.setTextColor(24,24,27);
+        doc.setFont("helvetica","bold"); doc.setFontSize(16);
+        doc.text(numBR(c.total), rx - unitW - 2, ry, { align:"right" });
+      }
+      return y + cardH;
+    }
+
     function drawCard(c, y){
+      if(ehPromo()) return drawCardPromo(c, y);
       const cardH = calcCardH(c);
       // divisória
       doc.setDrawColor(241,245,249); doc.setLineWidth(0.5);
@@ -1714,7 +2115,11 @@ async function gerarPDF(){
       if(arr.length === 1) return arr[0];
       return `${arr.length}${plural}`;
     }
-    const partes = ["CARTEIRA 2S26"];
+    // a oportunidade não é carteira: o arquivo diz o que é, com a data
+    const hoje = new Date();
+    const dd = String(hoje.getDate()).padStart(2,"0");
+    const mm = String(hoje.getMonth()+1).padStart(2,"0");
+    const partes = [ehPromo() ? `OPORTUNIDADE ${dd}-${mm}-${String(hoje.getFullYear()).slice(2)}` : "CARTEIRA 2S26"];
     const pCli  = parteNome(filtros.cliente, "clientes");
     const pPort = parteNome(filtros.porta,   "portas");
     if(pCli)  partes.push(pCli);
