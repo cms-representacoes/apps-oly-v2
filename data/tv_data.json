@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-04T07:33:55.734355-03:00",
+  "generatedAt": "2026-10-05T07:32:36.593299-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
@@ -7,18 +7,6 @@
   "carteira": {
     "total": 363775,
     "meses": [
-      {
-        "label": "JUN",
-        "v": 0
-      },
-      {
-        "label": "AGO",
-        "v": 134
-      },
-      {
-        "label": "SET",
-        "v": 874
-      },
       {
         "label": "OUT",
         "v": 140966
@@ -35,20 +23,20 @@
     "horizonte": "ate dez/26"
   },
   "mes": {
-    "label": "JUNHO",
-    "dia": 30,
-    "faturado": 146186,
-    "anterior": 162644,
-    "anteriorLabel": "maio",
-    "falta": 0,
-    "diasUteis": 1,
-    "paresDia": 0,
-    "projecao": 146186,
-    "barW": 90,
+    "label": "OUTUBRO",
+    "dia": 2,
+    "faturado": 1853,
+    "anterior": 177546,
+    "anteriorLabel": "setembro",
+    "falta": 140966,
+    "diasUteis": 20,
+    "paresDia": 7048,
+    "projecao": 20383,
+    "barW": 1,
     "markW": 100
   },
   "novHoje": {
-    "total": 12,
+    "total": 2845,
     "linhas": [
       [
         "Jorge",
@@ -83,7 +71,7 @@
       [
         "Rafael",
         [
-          12,
+          888,
           0,
           0,
           0,
@@ -95,7 +83,7 @@
         [
           0,
           0,
-          0,
+          13,
           0,
           0
         ]
@@ -103,7 +91,7 @@
       [
         "Cms",
         [
-          0,
+          1944,
           0,
           0,
           0,
@@ -113,15 +101,15 @@
     ]
   },
   "novMes": {
-    "total": 12,
+    "total": 9673,
     "linhas": [
       [
         "Jorge",
         [
+          456,
           0,
-          0,
-          0,
-          0,
+          11,
+          61,
           0
         ]
       ],
@@ -148,8 +136,8 @@
       [
         "Rafael",
         [
-          12,
-          0,
+          888,
+          1968,
           0,
           0,
           0
@@ -160,15 +148,15 @@
         [
           0,
           0,
+          13,
           0,
-          0,
-          0
+          24
         ]
       ],
       [
         "Cms",
         [
-          0,
+          6252,
           0,
           0,
           0,
@@ -180,15 +168,15 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 0 pares para zerar a carteira de junho"
+      "t": "faltam 140.966 pares para zerar a carteira de outubro"
     },
     {
       "c": "#2BC48A",
-      "t": "+12 pares novos entraram na carteira hoje"
+      "t": "+2.845 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "junho acumula 12 pares novos na carteira"
+      "t": "outubro acumula 9.673 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
@@ -200,9 +188,9 @@
     },
     {
       "c": "#9B6BF0",
-      "t": "proximo grande faturamento: 10/08 - ELITE MODAS (12 pares)"
+      "t": "proximo grande faturamento: 01/11 - CASA PIO (25.284 pares)"
     }
   ],
-  "publicadoEm": "2026-10-04T10:33:57.682Z",
+  "publicadoEm": "2026-10-05T10:32:37.424Z",
   "por": "script diario"
 }
