@@ -2056,8 +2056,8 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <!-- Volta para a casa dos aplicativos sem encerrar a sessão; quem
              quer encerrar usa o Sair, na outra ponta. Vem primeiro porque
              no celular a barra rola e só os primeiros ficam à vista. -->
-        <a class="btn-icon" id="btn-portal-topo" href="#" title="Voltar ao Portal">
-          <i class="fa-solid fa-table-cells-large"></i>
+        <a class="btn-icon btn-portal-nome" id="btn-portal-topo" href="#" title="Voltar ao Portal">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>Portal</span>
         </a>
         <span class="cab-div" aria-hidden="true"></span>
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
@@ -3624,8 +3624,8 @@ async function carregarGrade(fam) {
 
 const RFV = { visao: 'mes', meses: [], corte: 0, montado: false, verCidade: false, mapa: null, sel: '', ordem: '',
              f: { vend: '', marca: '', linha: '', sit: '', prod: '', cor: '' }, aberto: null,
-             // redes abertas na tabela; a escolha dura enquanto a tela está aberta
-             abertas: new Set() };
+             // a rede aberta: enquanto houver uma, a tabela mostra só ela
+             foco: '' };
 
 /* Cada filtro fechado mostra o NOME dele; escolhido, mostra o valor. É por
    isso que não são <select>: no nativo o texto fechado é o da opção, e a
@@ -4098,6 +4098,9 @@ function rfvRepassesDoGrupo(g, mes) {
 function rfvLinhas(A) {
   const out = [];
   for (const [, g] of rfvGrupos(A)) {
+    // Rede aberta: ela ocupa a tela sozinha. Comparar as portas de uma rede
+    // com 46 lojas no meio de 600 clientes não se faz rolando a lista.
+    if (RFV.foco) { if (g.chave === RFV.foco) out.push(g); continue; }
     if (!rfvPassaSit(g)) continue;
     if (!rfvPassaRepasseGrupo(g)) continue;
     out.push(g);
@@ -4105,7 +4108,7 @@ function rfvLinhas(A) {
   // Clientes com repasse que ainda não estão na Detalhada. Sem compra por
   // definição: saem quando o filtro de Compra está ligado. Respeitam a busca
   // e os prepostos; não entram no placar do topo.
-  if (!RFV.f.sit && RFV_REP.fora.size) {
+  if (!RFV.foco && !RFV.f.sit && RFV_REP.fora.size) {
     const sVend = new Set(rfvSel('vend'));
     const busca = $('rfv-busca').value.trim().toLowerCase();
     const nMes = RFV.meses.length;
@@ -4279,14 +4282,17 @@ function rfvTelaMes(A) {
     // O código sai da linha e vive na dica: passando o cursor pelo nome
     // aparecem nome, código e cidade de uma vez.
     const cidNome = rfvCidadeNome(l.cod);
-    const aberta = !porta && l.rede && RFV.abertas.has(l.chave);
+    const aberta = !porta && l.rede && RFV.foco === l.chave;
     const dica = porta || !l.rede
       ? `${l.nome} · ${l.cod}${cidNome ? ' · ' + cidNome : ''}${vend ? ' · ' + vend : ''}`
       : `${l.nome} · rede com ${l.portas.length} portas${l.paradas ? ', ' + l.paradas + ' sem compra no 2º semestre' : ''}${vend ? ' · ' + vend : ''}`;
+    // O expansor ocupa a mesma caixa em TODAS as linhas, tenha rede ou não:
+    // sem isso só quem tem portas ficava empurrado e a coluna saía torta.
     const botao = !porta && l.rede
       ? `<button type="button" class="rfv-exp${aberta ? ' on' : ''}" data-rede="${escAttr(l.chave)}"
-           aria-expanded="${aberta}" title="${aberta ? 'Fechar as portas' : 'Ver as ' + l.portas.length + ' portas'}">
-           <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>` : '';
+           aria-expanded="${aberta}" title="${aberta ? 'Voltar à lista' : 'Ver só esta rede, porta por porta'}">
+           <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>`
+      : '<span class="rfv-exp vazio" aria-hidden="true"></span>';
     const selo = !porta && l.rede
       ? ` <span class="rfv-rede" title="${escAttr(l.portas.length + ' portas somadas' + (l.paradas ? ' · ' + l.paradas + ' sem compra no 2º semestre' : ''))}">${l.portas.length}<span class="pt"> portas</span>${
           l.paradas ? `<b>${l.paradas}</b>` : ''}</span>` : '';
@@ -4309,11 +4315,19 @@ function rfvTelaMes(A) {
     </tr>`;
   };
 
-  const corpo = linhas.map(l => l.rede && RFV.abertas.has(l.chave)
+  const corpo = linhas.map(l => l.rede && RFV.foco === l.chave
     ? linha(l, false) + l.portas.map(p => linha(p, true)).join('')
     : linha(l, false)).join('');
 
-  return `<div class="rfv-quadro${verCid ? ' com-cidade' : ''}"><table>
+  const emFoco = RFV.foco && linhas.length === 1 && linhas[0].rede ? linhas[0] : null;
+  const faixa = emFoco ? `<div class="rfv-foco">
+      <button type="button" class="rfv-foco-volta" id="rfv-sair-foco">
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar à lista</button>
+      <span><b>${escHtml(emFoco.nome)}</b> · ${emFoco.portas.length} portas${
+        emFoco.paradas ? ` · <i class="fc-para">${emFoco.paradas} sem compra no 2º semestre</i>` : ' · todas comprando'}</span>
+    </div>` : '';
+
+  return faixa + `<div class="rfv-quadro${verCid ? ' com-cidade' : ''}"><table>
       <thead><tr>
         <th class="cli presa ${RFV.ordem === 'nome' ? 'ord-on' : ''}" data-ord="nome" title="${RFV.ordem === 'nome' ? 'Voltar à ordem por total' : 'Ordenar por nome'}"><span class="rot">Cliente${seta('nome')}</span></th>
         ${verCid ? `<th class="cid ${RFV.ordem === 'cidade' ? 'ord-on' : ''}" data-ord="cidade"
@@ -4545,6 +4559,11 @@ function rfvTelaMapa() {
 
 function rfvPintar() {
   if (!APP.base) return;
+  // Mexeu num filtro, na busca ou trocou de visão: a rede aberta deixa de
+  // fazer sentido e a tela volta para a lista inteira.
+  const assin = JSON.stringify([RFV.f, RFV.soRep, RFV.visao, $('rfv-busca').value]);
+  if (RFV._assin !== undefined && RFV._assin !== assin) RFV.foco = '';
+  RFV._assin = assin;
   const A = rfvApurar();
   rfvFichas(A);
   $('rfv-tela').innerHTML = RFV.visao === 'mes'   ? rfvTelaMes(A)
@@ -11527,11 +11546,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const exp = e.target.closest('.rfv-exp');
     if (exp) {
       e.stopPropagation();
-      const k = exp.dataset.rede;
-      if (RFV.abertas.has(k)) RFV.abertas.delete(k); else RFV.abertas.add(k);
+      RFV.foco = RFV.foco === exp.dataset.rede ? '' : exp.dataset.rede;
       rfvPintar();
       return;
     }
+    if (e.target.closest('#rfv-sair-foco')) { RFV.foco = ''; rfvPintar(); return; }
     const th = e.target.closest('th[data-ord]');
     if (th) {
       RFV.ordem = RFV.ordem === th.dataset.ord ? '' : th.dataset.ord;
@@ -12777,14 +12796,20 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 .rfv-quadro tbody tr.sel .presa{ background:var(--primary-bg);
   box-shadow:inset 3px 0 0 var(--primary), 1px 0 0 var(--border); }
 .rfv-quadro tbody tr.sel td.cli .nome{ color:var(--primary-2); }
-.rfv-quadro td.cli,.rfv-quadro th.cli{ text-align:left; padding-left:12px; min-width:190px; }
+.rfv-quadro td.cli{ text-align:left; padding-left:12px; min-width:190px; }
+/* o título da coluna no meio; as linhas, todas a partir da mesma margem */
+.rfv-quadro th.cli{ text-align:center; padding-left:12px; min-width:190px; }
+.rfv-quadro th.cli .rot{ justify-content:center; }
 .rfv-quadro td.cli{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
 .rfv-quadro td.cli .nome{ font-weight:600; }
 .rfv-quadro td.cli .sub{ color:var(--text-2); font-size:11px; }
 /* ── rede e suas portas ──────────────────────────────────────────────── */
+/* A caixa do expansor existe em toda linha — vazia em quem não tem rede —
+   para a bolinha e o nome começarem sempre no mesmo ponto. */
 .rfv-exp{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
-  margin-right:4px; padding:0; border:0; border-radius:5px; background:var(--card-bg-2);
+  margin-right:6px; padding:0; border:0; border-radius:5px; background:var(--card-bg-2);
   color:var(--text-2); cursor:pointer; vertical-align:-3px; flex:0 0 auto; }
+.rfv-exp.vazio{ background:none; cursor:default; pointer-events:none; }
 .rfv-exp i{ font-size:9px; transition:transform .16s ease; }
 .rfv-exp:hover{ background:var(--primary-bg); color:var(--primary-2); }
 .rfv-exp.on i{ transform:rotate(90deg); }
@@ -12804,6 +12829,24 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
 .rfv-quadro tbody tr.rfv-porta td.stot{ font-weight:600; }
 .rfv-quadro tbody tr.rfv-porta:hover td{ background:var(--card-bg); }
 .rfv-cod{ color:var(--text-3); font-size:10.5px; }
+/* ── rede aberta sozinha na tela ─────────────────────────────────────── */
+.rfv-foco{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px;
+  padding:9px 13px; border:1px solid var(--border-2); border-radius:12px;
+  background:var(--card-bg-2); font-size:12.5px; color:var(--text-2); }
+.rfv-foco b{ color:var(--text-1); font-weight:700; }
+.rfv-foco i.fc-para{ color:var(--ds-carteira); font-style:normal; font-weight:700; }
+.rfv-foco-volta{ display:inline-flex; align-items:center; gap:7px; border:1px solid var(--border-2);
+  background:var(--card-bg); color:var(--text-1); border-radius:999px; padding:6px 14px;
+  font:700 12px inherit; cursor:pointer; }
+.rfv-foco-volta:hover{ border-color:var(--primary-2); color:var(--primary-2); }
+/* ── Portal com seta e nome, como nos outros aplicativos ─────────────── */
+.cab-acoes #btn-portal-topo.btn-portal-nome{ width:auto; min-width:0; flex:0 0 auto;
+  padding:0 12px; gap:7px; font-weight:700; font-size:12.5px; }
+.cab-acoes #btn-portal-topo.btn-portal-nome span{ white-space:nowrap; }
+@media (max-width:560px){
+  .cab-acoes #btn-portal-topo.btn-portal-nome span{ display:none; }
+  .cab-acoes #btn-portal-topo.btn-portal-nome{ width:32px; padding:0; }
+}
 .rfv-quadro .sem2{ border-left:2px solid var(--border-2); }
 .rfv-quadro td.cid,.rfv-quadro th.cid{ text-align:left; padding-left:10px; white-space:nowrap;
   max-width:160px; overflow:hidden; text-overflow:ellipsis; }
