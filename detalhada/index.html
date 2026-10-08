@@ -3303,7 +3303,8 @@ function atualizarFonteInfo() {
   if (elTopo) {
     if (!publicado) { elTopo.hidden = true; }
     else {
-      elTopo.textContent = `base ${quandoPub}${diasPub <= 0 ? ' às ' + hora : ''}`;
+      elTopo.innerHTML = '<i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>' +
+        `<span>${quandoPub}${diasPub <= 0 ? ' às ' + hora : ''}</span>`;
       elTopo.title = txt;
       elTopo.classList.toggle('velha', velha);
       elTopo.hidden = false;
@@ -12222,7 +12223,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 .tb-titulo .logo-sub{ font-size:10.5px; color:var(--d-muted); }
 /* Discreta pelo tamanho, não por transparência: sobre o teal do cabeçalho
    uma opacidade baixa apagava a linha por completo. */
-.logo-base{ margin-top:1px; font-size:9.5px; color:var(--d-muted); white-space:nowrap; }
+.logo-base{ display:flex; align-items:center; gap:4px; margin-top:1px;
+  font-size:9.5px; color:var(--d-muted); white-space:nowrap; }
+.logo-base i{ font-size:8.5px; }
 .logo-base[hidden]{ display:none; }
 /* base que não é publicada há mais de um dia para de ser discreta */
 .logo-base.velha{ color:var(--acao-repassar); font-weight:700; }
