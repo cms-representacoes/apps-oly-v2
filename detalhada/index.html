@@ -2036,6 +2036,9 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
       <div class="cab-titulo">
         <div class="logo-text">Detalhada</div>
         <div class="logo-sub" id="topbar-user">—</div>
+        <!-- quando a base subiu, no canto do olho: o rodapé já conta a
+             história inteira, aqui basta saber se é de hoje -->
+        <div class="logo-base" id="topbar-base" hidden></div>
       </div>
 
       <div class="search-wrap cab-busca" id="search-wrap">
@@ -3293,6 +3296,19 @@ function atualizarFonteInfo() {
   if (el) { el.textContent = txt; el.classList.toggle('velha', velha); }
   if (elLogin) { elLogin.textContent = txt; elLogin.classList.toggle('velha', velha); }
   if (elAdmin) elAdmin.textContent = txt;
+
+  // No cabeçalho entra só o essencial: quando a base subiu. O resto fica na
+  // dica e, por extenso, no rodapé da lista.
+  const elTopo = $('topbar-base');
+  if (elTopo) {
+    if (!publicado) { elTopo.hidden = true; }
+    else {
+      elTopo.textContent = `base ${quandoPub}${diasPub <= 0 ? ' às ' + hora : ''}`;
+      elTopo.title = txt;
+      elTopo.classList.toggle('velha', velha);
+      elTopo.hidden = false;
+    }
+  }
 }
 
 /* ---------- de onde vem a base ----------
@@ -12204,6 +12220,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 .logo-mark{ border-radius:9px; }
 .tb-titulo .logo-text{ font-size:14px; font-weight:700; color:var(--d-ink); }
 .tb-titulo .logo-sub{ font-size:10.5px; color:var(--d-muted); }
+/* Discreta pelo tamanho, não por transparência: sobre o teal do cabeçalho
+   uma opacidade baixa apagava a linha por completo. */
+.logo-base{ margin-top:1px; font-size:9.5px; color:var(--d-muted); white-space:nowrap; }
+.logo-base[hidden]{ display:none; }
+/* base que não é publicada há mais de um dia para de ser discreta */
+.logo-base.velha{ color:var(--acao-repassar); font-weight:700; }
+/* no celular ela encolhe, mas fica: é lá que a dúvida "atualizou?" mais
+   aparece, longe do rodapé da lista */
+@media(max-width:480px){ .logo-base{ font-size:9px; } }
 
 .search-wrap.compacta input{
   background:var(--d-surface); border:1px solid var(--d-line);
@@ -13889,6 +13914,10 @@ html.dark{
 .cab-ident .cab-titulo{ border-right-color:rgba(255,255,255,.28); }
 .cab-ident .cab-titulo .logo-text{ color:#fff; }
 .cab-ident .cab-titulo .logo-sub{ color:rgba(255,255,255,.72); }
+/* o cinza padrão sumia sobre o teal: aqui a linha da base segue o branco do
+   subtítulo, só um degrau mais fraca */
+.cab-ident .cab-titulo .logo-base{ color:rgba(255,255,255,.6); }
+.cab-ident .cab-titulo .logo-base.velha{ color:#FFD166; }
 .cab-ident .cab-busca input{
   background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.3); color:#fff;
 }
