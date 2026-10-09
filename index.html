@@ -2418,6 +2418,32 @@
     #cartSidebar .grid.grid-cols-3 > div > button{ padding-top:7px; padding-bottom:7px; gap:3px; border-radius:12px; }
     #cartSidebar .grid.grid-cols-3 i.text-lg{ font-size:14px; }
 
+    /* ── voltar ao topo ── o mesmo da vitrine, no roxo da casa. Segue o tema:
+       a cor sai de --primary-rgb, que muda no modo escuro e na troca de marca. */
+    .topo-fab{ position:fixed; z-index:54; right:14px;
+      bottom:calc(14px + env(safe-area-inset-bottom,0px));
+      width:46px; height:46px; border-radius:50%; border:0; color:#fff; cursor:pointer;
+      background:linear-gradient(145deg,
+        color-mix(in srgb, rgb(var(--primary-rgb)) 72%, #fff),
+        rgb(var(--primary-rgb)) 55%,
+        color-mix(in srgb, rgb(var(--primary-rgb)) 78%, #000));
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 10px 24px rgba(var(--primary-rgb),.45),
+                 0 0 0 3px rgba(255,255,255,.9), inset 0 1px 0 rgba(255,255,255,.25);
+      opacity:0; transform:translateY(10px); transition:opacity .2s, transform .2s; }
+    .topo-fab[hidden]{ display:none; }
+    .topo-fab.on{ opacity:1; transform:none; }
+    .topo-fab:hover{ filter:brightness(1.08); }
+    .dark-mode .topo-fab{ box-shadow:0 10px 24px rgba(var(--primary-rgb),.4),
+                 0 0 0 3px rgba(24,27,39,.9), inset 0 1px 0 rgba(255,255,255,.25); }
+    /* o aviso que nasce no mesmo canto sobe enquanto o botão está à vista */
+    body.com-topo #toast{ bottom:76px !important; }
+    /* na tela do carrinho em desktop o botão de finalizar já ocupa o canto */
+    @media (min-width:1024px){
+      body:has(#cartContent.sidebar-hidden) .topo-fab{ bottom:calc(84px + env(safe-area-inset-bottom,0px)); }
+    }
+    @media (prefers-reduced-motion:reduce){ .topo-fab{ transition:none; } }
+
   </style>
 </head>
 
@@ -2478,9 +2504,12 @@
             <button type="button" class="colecao-pill colecao-card focus-ring" data-colecao="2S26">
               <span class="colecao-card-name">2S26</span>
             </button>
+            <button type="button" class="colecao-pill colecao-card focus-ring" data-colecao="1S27">
+              <span class="colecao-card-name">1S27</span>
+            </button>
           </div>
 
-          <!-- Classificação por tier: botão que abre popover (só visível em 2S26) -->
+          <!-- Classificação por tier: botão que abre popover (hoje só a 2S26 tem os dados) -->
           <div id="tierBarWrap" class="tier-bar-wrap home-filters-group tier-popover-wrap">
             <button type="button" id="tierToggleBtn" class="tier-toggle-btn focus-ring" aria-haspopup="true" aria-expanded="false" title="Filtrar por classificação do cliente">
               <i class="fa-solid fa-filter" style="font-size:11px;opacity:.7"></i>
@@ -3721,6 +3750,12 @@
       </div>
     </div>
 
+    <!-- Voltar ao topo -->
+    <button type="button" class="topo-fab" id="topoFab" hidden aria-label="Voltar ao topo" title="Voltar ao topo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+
     <!-- Toast -->
     <div id="toast" class="pointer-events-none fixed z-[80] hidden" style="position:fixed;right:20px;bottom:24px;max-width:calc(100vw - 40px);z-index:80">
       <div class="pointer-events-auto rounded-full bg-oly-text text-white px-4 py-2 text-sm font-bold shadow-lift flex items-center gap-2">
@@ -4769,15 +4804,19 @@ function buildFilterOptions(){
 
   setToggleUI();
 }
-function clearAllFilters(){
+function clearAllFilters(manterColecao){
   state.filters.category = "";
   state.filters.segment = "";
   state.filters.gender = "";
   state.filters.sort = "default";
   state.filters.q = "";
   state.filters.priceMax = Infinity;
-  state.filters.colecao = "2S26";
-  state.filters.tier = "";
+  // Quem vem da tela inicial já escolheu a coleção ali — limpar os filtros
+  // não pode desfazer essa escolha.
+  if(!manterColecao){
+    state.filters.colecao = "2S26";
+    state.filters.tier = "";
+  }
   const _sl = $("sliderPrice"); if(_sl){ _sl.value=_sl.max; if(typeof updateSliderLabel==="function") updateSliderLabel(); }
   // reset cat chips
   document.querySelectorAll(".cat-chip").forEach(b=>b.classList.toggle("active", b.dataset.cat===""));
@@ -4817,7 +4856,7 @@ document.querySelectorAll(".colecao-card").forEach(btn => {
     const sel = btn.dataset.colecao;
     if(state.filters.colecao === sel) return; // Caso B
     state.filters.colecao = sel;
-    // Ao trocar de coleção, limpa o tier (não faz sentido manter em 1S26)
+    // Ao trocar de coleção, limpa o tier (só a 2S26 tem classificação)
     if(sel !== "2S26"){
       state.filters.tier = "";
       syncTierBar();
@@ -10903,8 +10942,11 @@ function updateSliderLabel(){
         refreshView(true);
       }
     } else {
-      // "Ver todos" — limpa filtros
-      clearAllFilters();
+      // "Ver todos" — limpa filtros, menos a coleção escolhida na tela inicial
+      clearAllFilters(true);
+      if(typeof syncColecaoCards === "function") syncColecaoCards();
+      if(typeof syncTierBar === "function") syncTierBar();
+      if(state.productsRaw && state.productsRaw.length > 0) refreshView(true);
     }
     window.scrollTo({top:0, behavior:"instant"});
   }
@@ -11084,7 +11126,12 @@ function injectHomeCategoryImages(){
     });
     var sel = document.getElementById("filterCategory");
     if(sel) sel.value = cat || "";
-    if(!cat){ clearAllFilters(); } else { refreshView(true); }
+    if(!cat){
+      clearAllFilters(true);
+      if(typeof syncColecaoCards === "function") syncColecaoCards();
+      if(typeof syncTierBar === "function") syncTierBar();
+    }
+    refreshView(true);
   }
 
   function enterCatalog(cat){
@@ -12573,7 +12620,7 @@ function _mpRenderFinalizados(){
     const data = _mpFormatBR(p.createdAt);
     const itens = (p.items||[]).map(i => {
       const meta = [i.cor, i.genero].filter(Boolean).join(" · ");
-      const imgUrl = i.imagem ? `./imagens_olympikus/${i.imagem}.png` : "";
+      const imgUrl = i.imagem ? resolveImageSrc(i.imagem) : "";
       return `<div class="mp-pedido-prod">
         <div class="mp-pedido-prod-thumb">${imgUrl ? `<img src="${_mpEscape(imgUrl)}" alt="" onerror="this.style.display='none'">` : ''}</div>
         <div class="mp-pedido-prod-info">
@@ -12656,7 +12703,7 @@ function _mpRenderRascunhos(){
       const qtyTxt = hasGrade
         ? `${i.totalQty || 0} pares`
         : `<span style="color:#d97706;font-weight:800;font-size:10px">SEM GRADE</span>`;
-      const imgUrl = i.imagem ? `./imagens_olympikus/${i.imagem}.png` : "";
+      const imgUrl = i.imagem ? resolveImageSrc(i.imagem) : "";
       return `<div class="mp-pedido-prod">
         <div class="mp-pedido-prod-thumb">${imgUrl ? `<img src="${_mpEscape(imgUrl)}" alt="" onerror="this.style.display='none'">` : ''}</div>
         <div class="mp-pedido-prod-info">
@@ -13690,6 +13737,38 @@ loadCatalog({ cacheBust:false });
     </div>
   </div>
 </div>
+
+<script>
+// Voltar ao topo: aparece depois de uma tela e meia rolada, que é quando
+// subir no dedo começa a cansar.
+// Aqui quem rola é o próprio body — o html fica do tamanho da janela e o
+// body é que tem overflow. Por isso window.scrollY não serve.
+(function(){
+  const b = document.getElementById('topoFab');
+  if(!b) return;
+  const quemRola = () => {
+    const el = document.body;
+    return (el.scrollHeight > el.clientHeight + 4)
+      ? el : (document.scrollingElement || document.documentElement);
+  };
+  b.addEventListener('click', () => quemRola().scrollTo({ top:0,
+    behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' }));
+  let t = null;
+  const ver = () => {
+    const el = quemRola();
+    const mostra = el.scrollTop > el.clientHeight * 1.5;
+    if(mostra === b.classList.contains('on')) return;
+    clearTimeout(t);
+    document.body.classList.toggle('com-topo', mostra);
+    if(mostra){ b.hidden = false; requestAnimationFrame(() => b.classList.add('on')); }
+    else{ b.classList.remove('on'); t = setTimeout(() => { if(!b.classList.contains('on')) b.hidden = true; }, 220); }
+  };
+  // o scroll não borbulha: na captura o documento recebe o de quem rolar
+  document.addEventListener('scroll', ver, { passive:true, capture:true });
+  addEventListener('resize', ver, { passive:true });
+  ver();
+})();
+</script>
 
 </body>
 </html>
