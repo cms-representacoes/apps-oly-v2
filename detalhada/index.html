@@ -4027,9 +4027,43 @@ function rfvPintarLista() {
 function rfvFecharLista() { RFV.aberto = null; $('rfv-lista').hidden = true; }
 
 /* '' = todas · dois · so1 (comprou só no 1º) · so2 (entrou no 2º) */
-const rfvSituacao = e => e.p1 > 0 && e.p2 > 0 ? 'dois' : e.p1 > 0 ? 'so1' : e.p2 > 0 ? 'so2' : '';
+/* ── repasse conta como compra ──────────────────────────────────────────
+   O repasse é um pedido que o cliente fez e a fábrica ainda não faturou: ele
+   aparece na tela como selo, mas ficava fora da conta. O cliente que repassou
+   em agosto entrava em "sem compra no 2º semestre" junto com quem sumiu — e
+   a lista de quem precisa de atenção vinha inflada com quem acabou de comprar.
+
+   Vale só o repasse de um mês que a tabela mostra na segunda metade: repasse
+   de janeiro não tira ninguém do 2º semestre. */
+function rfvRepasseNo2S(e) {
+  if (!RFV_REP.porCli || !RFV.meses.length) return false;
+  const meses2 = RFV.meses.slice(RFV.corte);
+  if (!meses2.length) return false;
+  // rede: basta uma porta ter
+  const cods = (e.rede && e.portas) ? e.portas.map(x => String(x.cod))
+             : [rfvCodDe(e)];
+  for (const cod of cods) {
+    if (!cod) continue;
+    const m = RFV_REP.porCli.get(cod);
+    if (m) for (const mes of meses2) if (m.has(mes)) return true;
+  }
+  return false;
+}
+/* A entrada crua de porCli não carrega o código do cliente; o grupo e a
+   porta carregam. Quem só tem o índice informa por `ci`. */
+function rfvCodDe(e) {
+  if (e && e.cod != null) return String(e.cod);
+  if (e && e.ci != null && APP.dic.cli[e.ci]) return String(APP.dic.cli[e.ci][0]);
+  return '';
+}
+
+/** Comprou no 2º semestre: faturou, está em carteira ou tem repasse a sair. */
+const rfvComprou2S = e => e.p2 > 0 || rfvRepasseNo2S(e);
+
+const rfvSituacao = e => e.p1 > 0 && rfvComprou2S(e) ? 'dois'
+  : e.p1 > 0 ? 'so1' : rfvComprou2S(e) ? 'so2' : '';
 const rfvPassaSit = e => !RFV.f.sit
-  || (RFV.f.sit === 'sem2' ? e.p2 === 0 : rfvSituacao(e) === RFV.f.sit);
+  || (RFV.f.sit === 'sem2' ? !rfvComprou2S(e) : rfvSituacao(e) === RFV.f.sit);
 
 /* ── as portas da mesma rede viram uma linha ───────────────────────────
    O mesmo nome fantasia aparece na base com vários códigos: são as portas
@@ -4064,8 +4098,9 @@ function rfvAgrupar(porCli) {
     if (e.ult > g.ult) g.ult = e.ult;
     for (const [k, v] of e.prep) g.prep.set(k, (g.prep.get(k) || 0) + v);
     const cli = APP.dic.cli[ci];
-    g.portas.push({ ci, cod: String(cli[0]), nome: String(cli[1]), ...e,
-                    parou: e.p1 > 0 && e.p2 === 0, total: e.p1 + e.p2 });
+    const porta = { ci, cod: String(cli[0]), nome: String(cli[1]), ...e, total: e.p1 + e.p2 };
+    porta.parou = porta.p1 > 0 && !rfvComprou2S(porta);
+    g.portas.push(porta);
   }
   for (const g of grupos.values()) {
     g.portas.sort((x, y) => y.total - x.total || x.cod.localeCompare(y.cod));
@@ -4074,9 +4109,9 @@ function rfvAgrupar(porCli) {
     const p = g.portas[0];
     g.cod = p.cod; g.nome = p.nome; g.ci = p.ci;
     g.total = g.p1 + g.p2;
-    g.parou = g.p1 > 0 && g.p2 === 0;
+    g.parou = g.p1 > 0 && !rfvComprou2S(g);
     // quantas portas pararam: é o que o botão de abrir promete mostrar
-    g.paradas = g.rede ? g.portas.filter(x => x.p2 === 0).length : 0;
+    g.paradas = g.rede ? g.portas.filter(x => x.p2 === 0 && !rfvRepasseNo2S(x)).length : 0;
   }
   return grupos;
 }
@@ -4171,7 +4206,7 @@ function rfvFichas(A) {
   let compraram = 0, redes = 0, portas = 0;
   const total = grupos.size;
   for (const [, g] of grupos) {
-    if (g.p2 > 0) compraram++;
+    if (rfvComprou2S(g)) compraram++;
     if (g.rede) { redes++; portas += g.portas.length; }
   }
   const semComprar = total - compraram;
@@ -4187,7 +4222,7 @@ function rfvFichas(A) {
       <span class="n">clientes ativos</span>
       <span class="v">${formatarNumero(total)}</span>
       <span class="pc">${pc(total)}</span></div>
-    <div class="rfv-ficha pos" title="têm nota de julho em diante ou pedido em carteira">
+    <div class="rfv-ficha pos" title="têm nota de julho em diante, pedido em carteira ou repasse aguardando a fábrica">
       <span class="n">compraram ${rot}</span>
       <span class="v">${formatarNumero(compraram)}</span>
       <span class="pc">${pc(compraram)}</span></div>
@@ -4370,7 +4405,7 @@ function rfvTelaFaixa(A) {
 
   const linhas = [];
   for (const [ci, e] of A.porCli) {
-    if (!rfvPassaSit(e)) continue;
+    if (!rfvPassaSit({ ...e, ci })) continue;
     if (!rfvPassaRepasse(ci)) continue;
     const est = new Array(nFx);
     let perdidas = 0, parados = 0;
@@ -4380,7 +4415,7 @@ function rfvTelaFaixa(A) {
     }
     const cli = APP.dic.cli[ci];
     linhas.push({ ci, cod: String(cli[0]), nome: String(cli[1]), est, e,
-                  perdidas, parados, parou: e.p1 > 0 && e.p2 === 0, total: e.p1 + e.p2 });
+                  perdidas, parados, parou: e.p1 > 0 && !rfvComprou2S({ ...e, ci }), total: e.p1 + e.p2 });
   }
   linhas.sort((x, y) => (y.parou - x.parou) || (y.parados - x.parados) || (y.total - x.total));
   if (!linhas.length) return '<div class="rfv-quadro"><div class="rfv-vazio">Nenhum cliente com esses filtros.</div></div>';
@@ -4491,8 +4526,8 @@ async function rfvDesenharMapa(A) {
   const porCidade = new Map();
   for (const [ci, e] of A.porCli) {
     const g0 = deQuem.get(ci);
-    if (!rfvPassaSit(g0 || e)) continue;
-    const ativo = (g0 ? g0.p2 : e.p2) > 0;
+    if (!rfvPassaSit(g0 || { ...e, ci })) continue;
+    const ativo = g0 ? rfvComprou2S(g0) : rfvComprou2S({ ...e, ci });
     const cli = APP.dic.cli[ci];
     const c = cidadeDe(String(cli[0]));
     if (!c) continue;
@@ -4506,7 +4541,7 @@ async function rfvDesenharMapa(A) {
     if (ativo) g.ativos++;
     // a loja em si não comprou, mas a rede dela comprou: conta como ativa
     g.lojas.push({ nome: String(cli[1]), cod: String(cli[0]), p1: e.p1, p2: e.p2, ativo,
-                   pelaRede: !!(g0 && g0.rede && e.p2 === 0 && g0.p2 > 0) });
+                   pelaRede: !!(g0 && g0.rede && !rfvComprou2S({ ...e, ci }) && rfvComprou2S(g0)) });
   }
 
   const pontos = [];
@@ -6758,9 +6793,52 @@ function reatApurar() {
   const hoje = APP.base.dataDia;
   const vit = REAT.vit;
   const lista = [];
-  for (const [c, pares] of s1) {
-    if (s2.get(c) || aberto.get(c)) continue;
-    if (!APP.veTudo && prep.get(c) !== APP.prepFixo) continue;
+
+  /* ── as portas da mesma rede viram uma linha ──────────────────────────
+     A régua é a mesma do RFV. Porta a porta, a loja que fechou aparecia
+     como cliente para reativar enquanto a irmã do lado comprava todo mês —
+     e o vendedor ligava para um cliente que não parou. Pior: a porta que
+     aparecia era a de maior volume no 1º semestre, que às vezes é o CD da
+     rede, não a loja.
+
+     Agora a rede é um cliente só: basta uma porta ter comprado no 2º
+     semestre, ter carteira em aberto ou ter repasse esperando a fábrica
+     para a rede inteira sair da lista. */
+  const grupo = new Map();          // chave da rede (ou do cliente) -> portas
+  for (const [c] of s1) {
+    const nn = redeDoCliente(c);
+    const chave = nn ? 'r:' + nn : 'c:' + c;
+    if (!grupo.has(chave)) grupo.set(chave, []);
+    grupo.get(chave).push(c);
+  }
+  // quem comprou no 2º semestre de algum jeito — inclusive por repasse
+  const temRepasse2S = cod => {
+    const m = RFV_REP.porCli && RFV_REP.porCli.get(String(cod));
+    if (!m) return false;
+    for (const mes of m.keys()) {
+      const mm = Number(String(mes).slice(0, 2));
+      if (mm >= 7) return true;
+    }
+    return false;
+  };
+  const ativo = c => !!(s2.get(c) || aberto.get(c) || temRepasse2S(APP.dic.cli[c][0]));
+
+  for (const [, portas] of grupo) {
+    if (portas.some(ativo)) continue;
+    if (!APP.veTudo && !portas.some(x => prep.get(x) === APP.prepFixo)) continue;
+    // a porta que representa a rede é a que mais comprou no 1º semestre
+    portas.sort((x, y) => (s1.get(y) || 0) - (s1.get(x) || 0));
+    const c = portas[0];
+    const pares = portas.reduce((t, x) => t + (s1.get(x) || 0), 0);
+    // o histórico de artigos da rede inteira: é dele que saem as ofertas
+    if (portas.length > 1) {
+      const junto = new Map();
+      for (const x of portas) for (const [ref, q] of (art.get(x) || new Map()))
+        junto.set(ref, (junto.get(ref) || 0) + q);
+      art.set(c, junto);
+      const maior = Math.max(...portas.map(x => ult.get(x) ?? -1));
+      if (maior > (ult.get(c) ?? -1)) ult.set(c, maior);
+    }
     const [cod, nome] = APP.dic.cli[c];
     const dias = hoje - (ult.get(c) ?? hoje);
     const ofertas = [];
@@ -6808,6 +6886,7 @@ function reatApurar() {
     lista.push({ ci: c, cod: String(cod), nome, prep: APP.dic.prep[prep.get(c)] || '', semelhantes,
                  cidade: cid ? cid.cidade + (cid.uf ? '/' + cid.uf : '') : '',
                  cidadeGrupo: !!(cid && cid.fonte === 'grupo'),
+                 portas: portas.length,
                  pares, dias, ofertas, temRepasse: ofertas.some(o => o.tipo === 'repasse') });
   }
   lista.sort((a, b) => (b.temRepasse - a.temRepasse) || (b.pares - a.pares));
@@ -7133,7 +7212,9 @@ function reatLinha(c) {
   const chips = c.ofertas.slice(0, 3).map(reatChip).join('') +
     (c.ofertas.length > 3 ? `<span class="reat-mais">+${c.ofertas.length - 3}</span>` : '');
   return `<tr class="reat-lin ${aberto ? 'on' : ''}" data-cli="${escAttr(c.cod)}">
-      <td class="cli"><span class="nome">${escHtml(c.nome)}</span><span class="sub">${escHtml(c.cod)}${
+      <td class="cli"><span class="nome">${escHtml(c.nome)}${c.portas > 1
+        ? ` <span class="reat-rede" title="${escAttr(c.portas + ' portas da mesma rede, somadas — nenhuma comprou no 2º semestre')}">${
+            c.portas}<span class="pt"> portas</span></span>` : ''}</span><span class="sub">${escHtml(c.cod)}${
         APP.veTudo ? ' · ' + escHtml(c.prep) : ''}${c.cidade
           ? ` · <span class="reat-cid${c.cidadeGrupo ? ' grupo' : ''}"${c.cidadeGrupo
               ? ' title="cidade do grupo, não da loja"' : ''}>${escHtml(c.cidade)}</span>` : ''}</span></td>
@@ -14713,6 +14794,11 @@ body:has(#fab-export:not([hidden])) .btn-topo{ bottom:74px; }
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .reat-quadro td.cli .sub{ display:block; font-family:var(--ds-mono); font-size:10.5px; color:var(--ds-ghost);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* rede na reativação: o mesmo selo do RFV, para a equipe reconhecer */
+.reat-rede{ display:inline-flex; align-items:center; gap:4px; margin-left:6px; padding:1px 7px;
+  border-radius:999px; background:var(--card-bg-2); color:var(--text-2);
+  font-size:10px; font-weight:700; white-space:nowrap; }
+@media(max-width:720px){ .reat-rede .pt{ display:none } }
 .reat-cid{ font-family:var(--ds-font); }
 .reat-cid.grupo{ font-style:italic; }
 .reat-quadro th.reat-num, .reat-quadro td.reat-num{ text-align:right; white-space:nowrap;
