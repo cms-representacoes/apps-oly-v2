@@ -634,9 +634,85 @@
     .badge-novo     {display:inline-flex;align-items:center;background:rgba(249,115,22,.14);color:#c2410c;border:1px solid rgba(249,115,22,.32);font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em;backdrop-filter:saturate(140%);}
     .badge-novacor  {display:inline-flex;align-items:center;background:rgba(var(--primary-rgb),.14);color:var(--primary);border:1px solid rgba(var(--primary-rgb),.32);font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em;}
     .badge-lanc     {display:inline-flex;align-items:center;background:rgba(5,150,105,.14);color:#047857;border:1px solid rgba(5,150,105,.32);font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em;}
+    .badge-cont     {display:inline-flex;align-items:center;background:rgba(100,116,139,.14);color:#475569;border:1px solid rgba(100,116,139,.32);font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em;}
     .dark-mode .badge-novo    { color:#fdba74 !important; background:rgba(249,115,22,.20) !important; }
     .dark-mode .badge-novacor { color:rgb(var(--primary-rgb)) !important; background:rgba(var(--primary-rgb),.22) !important; }
     .dark-mode .badge-lanc    { color:#6ee7b7 !important; background:rgba(5,150,105,.22) !important; }
+    .dark-mode .badge-cont    { color:#cbd5e1 !important; background:rgba(100,116,139,.26) !important; }
+
+    /* ── chips de filtro no topo da lista ──
+       Mesmo preenchimento dos chips que aparecem dentro dos cards, só que
+       grandes o bastante para o dedo. Ligado, a cor fecha e o texto vira branco. */
+    .filtro-chips{ display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+      justify-content:flex-end; margin-bottom:4px; padding-right:2px; }
+    /* a coleção fica na ponta esquerda e empurra os chips para a direita */
+    .selo-colecao{ display:inline-flex; align-items:center; gap:7px;
+      font-size:12px; font-weight:800; letter-spacing:.03em;
+      padding:6px 13px; border-radius:999px; min-height:32px; cursor:pointer;
+      background:var(--card-bg,#fff); color:var(--text,#0F172A);
+      border:1.5px solid var(--border,#E5E7EB);
+      transition:border-color .15s, background .15s; }
+    .selo-colecao i{ font-size:11px; color:var(--primary); }
+    .selo-colecao:hover{ border-color:var(--primary); }
+    .selo-colecao:active{ transform:scale(.97); }
+    .dark-mode .selo-colecao{ background:#1F2937; border-color:#374151; }
+    /* a contagem acompanha a coleção, mais apagada por ser informação e não botão */
+    .selo-conta{ margin-right:auto; display:inline-flex; align-items:center; min-height:32px;
+      font-size:11.5px; font-weight:800; letter-spacing:.03em;
+      padding:6px 12px; border-radius:999px;
+      background:transparent; color:var(--muted,#6B7280);
+      border:1px dashed var(--border,#E5E7EB); }
+    .selo-conta:empty{ display:none; }
+    /* sem contagem na tela, é a coleção que segura a ponta esquerda */
+    .filtro-chips:has(.selo-conta:empty) .selo-colecao{ margin-right:auto; }
+    .dark-mode .selo-conta{ color:#9BA3BC; border-color:#374151; }
+    @media (max-width:520px){
+      /* no celular, encostar à direita deixa a última linha solta — aqui
+         a fila volta a começar pela esquerda */
+      .filtro-chips{ justify-content:flex-start; padding-left:2px; padding-right:0; }
+    }
+    .chip-f{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+      font-size:11.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+      padding:6px 13px; border-radius:999px; min-height:32px;
+      border:1px solid transparent; background:transparent;
+      transition:background .15s, color .15s, border-color .15s, box-shadow .15s; }
+    .chip-f .chip-f-n{ font-size:10px; opacity:.75; letter-spacing:0; }
+    .chip-f:active{ transform:scale(.97); }
+
+    .chip-f-novacor{ background:rgba(var(--primary-rgb),.14); color:var(--primary);
+      border-color:rgba(var(--primary-rgb),.32); }
+    .chip-f-lanc{ background:rgba(5,150,105,.14); color:#047857;
+      border-color:rgba(5,150,105,.32); }
+    .chip-f-corre{ background:rgba(249,115,22,.14); color:#c2410c;
+      border-color:rgba(249,115,22,.32); }
+    .chip-f-cont{ background:rgba(100,116,139,.14); color:#475569;
+      border-color:rgba(100,116,139,.32); }
+
+    .chip-f-novacor.on{ background:rgb(var(--primary-rgb)); color:#fff;
+      border-color:rgb(var(--primary-rgb)); box-shadow:0 2px 10px rgba(var(--primary-rgb),.35); }
+    .chip-f-lanc.on{ background:#047857; color:#fff; border-color:#047857;
+      box-shadow:0 2px 10px rgba(5,150,105,.35); }
+    .chip-f-corre.on{ background:#c2410c; color:#fff; border-color:#c2410c;
+      box-shadow:0 2px 10px rgba(249,115,22,.35); }
+    .chip-f-cont.on{ background:#475569; color:#fff; border-color:#475569;
+      box-shadow:0 2px 10px rgba(100,116,139,.35); }
+    .chip-f.on .chip-f-n{ opacity:.85; }
+
+    .dark-mode .chip-f-novacor{ color:rgb(var(--primary-rgb)); background:rgba(var(--primary-rgb),.22); }
+    .dark-mode .chip-f-lanc{ color:#6ee7b7; background:rgba(5,150,105,.22); }
+    .dark-mode .chip-f-corre{ color:#fdba74; background:rgba(249,115,22,.22); }
+    .dark-mode .chip-f-cont{ color:#cbd5e1; background:rgba(100,116,139,.26); }
+    /* o estado ligado precisa vir depois das cores do tema, senão o fundo
+       translúcido do escuro vence e o texto branco fica ilegível */
+    .dark-mode .chip-f-novacor.on{ background:rgb(var(--primary-rgb)); color:#fff;
+      border-color:rgb(var(--primary-rgb)); }
+    .dark-mode .chip-f-lanc.on{ background:#059669; color:#06281f; border-color:#059669; }
+    .dark-mode .chip-f-corre.on{ background:#f97316; color:#2a1206; border-color:#f97316; }
+    .dark-mode .chip-f-cont.on{ background:#94a3b8; color:#1e293b; border-color:#94a3b8; }
+    @media (max-width:480px){
+      .chip-f{ font-size:11px; padding:6px 11px; }
+    }
+    @media (prefers-reduced-motion:reduce){ .chip-f{ transition:none; } }
 
     /* ── Spinner ── */
     @keyframes spin360{ to{ transform:rotate(360deg); } }
@@ -2893,7 +2969,22 @@
       </section>
 
       <section id="grid" class="hidden mt-4">
-        <p id="productCounter" class="text-xs text-oly-muted font-bold mb-2 px-0.5"></p>
+        <div class="filtro-chips" id="filtroChips">
+          <button type="button" class="selo-colecao focus-ring" id="seloColecao"
+                  title="Trocar de coleção">
+            <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+            <span id="seloColecaoNome">—</span>
+          </button>
+          <span class="selo-conta" id="productCounter"></span>
+          <button type="button" class="chip-f chip-f-novacor focus-ring" data-chip="novaCor"
+                  aria-pressed="false">Nova cor <span class="chip-f-n" data-n></span></button>
+          <button type="button" class="chip-f chip-f-lanc focus-ring" data-chip="lancamento"
+                  aria-pressed="false">Lançamento <span class="chip-f-n" data-n></span></button>
+          <button type="button" class="chip-f chip-f-corre focus-ring" data-chip="corre"
+                  aria-pressed="false">Corre <span class="chip-f-n" data-n></span></button>
+          <button type="button" class="chip-f chip-f-cont focus-ring" data-chip="continuidade"
+                  aria-pressed="false">Continuidade <span class="chip-f-n" data-n></span></button>
+        </div>
         <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
 
         <div id="loadMoreWrap" class="mt-6 flex justify-center">
@@ -3922,7 +4013,8 @@ const state = {
   // No celular 3 colunas espremem demais o card — abre em 2. Em telas maiores
   // segue em 3. O botão de layout continua alternando livremente depois disso.
   cardLayout: ehTelaDeToque() ? "duo" : "trio",
-  filters: { category:"", segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"" },
+  filters: { category:"", segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"",
+             novaCor:false, lancamento:false, corre:false, continuidade:false },
   pagination: { pageSize: 24, shown: 0 },
   ui: { lastScrollY: 0, view: 'main' },
   productModal: { open:false, item:null, group:null, qty:1, fromCart:false, editKey:null, editing:false },
@@ -4287,6 +4379,7 @@ function renderBadges(item, { cls="", abs=false } = {}){
   let html = "";
   if(item.isLanc)     html += `<span class="badge-lanc">LANÇAMENTO</span>`;
   if(item.isNewColor) html += `<span class="badge-novacor">NOVA COR</span>`;
+  if(item.isCont)     html += `<span class="badge-cont">CONTINUIDADE</span>`;
   return html ? `<div class="${wrap}">${html}</div>` : "";
 }
 // Versão para grupo: verifica se alguma variante tem o badge
@@ -4296,6 +4389,7 @@ function renderBadgesGroup(group, { cls="", abs=false } = {}){
     isNew:      items.some(i=>i.isNew),
     isLanc:     items.some(i=>i.isLanc),
     isNewColor: items.some(i=>i.isNewColor),
+    isCont:     items.some(i=>i.isCont),
   };
   return renderBadges(fake, { cls, abs });
 }
@@ -4424,13 +4518,32 @@ function loadCustomerFromStorage(){
 
 /** ✅ Cache do catálogo (JSON) - acelera carregamento e dá fallback se o XLSX falhar */
 const PRODUCTS_CACHE_CONFIG = { enabled: true, maxAgeHours: 24 };
+let _seloEmCache = "";
 
-function saveProductsCache(rows){
+function saveProductsCache(rows, selo){
   if(!PRODUCTS_CACHE_CONFIG.enabled) return;
   try{
-    const payload = { ts: Date.now(), rows };
+    const payload = { ts: Date.now(), rows, selo: selo || "" };
     lsSet(STORAGE_KEYS.productsCache, JSON.stringify(payload));
   }catch(e){}
+}
+
+// O carimbo que o servidor dá ao arquivo. O ETag basta; onde não vier,
+// a data de modificação com o tamanho serve igual.
+function seloDaResposta(res){
+  if(!res) return "";
+  const et = res.headers.get("ETag");
+  if(et) return et;
+  const lm = res.headers.get("Last-Modified") || "";
+  const cl = res.headers.get("Content-Length") || "";
+  return lm + "|" + cl;
+}
+async function seloDoArquivo(){
+  try{
+    const r = await fetch(`${DATA_CONFIG.xlsxPath}?t=${Date.now()}`,
+                          { method:"HEAD", cache:"no-store" });
+    return r.ok ? seloDaResposta(r) : "";
+  }catch(e){ return ""; }
 }
 function loadProductsCache(){
   if(!PRODUCTS_CACHE_CONFIG.enabled) return null;
@@ -4439,6 +4552,7 @@ function loadProductsCache(){
     if(!raw) return null;
     const obj = JSON.parse(raw);
     if(!obj || !Array.isArray(obj.rows) || !obj.ts) return null;
+    _seloEmCache = obj.selo || "";
     const ageMs = Date.now() - Number(obj.ts);
     const maxMs = PRODUCTS_CACHE_CONFIG.maxAgeHours * 3600 * 1000;
     if(ageMs > maxMs) return null;
@@ -4617,6 +4731,17 @@ async function loadCatalog({ cacheBust=false } = {}){
          $("loadingState").classList.add("hidden");
          $("grid").classList.remove("hidden");
          if(typeof window._onCatalogReady==="function") window._onCatalogReady();
+         // A tela já está pintada; agora confere se a planilha mudou desde
+         // que este cache foi feito. Se mudou, recarrega sem pedir nada.
+         (async () => {
+           const agora = await seloDoArquivo();
+           // Sem carimbo guardado não dá para dizer que o cache está em dia
+           // — e cache antigo, feito antes deste controle, não tem nenhum.
+           if(agora && agora !== _seloEmCache){
+             setHeaderStatus("Catálogo atualizado, recarregando…");
+             loadCatalog({ cacheBust: true });
+           }
+         })();
          return;
        }
      }
@@ -4624,6 +4749,7 @@ async function loadCatalog({ cacheBust=false } = {}){
     const url = cacheBust ? `${DATA_CONFIG.xlsxPath}?v=${Date.now()}` : DATA_CONFIG.xlsxPath;
     const res = await fetch(url, { cache: "no-store" });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const _selo = seloDaResposta(res);
     const data = await res.arrayBuffer();
 
     const wb = XLSX.read(data, { type:"array" });
@@ -4656,6 +4782,9 @@ async function loadCatalog({ cacheBust=false } = {}){
       isNew:      isTruthy(r["Lançamento"] ?? r["Lancamento"] ?? r["LANÇAMENTO"] ?? r["lancamento"] ?? r["LANCAMENTO"] ?? "") ||
                   isTruthy(r["Nova Cor"]   ?? r["NOVA COR"]   ?? r["nova cor"]  ?? r["NovaCor"]  ?? ""),
       colecao:    String(r["Coleção"] ?? r["Colecao"] ?? r["COLEÇÃO"] ?? r["COLECAO"] ?? r["colecao"] ?? "").trim().toUpperCase(),
+      // Continuidade é a cor que segue da coleção anterior — na Under Armour
+      // o catálogo chama de "Carry over". Vem marcada pela própria marca.
+      isCont:     isTruthy(r["Continuidade"] ?? r["CONTINUIDADE"] ?? r["continuidade"] ?? ""),
       // Classificações por canal/tier — strings "SIM" ou "NÃO" ou vazio
       sg1:        isTruthy(r["SPORTING GOODS - 1"] ?? r["Sporting Goods - 1"] ?? r["sporting goods - 1"] ?? ""),
       sg2:        isTruthy(r["SPORTING GOODS - 2"] ?? r["Sporting Goods - 2"] ?? r["sporting goods - 2"] ?? ""),
@@ -4686,7 +4815,8 @@ async function loadCatalog({ cacheBust=false } = {}){
     }));
 
     state.productsRaw = rows.filter(x => x.produto || x.codigo || x.categoria || x.imagem);
-     saveProductsCache(state.productsRaw);
+     saveProductsCache(state.productsRaw, _selo);
+     _seloEmCache = _selo;
     setHeaderStatus("Catálogo pronto");
 
     buildFilterOptions();
@@ -4815,6 +4945,10 @@ function clearAllFilters(manterColecao){
   state.filters.sort = "default";
   state.filters.q = "";
   state.filters.priceMax = Infinity;
+  state.filters.novaCor = false;
+  state.filters.lancamento = false;
+  state.filters.corre = false;
+  state.filters.continuidade = false;
   // Quem vem da tela inicial já escolheu a coleção ali — limpar os filtros
   // não pode desfazer essa escolha.
   if(!manterColecao){
@@ -5212,6 +5346,45 @@ function handleLoadMore(ev){
 function getPriceNum(v){ return v._type === "group" ? (v.minPriceNum ?? 0) : (v.priceNum ?? toNumberBR(v.precoRaw)); }
 function getTitle(v){ return v.produto; }
 
+// A linha CORRE atravessa as categorias: tem tênis, roupa, meia e mochila.
+// O que amarra tudo é o nome começar pela palavra — CORRE 5, CORRE FOCO,
+// CORRE MAX. A borda da palavra evita pegar nome que só comece parecido.
+const RE_CORRE = /\bCORRE\b/i;
+function ehDaCorre(p){
+  return RE_CORRE.test(String(p?.produto || ""));
+}
+
+// Os chips mostram quanto cada um traria dentro do que já está filtrado,
+// então o número muda junto com a coleção e a categoria escolhidas.
+function pintarChipsFiltro(){
+  const chips = document.getElementById("filtroChips");
+  if(!chips) return;
+  const base = (state.productsRaw || []).filter(p =>
+    (!state.filters.category || p.categoria === state.filters.category) &&
+    (!state.filters.colecao  || p.colecao  === state.filters.colecao));
+  const quanto = {
+    novaCor:    base.filter(p => p.isNewColor).length,
+    lancamento: base.filter(p => p.isLanc).length,
+    corre:      base.filter(ehDaCorre).length,
+    continuidade: base.filter(p => p.isCont).length,
+  };
+  const selo = document.getElementById("seloColecaoNome");
+  if(selo) selo.textContent = state.filters.colecao || "Todas";
+  chips.querySelectorAll(".chip-f").forEach(btn => {
+    const k = btn.dataset.chip;
+    const ligado = !!state.filters[k];
+    btn.classList.toggle("on", ligado);
+    btn.setAttribute("aria-pressed", ligado ? "true" : "false");
+    const n = btn.querySelector("[data-n]");
+    if(n) n.textContent = quanto[k] ? quanto[k] : "";
+    // sem nenhum produto para oferecer, o chip não tem o que fazer ali
+    btn.hidden = !quanto[k] && !ligado;
+  });
+  // a fila some só quando não há chip nem coleção a mostrar
+  chips.hidden = !state.filters.colecao && !state.productsView.length &&
+    [...chips.querySelectorAll(".chip-f")].every(b => b.hidden);
+}
+
 function refreshView(resetPaging){
   if(resetPaging) state.pagination.shown = 0;
 
@@ -5228,6 +5401,10 @@ function refreshView(resetPaging){
   if(state.filters.gender) list = list.filter(p => p.genero === state.filters.gender);
   if(state.filters.colecao) list = list.filter(p => p.colecao === state.filters.colecao);
   if(state.filters.tier) list = list.filter(p => p[state.filters.tier] === true);
+  if(state.filters.novaCor)    list = list.filter(p => p.isNewColor);
+  if(state.filters.lancamento) list = list.filter(p => p.isLanc);
+  if(state.filters.corre)      list = list.filter(p => ehDaCorre(p));
+  if(state.filters.continuidade) list = list.filter(p => p.isCont);
   if(state.filters.priceMax !== Infinity){
     list = list.filter(p => costFromPrice(toNumberBR(p.precoRaw)) <= state.filters.priceMax);
   }
@@ -5280,23 +5457,71 @@ function refreshView(resetPaging){
   else if(sort === "az") state.productsView.sort((a,b)=>String(getTitle(a)).localeCompare(String(getTitle(b)),"pt-BR",{sensitivity:"base"}));
   else if(sort === "za") state.productsView.sort((a,b)=>String(getTitle(b)).localeCompare(String(getTitle(a)),"pt-BR",{sensitivity:"base"}));
   else {
-    // default: lançamentos sempre primeiro
-    state.productsView.sort((a,b)=>{
-      const aL = (a._type === "group") ? (a.items && a.items.some(i=>i.isLanc||i.isNew) ? 1 : 0) : ((a.isLanc||a.isNew) ? 1 : 0);
-      const bL = (b._type === "group") ? (b.items && b.items.some(i=>i.isLanc||i.isNew) ? 1 : 0) : ((b.isLanc||b.isNew) ? 1 : 0);
-      return bL - aL;
+    // default: a mesma ordem do site da marca — as cores de um modelo ficam
+    // juntas, e dentro do bloco as novidades vêm antes das continuidades.
+    // Ordenar só por "é novidade?", como se fazia antes, partia o modelo:
+    // CORRE 5 cor nova subia para o topo e CORRE 5 continuidade afundava.
+    // só o artigo: o mesmo modelo tem cores de gêneros diferentes, e no site
+    // elas ficam no mesmo bloco
+    const chaveModelo = v => normalizeName(String(v.codigo || v.produto || ""));
+    const ehNovidade = v => (v._type === "group")
+      ? !!(v.items && v.items.some(i => i.isLanc || i.isNew || i.isNewColor))
+      : !!(v.isLanc || v.isNew || v.isNewColor);
+    // cada modelo vai para a posição da sua cor mais nova; quem não tem
+    // nenhuma novidade fica depois de todos os que têm
+    const postoDoModelo = new Map();
+    state.productsView.forEach((v, i) => {
+      const k = chaveModelo(v);
+      const meu = (ehNovidade(v) ? 0 : 1) * 1e6 + i;
+      const atual = postoDoModelo.get(k);
+      if(atual === undefined || meu < atual) postoDoModelo.set(k, meu);
     });
+    state.productsView = state.productsView
+      .map((v, i) => ({ v, i }))
+      .sort((a, b) => {
+        const pa = postoDoModelo.get(chaveModelo(a.v));
+        const pb = postoDoModelo.get(chaveModelo(b.v));
+        if(pa !== pb) return pa - pb;                    // modelo a modelo
+        const na = ehNovidade(a.v) ? 0 : 1;
+        const nb = ehNovidade(b.v) ? 0 : 1;
+        if(na !== nb) return na - nb;                    // dentro do modelo
+        return a.i - b.i;                                // empate: como estava
+      })
+      .map(x => x.v);
   }
 
   if(resetPaging) state.pagination.shown = Math.min(state.pagination.pageSize, state.productsView.length);
 
   $("noResults").classList.toggle("hidden", state.productsView.length !== 0);
   const _ctr = $("productCounter");
-  if(_ctr){ const n=state.productsView.length; _ctr.textContent = n>0?`${n} produto${n!==1?"s":""} encontrado${n!==1?"s":""}`:""; }
+  // dentro do chip, "250 produtos" diz o mesmo e ocupa menos
+  if(_ctr){ const n=state.productsView.length; _ctr.textContent = n>0?`${n} produto${n!==1?"s":""}`:""; }
 
+  pintarChipsFiltro();
   renderCards();
   $("btnLoadMore").classList.toggle("hidden", !(state.pagination.shown < state.productsView.length) || state.productsView.length===0);
 }
+
+// Um clique liga, outro desliga. Os três convivem: dá para pedir lançamento
+// da linha CORRE ao mesmo tempo.
+// Clicar na coleção leva de volta à tela inicial, que é onde se troca.
+document.addEventListener("click", ev => {
+  if(ev.target.closest("#seloColecao")){
+    const voltar = document.getElementById("btnBackToHome");
+    if(voltar) voltar.click();
+    else if(typeof goHome === "function") goHome();
+    return;
+  }
+});
+document.addEventListener("click", ev => {
+  const btn = ev.target.closest(".chip-f");
+  if(!btn || !btn.dataset.chip) return;
+  const k = btn.dataset.chip;
+  state.filters[k] = !state.filters[k];
+  state.pagination.shown = 0;
+  refreshView(true);
+  if(typeof updateFilterBadge === "function") updateFilterBadge();
+});
 
 
 /** ✅ Multi-ângulo no CARD (swipe) */
@@ -5376,6 +5601,18 @@ function buildAngleSrcs(imgBaseName){
   return groups.map(g => Array.from(new Set(g)));
 }
 
+// Quando a foto não abre, tenta a extensão seguinte em vez de sumir.
+// A pasta tem .jpg, .jpeg, .png e .webp misturados, e o IMG_EXTS já prevê
+// todas — só faltava alguém percorrer a lista depois do primeiro erro.
+function proximaImagem(el){
+  try{
+    const base = el.dataset.img || "";
+    const lista = base ? (buildAngleSrcs(base)[0] || []) : [];
+    const i = Number(el.dataset.srcI || 0) + 1;
+    if(lista[i]){ el.dataset.srcI = String(i); el.src = lista[i]; return; }
+  }catch(e){}
+  el.style.display = "none";
+}
 function resolveImageSrc(imgBaseName){
   // retorna o primeiro candidato do primeiro grupo (o onerror faz o fallback)
   const groups = buildAngleSrcs(imgBaseName);
@@ -6094,7 +6331,7 @@ function renderCards(){
       card.setAttribute("data-card-key", cardKey);
       card.innerHTML = `
         <div class="relative shrink-0 rounded-xl overflow-hidden bg-oly-bg border border-oly-border flex items-center justify-center" style="width:64px;height:64px">
-          ${imgSrc ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none'">` : `<i class="fa-solid fa-image text-oly-blue text-xl"></i>`}
+          ${imgSrc ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" data-img="${escapeHtml(base?.imagem||"")}" onerror="proximaImagem(this)">` : `<i class="fa-solid fa-image text-oly-blue text-xl"></i>`}
           <button class="btnZoomCard focus-ring absolute right-1.5 top-1.5 h-7 w-7 rounded-full border border-oly-border bg-white/95 hover:bg-oly-bg flex items-center justify-center" type="button" aria-label="Ampliar imagem">
             <i class="fa-solid fa-magnifying-glass-plus text-oly-blue" style="font-size:11px"></i>
           </button>
@@ -6150,7 +6387,7 @@ function renderCards(){
       card.innerHTML = `
         <div class="card-img-duo relative bg-oly-bg overflow-hidden flex items-center justify-center" style="aspect-ratio:4/3">
           ${imgSrc
-            ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none'">`
+            ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" data-img="${escapeHtml(base?.imagem||"")}" onerror="proximaImagem(this)">`
             : `<i class="fa-solid fa-image text-oly-blue text-3xl"></i>`}
           <div class="absolute top-2 left-2 h-8 w-8 rounded-full flex items-center justify-center pointer-events-none"
                style="background:${g.isFemale?'rgba(236,72,153,.14)':'rgba(255,255,255,.9)'};border:1.5px solid ${g.isFemale?'rgba(236,72,153,.35)':'rgba(209,213,219,.9)'}">
@@ -6203,7 +6440,7 @@ function renderCards(){
       card.innerHTML = `
         <div class="relative bg-oly-bg overflow-hidden flex items-center justify-center" style="aspect-ratio:4/3">
           ${imgSrc
-            ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" onerror="this.style.display='none'">`
+            ? `<img loading="lazy" decoding="async" src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}" class="h-full w-full object-contain bg-white" data-img="${escapeHtml(base?.imagem||"")}" onerror="proximaImagem(this)">`
             : `<i class="fa-solid fa-image text-oly-blue text-2xl"></i>`}
           <div class="absolute top-1.5 left-1.5 h-6 w-6 rounded-full flex items-center justify-center pointer-events-none"
                style="background:${g.isFemale?'rgba(236,72,153,.14)':'rgba(255,255,255,.9)'};border:1.5px solid ${g.isFemale?'rgba(236,72,153,.35)':'rgba(209,213,219,.9)'}">
@@ -6258,7 +6495,8 @@ function renderCards(){
           <img class="grid-img h-full w-full object-contain bg-white pointer-events-none"
                loading="lazy" decoding="async"
                src="${imgSrc}" alt="${escapeHtml(base?.produto||"")}"
-               onerror="this.style.display='none'">
+               data-img="${escapeHtml(base?.imagem||"")}"
+               onerror="proximaImagem(this)">
           <div class="absolute top-2 right-2 flex gap-1">
             <button class="btnZoomCard focus-ring h-7 w-7 rounded-full bg-white/95 border border-oly-border hover:bg-oly-bg flex items-center justify-center" type="button" aria-label="Ampliar imagem">
               <i class="fa-solid fa-magnifying-glass-plus text-oly-blue" style="font-size:11px"></i>
