@@ -1,49 +1,49 @@
 {
-  "generatedAt": "2026-10-08T07:36:50.642608-03:00",
+  "generatedAt": "2026-10-09T07:33:07.680506-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 353051,
+    "total": 347804,
     "meses": [
       {
         "label": "OUT",
-        "v": 129098
+        "v": 124217
       },
       {
         "label": "NOV",
-        "v": 166303
+        "v": 165337
       },
       {
         "label": "DEZ",
-        "v": 56858
+        "v": 57458
       }
     ],
     "horizonte": "ate dez/26"
   },
   "mes": {
     "label": "OUTUBRO",
-    "dia": 7,
-    "faturado": 13255,
+    "dia": 8,
+    "faturado": 16393,
     "anterior": 177546,
     "anteriorLabel": "setembro",
-    "falta": 129098,
-    "diasUteis": 17,
-    "paresDia": 7594,
-    "projecao": 58322,
-    "barW": 7,
+    "falta": 124217,
+    "diasUteis": 16,
+    "paresDia": 7764,
+    "projecao": 60108,
+    "barW": 9,
     "markW": 100
   },
   "novHoje": {
-    "total": 2532,
+    "total": 4299,
     "linhas": [
       [
         "Jorge",
         [
+          84,
           0,
-          0,
-          0,
+          25,
           0,
           0
         ]
@@ -51,27 +51,27 @@
       [
         "Willame",
         [
-          48,
+          12,
           0,
           0,
           0,
-          0
+          648
         ]
       ],
       [
         "Leandro",
         [
+          276,
           0,
+          120,
           0,
-          0,
-          0,
-          0
+          60
         ]
       ],
       [
         "Rafael",
         [
-          432,
+          0,
           0,
           0,
           0,
@@ -81,9 +81,9 @@
       [
         "Mariana",
         [
+          72,
           0,
-          0,
-          0,
+          8,
           0,
           0
         ]
@@ -91,24 +91,24 @@
       [
         "Cms",
         [
-          2052,
+          552,
           0,
           0,
           0,
-          0
+          2442
         ]
       ]
     ]
   },
   "novMes": {
-    "total": 19799,
+    "total": 24098,
     "linhas": [
       [
         "Jorge",
         [
-          864,
+          948,
           0,
-          11,
+          36,
           61,
           0
         ]
@@ -116,21 +116,21 @@
       [
         "Willame",
         [
-          120,
+          132,
           120,
           8,
           0,
-          24
+          672
         ]
       ],
       [
         "Leandro",
         [
-          432,
+          708,
           228,
+          120,
           0,
-          0,
-          0
+          60
         ]
       ],
       [
@@ -146,9 +146,9 @@
       [
         "Mariana",
         [
-          1074,
+          1146,
           0,
-          13,
+          21,
           0,
           24
         ]
@@ -156,11 +156,11 @@
       [
         "Cms",
         [
-          12492,
+          13044,
           0,
           0,
           0,
-          120
+          2562
         ]
       ]
     ]
@@ -168,29 +168,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 129.098 pares para zerar a carteira de outubro"
+      "t": "faltam 124.217 pares para zerar a carteira de outubro"
     },
     {
       "c": "#2BC48A",
-      "t": "+2.532 pares novos entraram na carteira hoje"
+      "t": "+4.299 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "outubro acumula 19.799 pares novos na carteira"
+      "t": "outubro acumula 24.098 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 353.051 pares"
+      "t": "carteira aberta do periodo: 347.804 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 166.303 pares"
+      "t": "NOV e o maior mes da carteira: 165.337 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "proximo grande faturamento: 01/11 - CASA PIO (24.084 pares)"
+      "t": "proximo grande faturamento: 01/11 - CASA PIO (22.644 pares)"
     }
   ],
-  "publicadoEm": "2026-10-08T10:36:52.140Z",
+  "publicadoEm": "2026-10-09T10:33:08.933Z",
   "por": "script diario"
 }
