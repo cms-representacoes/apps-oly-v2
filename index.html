@@ -1457,6 +1457,7 @@
       padding-right: 2px;
     }
     /* Pílulas de coleção (novo — compacto, igual tier-pill) */
+    .colecao-pill[hidden]{ display:none !important; }
     .colecao-pill {
       background: var(--card-bg, #fff);
       border: 1.5px solid var(--border, #E5E7EB);
@@ -4609,6 +4610,7 @@ async function loadCatalog({ cacheBust=false } = {}){
          state.productsRaw = cachedRows;
          setHeaderStatus("Catálogo pronto (cache)");
          buildFilterOptions();
+         if(typeof syncColecaoCards === "function") syncColecaoCards();
       // ✅ Calibra slider de preço
       (function(){const sl=document.getElementById("sliderPrice");if(!sl||!state.productsRaw.length)return;const mx=Math.ceil(Math.max(...state.productsRaw.map(p=>costFromPrice(toNumberBR(p.precoRaw))))/100)*100||2000;sl.max=String(mx);sl.value=String(mx);if(typeof updateSliderLabel==="function")updateSliderLabel();})();
          refreshView(true);
@@ -4688,6 +4690,7 @@ async function loadCatalog({ cacheBust=false } = {}){
     setHeaderStatus("Catálogo pronto");
 
     buildFilterOptions();
+    if(typeof syncColecaoCards === "function") syncColecaoCards();
       // ✅ Calibra slider de preço
       (function(){const sl=document.getElementById("sliderPrice");if(!sl||!state.productsRaw.length)return;const mx=Math.ceil(Math.max(...state.productsRaw.map(p=>costFromPrice(toNumberBR(p.precoRaw))))/100)*100||2000;sl.max=String(mx);sl.value=String(mx);if(typeof updateSliderLabel==="function")updateSliderLabel();})();
     refreshView(true);
@@ -4703,6 +4706,7 @@ async function loadCatalog({ cacheBust=false } = {}){
        state.productsRaw = cachedRows;
        setHeaderStatus("Catálogo pronto (cache)");
        buildFilterOptions();
+       if(typeof syncColecaoCards === "function") syncColecaoCards();
       // ✅ Calibra slider de preço
       (function(){const sl=document.getElementById("sliderPrice");if(!sl||!state.productsRaw.length)return;const mx=Math.ceil(Math.max(...state.productsRaw.map(p=>costFromPrice(toNumberBR(p.precoRaw))))/100)*100||2000;sl.max=String(mx);sl.value=String(mx);if(typeof updateSliderLabel==="function")updateSliderLabel();})();
        refreshView(true);
@@ -4844,6 +4848,21 @@ $("btnClear").addEventListener("click", ()=>{
 
 // ═══════════ SELETOR DE COLEÇÃO ═══════════
 function syncColecaoCards(){
+  // Cada marca tem as suas coleções: a Under Armour não tem 1S26, e o botão
+  // levava a uma tela sem nenhum produto. Só aparece quem tem o que mostrar.
+  const lista = state.productsRaw || [];
+  if(lista.length){
+    const existem = new Set(lista.map(p => String(p.colecao || "").toUpperCase()));
+    document.querySelectorAll(".colecao-card").forEach(btn => {
+      btn.hidden = !existem.has(String(btn.dataset.colecao || "").toUpperCase());
+    });
+    // se a coleção escolhida não existe nesta marca, cai na mais recente que sobrou
+    if(!existem.has(state.filters.colecao)){
+      const sobraram = [...document.querySelectorAll(".colecao-card")]
+        .filter(b => !b.hidden).map(b => b.dataset.colecao);
+      if(sobraram.length) state.filters.colecao = sobraram[sobraram.length - 1];
+    }
+  }
   document.querySelectorAll(".colecao-card").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.colecao === state.filters.colecao);
   });
