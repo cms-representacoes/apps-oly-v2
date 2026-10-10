@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-10-09T07:33:07.680506-03:00",
+  "generatedAt": "2026-10-10T07:37:16.610754-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 347804,
+    "total": 346930,
     "meses": [
       {
         "label": "OUT",
-        "v": 124217
+        "v": 123319
       },
       {
         "label": "NOV",
@@ -17,33 +17,33 @@
       },
       {
         "label": "DEZ",
-        "v": 57458
+        "v": 57482
       }
     ],
     "horizonte": "ate dez/26"
   },
   "mes": {
     "label": "OUTUBRO",
-    "dia": 8,
-    "faturado": 16393,
+    "dia": 9,
+    "faturado": 17425,
     "anterior": 177546,
     "anteriorLabel": "setembro",
-    "falta": 124217,
-    "diasUteis": 16,
-    "paresDia": 7764,
-    "projecao": 60108,
-    "barW": 9,
+    "falta": 123319,
+    "diasUteis": 15,
+    "paresDia": 8221,
+    "projecao": 54764,
+    "barW": 10,
     "markW": 100
   },
   "novHoje": {
-    "total": 4299,
+    "total": 578,
     "linhas": [
       [
         "Jorge",
         [
-          84,
+          24,
           0,
-          25,
+          17,
           0,
           0
         ]
@@ -51,21 +51,21 @@
       [
         "Willame",
         [
-          12,
+          141,
           0,
           0,
           0,
-          648
+          0
         ]
       ],
       [
         "Leandro",
         [
-          276,
           0,
-          120,
           0,
-          60
+          0,
+          0,
+          0
         ]
       ],
       [
@@ -81,9 +81,9 @@
       [
         "Mariana",
         [
-          72,
+          12,
           0,
-          8,
+          0,
           0,
           0
         ]
@@ -91,24 +91,24 @@
       [
         "Cms",
         [
-          552,
+          384,
           0,
           0,
           0,
-          2442
+          0
         ]
       ]
     ]
   },
   "novMes": {
-    "total": 24098,
+    "total": 24676,
     "linhas": [
       [
         "Jorge",
         [
-          948,
+          972,
           0,
-          36,
+          53,
           61,
           0
         ]
@@ -116,7 +116,7 @@
       [
         "Willame",
         [
-          132,
+          273,
           120,
           8,
           0,
@@ -146,7 +146,7 @@
       [
         "Mariana",
         [
-          1146,
+          1158,
           0,
           21,
           0,
@@ -156,7 +156,7 @@
       [
         "Cms",
         [
-          13044,
+          13428,
           0,
           0,
           0,
@@ -168,19 +168,19 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 124.217 pares para zerar a carteira de outubro"
+      "t": "faltam 123.319 pares para zerar a carteira de outubro"
     },
     {
       "c": "#2BC48A",
-      "t": "+4.299 pares novos entraram na carteira hoje"
+      "t": "+578 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "outubro acumula 24.098 pares novos na carteira"
+      "t": "outubro acumula 24.676 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 347.804 pares"
+      "t": "carteira aberta do periodo: 346.930 pares"
     },
     {
       "c": "#9B6BF0",
@@ -191,6 +191,6 @@
       "t": "proximo grande faturamento: 01/11 - CASA PIO (22.644 pares)"
     }
   ],
-  "publicadoEm": "2026-10-09T10:33:08.933Z",
+  "publicadoEm": "2026-10-10T10:37:17.662Z",
   "por": "script diario"
 }
