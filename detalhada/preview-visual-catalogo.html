@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prévia · Detalhada no visual do Catálogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  /* ── tokens: os do Catálogo Digital; a cor da marca troca pela paleta ── */
+  :root{
+    --bg:#E8EBF1; --card:#FFFFFF; --text:#0F172A; --muted:#6B7280; --faint:#94A3B8;
+    --border:#E5E7EB; --border-strong:#D6DAE1; --sunk:#F8FAFC;
+    --primary:#0D9488; --primary-rgb:13,148,136; --primary-ink:#0F766E;
+    --logo:linear-gradient(135deg,#14B8A6,#0F766E);
+    --carteira:#2563EB; --carteira-bg:#EFF4FF;
+    --faturado:#16A34A; --faturado-bg:#ECFDF3;
+    --atencao:#D97706;  --atencao-bg:#FFF7E8;
+    --erro:#DC2626;     --erro-bg:#FEF2F2;
+    --r-card:18px; --r-row:14px;
+    --shadow:0 1px 2px rgba(15,23,42,.04), 0 10px 28px -16px rgba(15,23,42,.18);
+    --act-h:38px;
+  }
+  :root[data-cor="catalogo"]{
+    --primary:#7C3AED; --primary-rgb:124,58,237; --primary-ink:#6D28D9;
+    --logo:linear-gradient(135deg,#8B5CF6,#6D28D9);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ font-family:'Plus Jakarta Sans', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
+  button{ font-family:inherit; cursor:pointer; color:inherit; }
+  [hidden]{ display:none !important; }
+  .num{ font-variant-numeric:tabular-nums; }
+  :focus-visible{ outline:2px solid rgba(var(--primary-rgb),.55); outline-offset:2px; }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; animation:none !important; } }
+
+  /* ── cabeçalho ── */
+  .topo{ position:sticky; top:0; z-index:20; background:rgba(255,255,255,.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border); }
+  .topo-in{ max-width:1680px; margin:0 auto; padding:10px 20px; display:flex; align-items:center; gap:14px; }
+  .marca{ display:flex; align-items:center; gap:10px; flex:none; }
+  .logo{ width:44px; height:44px; border-radius:14px; background:var(--logo); color:#fff; display:flex; align-items:center;
+    justify-content:center; font-weight:800; font-size:13px; letter-spacing:-.02em; box-shadow:0 6px 14px -6px rgba(var(--primary-rgb),.6); }
+  .marca small{ display:block; font-size:10.5px; font-weight:600; color:var(--muted); line-height:1.1; }
+  .marca b{ display:block; font-size:17px; font-weight:800; line-height:1.15; letter-spacing:-.01em; }
+  .busca{ flex:1 1 auto; min-width:0; max-width:560px; display:flex; align-items:center; gap:8px; height:42px; padding:0 14px;
+    border-radius:999px; background:var(--bg); border:1px solid var(--border); color:var(--muted); }
+  .busca input{ flex:1; min-width:0; border:0; background:transparent; font:inherit; font-size:14px; color:var(--text); outline:none; }
+  .acoes-topo{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .btn{ height:var(--act-h); display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 14px;
+    border-radius:999px; background:#fff; border:1px solid var(--border); font-size:13px; font-weight:700; white-space:nowrap;
+    transition:background .15s, border-color .15s, transform .15s; }
+  .btn i{ color:var(--primary); font-size:14px; }
+  .btn:hover{ background:var(--sunk); border-color:var(--border-strong); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.icone{ width:var(--act-h); padding:0; }
+
+  /* ── conteúdo ── */
+  .pagina{ max-width:1680px; margin:0 auto; padding:18px 20px 90px; display:flex; flex-direction:column; gap:16px; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+  .kpi{ background:var(--card); border:1px solid var(--border); border-radius:var(--r-card); box-shadow:var(--shadow);
+    padding:14px 16px; display:flex; align-items:center; gap:12px; min-width:0; }
+  .kpi .ic{ width:40px; height:40px; border-radius:12px; flex:none; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .kpi .t{ font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .kpi .v{ font-size:24px; font-weight:800; letter-spacing:-.02em; line-height:1.15; }
+  .kpi .v small{ font-size:12px; font-weight:700; color:var(--muted); margin-left:3px; }
+  .k-cart .ic{ background:var(--carteira-bg); color:var(--carteira); } .k-cart .v{ color:var(--carteira); }
+  .k-fat .ic{ background:var(--faturado-bg); color:var(--faturado); }  .k-fat .v{ color:var(--faturado); }
+  .k-conv .ic{ background:var(--atencao-bg); color:var(--atencao); }
+  .k-neutro .ic{ background:rgba(var(--primary-rgb),.10); color:var(--primary); }
+
+  .barra{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding:2px; margin:-2px; }
+  .barra::-webkit-scrollbar{ display:none; }
+  .seg{ display:inline-flex; gap:6px; flex:none; }
+  .seg button{ height:var(--act-h); padding:0 16px; border-radius:999px; border:1px solid var(--border); background:#fff;
+    font-size:13px; font-weight:800; color:var(--text); }
+  .seg button.on{ background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 6px 14px -8px rgba(var(--primary-rgb),.8); }
+  .divisor{ width:1px; height:24px; background:var(--border); flex:none; }
+  .filtro .ch{ font-size:10px; color:var(--faint); margin-left:2px; }
+  .filtro .mais{ font-size:11px; font-weight:800; color:var(--primary); background:rgba(var(--primary-rgb),.1); border-radius:999px; padding:1px 7px; }
+
+  .barra .ordem{ margin-left:auto; flex:none; }
+
+  /* ── lista de produtos ── */
+  .cols, .prod-main{ display:grid; align-items:center; column-gap:14px;
+    grid-template-columns:60px minmax(180px,2.2fr) 1fr 1fr .9fr .8fr .8fr 1fr 1fr 40px; }
+  /* títulos das colunas: numa barra do mesmo formato dos cartões, na cor da
+     marca, presa logo abaixo do topo enquanto a lista rola */
+  .cols{ position:sticky; top:calc(var(--topo-h,64px) + 8px); z-index:10;
+    min-height:44px; padding:0 18px; border-radius:14px; border:1px solid rgba(var(--primary-rgb),.28);
+    background:transparent; isolation:isolate;
+    box-shadow:0 8px 18px -14px rgba(var(--primary-rgb),.55);
+    font-size:11px; font-weight:800; color:var(--primary-ink); text-transform:uppercase; letter-spacing:.07em; }
+  /* faixa da cor da página atrás da barra: os cartões que passam por baixo
+     não aparecem nos cantos arredondados nem no vão até o topo */
+  .cols::before{ content:""; position:absolute; left:-6px; right:-6px; top:-10px; bottom:-6px; background:var(--bg); z-index:-1; }
+  .cols::after{ content:""; position:absolute; inset:-1px; border-radius:inherit; z-index:-1;
+    border:1px solid rgba(var(--primary-rgb),.30);
+    background:var(--card); }
+  .cols span:nth-child(n+6){ text-align:center; }
+  .lista{ display:flex; flex-direction:column; gap:10px; }
+  .prod{ background:var(--card); border:1px solid var(--border); border-radius:var(--r-card); box-shadow:var(--shadow);
+    overflow:hidden; transition:border-color .15s, box-shadow .15s; }
+  .prod:hover{ border-color:var(--border-strong); }
+  .prod.aberto{ border-color:rgba(var(--primary-rgb),.45); box-shadow:0 0 0 3px rgba(var(--primary-rgb),.10), var(--shadow); }
+  .prod-main{ padding:10px 18px; cursor:pointer; }
+  .thumb{ width:60px; height:60px; border-radius:14px; background:#fff; border:1px solid var(--border); overflow:hidden;
+    display:flex; align-items:center; justify-content:center; color:var(--faint); }
+  .thumb img{ width:100%; height:100%; object-fit:contain; }
+  .p-nome{ font-size:15px; font-weight:800; letter-spacing:-.01em; line-height:1.25; }
+  .p-sub{ display:none; }
+  .chip{ display:inline-flex; align-items:center; gap:5px; height:24px; padding:0 9px; border-radius:999px; font-size:11.5px; font-weight:700;
+    white-space:nowrap; background:var(--sunk); border:1px solid var(--border); color:var(--text); }
+  .chip i{ font-size:10px; color:var(--primary); }
+  .chip.cor{ background:#fff; }
+  .chip.art{ color:var(--muted); }
+  .chip.art b{ color:var(--text); font-weight:800; }
+  .chip.mes{ background:var(--atencao-bg); border-color:transparent; color:#92400E; }
+  .chip.mes i{ color:var(--atencao); }
+  .c-num{ text-align:center; font-size:15px; font-weight:700; }
+  .c-num.fraco{ color:var(--muted); }
+  .c-cart{ text-align:center; font-size:17px; font-weight:800; color:var(--carteira); }
+  .c-fat{ text-align:center; font-size:17px; font-weight:800; color:var(--faturado); }
+  .zero{ color:#CBD2DC !important; font-weight:700 !important; }
+  .abrir{ width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:#fff; display:flex;
+    align-items:center; justify-content:center; color:var(--muted); transition:transform .2s, background .15s; justify-self:end; }
+  .prod.aberto .abrir{ transform:rotate(180deg); background:rgba(var(--primary-rgb),.1); color:var(--primary); border-color:transparent; }
+
+  /* encomendas */
+  .enc-area{ border-top:1px solid var(--border); background:rgba(var(--primary-rgb),.045); padding:12px 18px 16px; }
+  .enc-topo{ display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .enc-topo .chip{ background:#fff; }
+  .enc-topo .dica{ margin-left:auto; font-size:12px; color:var(--muted); font-weight:600; }
+  .enc-cols, .enc-main{ display:grid; align-items:center; column-gap:12px;
+    grid-template-columns:84px minmax(160px,2fr) 1fr 1fr 1fr .9fr .9fr .9fr 104px 30px; }
+  .enc-cols{ min-height:34px; padding:0 14px; margin-bottom:6px; border-radius:12px; background:#fff;
+    border:1px solid rgba(var(--primary-rgb),.22); font-size:10.5px; font-weight:800; color:var(--primary-ink);
+    text-transform:uppercase; letter-spacing:.07em; }
+  .enc-cols span:nth-child(n+6):nth-child(-n+8){ text-align:center; }
+  .enc-lista{ display:flex; flex-direction:column; gap:6px; }
+  .enc{ background:#fff; border:1px solid var(--border); border-radius:var(--r-row); overflow:hidden; }
+  .enc.aberta{ border-color:rgba(var(--primary-rgb),.4); }
+  .enc.faturada{ background:#FCFDFC; }
+  .enc-main{ padding:9px 14px; cursor:pointer; font-size:13px; }
+  .enc.sem-abrir .enc-main{ cursor:default; }
+  .e-cod{ font-size:12px; font-weight:700; color:var(--muted); }
+  /* o nome encolhe com reticências; a etiqueta da grade fica sempre inteira */
+  .e-cli{ display:flex; align-items:center; min-width:0; font-weight:800; font-size:13.5px; }
+  .e-cli .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .e-cli .tem-grade{ flex:none; }
+  .e-sub{ display:none; }
+  .e-gci{ display:inline-flex; align-items:center; gap:6px; font-weight:700; color:var(--carteira); }
+  .e-gci .copiar{ width:24px; height:24px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--muted); font-size:10px; }
+  .e-mut{ color:var(--muted); font-weight:600; }
+  .e-pares{ text-align:center; font-weight:800; }
+  .e-pares small{ font-weight:600; color:var(--muted); font-size:11px; }
+  .e-cart{ color:var(--carteira); } .e-fat{ color:var(--faturado); }
+  .e-quando{ text-align:center; }
+  .chip.dia{ height:22px; font-size:11px; background:var(--atencao-bg); border-color:transparent; color:#92400E; }
+  .chip.dia.ok{ background:var(--faturado-bg); color:#166534; }
+  .estado{ display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 10px; border-radius:999px; font-size:11.5px; font-weight:800; }
+  .estado .pt{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .st-manter{ background:var(--faturado-bg); color:#15803D; }
+  .st-transferir{ background:var(--carteira-bg); color:#1D4ED8; }
+  .st-repassar{ background:var(--atencao-bg); color:#B45309; }
+  .st-cancelar{ background:var(--erro-bg); color:#B91C1C; }
+  .st-fat{ background:var(--sunk); color:var(--muted); }
+  .e-seta{ width:28px; height:28px; border-radius:999px; border:1px solid var(--border); background:#fff; color:var(--muted);
+    display:flex; align-items:center; justify-content:center; font-size:11px; transition:transform .2s; justify-self:end; }
+  .enc.aberta .e-seta{ transform:rotate(180deg); color:var(--primary); background:rgba(var(--primary-rgb),.1); border-color:transparent; }
+
+  .enc-det{ border-top:1px dashed var(--border); padding:12px 14px 14px; display:grid; gap:12px;
+    grid-template-columns:minmax(0,1fr) auto; align-items:start; background:linear-gradient(180deg,rgba(var(--primary-rgb),.03),transparent); }
+  .det-info{ display:flex; flex-wrap:wrap; gap:8px; }
+  .det-item{ background:#fff; border:1px solid var(--border); border-radius:12px; padding:7px 11px; min-width:96px; }
+  .det-item span{ display:block; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .det-item b{ display:block; font-size:13px; font-weight:800; margin-top:1px; }
+  /* grade: as mesmas caixinhas da grade do catálogo — tamanho em cima, pares embaixo */
+  .det-grade{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .det-grade .rot, .det-acoes .rot{ font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .gr-caixas{ display:flex; flex-wrap:wrap; gap:8px 14px; }
+  .gr-caixa{ display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .gr-tams{ display:flex; gap:4px; flex-wrap:wrap; }
+  .gr-t{ width:40px; border-radius:10px; border:1px solid var(--border); background:#fff; text-align:center; padding:3px 0 4px; }
+  .gr-t span{ display:block; font-size:10px; font-weight:800; color:var(--primary); line-height:1.2; }
+  .gr-t b{ display:block; font-size:14px; font-weight:800; line-height:1.15; }
+  .gr-cx{ font-size:11.5px; font-weight:800; color:var(--primary-ink); background:rgba(var(--primary-rgb),.10); border-radius:999px; padding:3px 9px; white-space:nowrap; }
+  .gr-cx.solto{ color:var(--muted); background:var(--sunk); border:1px solid var(--border); }
+  .tem-grade{ display:inline-flex; align-items:center; gap:4px; margin-left:8px; font-size:10.5px; font-weight:800; color:var(--primary);
+    background:rgba(var(--primary-rgb),.10); border-radius:999px; padding:2px 7px; vertical-align:2px; }
+  .det-acoes{ display:flex; flex-direction:column; gap:6px; align-items:stretch; }
+  .det-acoes .rot{ font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .acoes-pills{ display:flex; gap:6px; flex-wrap:wrap; }
+  .pill{ height:34px; padding:0 13px; border-radius:999px; border:1px solid var(--border); background:#fff; font-size:12.5px; font-weight:800;
+    display:inline-flex; align-items:center; gap:6px; }
+  .pill i{ font-size:12px; }
+  .pill.a-manter i{ color:var(--faturado); } .pill.a-transferir i{ color:var(--carteira); }
+  .pill.a-repassar i{ color:var(--atencao); } .pill.a-cancelar i{ color:var(--erro); }
+  .pill.on.a-manter{ background:var(--faturado); border-color:var(--faturado); color:#fff; }
+  .pill.on.a-transferir{ background:var(--carteira); border-color:var(--carteira); color:#fff; }
+  .pill.on.a-repassar{ background:var(--atencao); border-color:var(--atencao); color:#fff; }
+  .pill.on.a-cancelar{ background:var(--erro); border-color:var(--erro); color:#fff; }
+  .pill.on i{ color:#fff; }
+  .det-fat{ font-size:12px; color:var(--muted); font-weight:600; align-self:center; }
+
+  /* ── paleta (canto, discreta) ── */
+  .paleta{ position:fixed; left:14px; bottom:14px; z-index:40; display:flex; align-items:center; gap:6px; padding:5px 6px 5px 10px;
+    border-radius:999px; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); border:1px solid var(--border);
+    box-shadow:0 8px 24px -14px rgba(15,23,42,.35); opacity:.78; transition:opacity .15s; }
+  .paleta:hover, .paleta:focus-within{ opacity:1; }
+  .paleta > i{ font-size:11px; color:var(--muted); margin-right:2px; }
+  .paleta button{ display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 9px 0 4px; border-radius:999px;
+    border:1px solid transparent; background:transparent; font-size:11px; font-weight:700; color:var(--muted); }
+  .paleta button .sw{ width:20px; height:20px; border-radius:50%; box-shadow:inset 0 0 0 2px rgba(255,255,255,.7); }
+  .paleta button.on{ background:#fff; border-color:var(--border); color:var(--text); }
+  .paleta button .hex{ font-weight:600; color:var(--faint); }
+  .paleta .nome{ max-width:0; overflow:hidden; white-space:nowrap; transition:max-width .2s; display:inline-flex; gap:4px; }
+  .paleta:hover .nome, .paleta:focus-within .nome{ max-width:160px; }
+  .paleta button{ padding:0 4px; }
+  .paleta:hover button, .paleta:focus-within button{ padding:0 9px 0 4px; }
+  .toast{ position:fixed; left:50%; bottom:18px; transform:translate(-50%,20px); opacity:0; z-index:50; background:#0F172A; color:#fff;
+    font-size:12.5px; font-weight:700; padding:9px 14px; border-radius:999px; transition:all .2s; pointer-events:none; white-space:nowrap; }
+  .toast.on{ opacity:1; transform:translate(-50%,0); }
+
+  /* ── tablet: sem colunas; linha compacta ── */
+  @media (max-width:1099.98px){
+    .cols, .enc-cols{ display:none; }
+    .prod-main{ grid-template-columns:56px minmax(0,1fr) auto 36px; column-gap:12px; padding:10px 14px; }
+    .thumb{ width:56px; height:56px; }
+    .prod-main .d-col{ display:none; }
+    .p-sub{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+    .p-nums{ display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
+    .p-nums .c-cart{ font-size:17px; }
+    .p-nums small{ font-size:11px; color:var(--muted); font-weight:600; }
+    .enc-area{ padding:10px 12px 14px; }
+    .enc-main{ grid-template-columns:minmax(0,1fr) auto 28px; column-gap:10px; padding:9px 12px; }
+    .enc-main .d-col{ display:none; }
+    .e-sub{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:3px; font-size:11.5px; color:var(--muted); font-weight:600; }
+    .e-dir{ display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+    .enc-det{ grid-template-columns:1fr; }
+    .kpis{ grid-template-columns:repeat(5,minmax(140px,1fr)); overflow-x:auto; scrollbar-width:none; scroll-snap-type:x mandatory; }
+    .kpis::-webkit-scrollbar{ display:none; }
+    .kpi{ scroll-snap-align:start; }
+    .acoes-topo .btn .txt{ display:none; }
+    .acoes-topo .btn{ width:var(--act-h); padding:0; }
+  }
+  @media (min-width:1100px){ .p-nums, .e-dir{ display:none; } }
+
+  /* ── celular ── */
+  @media (max-width:639.98px){
+    .topo-in{ flex-wrap:wrap; padding:10px 14px; gap:10px; }
+    .logo{ width:40px; height:40px; border-radius:12px; }
+    .marca b{ font-size:16px; }
+    :root{ --act-h:38px; }
+    .acoes-topo{ gap:6px; flex:1 1 0; min-width:0; margin-left:0; overflow-x:auto; scrollbar-width:none; padding:2px; }
+    .acoes-topo::-webkit-scrollbar{ display:none; }
+    .acoes-topo .btn{ flex:none; }
+    .marca small{ display:none; }
+    .busca{ order:3; flex-basis:100%; max-width:none; height:40px; }
+    .pagina{ padding:12px 14px 90px; gap:12px; }
+    .kpis{ grid-template-columns:repeat(5,minmax(46%,1fr)); gap:8px; }
+    .kpi{ padding:11px 12px; gap:10px; border-radius:16px; }
+    .kpi .ic{ width:34px; height:34px; border-radius:10px; font-size:14px; }
+    .kpi .v{ font-size:20px; }
+    .seg button{ padding:0 14px; }
+    .filtro .txt-longo{ display:none; }
+    .prod{ border-radius:16px; }
+    .prod-main{ grid-template-columns:52px minmax(0,1fr) auto 32px; padding:10px 12px; column-gap:10px; }
+    .thumb{ width:52px; height:52px; border-radius:12px; }
+    .p-nome{ font-size:14px; }
+    .abrir{ width:32px; height:32px; }
+    .chip{ height:22px; font-size:10.5px; padding:0 7px; }
+    .enc-area{ padding:8px 8px 12px; }
+    .enc-topo .dica{ display:none; }
+    .gr-t{ width:36px; }
+    .acoes-pills{ display:grid; grid-template-columns:1fr 1fr; }
+    .pill{ justify-content:center; }
+    .paleta button .hex{ display:none; }
+    .paleta{ left:10px; bottom:10px; }
+  }
+</style>
+</head>
+<body>
+<header class="topo">
+  <div class="topo-in">
+    <div class="marca">
+      <div class="logo">CMS</div>
+      <div><small>C M S · Admin</small><b>Detalhada</b></div>
+    </div>
+    <label class="busca"><i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" placeholder="Cliente, código, produto, cor ou GCI" aria-label="Buscar"></label>
+    <div class="acoes-topo">
+      <button class="btn" title="Entradas e saídas"><i class="fa-solid fa-file-arrow-up"></i><span class="txt">Entradas e saídas</span></button>
+      <button class="btn" title="Análise RFV"><i class="fa-solid fa-chart-column"></i><span class="txt">RFV</span></button>
+      <button class="btn" title="Transferências"><i class="fa-solid fa-right-left"></i><span class="txt">Transferências</span></button>
+      <button class="btn icone" title="Atualizar"><i class="fa-solid fa-rotate"></i></button>
+      <button class="btn icone" title="Tema escuro"><i class="fa-solid fa-moon"></i></button>
+      <button class="btn icone" title="Sair"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <section class="kpis" id="kpis" aria-label="Indicadores"></section>
+
+  <div class="barra">
+    <div class="seg" id="abas" role="tablist">
+      <button data-aba="tudo">Tudo</button>
+      <button data-aba="carteira" class="on">Carteira</button>
+      <button data-aba="faturado">Faturado</button>
+    </div>
+    <span class="divisor"></span>
+    <button class="btn icone" title="Selecionar vários"><i class="fa-solid fa-list-check"></i></button>
+    <button class="btn filtro"><i class="fa-solid fa-store"></i>Cliente<i class="fa-solid fa-chevron-down ch"></i></button>
+    <button class="btn filtro"><i class="fa-solid fa-user-tie"></i>Preposto<i class="fa-solid fa-chevron-down ch"></i></button>
+    <button class="btn filtro"><i class="fa-solid fa-calendar-days"></i>Mês<i class="fa-solid fa-chevron-down ch"></i></button>
+    <button class="btn filtro"><i class="fa-solid fa-layer-group"></i>Faixa<i class="fa-solid fa-chevron-down ch"></i></button>
+    <button class="btn filtro"><i class="fa-solid fa-tag"></i>Marca<i class="fa-solid fa-chevron-down ch"></i></button>
+    <button class="btn filtro"><i class="fa-solid fa-sliders"></i><span class="txt-longo">Mais filtros</span><span class="mais">+4</span></button>
+    <!-- ordenação no fim da mesma linha dos filtros -->
+    <button class="btn filtro ordem"><i class="fa-solid fa-arrow-down-wide-short"></i>Prev. fat.<i class="fa-solid fa-chevron-down ch"></i></button>
+  </div>
+
+  <div class="cols" aria-hidden="true">
+    <span></span><span>Produto</span><span>Cor</span><span>Referência</span><span>Prev. fat.</span>
+    <span>Clientes</span><span>Encomendas</span><span>Carteira</span><span>Faturado</span><span></span>
+  </div>
+  <section class="lista" id="lista"></section>
+</main>
+
+<div class="paleta" role="group" aria-label="Cor da marca">
+  <i class="fa-solid fa-palette"></i>
+  <button data-cor="detalhada" class="on" title="Cor atual da Detalhada"><span class="sw" style="background:#0D9488"></span><span class="nome">Detalhada <span class="hex">#0D9488</span></span></button>
+  <button data-cor="catalogo" title="Cor do Catálogo Digital"><span class="sw" style="background:#7C3AED"></span><span class="nome">Catálogo <span class="hex">#7C3AED</span></span></button>
+</div>
+<div class="toast" id="toast">Prévia: nada é gravado</div>
+
+<script>
+const DADOS = {"kpis":{"tudo":{"carteira":488446,"faturado":1023499,"conversao":0.6769419522535542,"produtos":1376,"clientes":889,"encomendas":59379},"carteira":{"carteira":488446,"faturado":0,"conversao":0,"produtos":548,"clientes":604,"encomendas":11437},"faturado":{"carteira":0,"faturado":1023499,"conversao":1,"produtos":1341,"clientes":868,"encomendas":47942}},"produtos":[{"ref":"43298343","nome":"DYNAMIC / 343","cor":"MRHDRD","foto":"43298343_MRHDRD","prev":20665,"vis":{"tudo":{"carteira":336,"faturado":3216,"conversao":0.9054054054054054,"produtos":1,"clientes":89,"encomendas":129},"carteira":{"carteira":336,"faturado":0,"conversao":0,"produtos":1,"clientes":5,"encomendas":6},"faturado":{"carteira":0,"faturado":3216,"conversao":1,"produtos":1,"clientes":87,"encomendas":123}},"linhas":[{"cod":"4098090","cli":"ISA MAGAZINE","gci":7764956,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20665,"dfat":-1},{"cod":"13643","cli":"MILPASSOS","gci":7610812,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":60,"fat":0,"prev":20731,"dfat":-1},{"cod":"127616","cli":"LOJAS NOROESTE","gci":7610960,"oc":"NOR OUT","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CONF_MASC","cart":120,"fat":0,"prev":20742,"dfat":-1},{"cod":"13643","cli":"MILPASSOS","gci":7611277,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":120,"fat":0,"prev":20762,"dfat":-1},{"cod":"1692135","cli":"LOJAS RG CALCADOS","gci":7666349,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20763,"dfat":-1},{"cod":"6747","cli":"MAZZULE CALCADOS","gci":7658277,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20764,"dfat":-1},{"cod":"61230","cli":"J M SOARES VESTUARIO ME","gci":7669807,"oc":"","nf":3976022,"prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20681,"dfat":20678},{"cod":"74144","cli":"MILPASSOS","gci":7832546,"oc":"","nf":3957753,"prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20670,"dfat":20668},{"cod":"1247725","cli":"MILPASSOS","gci":7832543,"oc":"","nf":3957747,"prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20670,"dfat":20668},{"cod":"73567","cli":"MILPASSOS","gci":7832545,"oc":"","nf":3957751,"prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20670,"dfat":20668},{"cod":"87837","cli":"MILPASSOS","gci":7832547,"oc":"","nf":3957755,"prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20670,"dfat":20668},{"cod":"133043","cli":"MILPASSOS","gci":7832544,"oc":"","nf":3957749,"prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20670,"dfat":20668},{"cod":"87110","cli":"TRIUNFANTE CALCADOS","gci":7764944,"oc":"","nf":3955429,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20665,"dfat":20665},{"cod":"1040374","cli":"MAGAZINE REIS","gci":7829343,"oc":"CL1040374","nf":3953677,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":6,"prev":20665,"dfat":20664}]},{"ref":"43500491","nome":"VELOZ 4","cor":"CHBMLT","foto":"43500491_CHBMLT","prev":20672,"vis":{"tudo":{"carteira":858,"faturado":2354,"conversao":0.7328767123287672,"produtos":1,"clientes":48,"encomendas":63},"carteira":{"carteira":858,"faturado":0,"conversao":0,"produtos":1,"clientes":32,"encomendas":38},"faturado":{"carteira":0,"faturado":2354,"conversao":1,"produtos":1,"clientes":24,"encomendas":25}},"linhas":[{"cod":"1633552","cli":"LOJA ALL SHOES ESPECIALIS","gci":7718530,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":6,"fat":0,"prev":20672,"dfat":-1},{"cod":"51661","cli":"PINTOS","gci":7610313,"oc":"23376","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":36,"fat":0,"prev":20698,"dfat":-1},{"cod":"110388","cli":"JC MODAS","gci":7722178,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20701,"dfat":-1},{"cod":"70074","cli":"RASTRO CALCADOS","gci":7655904,"oc":"","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20702,"dfat":-1},{"cod":"18529","cli":"TALENTUS","gci":7882265,"oc":"CL18529","nf":"","prep":"JORGE","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20702,"dfat":-1},{"cod":"71647","cli":"BEM CALCADOS","gci":7656478,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20706,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":7590644,"oc":"0404","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CORRIDA/TREINO","cart":48,"fat":0,"prev":20716,"dfat":-1},{"cod":"17003","cli":"ARMAZEM PARAIBA(PI)","gci":7642990,"oc":"229016","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20717,"dfat":-1},{"cod":"11473","cli":"ARMAZEM PARAIBA(PI)","gci":7642661,"oc":"228983","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20717,"dfat":-1},{"cod":"8313","cli":"ARMAZEM PARAIBA(PI)","gci":7642660,"oc":"228963","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20717,"dfat":-1},{"cod":"12834","cli":"ARMAZEM PARAIBA(PI)","gci":7642537,"oc":"229008","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20717,"dfat":-1},{"cod":"11177","cli":"RAMLIVE","gci":7653650,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20721,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":7581651,"oc":"0404","nf":3979213,"prep":"LEANDRO","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":48,"prev":20685,"dfat":20682},{"cod":"18909","cli":"TOC TOC","gci":7612175,"oc":"PC1405","nf":3977913,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":24,"prev":20681,"dfat":20679},{"cod":"6747","cli":"MAZZULE CALCADOS","gci":7655070,"oc":"","nf":3975658,"prep":"JORGE","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20673,"dfat":20678},{"cod":"3424","cli":"ARMAZEM PARAIBA(PI)","gci":7639525,"oc":"229002","nf":3956120,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20665,"dfat":20665},{"cod":"10068","cli":"ARMAZEM PARAIBA(PI)","gci":7639524,"oc":"228965","nf":3956119,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20665,"dfat":20665},{"cod":"17736","cli":"ARMAZEM PARAIBA(PI)","gci":7639522,"oc":"229023","nf":3956117,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20665,"dfat":20665},{"cod":"9631","cli":"ARMAZEM PARAIBA(PI)","gci":7639521,"oc":"228994","nf":3956116,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20665,"dfat":20665},{"cod":"14798","cli":"ARMAZEM PARAIBA(PI)","gci":7639523,"oc":"228987","nf":3956118,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20665,"dfat":20665}]},{"ref":"43547338","nome":"VENUS 3","cor":"MARFIM","foto":"43547338_MARFIM","prev":20675,"vis":{"tudo":{"carteira":4686,"faturado":11370,"conversao":0.7081464872944694,"produtos":1,"clientes":207,"encomendas":430},"carteira":{"carteira":4686,"faturado":0,"conversao":0,"produtos":1,"clientes":76,"encomendas":93},"faturado":{"carteira":0,"faturado":11370,"conversao":1,"produtos":1,"clientes":148,"encomendas":337}},"linhas":[{"cod":"12651","cli":"ELITE MODAS","gci":5500916,"oc":"CH 12651","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_FEM","cart":12,"fat":0,"prev":20675,"dfat":-1},{"cod":"16086","cli":"ANNA ALICE CALCADOS","gci":5526860,"oc":"CH 16086","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_FEM","cart":12,"fat":0,"prev":20701,"dfat":-1},{"cod":"119043","cli":"CHIQUINHA FASHION","gci":5533522,"oc":"CH 119043","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CONF_FEM","cart":24,"fat":0,"prev":20718,"dfat":-1},{"cod":"11177","cli":"RAMLIVE","gci":5374342,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CONF_FEM","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"70274","cli":"POLYELLE","gci":5308626,"oc":"SET","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CONF_FEM","cart":48,"fat":0,"prev":20726,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5521985,"oc":"CH 60510","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CONF_FEM","cart":48,"fat":0,"prev":20726,"dfat":-1},{"cod":"109419","cli":"CASA PIO","gci":5330178,"oc":"VENUS3MARFIM","nf":"","prep":"C M S","marca":"OLY","faixa":"CONF_FEM","cart":360,"fat":0,"prev":20726,"dfat":-1},{"cod":"3183","cli":"CASA PIO","gci":5330177,"oc":"VENUS3MARFIM","nf":"","prep":"C M S","marca":"OLY","faixa":"CONF_FEM","cart":360,"fat":0,"prev":20726,"dfat":-1},{"cod":"19094","cli":"CASA PIO","gci":5330167,"oc":"VENUS3MARFIM","nf":"","prep":"C M S","marca":"OLY","faixa":"CONF_FEM","cart":840,"fat":0,"prev":20726,"dfat":-1},{"cod":"1159088","cli":"BELLOPE CALCADOS","gci":5522030,"oc":"CH 1159088","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CONF_FEM","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"17427","cli":"MAFALLDA MAGAZINE","gci":5521961,"oc":"CH 17427","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_FEM","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"139671","cli":"RR CALCADOS","gci":5522043,"oc":"CH 139671","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_FEM","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"22928","cli":"NENEM CALCADOS (PIRIPIRI)","gci":5533574,"oc":"CH 22928","nf":3371544,"prep":"WILLAME","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":12,"prev":20718,"dfat":20707},{"cod":"121302","cli":"LOJA VIANA","gci":5533392,"oc":"CH 121302","nf":3371517,"prep":"WILLAME","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":12,"prev":20718,"dfat":20707},{"cod":"56803","cli":"GALERIA DOS CALCADOS","gci":5533259,"oc":"CH 56803","nf":3371491,"prep":"WILLAME","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":12,"prev":20718,"dfat":20707},{"cod":"112169","cli":"PASSO A PASSO CALCADOS","gci":5533381,"oc":"CH 112169","nf":3371503,"prep":"WILLAME","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":12,"prev":20718,"dfat":20707},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5321364,"oc":"0404VENMF","nf":3371002,"prep":"LEANDRO","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":60,"prev":20716,"dfat":20707},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5323862,"oc":"SET","nf":3373037,"prep":"LEANDRO","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":120,"prev":20716,"dfat":20707},{"cod":"3983624","cli":"MATEUS CONFECCOES","gci":5533347,"oc":"CH 3983624","nf":3371493,"prep":"JORGE","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":12,"prev":20718,"dfat":20707},{"cod":"119421","cli":"KATH-ELLY MAGAZINE","gci":5533386,"oc":"CH 119421","nf":3371511,"prep":"JORGE","marca":"OLY","faixa":"CONF_FEM","cart":0,"fat":12,"prev":20718,"dfat":20707}]},{"ref":"43531485","nome":"GRAU","cor":"ARTPTO","foto":"43531485_ARTPTO","prev":20675,"vis":{"tudo":{"carteira":2022,"faturado":505,"conversao":0.1998417095370004,"produtos":1,"clientes":16,"encomendas":32},"carteira":{"carteira":2022,"faturado":0,"conversao":0,"produtos":1,"clientes":11,"encomendas":13},"faturado":{"carteira":0,"faturado":505,"conversao":1,"produtos":1,"clientes":7,"encomendas":19}},"linhas":[{"cod":"71378","cli":"GLOBO CALCADOS","gci":5522121,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20675,"dfat":-1},{"cod":"121069","cli":"IDEAL MAGAZINE","gci":5336305,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20721,"dfat":-1},{"cod":"109419","cli":"CASA PIO","gci":5331578,"oc":"GRAUARTPTO","nf":"","prep":"C M S","marca":"OLY","faixa":"CONF_MASC","cart":288,"fat":0,"prev":20726,"dfat":-1},{"cod":"3183","cli":"CASA PIO","gci":5331615,"oc":"GRAUARTPTO","nf":"","prep":"C M S","marca":"OLY","faixa":"CONF_MASC","cart":336,"fat":0,"prev":20726,"dfat":-1},{"cod":"19094","cli":"CASA PIO","gci":5331508,"oc":"GRAUARTPTO","nf":"","prep":"C M S","marca":"OLY","faixa":"CONF_MASC","cart":960,"fat":0,"prev":20726,"dfat":-1},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5336346,"oc":"DEPOSITO","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":18,"fat":0,"prev":20727,"dfat":-1},{"cod":"5917","cli":"AZTECA CALCADOS","gci":5301043,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":120,"fat":0,"prev":20731,"dfat":-1},{"cod":"18529","cli":"TALENTUS","gci":5406460,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":60,"fat":0,"prev":20732,"dfat":-1},{"cod":"18529","cli":"TALENTUS","gci":5339216,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20732,"dfat":-1},{"cod":"762152","cli":"CASA DO ESPORTE","gci":5412112,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20742,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5321655,"oc":"0404","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CONF_MASC","cart":60,"fat":0,"prev":20746,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5321832,"oc":"0404","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CONF_MASC","cart":120,"fat":0,"prev":20767,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5321341,"oc":"0404","nf":3371010,"prep":"LEANDRO","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":48,"prev":20716,"dfat":20707},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5338573,"oc":"","nf":3369760,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":6,"prev":20700,"dfat":20706},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5342075,"oc":"LJ05 SHOP ILHA","nf":3361365,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20704,"dfat":20699},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5338450,"oc":"LJ06 RIO ANIL","nf":3357252,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20690,"dfat":20698},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5338459,"oc":"LJ07 PATIO","nf":3357254,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20691,"dfat":20698},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5312476,"oc":"0404","nf":3347521,"prep":"LEANDRO","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":48,"prev":20685,"dfat":20691},{"cod":"72585","cli":"ESPACO VIP(MA)","gci":5459943,"oc":"LOJA NOVA","nf":3343594,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20681,"dfat":20689},{"cod":"61700","cli":"RAMLIVE","gci":5376283,"oc":"","nf":3342836,"prep":"MARIANA","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20681,"dfat":20686}]},{"ref":"43342471","nome":"NUVEM","cor":"ALGMLT","foto":"43342471_ALGMLT","prev":20680,"vis":{"tudo":{"carteira":4230,"faturado":6126,"conversao":0.5915411355735806,"produtos":1,"clientes":211,"encomendas":408},"carteira":{"carteira":4230,"faturado":0,"conversao":0,"produtos":1,"clientes":20,"encomendas":33},"faturado":{"carteira":0,"faturado":6126,"conversao":1,"produtos":1,"clientes":204,"encomendas":375}},"linhas":[{"cod":"1633552","cli":"LOJA ALL SHOES ESPECIALIS","gci":5427828,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":6,"fat":0,"prev":20680,"dfat":-1},{"cod":"11177","cli":"RAMLIVE","gci":5374415,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20721,"dfat":-1},{"cod":"63194","cli":"VESTE BEM","gci":5378004,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":12,"fat":0,"prev":20724,"dfat":-1},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5336114,"oc":"NOR SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":60,"fat":0,"prev":20726,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5323918,"oc":"SET","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CORRIDA/TREINO","cart":60,"fat":0,"prev":20726,"dfat":-1},{"cod":"70274","cli":"POLYELLE","gci":5308634,"oc":"SET","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CORRIDA/TREINO","cart":60,"fat":0,"prev":20726,"dfat":-1},{"cod":"136539","cli":"UNIVERSO SHOES","gci":5339169,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":6,"fat":0,"prev":20731,"dfat":-1},{"cod":"5917","cli":"AZTECA CALCADOS","gci":5301052,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":60,"fat":0,"prev":20731,"dfat":-1},{"cod":"926090","cli":"MAIS MODAS","gci":5441021,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CORRIDA/TREINO","cart":6,"fat":0,"prev":20734,"dfat":-1},{"cod":"9173","cli":"EMANUEL PRESENTES","gci":5436253,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":24,"fat":0,"prev":20736,"dfat":-1},{"cod":"8049","cli":"UNNI SHOP","gci":5378506,"oc":"","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRIDA/TREINO","cart":24,"fat":0,"prev":20737,"dfat":-1},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5336612,"oc":"NOR OUT","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":60,"fat":0,"prev":20742,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5321367,"oc":"0404NUVALG","nf":3371003,"prep":"LEANDRO","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":84,"prev":20716,"dfat":20707},{"cod":"1309193","cli":"UNIAO CALCADOS","gci":5376746,"oc":"","nf":3369990,"prep":"WILLAME","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":24,"prev":20703,"dfat":20706},{"cod":"133923","cli":"MILPASSOS","gci":5531981,"oc":"","nf":3370532,"prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":6,"prev":20701,"dfat":20706},{"cod":"122659","cli":"MILPASSOS","gci":5531978,"oc":"","nf":3370529,"prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":6,"prev":20701,"dfat":20706},{"cod":"13643","cli":"MILPASSOS","gci":5531982,"oc":"","nf":3370533,"prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20701,"dfat":20706},{"cod":"73567","cli":"MILPASSOS","gci":5531983,"oc":"","nf":3370534,"prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20701,"dfat":20706},{"cod":"77220","cli":"KALCEBEM","gci":5434442,"oc":"","nf":3369872,"prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":12,"prev":20701,"dfat":20706},{"cod":"87837","cli":"MILPASSOS","gci":5531986,"oc":"","nf":3370537,"prep":"RAFAEL","marca":"OLY","faixa":"CORRIDA/TREINO","cart":0,"fat":6,"prev":20701,"dfat":20706}]},{"ref":"43353470","nome":"ELEVADO","cor":"ARECZA","foto":"43353470_ARECZA","prev":20685,"vis":{"tudo":{"carteira":672,"faturado":902,"conversao":0.5730622617534943,"produtos":1,"clientes":52,"encomendas":71},"carteira":{"carteira":672,"faturado":0,"conversao":0,"produtos":1,"clientes":24,"encomendas":27},"faturado":{"carteira":0,"faturado":902,"conversao":1,"produtos":1,"clientes":33,"encomendas":44}},"linhas":[{"cod":"4098090","cli":"ISA MAGAZINE","gci":5463266,"oc":"","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20685,"dfat":-1},{"cod":"119043","cli":"CHIQUINHA FASHION","gci":5533516,"oc":"CH 119043","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"120930","cli":"E.L. CALCADOS","gci":5527560,"oc":"CH 8043","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"3983624","cli":"MATEUS CONFECCOES","gci":5533345,"oc":"CH 3983624","nf":"","prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"97725","cli":"LEVE ESTILO","gci":5522014,"oc":"CH 97725","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"70896","cli":"M V DE CARVALHO MAGALHAES DIOGENES ME","gci":5526882,"oc":"CH 70896","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"125901","cli":"ELIANEMODAS","gci":5522027,"oc":"CH 125901","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"17427","cli":"MAFALLDA MAGAZINE","gci":5521962,"oc":"CH 17427","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"9760","cli":"SPORT MODAS(FORTIM)","gci":5521952,"oc":"CH 9760","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"3665","cli":"DUDA CENTER","gci":5394840,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":24,"fat":0,"prev":20727,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":5339228,"oc":"PC1405","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20734,"dfat":-1},{"cod":"61230","cli":"J M SOARES VESTUARIO ME","gci":5395190,"oc":"","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CONF_MASC","cart":12,"fat":0,"prev":20742,"dfat":-1},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5321336,"oc":"0404","nf":3371009,"prep":"LEANDRO","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":60,"prev":20716,"dfat":20707},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5341811,"oc":"LJ04 CENTRO2","nf":3369786,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":6,"prev":20701,"dfat":20706},{"cod":"135212","cli":"CASA DO ESPORTE","gci":5412029,"oc":"","nf":3370340,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20711,"dfat":20706},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5338573,"oc":"","nf":3369760,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":6,"prev":20700,"dfat":20706},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5338713,"oc":"LJ01 SLZ SHOP","nf":3370023,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20704,"dfat":20706},{"cod":"71357","cli":"BV SPORTS","gci":5511893,"oc":"71357","nf":3362641,"prep":"MARIANA","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":12,"prev":20697,"dfat":20700},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":5338624,"oc":"","nf":3364170,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":6,"prev":20702,"dfat":20700},{"cod":"1696515","cli":"MARY STORE","gci":5418194,"oc":"","nf":3360848,"prep":"JORGE","marca":"OLY","faixa":"CONF_MASC","cart":0,"fat":6,"prev":20711,"dfat":20699}]},{"ref":"43206446","nome":"CORRE 5","cor":"PTO/CH","foto":"43206446_PTO_CH","prev":20695,"vis":{"tudo":{"carteira":368,"faturado":493,"conversao":0.5725900116144018,"produtos":1,"clientes":23,"encomendas":89},"carteira":{"carteira":368,"faturado":0,"conversao":0,"produtos":1,"clientes":11,"encomendas":15},"faturado":{"carteira":0,"faturado":493,"conversao":1,"produtos":1,"clientes":22,"encomendas":74}},"linhas":[{"cod":"3857578","cli":"R 13 SPORTS","gci":7858708,"oc":"APT CORRE AGO","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRE","cart":8,"fat":0,"prev":20695,"dfat":-1},{"cod":"3857578","cli":"R 13 SPORTS","gci":7845934,"oc":"CORRE AGO","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20696,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":7887304,"oc":"CH 18909","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":18,"fat":0,"prev":20719,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":7887303,"oc":"CH 18909","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"674635","cli":"UNIVERSO SHOES","gci":7887321,"oc":"CH 674635","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"674633","cli":"UNIVERSO SHOES","gci":7887320,"oc":"CH 674633","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":7706475,"oc":"APT CORRE SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"3983624","cli":"MATEUS CONFECCOES","gci":7887313,"oc":"CH 3983624","nf":"","prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"2373565","cli":"IDEAL MAGAZINE","gci":7887305,"oc":"CH 2373565","nf":"","prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"3103782","cli":"MK2","gci":7887324,"oc":"CH 3103782","nf":"","prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"105709","cli":"IDEAL MAGAZINE","gci":7887318,"oc":"CH 105709","nf":"","prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":7706506,"oc":"APT CORRE OUT","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20756,"dfat":-1},{"cod":"2533423","cli":"ITENIS","gci":7855080,"oc":"CORRE AGO","nf":4032766,"prep":"CHRISTIAN","marca":"OLY","faixa":"CORRE","cart":0,"fat":12,"prev":20696,"dfat":20707},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745467,"oc":"LJ04 CENTRO2","nf":4011006,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745564,"oc":"LJ05 SHOP ILHA","nf":4011069,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745466,"oc":"LJ12 MAIOBÃO","nf":4011005,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745576,"oc":"LJ07 PATIO","nf":4011073,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":12,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745492,"oc":"LJ05 SHOP ILHA","nf":4011016,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745482,"oc":"LJ01 SLZ SHOP","nf":4011011,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745559,"oc":"LJ02 CENTRO1","nf":4011067,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697}]},{"ref":"43206446","nome":"CORRE 5","cor":"LUNBEG","foto":"43206446_LUNBEG","prev":20695,"vis":{"tudo":{"carteira":654,"faturado":109,"conversao":0.14285714285714285,"produtos":1,"clientes":27,"encomendas":95},"carteira":{"carteira":654,"faturado":0,"conversao":0,"produtos":1,"clientes":24,"encomendas":84},"faturado":{"carteira":0,"faturado":109,"conversao":1,"produtos":1,"clientes":7,"encomendas":11}},"linhas":[{"cod":"3857578","cli":"R 13 SPORTS","gci":7858707,"oc":"APT CORRE AGO","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20695,"dfat":-1},{"cod":"1223686","cli":"LUAR SPORT","gci":7887310,"oc":"CH 1223686","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20719,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":7887309,"oc":"CH 110982","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20719,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":7887303,"oc":"CH 18909","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":30,"fat":0,"prev":20719,"dfat":-1},{"cod":"674633","cli":"UNIVERSO SHOES","gci":7887320,"oc":"CH 674633","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"674635","cli":"UNIVERSO SHOES","gci":7887321,"oc":"CH 674635","nf":"","prep":"MARIANA","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20719,"dfat":-1},{"cod":"2065805","cli":"TOP SPORT (CE)","gci":7887327,"oc":"CH 2065805","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"1223686","cli":"LUAR SPORT","gci":7886161,"oc":"CORRE SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20726,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":7886084,"oc":"CORRE SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20726,"dfat":-1},{"cod":"68625","cli":"MAVELU","gci":7525956,"oc":"CORRE SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20726,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":7886153,"oc":"CORRE SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20726,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":7525829,"oc":"CORRE SET","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20726,"dfat":-1},{"cod":"3103782","cli":"MK2","gci":7831687,"oc":"CH 3983624","nf":3956146,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":12,"prev":20664,"dfat":20665},{"cod":"110982","cli":"LUAR SPORT","gci":7823775,"oc":"CORRE JUL","nf":3952083,"prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20664,"dfat":20663},{"cod":"1223686","cli":"LUAR SPORT","gci":7804617,"oc":"APT CORRE JUL","nf":3952071,"prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":0,"fat":12,"prev":20664,"dfat":20663},{"cod":"110982","cli":"LUAR SPORT","gci":7706422,"oc":"APT CORRE JUL","nf":3952061,"prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":0,"fat":24,"prev":20664,"dfat":20663},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745928,"oc":"LJ01 SLZ SHOP","nf":3952068,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20664,"dfat":20663},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745861,"oc":"LJ06 RIO ANIL","nf":3952063,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20664,"dfat":20663},{"cod":"957141","cli":"DI SENNA CALCADOS","gci":7804711,"oc":"CH 957141","nf":3952077,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":12,"prev":20664,"dfat":20663},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745891,"oc":"LJ05 SHOP ILHA","nf":3952065,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20664,"dfat":20663}]},{"ref":"54111405","nome":"POS CORRE","cor":"LUNAR","foto":"54111405_LUNAR","prev":20695,"vis":{"tudo":{"carteira":432,"faturado":960,"conversao":0.6896551724137931,"produtos":1,"clientes":30,"encomendas":32},"carteira":{"carteira":432,"faturado":0,"conversao":0,"produtos":1,"clientes":8,"encomendas":9},"faturado":{"carteira":0,"faturado":960,"conversao":1,"produtos":1,"clientes":23,"encomendas":23}},"linhas":[{"cod":"71378","cli":"GLOBO CALCADOS","gci":5504144,"oc":"CH 71378","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20695,"dfat":-1},{"cod":"71378","cli":"GLOBO CALCADOS","gci":5504145,"oc":"CH 71378","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20695,"dfat":-1},{"cod":"3857578","cli":"R 13 SPORTS","gci":5504158,"oc":"CH 3857578","nf":"","prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20695,"dfat":-1},{"cod":"19094","cli":"CASA PIO","gci":5489593,"oc":"POS CORRE SET PIO","nf":"","prep":"C M S","marca":"CHOLY","faixa":"CHINELOS","cart":300,"fat":0,"prev":20726,"dfat":-1},{"cod":"139706","cli":"DESTAK VISU","gci":5531711,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20773,"dfat":-1},{"cod":"2929","cli":"FIRMINO SILVA RIBEIRO","gci":5530181,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":6,"fat":0,"prev":20773,"dfat":-1},{"cod":"58568","cli":"SAPATARIA GUERRA","gci":5530161,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":6,"fat":0,"prev":20773,"dfat":-1},{"cod":"3103782","cli":"MK2","gci":5530120,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":60,"fat":0,"prev":20773,"dfat":-1},{"cod":"11948","cli":"IDEAL MAGAZINE","gci":5532657,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20773,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":5504133,"oc":"CH 110982","nf":3341353,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20695,"dfat":20686},{"cod":"1223686","cli":"LUAR SPORT","gci":5504134,"oc":"CH 1223686","nf":3341354,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20695,"dfat":20686},{"cod":"1309193","cli":"UNIAO CALCADOS","gci":5504147,"oc":"CH 1309193","nf":3341377,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20695,"dfat":20686},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5504115,"oc":"CH 127616","nf":3341351,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":48,"prev":20695,"dfat":20686},{"cod":"18909","cli":"TOC TOC","gci":5504113,"oc":"CH 18909","nf":3341350,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20695,"dfat":20686},{"cod":"73103","cli":"POLYELLE","gci":5513442,"oc":"255126","nf":3342892,"prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20695,"dfat":20686},{"cod":"60510","cli":"SAPATARIA NOVA","gci":5504120,"oc":"CH 60510","nf":3341352,"prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":96,"prev":20695,"dfat":20686},{"cod":"2474206","cli":"POLYELLE","gci":5513820,"oc":"255120","nf":3342893,"prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20695,"dfat":20686}]},{"ref":"43447473","nome":"CORRE VENTO 3","cor":"PTO/CH","foto":"43447473_PTO_CH","prev":20696,"vis":{"tudo":{"carteira":840,"faturado":5774,"conversao":0.872996673722407,"produtos":1,"clientes":125,"encomendas":396},"carteira":{"carteira":840,"faturado":0,"conversao":0,"produtos":1,"clientes":38,"encomendas":69},"faturado":{"carteira":0,"faturado":5774,"conversao":1,"produtos":1,"clientes":121,"encomendas":327}},"linhas":[{"cod":"3857578","cli":"R 13 SPORTS","gci":7845935,"oc":"CORRE AGO","nf":"","prep":"RAFAEL","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20696,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":7887315,"oc":"CH 80931","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CORRE","cart":66,"fat":0,"prev":20726,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":7518847,"oc":"CORRE SET","nf":"","prep":"LEANDRO","marca":"OLY","faixa":"CORRE","cart":72,"fat":0,"prev":20726,"dfat":-1},{"cod":"3183","cli":"CASA PIO","gci":7517771,"oc":"CORRE SET","nf":"","prep":"C M S","marca":"OLY","faixa":"CORRE","cart":24,"fat":0,"prev":20726,"dfat":-1},{"cod":"109419","cli":"CASA PIO","gci":7517789,"oc":"CORRE SET","nf":"","prep":"C M S","marca":"OLY","faixa":"CORRE","cart":12,"fat":0,"prev":20726,"dfat":-1},{"cod":"19094","cli":"CASA PIO","gci":7518581,"oc":"CORRE SET","nf":"","prep":"C M S","marca":"OLY","faixa":"CORRE","cart":66,"fat":0,"prev":20757,"dfat":-1},{"cod":"10627","cli":"SAPATARIA IRACEMA","gci":7550831,"oc":"CORRE NOV","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20787,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":7550910,"oc":"CORRE NOV","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20787,"dfat":-1},{"cod":"51661","cli":"PINTOS","gci":7550962,"oc":"CORRE NOV","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20787,"dfat":-1},{"cod":"110982","cli":"LUAR SPORT","gci":7550859,"oc":"CORRE NOV","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20787,"dfat":-1},{"cod":"51661","cli":"PINTOS","gci":7550970,"oc":"CORRE NOV","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20787,"dfat":-1},{"cod":"18909","cli":"TOC TOC","gci":7550900,"oc":"CORRE NOV","nf":"","prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":6,"fat":0,"prev":20787,"dfat":-1},{"cod":"11119","cli":"LUAR SPORT","gci":7845860,"oc":"CORRE AGO","nf":4011078,"prep":"WILLAME","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745525,"oc":"CORRE AGO","nf":4011044,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745501,"oc":"CORRE AGO","nf":4011023,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745503,"oc":"CORRE AGO","nf":4011025,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745518,"oc":"CORRE AGO","nf":4011037,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745495,"oc":"CORRE AGO","nf":4011018,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745516,"oc":"CORRE AGO","nf":4011035,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697},{"cod":"3834566","cli":"DEGRAUS SPORTS","gci":7745543,"oc":"CORRE AGO","nf":4011056,"prep":"JORGE","marca":"OLY","faixa":"CORRE","cart":0,"fat":6,"prev":20696,"dfat":20697}]},{"ref":"54110438","nome":"LIVRE","cor":"PTOMAD","foto":"54110438_PTOMAD","prev":20696,"vis":{"tudo":{"carteira":372,"faturado":1771,"conversao":0.8264115725618292,"produtos":1,"clientes":50,"encomendas":84},"carteira":{"carteira":372,"faturado":0,"conversao":0,"produtos":1,"clientes":9,"encomendas":11},"faturado":{"carteira":0,"faturado":1771,"conversao":1,"produtos":1,"clientes":47,"encomendas":73}},"linhas":[{"cod":"88821","cli":"STHEFANY CALCADOS","gci":5453856,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20696,"dfat":-1},{"cod":"3237","cli":"SAPATARIA VANUSIA(CHAPADI","gci":5453963,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5350317,"oc":"NOR2505","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":60,"fat":0,"prev":20741,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5330408,"oc":"OUT3","nf":"","prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":120,"fat":0,"prev":20746,"dfat":-1},{"cod":"1309193","cli":"UNIAO CALCADOS","gci":5507442,"oc":"AP1308","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":24,"fat":0,"prev":20748,"dfat":-1},{"cod":"75253","cli":"CAROL CALCADOS","gci":5511176,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20748,"dfat":-1},{"cod":"95207","cli":"URBANA CALCADOS","gci":5532700,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":24,"fat":0,"prev":20764,"dfat":-1},{"cod":"118189","cli":"F M DE MOURA","gci":5530040,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20764,"dfat":-1},{"cod":"1153448","cli":"ATACADAO DA MODA","gci":5509641,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20765,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5330412,"oc":"NOV2","nf":"","prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":60,"fat":0,"prev":20767,"dfat":-1},{"cod":"1309193","cli":"UNIAO CALCADOS","gci":5507448,"oc":"AP1308","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":24,"fat":0,"prev":20793,"dfat":-1},{"cod":"70074","cli":"RASTRO CALCADOS","gci":5373323,"oc":"","nf":3369140,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20703,"dfat":20706},{"cod":"22968","cli":"MYRELLY CALCADOS E ACESSO","gci":5453956,"oc":"","nf":3369143,"prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20703,"dfat":20706},{"cod":"10675","cli":"CENTER MODAS(CE)","gci":5453779,"oc":"","nf":3342931,"prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20696,"dfat":20686},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5330404,"oc":"AGO2","nf":3333104,"prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":120,"prev":20681,"dfat":20679},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5350296,"oc":"NOR2505","nf":3331590,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":60,"prev":20680,"dfat":20678},{"cod":"13148","cli":"AZTECA CALCADOS","gci":5298393,"oc":"","nf":3283066,"prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":24,"prev":20634,"dfat":20623},{"cod":"14697","cli":"AZTECA CALCADOS","gci":5298394,"oc":"","nf":3283067,"prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20634,"dfat":20623},{"cod":"16931","cli":"AZTECA CALCADOS","gci":5298397,"oc":"","nf":3283070,"prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":24,"prev":20634,"dfat":20623}]},{"ref":"54110438","nome":"LIVRE","cor":"PRETO","foto":"54110438_PRETO","prev":20696,"vis":{"tudo":{"carteira":348,"faturado":1885,"conversao":0.8441558441558441,"produtos":1,"clientes":57,"encomendas":89},"carteira":{"carteira":348,"faturado":0,"conversao":0,"produtos":1,"clientes":8,"encomendas":10},"faturado":{"carteira":0,"faturado":1885,"conversao":1,"produtos":1,"clientes":54,"encomendas":79}},"linhas":[{"cod":"88821","cli":"STHEFANY CALCADOS","gci":5453856,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20696,"dfat":-1},{"cod":"118189","cli":"F M DE MOURA","gci":5530036,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20708,"dfat":-1},{"cod":"3237","cli":"SAPATARIA VANUSIA(CHAPADI","gci":5453963,"oc":"","nf":"","prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20719,"dfat":-1},{"cod":"1309193","cli":"UNIAO CALCADOS","gci":5507439,"oc":"AP1308","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":24,"fat":0,"prev":20734,"dfat":-1},{"cod":"1153448","cli":"ATACADAO DA MODA","gci":5509636,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20734,"dfat":-1},{"cod":"75253","cli":"CAROL CALCADOS","gci":5511174,"oc":"","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":12,"fat":0,"prev":20734,"dfat":-1},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5350315,"oc":"NOR2505","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":60,"fat":0,"prev":20740,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5330409,"oc":"OUT2","nf":"","prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":120,"fat":0,"prev":20746,"dfat":-1},{"cod":"80931","cli":"BANBAN CALCADOS","gci":5330411,"oc":"NOV1","nf":"","prep":"LEANDRO","marca":"CHOLY","faixa":"CHINELOS","cart":60,"fat":0,"prev":20767,"dfat":-1},{"cod":"1309193","cli":"UNIAO CALCADOS","gci":5507449,"oc":"AP1308","nf":"","prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":24,"fat":0,"prev":20794,"dfat":-1},{"cod":"95207","cli":"URBANA CALCADOS","gci":5532697,"oc":"","nf":3371263,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":24,"prev":20712,"dfat":20707},{"cod":"5897","cli":"ARMARINHO ROCHA","gci":5531774,"oc":"","nf":3369329,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20711,"dfat":20706},{"cod":"136668","cli":"CASA ISANGELA","gci":5519035,"oc":"","nf":3369135,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20697,"dfat":20706},{"cod":"10675","cli":"CENTER MODAS(CE)","gci":5453779,"oc":"","nf":3342931,"prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20696,"dfat":20686},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5490586,"oc":"AGO3","nf":3332871,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":120,"prev":20681,"dfat":20679},{"cod":"127616","cli":"LOJAS NOROESTE","gci":5350295,"oc":"NOR2505","nf":3331587,"prep":"WILLAME","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":60,"prev":20679,"dfat":20678},{"cod":"3237","cli":"SAPATARIA VANUSIA(CHAPADI","gci":5410370,"oc":"","nf":3331585,"prep":"JORGE","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":12,"prev":20666,"dfat":20678},{"cod":"23894","cli":"AZTECA CALCADOS","gci":5298403,"oc":"","nf":3283074,"prep":"RAFAEL","marca":"CHOLY","faixa":"CHINELOS","cart":0,"fat":24,"prev":20634,"dfat":20623}]}],"geradoEm":"2026-09-14T10:32:18.936Z","grades":{"7718530|43500491|CHBMLT":{"total":6,"tam":{"34":1,"35":1,"36":1,"37":1,"38":1,"39":1},"caixas":[{"faixa":"34–39","grade":"111111","tam":{"34":1,"35":1,"36":1,"37":1,"38":1,"39":1},"pares":6,"caixas":1}]},"7722178|43500491|CHBMLT":{"total":12,"tam":{"35":3,"36":3,"37":2,"38":2,"39":1,"40":1},"caixas":[{"faixa":"","grade":"","tam":{"35":3,"36":3,"37":2,"38":2,"39":1,"40":1},"pares":12,"caixas":1,"solto":true}]},"7653650|43500491|CHBMLT":{"total":12,"tam":{"37":1,"38":1,"39":2,"40":2,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"37–44","grade":"11222211","tam":{"37":1,"38":1,"39":2,"40":2,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"5374342|43547338|MARFIM":{"total":12,"tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"caixas":[{"faixa":"34–39","grade":"123321","tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"pares":12,"caixas":1}]},"5308626|43547338|MARFIM":{"total":48,"tam":{"34":4,"35":8,"36":12,"37":12,"38":8,"39":4},"caixas":[{"faixa":"34–39","grade":"123321","tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"pares":12,"caixas":4}]},"5521985|43547338|MARFIM":{"total":48,"tam":{"35":4,"36":12,"37":12,"38":12,"39":8},"caixas":[{"faixa":"35–39","grade":"13332","tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"pares":12,"caixas":4}]},"5522030|43547338|MARFIM":{"total":12,"tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"caixas":[{"faixa":"35–39","grade":"13332","tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"pares":12,"caixas":1}]},"5521961|43547338|MARFIM":{"total":12,"tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"caixas":[{"faixa":"35–39","grade":"13332","tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"pares":12,"caixas":1}]},"5522043|43547338|MARFIM":{"total":12,"tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"caixas":[{"faixa":"35–39","grade":"13332","tam":{"35":1,"36":3,"37":3,"38":3,"39":2},"pares":12,"caixas":1}]},"5321364|43547338|MARFIM":{"total":60,"tam":{"34":2,"35":5,"36":15,"37":15,"38":15,"39":5,"40":3},"caixas":[{"faixa":"35–40","grade":"133311","tam":{"35":1,"36":3,"37":3,"38":3,"39":1,"40":1},"pares":12,"caixas":3},{"faixa":"34–39","grade":"113331","tam":{"34":1,"35":1,"36":3,"37":3,"38":3,"39":1},"pares":12,"caixas":2}]},"5522121|43531485|ARTPTO":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"caixas":[{"faixa":"38–43","grade":"123321","tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"pares":12,"caixas":1}]},"5412112|43531485|ARTPTO":{"total":12,"tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"caixas":[{"faixa":"34–39","grade":"123321","tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"pares":12,"caixas":1}]},"5427828|43342471|ALGMLT":{"total":6,"tam":{"34":1,"35":1,"36":1,"37":1,"38":1,"39":1},"caixas":[{"faixa":"34–39","grade":"111111","tam":{"34":1,"35":1,"36":1,"37":1,"38":1,"39":1},"pares":6,"caixas":1}]},"5374415|43342471|ALGMLT":{"total":12,"tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"caixas":[{"faixa":"34–39","grade":"123321","tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"pares":12,"caixas":1}]},"5308634|43342471|ALGMLT":{"total":60,"tam":{"34":5,"35":5,"36":15,"37":15,"38":10,"39":5,"40":5},"caixas":[{"faixa":"34–40","grade":"1133211","tam":{"34":1,"35":1,"36":3,"37":3,"38":2,"39":1,"40":1},"pares":12,"caixas":5}]},"5339169|43342471|ALGMLT":{"total":6,"tam":{"35":1,"36":2,"37":1,"38":1,"39":1},"caixas":[{"faixa":"35–39","grade":"12111","tam":{"35":1,"36":2,"37":1,"38":1,"39":1},"pares":6,"caixas":1}]},"5321367|43342471|ALGMLT":{"total":84,"tam":{"34":2,"35":12,"36":21,"37":23,"38":16,"39":7,"40":3},"caixas":[{"faixa":"35–39","grade":"11211","tam":{"35":1,"36":1,"37":2,"38":1,"39":1},"pares":6,"caixas":2},{"faixa":"35–40","grade":"233211","tam":{"35":2,"36":3,"37":3,"38":2,"39":1,"40":1},"pares":12,"caixas":3},{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":2},{"faixa":"34–39","grade":"113331","tam":{"34":1,"35":1,"36":3,"37":3,"38":3,"39":1},"pares":12,"caixas":2}]},"5531986|43342471|ALGMLT":{"total":6,"tam":{"35":1,"36":1,"37":2,"38":1,"39":1},"caixas":[{"faixa":"35–39","grade":"11211","tam":{"35":1,"36":1,"37":2,"38":1,"39":1},"pares":6,"caixas":1}]},"5522014|43353470|ARECZA":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"5522027|43353470|ARECZA":{"total":12,"tam":{"37":1,"38":1,"39":2,"40":3,"41":2,"42":2,"43":1},"caixas":[{"faixa":"37–43","grade":"1123221","tam":{"37":1,"38":1,"39":2,"40":3,"41":2,"42":2,"43":1},"pares":12,"caixas":1}]},"5521962|43353470|ARECZA":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"5521952|43353470|ARECZA":{"total":12,"tam":{"37":1,"38":1,"39":2,"40":3,"41":2,"42":2,"43":1},"caixas":[{"faixa":"37–43","grade":"1123221","tam":{"37":1,"38":1,"39":2,"40":3,"41":2,"42":2,"43":1},"pares":12,"caixas":1}]},"5339228|43353470|ARECZA":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"caixas":[{"faixa":"38–43","grade":"123321","tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"pares":12,"caixas":1}]},"5412029|43353470|ARECZA":{"total":12,"tam":{"34":1,"35":2,"36":2,"37":3,"38":2,"39":1,"40":1},"caixas":[{"faixa":"","grade":"","tam":{"34":1,"35":2,"36":2,"37":3,"38":2,"39":1,"40":1},"pares":12,"caixas":1,"solto":true}]},"7858708|43206446|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"caixas":[{"faixa":"38–43","grade":"123321","tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"pares":12,"caixas":1}]},"7845934|43206446|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7706475|43206446|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"7706506|43206446|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"caixas":[{"faixa":"38–43","grade":"123321","tam":{"38":1,"39":2,"40":3,"41":3,"42":2,"43":1},"pares":12,"caixas":1}]},"7855080|43206446|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"7745467|43206446|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745564|43206446|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7745466|43206446|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745576|43206446|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":2,"41":3,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1223211","tam":{"38":1,"39":2,"40":2,"41":3,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"7745492|43206446|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745482|43206446|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7745559|43206446|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7858707|43206446|LUNBEG":{"total":12,"tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"caixas":[{"faixa":"34–39","grade":"123321","tam":{"34":1,"35":2,"36":3,"37":3,"38":2,"39":1},"pares":12,"caixas":1}]},"7525956|43206446|LUNBEG":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7525829|43206446|LUNBEG":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"5489593|54111405|LUNAR":{"total":300,"tam":{"35/36":25,"37/38":50,"39/40":100,"41/42":100,"43/44":25},"caixas":[{"faixa":"35/36","grade":"12441","tam":{"35/36":1,"37/38":2,"39/40":4,"41/42":4,"43/44":1},"pares":12,"caixas":25}]},"5531711|54111405|LUNAR":{"total":12,"tam":{"35/36":2,"37/38":4,"39/40":6},"caixas":[{"faixa":"","grade":"","tam":{"35/36":2,"37/38":4,"39/40":6},"pares":12,"caixas":1,"solto":true}]},"7845935|43447473|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"7518847|43447473|PTO/CH":{"total":72,"tam":{"38":4,"39":12,"40":20,"41":16,"42":12,"43":4,"44":4},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":4},{"faixa":"","grade":"","tam":{"38":4,"39":8,"40":12,"41":8,"42":8,"43":4,"44":4},"pares":48,"caixas":1,"solto":true}]},"7517771|43447473|PTO/CH":{"total":24,"tam":{"38":2,"39":4,"40":6,"41":4,"42":4,"43":2,"44":2},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":2}]},"7517789|43447473|PTO/CH":{"total":12,"tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"caixas":[{"faixa":"38–44","grade":"1232211","tam":{"38":1,"39":2,"40":3,"41":2,"42":2,"43":1,"44":1},"pares":12,"caixas":1}]},"7518581|43447473|PTO/CH":{"total":66,"tam":{"38":4,"39":11,"40":18,"41":14,"42":11,"43":4,"44":4},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":3},{"faixa":"","grade":"","tam":{"38":4,"39":8,"40":12,"41":8,"42":8,"43":4,"44":4},"pares":48,"caixas":1,"solto":true}]},"7550831|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7550910|43447473|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7550962|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7550859|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7550970|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7550900|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7845860|43447473|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7745525|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745501|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745503|43447473|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7745518|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745495|43447473|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"7745516|43447473|PTO/CH":{"total":6,"tam":{"39":1,"40":2,"41":2,"42":1},"caixas":[{"faixa":"39–42","grade":"1221","tam":{"39":1,"40":2,"41":2,"42":1},"pares":6,"caixas":1}]},"7745543|43447473|PTO/CH":{"total":6,"tam":{"35":1,"36":2,"37":2,"38":1},"caixas":[{"faixa":"35–38","grade":"1221","tam":{"35":1,"36":2,"37":2,"38":1},"pares":6,"caixas":1}]},"5453856|54110438|PTOMAD":{"total":12,"tam":{"37/38":4,"39/40":5,"41/42":3},"caixas":[{"faixa":"","grade":"","tam":{"37/38":4,"39/40":5,"41/42":3},"pares":12,"caixas":1,"solto":true}]},"5453963|54110438|PTOMAD":{"total":12,"tam":{"35/36":2,"37/38":4,"39/40":4,"41/42":2},"caixas":[{"faixa":"","grade":"","tam":{"35/36":2,"37/38":4,"39/40":4,"41/42":2},"pares":12,"caixas":1,"solto":true}]},"5507442|54110438|PTOMAD":{"total":24,"tam":{"35/36":2,"37/38":6,"39/40":8,"41/42":6,"43/44":2},"caixas":[{"faixa":"35/36","grade":"13431","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":2}]},"5507448|54110438|PTOMAD":{"total":24,"tam":{"35/36":2,"37/38":6,"39/40":8,"41/42":6,"43/44":2},"caixas":[{"faixa":"35/36","grade":"13431","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":2}]},"5373323|54110438|PTOMAD":{"total":12,"tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"caixas":[{"faixa":"35/36","grade":"13431","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":1}]},"5453956|54110438|PTOMAD":{"total":12,"tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"caixas":[{"faixa":"","grade":"","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":1,"solto":true}]},"5453856|54110438|PRETO":{"total":12,"tam":{"37/38":4,"39/40":5,"41/42":3},"caixas":[{"faixa":"","grade":"","tam":{"37/38":4,"39/40":5,"41/42":3},"pares":12,"caixas":1,"solto":true}]},"5453963|54110438|PRETO":{"total":12,"tam":{"35/36":2,"37/38":4,"39/40":3,"41/42":2,"43/44":1},"caixas":[{"faixa":"","grade":"","tam":{"35/36":2,"37/38":4,"39/40":3,"41/42":2,"43/44":1},"pares":12,"caixas":1,"solto":true}]},"5507439|54110438|PRETO":{"total":24,"tam":{"35/36":2,"37/38":6,"39/40":8,"41/42":6,"43/44":2},"caixas":[{"faixa":"35/36","grade":"13431","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":2}]},"5507449|54110438|PRETO":{"total":24,"tam":{"35/36":2,"37/38":6,"39/40":8,"41/42":6,"43/44":2},"caixas":[{"faixa":"35/36","grade":"13431","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":2}]},"5531774|54110438|PRETO":{"total":12,"tam":{"37/38":4,"39/40":4,"41/42":3,"43/44":1},"caixas":[{"faixa":"37/38","grade":"4431","tam":{"37/38":4,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":1}]},"5519035|54110438|PRETO":{"total":12,"tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"caixas":[{"faixa":"35/36","grade":"13431","tam":{"35/36":1,"37/38":3,"39/40":4,"41/42":3,"43/44":1},"pares":12,"caixas":1}]}}};
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const nf = n => Number(n || 0).toLocaleString('pt-BR');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const dia = d => { if (d == null || d < 0 || d > 1e8) return ''; const t = new Date(d * 86400000); return String(t.getUTCDate()).padStart(2,'0') + '/' + MESES[t.getUTCMonth()]; };
+const mes = d => { if (d == null || d < 0 || d > 1e8) return ''; const t = new Date(d * 86400000); const m = MESES[t.getUTCMonth()]; return m[0].toUpperCase() + m.slice(1) + '/' + String(t.getUTCFullYear()).slice(2); };
+const ESTADO = { MANTER:['st-manter','Manter'], TRANSFERIR:['st-transferir','Transferir'], REPASSAR:['st-repassar','Repassar'], CANCELAR:['st-cancelar','Cancelar'] };
+const ACOES = [['MANTER','a-manter','fa-circle-check','Manter'], ['TRANSFERIR','a-transferir','fa-right-left','Transferir'],
+               ['REPASSAR','a-repassar','fa-share-from-square','Repassar'], ['CANCELAR','a-cancelar','fa-ban','Cancelar']];
+const ST = { aba:'carteira', abertos:new Set([1]), encAbertas:new Set(['1:0']), acoes:{} };
+
+function pintarKpis(){
+  const k = DADOS.kpis[ST.aba];
+  const conv = (k.conversao * 100).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 }) + '%';
+  document.getElementById('kpis').innerHTML = [
+    ['k-cart','fa-box-open','Carteira', nf(k.carteira), 'pares'],
+    ['k-fat','fa-circle-check','Faturado', nf(k.faturado), 'pares'],
+    ['k-conv','fa-percent','Conversão', conv, ''],
+    ['k-neutro','fa-shoe-prints','Produtos', nf(k.produtos), ''],
+    ['k-neutro','fa-store','Clientes', nf(k.clientes), '']
+  ].map(([c, ic, t, v, u]) => `<div class="kpi ${c}"><span class="ic"><i class="fa-solid ${ic}"></i></span>
+      <div style="min-width:0"><div class="t">${t}</div><div class="v num">${v}${u ? `<small>${u}</small>` : ''}</div></div></div>`).join('');
+}
+
+function gradeDe(p, l){
+  if(!l.gci || !DADOS.grades) return null;
+  return DADOS.grades[[l.gci, p.ref, String(p.cor).toUpperCase()].join('|')] || null;
+}
+function gradeHtml(g){
+  const tams = t => `<span class="gr-tams">${Object.entries(t).map(([k, v]) => `<span class="gr-t"><span>${esc(k)}</span><b class="num">${v}</b></span>`).join('')}</span>`;
+  const caixas = Array.isArray(g.caixas) && g.caixas.length ? g.caixas : [{ tam:g.tam, pares:g.total, solto:true }];
+  return `<div class="gr-caixas">${caixas.map(c => {
+    const n = Number(c.caixas) || 1;
+    const rot = c.solto ? `${nf(c.pares)} pares avulsos` : `${n} ${n > 1 ? 'caixas' : 'caixa'}`;
+    return `<span class="gr-caixa">${tams(c.tam)}<span class="gr-cx ${c.solto ? 'solto' : ''}">${rot}</span></span>`;
+  }).join('')}</div>`;
+}
+
+const linhasDaAba = p => p.linhas.filter(l => ST.aba === 'tudo' || (ST.aba === 'carteira' ? l.cart > 0 : l.fat > 0));
+
+function encHtml(p, pi, l, li){
+  const id = pi + ':' + li;
+  const aberta = ST.encAbertas.has(id);
+  const emCart = l.cart > 0;
+  const acao = ST.acoes[id] || 'MANTER';
+  const [stc, stt] = emCart ? ESTADO[acao] : ['st-fat', 'Faturado'];
+  const quando = emCart ? dia(l.prev) : dia(l.dfat);
+  const dataChip = quando ? `<span class="chip dia ${emCart ? '' : 'ok'}"><i class="fa-solid ${emCart ? 'fa-calendar-day' : 'fa-circle-check'}"></i>${quando}</span>` : '<span class="e-mut">—</span>';
+  const ocNf = l.oc || (l.nf ? 'NF ' + l.nf : '—');
+  const pares = emCart ? l.cart : l.fat;
+  // faturada sem grade não tem o que abrir: fica sem seta e sem clique
+  const abre = emCart || !!gradeDe(p, l);
+  return `<div class="enc ${aberta && abre ? 'aberta' : ''} ${emCart ? '' : 'faturada'} ${abre ? '' : 'sem-abrir'}" data-enc="${id}">
+    <div class="enc-main" ${abre ? `role="button" tabindex="0" aria-expanded="${aberta}"` : ''}>
+      <span class="e-cod d-col num">${esc(l.cod)}</span>
+      <div style="min-width:0">
+        <div class="e-cli"><span class="nm">${esc(l.cli)}</span>${gradeDe(p, l) ? '<span class="tem-grade"><i class="fa-solid fa-table-cells"></i>Grade</span>' : ''}</div>
+        <div class="e-sub"><span class="num">${esc(l.cod)}</span>${l.gci ? `<span>· GCI <b class="num" style="color:var(--carteira)">${l.gci}</b></span>` : ''}<span>· ${esc(l.prep)}</span></div>
+      </div>
+      <span class="d-col">${l.gci ? `<span class="e-gci num"><button class="copiar" title="Copiar GCI" data-copiar><i class="fa-regular fa-copy"></i></button>${l.gci}</span>` : '<span class="e-mut">—</span>'}</span>
+      <span class="d-col e-mut num">${esc(ocNf)}</span>
+      <span class="d-col e-mut">${esc(l.prep)}</span>
+      <span class="d-col e-pares e-cart num">${l.cart ? nf(l.cart) + ' <small>pares</small>' : '<span class="zero">—</span>'}</span>
+      <span class="d-col e-pares e-fat num">${l.fat ? nf(l.fat) + ' <small>pares</small>' : '<span class="zero">—</span>'}</span>
+      <span class="d-col e-quando">${dataChip}</span>
+      <span class="d-col"><span class="estado ${stc}"><span class="pt"></span>${stt}</span></span>
+      <div class="e-dir"><span class="e-pares ${emCart ? 'e-cart' : 'e-fat'} num">${nf(pares)} <small>pares</small></span>${dataChip}</div>
+      ${abre ? '<span class="e-seta"><i class="fa-solid fa-chevron-down"></i></span>' : '<span></span>'}
+    </div>
+    ${aberta && abre ? `<div class="enc-det">
+      ${gradeDe(p, l) ? `<div class="det-grade"><span class="rot">Grade</span>${gradeHtml(gradeDe(p, l))}</div>` : '<div></div>'}
+      ${emCart ? `<div class="det-acoes"><span class="rot">Ação da encomenda</span><div class="acoes-pills">
+        ${ACOES.map(([a, c, ic, t]) => `<button class="pill ${c} ${acao === a ? 'on' : ''}" data-acao="${a}"><i class="fa-solid ${ic}"></i>${t}</button>`).join('')}
+      </div></div>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+function prodHtml(p, pi){
+  const v = p.vis[ST.aba];
+  const aberto = ST.abertos.has(pi);
+  const linhas = linhasDaAba(p);
+  const prev = mes(p.prev);
+  return `<article class="prod ${aberto ? 'aberto' : ''}" data-prod="${pi}">
+    <div class="prod-main" role="button" tabindex="0" aria-expanded="${aberto}">
+      <div class="thumb"><img src="../imagens_olympikus/${esc(p.foto)}.jpg" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'fa-solid fa-image'}))"></div>
+      <div style="min-width:0">
+        <div class="p-nome">${esc(p.nome)}</div>
+        <div class="p-sub">
+          <span class="chip cor"><i class="fa-solid fa-palette"></i>${esc(p.cor)}</span>
+          ${prev ? `<span class="chip mes"><i class="fa-regular fa-calendar"></i>${prev}</span>` : ''}
+          <span class="chip art num">${nf(v.clientes)} cli · ${nf(v.encomendas)} enc</span>
+        </div>
+      </div>
+      <span class="d-col"><span class="chip cor"><i class="fa-solid fa-palette"></i>${esc(p.cor)}</span></span>
+      <span class="d-col"><span class="chip art num">Art. <b>${esc(p.ref)}</b></span></span>
+      <span class="d-col">${prev ? `<span class="chip mes"><i class="fa-regular fa-calendar"></i>${prev}</span>` : '—'}</span>
+      <span class="d-col c-num num">${nf(v.clientes)}</span>
+      <span class="d-col c-num fraco num">${nf(v.encomendas)}</span>
+      <span class="d-col c-cart num ${v.carteira ? '' : 'zero'}">${nf(v.carteira)}</span>
+      <span class="d-col c-fat num ${v.faturado ? '' : 'zero'}">${nf(v.faturado)}</span>
+      <div class="p-nums">
+        ${ST.aba === 'faturado' ? `<span class="c-fat num">${nf(v.faturado)}</span><small>faturado</small>`
+          : `<span class="c-cart num ${v.carteira ? '' : 'zero'}">${nf(v.carteira)}</span><small>${v.faturado && ST.aba === 'tudo' ? nf(v.faturado) + ' fat.' : 'em carteira'}</small>`}
+      </div>
+      <span class="abrir"><i class="fa-solid fa-chevron-down"></i></span>
+    </div>
+    ${aberto ? `<div class="enc-area">
+      <div class="enc-topo">
+        <span class="chip num"><i class="fa-solid fa-receipt"></i>${nf(v.encomendas)} encomendas</span>
+        <span class="chip num"><i class="fa-solid fa-store"></i>${nf(v.clientes)} clientes</span>
+        <span class="chip art num">Art. <b>${esc(p.ref)}</b></span>
+        <span class="dica">Toque numa encomenda para ver os detalhes e as ações</span>
+      </div>
+      <div class="enc-cols" aria-hidden="true"><span>Código</span><span>Cliente</span><span>GCI</span><span>OC / NF</span><span>Preposto</span>
+        <span>Carteira</span><span>Faturado</span><span>Prev. / fat.</span><span>Situação</span><span></span></div>
+      <div class="enc-lista">${linhas.length ? linhas.map(l => encHtml(p, pi, l, p.linhas.indexOf(l))).join('')
+        : '<div class="e-mut" style="padding:10px 4px">Nenhuma encomenda nesta aba.</div>'}</div>
+      ${linhas.length < v.encomendas ? `<div class="e-mut num" style="padding:10px 4px 0;font-size:12px">Mostrando ${linhas.length} de ${nf(v.encomendas)} encomendas nesta prévia.</div>` : ''}
+    </div>` : ''}
+  </article>`;
+}
+
+function pintarLista(){
+  const lista = DADOS.produtos.map((p, i) => [p, i]).filter(([p]) => p.vis[ST.aba].encomendas > 0);
+  document.getElementById('lista').innerHTML = lista.map(([p, i]) => prodHtml(p, i)).join('');
+}
+function pintar(){ pintarKpis(); pintarLista(); }
+
+let _t;
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(_t); _t = setTimeout(() => t.classList.remove('on'), 1800); }
+
+document.getElementById('abas').addEventListener('click', e => {
+  const b = e.target.closest('[data-aba]'); if(!b) return;
+  ST.aba = b.dataset.aba;
+  document.querySelectorAll('#abas button').forEach(x => x.classList.toggle('on', x === b));
+  pintar();
+});
+document.getElementById('lista').addEventListener('click', e => {
+  if(e.target.closest('[data-copiar]')){ e.stopPropagation(); toast('GCI copiado (prévia)'); return; }
+  const ac = e.target.closest('[data-acao]');
+  if(ac){ const id = ac.closest('[data-enc]').dataset.enc; ST.acoes[id] = ac.dataset.acao; pintarLista(); toast('Prévia: nada é gravado'); return; }
+  const em = e.target.closest('.enc:not(.sem-abrir) .enc-main');
+  if(em){ const id = em.closest('[data-enc]').dataset.enc; ST.encAbertas.has(id) ? ST.encAbertas.delete(id) : ST.encAbertas.add(id); pintarLista(); return; }
+  const pm = e.target.closest('.prod-main');
+  if(pm){ const i = Number(pm.closest('[data-prod]').dataset.prod); ST.abertos.has(i) ? ST.abertos.delete(i) : ST.abertos.add(i); pintarLista(); }
+});
+document.getElementById('lista').addEventListener('keydown', e => {
+  if((e.key === 'Enter' || e.key === ' ') && e.target.matches('.enc-main, .prod-main')){ e.preventDefault(); e.target.click(); }
+});
+document.querySelector('.paleta').addEventListener('click', e => {
+  const b = e.target.closest('[data-cor]'); if(!b) return;
+  document.documentElement.dataset.cor = b.dataset.cor;
+  document.querySelectorAll('.paleta button').forEach(x => x.classList.toggle('on', x === b));
+});
+document.querySelectorAll('.topo .btn, .barra .filtro, .barra .btn.icone').forEach(b => b.addEventListener('click', () => toast('Prévia: esse botão só mostra o visual')));
+const medirTopo = () => document.documentElement.style.setProperty('--topo-h', document.querySelector('.topo').offsetHeight + 'px');
+medirTopo(); addEventListener('resize', medirTopo);
+pintar();
+</script>
+</body>
+</html>
