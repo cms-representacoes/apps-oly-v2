@@ -4078,7 +4078,7 @@ const state = {
   // linha: recorte da família CORRE. "" = tudo, "corre" = só ela, "sem" = o
   // resto. categoriaEm: quando o card junta mais de uma categoria (a roupa do
   // CORRE é confecção E acessório).
-  filters: { category:"", categoriaEm:null, segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"",
+  filters: { category:"", categoriaEm:null, segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"1S27", tier:"",
              linha:"", novaCor:false, lancamento:false, corre:false, continuidade:false },
   pagination: { pageSize: 24, shown: 0 },
   ui: { lastScrollY: 0, view: 'main' },
@@ -5073,7 +5073,8 @@ function syncColecaoCards(){
   document.querySelectorAll(".colecao-card").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.colecao === state.filters.colecao);
   });
-  // Bar de tier só aparece quando 2S26 está ativa
+  // A barra de classificação é só da 2S26: a 1S27 ainda não tem o tier por
+  // canal preenchido na planilha.
   const wrap = document.getElementById("tierBarWrap");
   if(wrap) wrap.classList.toggle("show", state.filters.colecao === "2S26");
 }
@@ -5091,7 +5092,7 @@ document.querySelectorAll(".colecao-card").forEach(btn => {
     if(typeof toast === "function") toast(`Coleção ${sel} selecionada`);
   });
 });
-// Sincroniza estado visual inicial (2S26 pré-selecionado no boot)
+// Sincroniza estado visual inicial (a coleção corrente, 1S27, vem marcada)
 syncColecaoCards();
 
 // ═══════════ BAR DE CLASSIFICAÇÃO (TIER) ═══════════
