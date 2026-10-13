@@ -2357,9 +2357,12 @@
     }
     #imageViewer .viewer-chip i{ font-size:9px; color:var(--primary); }
     #imageViewer .viewer-rotulo{ font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--vw-suave); }
+    /* As miniaturas aparecem todas: sao a escolha da cor, o que mais se usa
+       aqui. Quem cede espaco e rola e a ficha, logo abaixo. O teto so existe
+       para o caso extremo de um artigo com dezenas de cores. */
     #imageViewer .viewer-miniaturas{
       display:grid; grid-template-columns:repeat(3,1fr); gap:6px; align-content:start;
-      min-height:0; overflow-y:auto; padding:2px; scrollbar-width:thin;
+      flex:none; max-height:58%; overflow-y:auto; padding:2px; scrollbar-width:thin;
     }
     #imageViewer .viewer-miniaturas.hidden{ display:none; }
     #imageViewer .viewer-thumb{
@@ -2373,20 +2376,22 @@
        resumidas — o texto oficial tem 170 caracteres e tomava o painel todo.
        A ficha rola sozinha; os botões ficam presos embaixo. */
     #imageViewer .viewer-ficha{ display:flex; flex-direction:column; gap:9px;
-      border-top:1px dashed var(--vw-linha); padding-top:10px; min-height:0; overflow:auto; }
+      border-top:1px dashed var(--vw-linha); padding-top:10px;
+      flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:thin; }
     #imageViewer .viewer-ficha.hidden{ display:none; }
     #imageViewer .vf-tit{ font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-      color:var(--vw-suave); }
-    #imageViewer .vf-linhas{ display:flex; flex-direction:column; border:1px solid var(--vw-linha);
+      color:var(--vw-suave); flex:none; }
+    #imageViewer .vf-linhas{ display:flex; flex-direction:column; flex:none;
+      border:1px solid var(--vw-linha);
       border-radius:10px; overflow:hidden; background:var(--vw-botao); }
     #imageViewer .vf-lin{ display:flex; align-items:baseline; gap:8px; padding:6px 10px; font-size:11.5px; }
     #imageViewer .vf-lin + .vf-lin{ border-top:1px solid var(--vw-linha); }
     #imageViewer .vf-lin span{ flex:none; width:74px; font-size:9.5px; font-weight:800; letter-spacing:.05em;
       text-transform:uppercase; color:var(--vw-suave); }
     #imageViewer .vf-lin b{ font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
-    #imageViewer .vf-tecs{ display:flex; flex-direction:column; gap:5px; }
+    #imageViewer .vf-tecs{ display:flex; flex-direction:column; gap:5px; flex:none; }
     #imageViewer .vf-tec{ display:flex; gap:8px; align-items:baseline; border-radius:9px; padding:6px 9px;
-      border:1px solid var(--vf-tec-linha); background:var(--vf-tec-bg); }
+      flex:none; border:1px solid var(--vf-tec-linha); background:var(--vf-tec-bg); }
     #imageViewer .vf-tec b{ flex:none; font-size:10px; font-weight:800; letter-spacing:.02em;
       text-transform:uppercase; color:var(--vf-tec); }
     #imageViewer .vf-tec p{ margin:0; font-size:11px; line-height:1.35; color:var(--vw-texto); }
@@ -2406,9 +2411,67 @@
     /* ── o ⓘ da ficha no card ──
        Só no celular e no tablet: no desktop a ficha mora no painel do zoom.
        Fica ao lado da lupa, no canto da foto. */
-    /* o ⓘ sobre a foto, no canto de baixo — a mesma pastilha branca da lupa */
+    /* ── o coração que marca para o catálogo ──
+       Canto de baixo à direita, embaixo da lupa. O ⓘ da ficha, que só aparece
+       no celular e no tablet, desce para a esquerda para não disputar o lugar.
+       Vazado quando solto, cheio quando marcado — o estado se lê de longe. */
+    .btnMarcarCard{
+      position:absolute; right:7px; bottom:7px; z-index:2;
+      width:28px; height:28px; border-radius:999px; padding:0; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      border:1px solid var(--oly-border,#e5e7eb); background:rgba(255,255,255,.95);
+      color:var(--oly-muted,#94a3b8); box-shadow:0 1px 3px rgba(15,23,42,.10);
+      transition:color .15s, border-color .15s, transform .12s;
+    }
+    .btnMarcarCard svg{ width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.1; }
+    .btnMarcarCard:hover{ color:#e11d48; border-color:#fda4af; }
+    .btnMarcarCard.on{ color:#e11d48; border-color:#fda4af; background:#fff1f2; }
+    .btnMarcarCard.on svg{ fill:currentColor; stroke:none; }
+    .btnMarcarCard:active{ transform:scale(.92); }
+    .dark-mode .btnMarcarCard{ background:rgba(31,41,55,.95); border-color:#374151; }
+
+    /* ── a barra dos marcados ──
+       Sobe quando há o primeiro marcado, no canto direito — oposto a tudo o
+       que já mora à esquerda. */
+    #selBarra{
+      position:fixed; right:14px; z-index:60;
+      bottom:calc(14px + env(safe-area-inset-bottom,0px));
+      display:flex; align-items:center; gap:7px; padding:7px 9px; border-radius:34px;
+      background:var(--card-bg,#fff); border:1px solid var(--border,#e5e7eb);
+      box-shadow:0 10px 30px rgba(15,23,42,.18);
+    }
+    #selBarra[hidden]{ display:none; }
+    #selBarra .cont{ display:inline-flex; align-items:center; gap:5px; padding:0 3px;
+      font-size:11.5px; font-weight:800; color:var(--muted,#64748b); white-space:nowrap;
+      font-variant-numeric:tabular-nums; }
+    #selBarra .cont svg{ width:13px; height:13px; fill:#e11d48; }
+    .sel-btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+      border:0; border-radius:999px; padding:9px 13px; font:inherit;
+      font-size:12.5px; font-weight:800; color:#fff; white-space:nowrap; }
+    .sel-btn svg{ width:15px; height:15px; }
+    .sel-btn.todos{ background:transparent; color:var(--text,#0f172a);
+      border:1px solid var(--border,#e5e7eb); }
+    .sel-btn.todos:hover{ background:var(--bg,#f4f6fa); }
+    .sel-btn.link{ background:var(--primary,#7c3aed); }
+    .sel-btn.xlsx{ background:#15803d; }
+    .sel-btn.pdf{ background:#b91c1c; }
+    .sel-btn.limpar{ background:transparent; color:var(--muted,#64748b); padding:9px 10px; }
+    .sel-btn.limpar:hover{ color:var(--text,#0f172a); }
+    .sel-btn:hover{ filter:brightness(1.07); }
+    .dark-mode #selBarra{ background:#1F2937; border-color:#374151; }
+    /* No celular ficam só os ícones: escrito por extenso, a barra atravessava
+       a tela. A cor já diz qual é a planilha e qual é o PDF. */
+    @media(max-width:640px){
+      #selBarra{ left:14px; right:14px; justify-content:center; }
+      #selBarra .cont{ margin-right:auto; }
+      .sel-btn{ padding:9px 11px; gap:0; }
+      .sel-btn > span{ display:none; }
+    }
+    body.com-selecao #cards{ padding-bottom:84px; }
+
+    /* o ⓘ sobre a foto, no canto de baixo à ESQUERDA: a direita é do coração */
     .btnFichaCard{
-      display:none; position:absolute; right:7px; bottom:7px; z-index:2;
+      display:none; position:absolute; left:7px; bottom:7px; z-index:2;
       width:24px; height:24px; border-radius:999px; padding:0; cursor:pointer;
       border:1px solid var(--oly-border,#e5e7eb); background:rgba(255,255,255,.95);
       color:var(--primary); font-size:12px; font-weight:800; line-height:1;
@@ -2431,6 +2494,7 @@
     @keyframes fichaSobe{ from{ transform:translateY(22px); opacity:.7 } to{ transform:none; opacity:1 } }
     @media (prefers-reduced-motion:reduce){ #fichaCardBg .cx{ animation:none } }
     @media (min-width:640px){ #fichaCardBg{ align-items:center } #fichaCardBg .cx{ border-radius:22px } }
+
     #fichaCardBg .topo{ display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
     #fichaCardBg .topo h3{ margin:0; font-size:16px; font-weight:800; line-height:1.25; }
     #fichaCardBg .topo .sub{ font-size:12px; color:var(--muted,#64748b); margin-top:2px; }
@@ -3672,6 +3736,37 @@
     </div>
 
     <!-- Fullscreen Image Viewer -->
+    <!-- O que fazer com os produtos marcados. Link e planilha ainda são só o
+         botão: a função vem depois. O PDF é o catálogo. -->
+    <div id="selBarra" hidden>
+      <span class="cont">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 21.4l8.8-8.4a5.2 5.2 0 0 0 0-7.4z"/></svg>
+        <span id="selN">0</span>
+      </span>
+      <button type="button" class="sel-btn todos" id="btnSelTodos" title="Marcar ou desmarcar todos os da tela">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m3 8 2.5 2.5L10 6"/><path d="m3 17 2.5 2.5L10 15"/><path d="M14 8h7M14 17h7"/></svg>
+        <span>Todos</span></button>
+      <button type="button" class="sel-btn link" id="btnSelLink" title="Gerar link para o cliente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+          <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.2 19"/></svg>
+        <span>Link</span></button>
+      <button type="button" class="sel-btn xlsx" id="btnSelXlsx" title="Gerar planilha dos marcados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+          <path d="m9 13 6 6M15 13l-6 6"/></svg>
+        <span>Planilha</span></button>
+      <button type="button" class="sel-btn pdf" id="btnSelPdf" title="Gerar o catálogo em PDF">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+          <path d="M9 15h6M9 18h3"/></svg>
+        <span>Catálogo</span></button>
+      <button type="button" class="sel-btn limpar" id="btnSelLimpar" title="Desmarcar todos" aria-label="Desmarcar todos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+
     <!-- A ficha aberta pelo ⓘ do card, no celular e no tablet -->
     <div id="fichaCardBg" hidden>
       <div class="cx" role="dialog" aria-modal="true" aria-labelledby="fichaCardTit">
@@ -6554,6 +6649,7 @@ function renderCards(){
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       porFichaNoCard(card, base);
+      porMarcarNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -6608,6 +6704,7 @@ function renderCards(){
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       porFichaNoCard(card, base);
+      porMarcarNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -6662,6 +6759,7 @@ function renderCards(){
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       porFichaNoCard(card, base);
+      porMarcarNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -6726,6 +6824,7 @@ function renderCards(){
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
       porFichaNoCard(card, base);
+      porMarcarNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -9841,6 +9940,382 @@ function renderImageViewer(){
   }
 }
 
+/* ══ MARCADOS PARA O CATÁLOGO ════════════════════════════════════════
+   O coração no canto da foto marca o produto. Com um marcado, a barra sobe
+   com o que dá para fazer com eles: link, planilha e o PDF do catálogo.
+   É a mesma lógica da vitrine do CMS, para quem usa as duas não reaprender. */
+const MARCADOS = new Set();
+const CH_MARCADOS = "oly_catalogo_marcados_v1";
+function chaveMarcado(it){
+  return [String(it?.codigo || "").trim(), String(it?.cor || it?.corCodigo || "").trim()]
+    .filter(Boolean).join("|");
+}
+function carregarMarcados(){
+  try{
+    const a = JSON.parse(lsGet(CH_MARCADOS) || "[]");
+    if(Array.isArray(a)) a.forEach(k => typeof k === "string" && MARCADOS.add(k));
+  }catch(_){}
+}
+function salvarMarcados(){
+  try{ lsSet(CH_MARCADOS, JSON.stringify([...MARCADOS])); }catch(_){}
+}
+function alternarMarcado(k, bt){
+  if(!k) return;
+  if(MARCADOS.has(k)) MARCADOS.delete(k); else MARCADOS.add(k);
+  salvarMarcados();
+  if(bt){
+    const on = MARCADOS.has(k);
+    bt.classList.toggle("on", on);
+    bt.setAttribute("aria-pressed", String(on));
+  }
+  pintarBarraMarcados();
+}
+function marcarTodosDaTela(){
+  const lista = state.productsView || state.productsFiltered || [];
+  const todos = lista.map(chaveMarcado).filter(Boolean);
+  const faltam = todos.filter(k => !MARCADOS.has(k));
+  if(faltam.length) faltam.forEach(k => MARCADOS.add(k));
+  else todos.forEach(k => MARCADOS.delete(k));   // já estavam todos: desmarca
+  salvarMarcados();
+  document.querySelectorAll(".btnMarcarCard").forEach(b => {
+    const on = MARCADOS.has(b.dataset.mk);
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+  pintarBarraMarcados();
+}
+function limparMarcados(){
+  MARCADOS.clear();
+  salvarMarcados();
+  document.querySelectorAll(".btnMarcarCard").forEach(b => {
+    b.classList.remove("on"); b.setAttribute("aria-pressed", "false");
+  });
+  pintarBarraMarcados();
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const liga = (id, fn) => { const b = document.getElementById(id); if(b) b.onclick = fn; };
+  liga("btnSelTodos", marcarTodosDaTela);
+  liga("btnSelLimpar", limparMarcados);
+  // Link e planilha: só o botão por enquanto, a função vem depois.
+  liga("btnSelLink", () => toast && toast("O link dos marcados vem em seguida."));
+  liga("btnSelXlsx", () => toast && toast("A planilha dos marcados vem em seguida."));
+  liga("btnSelPdf", () => { if(typeof gerarCatalogoPdf === "function") gerarCatalogoPdf(); });
+});
+
+function pintarBarraMarcados(){
+  const barra = document.getElementById("selBarra");
+  if(!barra) return;
+  const n = MARCADOS.size;
+  barra.hidden = n === 0;
+  document.body.classList.toggle("com-selecao", n > 0);
+  const el = document.getElementById("selN");
+  if(el) el.textContent = String(n);
+}
+/* O coração vai no canto de baixo da foto, do lado oposto ao ⓘ da ficha. */
+function porMarcarNoCard(card, base){
+  if(!card || !base) return;
+  const alvo = card.querySelector(".btnZoomCard")?.parentElement;
+  if(!alvo || card.querySelector(".btnMarcarCard")) return;
+  const k = chaveMarcado(base);
+  if(!k) return;
+  const on = MARCADOS.has(k);
+  const bt = document.createElement("button");
+  bt.type = "button";
+  bt.className = "btnMarcarCard focus-ring" + (on ? " on" : "");
+  bt.dataset.mk = k;
+  bt.title = "Marcar para o catálogo";
+  bt.setAttribute("aria-label", "Marcar " + (base.produto || "produto") + " para o catálogo");
+  bt.setAttribute("aria-pressed", String(on));
+  bt.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0' +
+    'L12 7l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 21.4l8.8-8.4a5.2 5.2 0 0 0 0-7.4z"/></svg>';
+  alvo.appendChild(bt);
+  bt.addEventListener("click", ev => { ev.stopPropagation(); alternarMarcado(k, bt); });
+}
+
+/* ══ O CATÁLOGO EM PDF ════════════════════════════════════════════════
+   Uma página por artigo, em paisagem: todas as cores marcadas dele num
+   mosaico à esquerda, a ficha à direita. O arquivo baixa direto, com o
+   andamento num painel — sem passar por uma aba e pelo diálogo de imprimir.
+
+   O desenho é feito no jsPDF, que a página já carrega. Dá mais trabalho que
+   fotografar a tela, mas o texto sai vetorial: nítido em qualquer zoom,
+   pesquisável e num arquivo bem menor. Só as fotos viram imagem.
+
+   A grade se ajusta à quantidade de cores; o selo só aparece quando vale
+   para o artigo inteiro — uma lista de códigos de cor não diz nada. */
+const PDF_COLUNAS = n => n <= 2 ? n : n <= 4 ? 2 : n <= 6 ? 3 : n <= 9 ? 4 : 5;
+
+// A4 deitado, em milímetros
+const PDF_L = 297, PDF_A = 210;
+const PDF_MARGEM = 10;
+const PDF_CAB = 16;            // altura do cabeçalho
+const PDF_PE = 11;             // altura do rodapé
+const PDF_COL = 71;            // largura da coluna da ficha
+const PDF_TINTA = [15, 23, 42];
+const PDF_FRACO = [100, 116, 139];
+const PDF_LINHA = [229, 231, 235];
+const PDF_AZUL = [40, 54, 212];
+
+function pdfPreco(v){
+  const n = typeof v === "number" ? v
+    : parseFloat(String(v || "").replace(/[^\d,.-]/g, "").replace(",", "."));
+  return isNaN(n) || !n ? "" : "R$ " + n.toFixed(2).replace(".", ",");
+}
+
+/* As fotos entram como JPEG sobre fundo branco: o PNG do catálogo tem
+   transparência e pesaria o triplo no arquivo final. */
+function pdfCarregaImg(src){
+  return new Promise(resolve => {
+    if(!src) return resolve(null);
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = () => resolve(null);
+    im.src = src;
+  });
+}
+function pdfParaJpeg(im, maxLado){
+  const r = Math.min(1, (maxLado || 760) / Math.max(im.naturalWidth, im.naturalHeight, 1));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(im.naturalWidth * r));
+  c.height = Math.max(1, Math.round(im.naturalHeight * r));
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(im, 0, 0, c.width, c.height);
+  return { dados: c.toDataURL("image/jpeg", 0.84), prop: c.width / c.height };
+}
+let PDF_LOGO = null;
+async function pdfLogo(){
+  if(PDF_LOGO !== null) return PDF_LOGO;
+  const im = await pdfCarregaImg("logo-olympikus.png");
+  PDF_LOGO = im ? pdfParaJpeg(im, 420) : false;
+  return PDF_LOGO;
+}
+
+/* Uma folha. Recebe as fotos já convertidas, porque carregá-las é a parte
+   demorada e ela acontece antes, com o andamento à vista. */
+function pdfDesenhaFolha(doc, itens, fotos){
+  const base = itens[0] || {};
+  const f = fichaDoItem(base) || {};
+  const n = itens.length;
+  const dir = PDF_L - PDF_MARGEM - PDF_COL;   // onde começa a coluna da ficha
+
+  // ── cabeçalho e rodapé
+  if(PDF_LOGO) doc.addImage(PDF_LOGO.dados, "JPEG", PDF_MARGEM, 5.6,
+    5.6 * PDF_LOGO.prop, 5.6);
+  doc.setDrawColor(...PDF_LINHA); doc.setLineWidth(0.2);
+  doc.line(PDF_MARGEM, PDF_CAB, PDF_L - PDF_MARGEM, PDF_CAB);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...PDF_FRACO);
+  doc.setCharSpace(0.4);
+  doc.text(String(base.colecao || "") + (n > 1 ? " · " + n + " cores" : ""),
+    PDF_L - PDF_MARGEM, 10.6, { align: "right" });
+  doc.setCharSpace(0);
+  doc.line(PDF_MARGEM, PDF_A - PDF_PE, PDF_L - PDF_MARGEM, PDF_A - PDF_PE);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+  doc.text("CMS Representações", PDF_MARGEM, PDF_A - PDF_PE + 5);
+  doc.text("Catálogo" + (base.colecao ? " " + base.colecao : "") + " · Olympikus",
+    PDF_L - PDF_MARGEM, PDF_A - PDF_PE + 5, { align: "right" });
+  doc.line(dir - 5, PDF_CAB + 4, dir - 5, PDF_A - PDF_PE - 4);   // divisória
+
+  // ── o mosaico
+  const mx = PDF_MARGEM, my = PDF_CAB + 4;
+  const mw = dir - 5 - 5 - mx, mh = PDF_A - PDF_PE - 4 - my;
+  const cols = PDF_COLUNAS(n), rows = Math.ceil(n / cols), vao = 3;
+  const cw = (mw - vao * (cols - 1)) / cols, ch = (mh - vao * (rows - 1)) / rows;
+  itens.forEach((it, i) => {
+    const x = mx + (i % cols) * (cw + vao), y = my + Math.floor(i / cols) * (ch + vao);
+    doc.setDrawColor(...PDF_LINHA); doc.setLineWidth(0.2);
+    doc.roundedRect(x, y, cw, ch, 2.4, 2.4);
+    const legenda = ch > 22 ? 4.2 : 0;           // caixa miúda não comporta rótulo
+    const foto = fotos[i];
+    if(foto){
+      const cxw = cw - 4, cxh = ch - 4 - legenda;
+      let w = cxw, h = cxw / foto.prop;
+      if(h > cxh){ h = cxh; w = cxh * foto.prop; }
+      doc.addImage(foto.dados, "JPEG", x + (cw - w) / 2, y + 2 + (cxh - h) / 2, w, h);
+    }
+    if(legenda){
+      doc.setFont("helvetica", "bold"); doc.setFontSize(5.8); doc.setTextColor(...PDF_FRACO);
+      doc.setCharSpace(0.15);
+      const rot = String(it.cor || it.corCodigo || "").toUpperCase();
+      doc.text(doc.splitTextToSize(rot, cw - 4)[0] || "", x + cw / 2, y + ch - 2.4, { align: "center" });
+      doc.setCharSpace(0);
+    }
+  });
+
+  // ── a ficha
+  let y = PDF_CAB + 6.5;
+  const larg = PDF_COL;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.setTextColor(...PDF_FRACO);
+  doc.setCharSpace(0.35);
+  doc.text(String([base.segmento, f.genero || base.genero].filter(Boolean).join("  ·  ")).toUpperCase(),
+    dir, y);
+  doc.setCharSpace(0);
+  y += 5.5;
+
+  doc.setFontSize(17); doc.setTextColor(...PDF_TINTA);
+  const nome = doc.splitTextToSize(String(base.produto || f.nome || "").toUpperCase(), larg);
+  nome.slice(0, 3).forEach(l => { doc.text(l, dir, y); y += 6.4; });
+  y += 0.4;
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(...PDF_FRACO);
+  doc.text(String(base.codigo || ""), dir, y);
+  y += 4;
+
+  const todoLanc = itens.every(i => i.isLanc);
+  const todoNovo = !todoLanc && itens.every(i => i.isNewColor);
+  if(todoLanc || todoNovo){
+    const rot = todoLanc ? "LANÇAMENTO" : "COR NOVA";
+    doc.setFontSize(6.5); doc.setCharSpace(0.3);
+    const lw = doc.getTextWidth(rot) + 6;
+    doc.setFillColor(...(todoLanc ? [220, 252, 231] : [237, 233, 254]));
+    doc.roundedRect(dir, y, lw, 4.8, 2.4, 2.4, "F");
+    doc.setTextColor(...(todoLanc ? [21, 128, 61] : [109, 40, 217]));
+    doc.text(rot, dir + 3, y + 3.3);
+    doc.setCharSpace(0);
+    y += 8;
+  }else{
+    y += 2;
+  }
+
+  const pdv = pdfPreco(base.precoRaw);
+  if(pdv){
+    doc.setFont("helvetica", "bold"); doc.setFontSize(19); doc.setTextColor(...PDF_AZUL);
+    doc.text(pdv, dir, y + 5);
+    y += 11;
+  }
+
+  // dados: rótulo à esquerda, valor à direita, com divisória
+  const dados = [["NUMERAÇÃO", base.tam || f.tamanhos], ["ORIGEM", f.origem],
+    ["GÊNERO", f.genero || base.genero], ["LINHA", f.linha],
+    ["COMPOSIÇÃO", f.composicao], n > 1 ? ["CORES", String(n)] : null]
+    .filter(d => d && d[1]);
+  if(dados.length){
+    doc.setDrawColor(...PDF_LINHA); doc.setLineWidth(0.2);
+    doc.line(dir, y, dir + larg, y);
+    for(const [rot, val] of dados){
+      const linhas = doc.splitTextToSize(String(val), larg - 22);
+      const alt = Math.max(5.2, 2.2 + linhas.length * 3.1);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(5.8); doc.setTextColor(...PDF_FRACO);
+      doc.setCharSpace(0.2);
+      doc.text(rot, dir, y + 3.6);
+      doc.setCharSpace(0);
+      doc.setFontSize(8); doc.setTextColor(...PDF_TINTA);
+      linhas.forEach((l, i) => doc.text(l, dir + 21, y + 3.6 + i * 3.1));
+      y += alt;
+      doc.setDrawColor(...PDF_LINHA);
+      doc.line(dir, y, dir + larg, y);
+    }
+    y += 4.5;
+  }
+
+  // tecnologias: nome e o resumo de uma linha, com a barra azul à esquerda
+  const tecs = f.tecnologias || [];
+  if(tecs.length){
+    doc.setFont("helvetica", "bold"); doc.setFontSize(5.8); doc.setTextColor(...PDF_FRACO);
+    doc.setCharSpace(0.35);
+    doc.text("TECNOLOGIAS", dir, y);
+    doc.setCharSpace(0);
+    y += 4;
+    const fim = PDF_A - PDF_PE - 5;
+    for(const t of tecs){
+      const resumo = doc.splitTextToSize(String(t.resumo || t.texto || ""), larg - 3);
+      const alt = 3.2 + resumo.length * 3;
+      if(y + alt > fim) break;                   // o que não cabe fica de fora
+      doc.setFillColor(...PDF_AZUL);
+      doc.rect(dir, y - 2.2, 0.6, alt, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(...PDF_TINTA);
+      doc.setCharSpace(0.15);
+      doc.text(String(t.nome || "").toUpperCase(), dir + 2.6, y);
+      doc.setCharSpace(0);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(71, 85, 105);
+      resumo.forEach((l, i) => doc.text(l, dir + 2.6, y + 3.2 + i * 3));
+      y += alt + 2.4;
+    }
+  }
+}
+
+/* O andamento usa o PdfProg, o mesmo painel do PDF do pedido: um modal só
+   para as duas coisas, e sem dois elementos disputando os mesmos ids.
+   Conta foto, não página — carregar as imagens é o que leva tempo, e com três
+   produtos a barra saltaria de 0 a 33 e ficaria parada. */
+function pdfAndamento(fracao, pagina, total, texto){
+  const pct = Math.max(0, Math.min(100, Math.round(fracao * 100)));
+  PdfProg.passo(texto || "", pct, pagina ? "página " + pagina + " de " + total : "");
+  // uma volta no laço de pintura, senão a barra só anda no fim
+  return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+}
+
+async function gerarCatalogoPdf(){
+  if(!MARCADOS.size){ toast && toast("Marque pelo menos um produto."); return; }
+  const motor = window.jspdf && window.jspdf.jsPDF;
+  if(!motor){ toast && toast("O gerador de PDF não carregou. Atualize a página."); return; }
+  await carregarFichas();
+
+  /* Junta as cores marcadas por artigo. A tela vem primeiro e a planilha
+     inteira depois: o mesmo código|cor existe em mais de uma coleção, e sem
+     essa ordem o catálogo da 1S27 saía com os preços e o carimbo da 2S26.
+     O que foi marcado e não está mais na tela ainda assim entra. */
+  const vistos = new Set();
+  const porArtigo = new Map();
+  const juntar = lista => {
+    for(const it of (lista || [])){
+      const k = chaveMarcado(it);
+      if(!k || !MARCADOS.has(k) || vistos.has(k)) continue;
+      vistos.add(k);
+      const art = String(it.codigo || "").trim() || k;
+      if(!porArtigo.has(art)) porArtigo.set(art, []);
+      porArtigo.get(art).push(it);
+    }
+  };
+  juntar(state.productsView);
+  juntar(state.productsFiltered);
+  juntar(state.productsRaw);
+  if(!porArtigo.size){ toast && toast("Não achei os produtos marcados."); return; }
+
+  const grupos = [...porArtigo.values()];
+  const total = grupos.length;
+  const totalFotos = grupos.reduce((s, g) => s + g.length, 0);
+  let feitas = 0;
+  PdfProg.abrir();
+  const tit = document.getElementById("pdfProgTitulo");
+  if(tit) tit.textContent = "Montando o catálogo";
+  await pdfAndamento(0, 0, total, "preparando as páginas");
+
+  try{
+    await pdfLogo();
+    const doc = new motor({ orientation: "landscape", unit: "mm", format: "a4" });
+    doc.setProperties({ title: "Catálogo Olympikus", creator: "CMS Representações" });
+
+    for(let i = 0; i < grupos.length; i++){
+      const itens = grupos[i];
+      const nome = itens[0]?.produto || itens[0]?.codigo || "";
+      // quanto maior o mosaico, menor cada foto: não adianta guardar pixel que
+      // não vai aparecer, e o arquivo agradece
+      const lado = itens.length <= 2 ? 900 : itens.length <= 6 ? 700 : 520;
+      const fotos = [];
+      for(const it of itens){
+        await pdfAndamento(feitas / totalFotos, i + 1, total, nome);
+        const im = await pdfCarregaImg(resolveImageSrc(it.imagem));
+        fotos.push(im ? pdfParaJpeg(im, lado) : null);
+        feitas++;
+      }
+      if(i > 0) doc.addPage();
+      pdfDesenhaFolha(doc, itens, fotos);
+    }
+
+    await pdfAndamento(1, total, total, "Salvando o arquivo…");
+    const hoje = new Date();
+    const carimbo = hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, "0") +
+      String(hoje.getDate()).padStart(2, "0");
+    const col = (grupos[0][0]?.colecao || "").toLowerCase().replace(/[^\w]+/g, "");
+    doc.save(["catalogo-olympikus", col, carimbo].filter(Boolean).join("-") + ".pdf");
+    PdfProg.concluir();
+    toast && toast(total + (total > 1 ? " produtos salvos" : " produto salvo") + " em PDF.");
+  }catch(e){
+    PdfProg.falhar(e);
+  }
+}
+
 /* ══ A FICHA DO CATÁLOGO OFICIAL ══════════════════════════════════════
    data/fichas-oly.json traz, por artigo, a composição, a origem e as
    tecnologias — lidas da página de cada produto no catálogo da Olympikus,
@@ -9870,7 +10345,7 @@ function renderViewerFicha(item){
   const esc = s => String(s == null ? "" : s)
     .replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
   const linhas = [["Origem", f.origem], ["Gênero", f.genero], ["Tamanhos", f.tamanhos],
-                  ["Composição", f.composicao]]
+                  ["Linha", f.linha], ["Composição", f.composicao]]
     .filter(x => x[1])
     .map(x => `<div class="vf-lin"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
   const tecs = (f.tecnologias || [])
@@ -9894,7 +10369,7 @@ function abrirFichaDoCard(item){
   $("fichaCardTit").textContent = item.produto || f.nome || item.codigo || "Produto";
   $("fichaCardSub").textContent = [item.codigo, item.cor].filter(Boolean).join(" · ");
   const linhas = [["Origem", f.origem], ["Gênero", f.genero], ["Tamanhos", f.tamanhos],
-                  ["Composição", f.composicao]]
+                  ["Linha", f.linha], ["Composição", f.composicao]]
     .filter(x => x[1])
     .map(x => `<div class="vf-lin"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
   const tecs = (f.tecnologias || [])
@@ -11687,6 +12162,7 @@ function injectHomeCategoryImages(){
     if(typeof injectHomeCategoryImages === "function") injectHomeCategoryImages();
     // as fichas entram em paralelo: o catálogo não espera por elas
     if(typeof carregarFichas === "function") carregarFichas();
+    if(typeof carregarMarcados === "function"){ carregarMarcados(); pintarBarraMarcados(); }
   };
 
   function _applyCategory(cat){
