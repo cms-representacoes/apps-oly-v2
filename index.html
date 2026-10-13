@@ -666,10 +666,24 @@
     /* sem contagem na tela, é a coleção que segura a ponta esquerda */
     .filtro-chips:has(.selo-conta:empty) .selo-colecao{ margin-right:auto; }
     .dark-mode .selo-conta{ color:#9BA3BC; border-color:#374151; }
-    @media (max-width:520px){
-      /* no celular, encostar à direita deixa a última linha solta — aqui
-         a fila volta a começar pela esquerda */
-      .filtro-chips{ justify-content:flex-start; padding-left:2px; padding-right:0; }
+    /* No celular e no tablet a fila ROLA em vez de empilhar: empilhada, ela
+       comia duas linhas e empurrava os produtos para baixo da dobra. O rolar
+       é por toque; a barra fica escondida e as pontas desbotam para mostrar
+       que há mais coisa de cada lado. */
+    @media (max-width:899.98px){
+      .filtro-chips{
+        flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; overflow-y:hidden;
+        -webkit-overflow-scrolling:touch; scrollbar-width:none;
+        padding-left:2px; padding-right:2px; padding-bottom:2px;
+        /* desbota as pontas, só do lado em que ainda há fila */
+        mask-image:linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+        -webkit-mask-image:linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+        scroll-snap-type:x proximity;
+      }
+      .filtro-chips::-webkit-scrollbar{ display:none; }
+      .filtro-chips > *{ flex:none; scroll-snap-align:start; }
+      /* sem fila para rolar, as pontas não precisam desbotar */
+      .filtro-chips.cabe{ mask-image:none; -webkit-mask-image:none; }
     }
     .chip-f{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
       font-size:11.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
@@ -2389,6 +2403,59 @@
     #imageViewer .viewer-nav-mob{ display:none; }
     #imageViewer .viewer-indice{ font-size:12px; font-weight:800; color:var(--vw-suave); }
 
+    /* ── o ⓘ da ficha no card ──
+       Só no celular e no tablet: no desktop a ficha mora no painel do zoom.
+       Fica ao lado da lupa, no canto da foto. */
+    /* o ⓘ sobre a foto, no canto de baixo — a mesma pastilha branca da lupa */
+    .btnFichaCard{
+      display:none; position:absolute; right:7px; bottom:7px; z-index:2;
+      width:24px; height:24px; border-radius:999px; padding:0; cursor:pointer;
+      border:1px solid var(--oly-border,#e5e7eb); background:rgba(255,255,255,.95);
+      color:var(--primary); font-size:12px; font-weight:800; line-height:1;
+      align-items:center; justify-content:center; font-family:inherit;
+      box-shadow:0 1px 3px rgba(15,23,42,.10);
+    }
+    .btnFichaCard:hover{ background:var(--oly-bg,#f4f6fa); }
+    .dark-mode .btnFichaCard{ background:rgba(31,41,55,.95); border-color:#374151; }
+    @media (max-width:899.98px), (orientation:portrait){
+      .btnFichaCard{ display:inline-flex; }
+    }
+    /* o quadro da ficha, aberto pelo ⓘ */
+    #fichaCardBg{ position:fixed; inset:0; z-index:120; display:flex; align-items:flex-end;
+      justify-content:center; background:rgba(15,23,42,.55); backdrop-filter:blur(2px); }
+    #fichaCardBg[hidden]{ display:none; }
+    #fichaCardBg .cx{ background:var(--card-bg,#fff); color:var(--text,#0f172a);
+      width:min(560px,100%); max-height:86vh; overflow:auto; border-radius:22px 22px 0 0;
+      padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));
+      animation:fichaSobe .22s cubic-bezier(.22,1,.36,1); }
+    @keyframes fichaSobe{ from{ transform:translateY(22px); opacity:.7 } to{ transform:none; opacity:1 } }
+    @media (prefers-reduced-motion:reduce){ #fichaCardBg .cx{ animation:none } }
+    @media (min-width:640px){ #fichaCardBg{ align-items:center } #fichaCardBg .cx{ border-radius:22px } }
+    #fichaCardBg .topo{ display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+    #fichaCardBg .topo h3{ margin:0; font-size:16px; font-weight:800; line-height:1.25; }
+    #fichaCardBg .topo .sub{ font-size:12px; color:var(--muted,#64748b); margin-top:2px; }
+    #fichaCardBg .topo button{ flex:none; width:32px; height:32px; border-radius:999px;
+      border:1px solid var(--border,#e2e8f0); background:transparent; color:var(--muted,#64748b);
+      font-size:15px; cursor:pointer; }
+    #fichaCardBg .vf-linhas{ display:flex; flex-direction:column; border:1px solid var(--border,#e2e8f0);
+      border-radius:12px; overflow:hidden; margin-bottom:12px; }
+    #fichaCardBg .vf-lin{ display:flex; align-items:baseline; gap:10px; padding:9px 12px; font-size:13px; }
+    #fichaCardBg .vf-lin + .vf-lin{ border-top:1px solid var(--border,#e2e8f0); }
+    #fichaCardBg .vf-lin span{ flex:none; width:86px; font-size:10px; font-weight:800; letter-spacing:.05em;
+      text-transform:uppercase; color:var(--muted,#64748b); }
+    #fichaCardBg .vf-lin b{ font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+    #fichaCardBg .vf-tit{ font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--muted,#64748b); margin-bottom:7px; }
+    #fichaCardBg .vf-tecs{ display:flex; flex-direction:column; gap:7px; }
+    #fichaCardBg .vf-tec{ border:1px solid var(--vf-tec-linha,#99f6e4); background:var(--vf-tec-bg,#f0fdfa);
+      border-radius:11px; padding:9px 11px; }
+    #fichaCardBg .vf-tec b{ display:block; font-size:11.5px; font-weight:800; text-transform:uppercase;
+      color:var(--vf-tec,#0f766e); }
+    #fichaCardBg .vf-tec p{ margin:3px 0 0; font-size:13px; line-height:1.4; }
+    .dark-mode #fichaCardBg .cx{ background:#1F2937; color:#e5e7eb; }
+    .dark-mode #fichaCardBg .vf-tec{ background:rgba(45,212,191,.10); border-color:rgba(94,234,212,.28); }
+    .dark-mode #fichaCardBg .vf-tec b{ color:#5eead4; }
+
     /* celular e tablet em pé: uma coluna */
     @media (max-width:899.98px), (orientation:portrait){
       #imageViewer .viewer-caixa{ flex-direction:column; height:auto; max-height:100%; overflow-y:auto; padding:14px; gap:10px; }
@@ -2405,6 +2472,10 @@
       #imageViewer .viewer-acao{ flex:none; padding:0 18px; }
       #imageViewer .viewer-nav-mob{ display:flex; align-items:center; gap:8px; margin-right:auto; }
       #imageViewer .viewer-nav-mob .viewer-seta{ display:none; }
+      /* Aqui o painel vira display:contents e cada parte tem a sua ordem: a
+         ficha caía antes do nome e da foto. No lugar dela, o ⓘ no card abre a
+         ficha num quadro próprio — mais perto de onde o dedo já está. */
+      #imageViewer .viewer-ficha{ display:none !important; }
     }
     /* celular: setas junto dos botões, foto com a largura toda */
     @media (max-width:639.98px){
@@ -3601,6 +3672,20 @@
     </div>
 
     <!-- Fullscreen Image Viewer -->
+    <!-- A ficha aberta pelo ⓘ do card, no celular e no tablet -->
+    <div id="fichaCardBg" hidden>
+      <div class="cx" role="dialog" aria-modal="true" aria-labelledby="fichaCardTit">
+        <div class="topo">
+          <div style="flex:1;min-width:0">
+            <h3 id="fichaCardTit">—</h3>
+            <div class="sub" id="fichaCardSub">—</div>
+          </div>
+          <button type="button" id="fichaCardX" aria-label="Fechar">✕</button>
+        </div>
+        <div id="fichaCardCorpo"></div>
+      </div>
+    </div>
+
     <div id="imageViewer" class="hidden fixed inset-0 z-[70]">
       <div class="backdrop absolute inset-0" data-close-viewer="true"></div>
       <div class="absolute inset-0 flex items-center justify-center p-2">
@@ -5010,14 +5095,12 @@ function buildFilterOptions(){
 
   setToggleUI();
 }
-/* Limpa os FILTROS — a coleção não é um deles. Ela é a tela em que ele está:
-   quem está na 1S27 e limpa os filtros continua na 1S27, não volta para a
-   2S26. O parâmetro antigo (manterColecao) deixou de existir porque nenhum
-   chamador queria o contrário; a coleção muda só pelo seletor de coleção. */
+/* Limpa os FILTROS — e só eles. A COLEÇÃO e a CATEGORIA não são filtros: são
+   a tela em que ele está. Quem entrou em Tênis na 1S27 e limpa continua em
+   Tênis na 1S27; antes voltava para o catálogo inteiro e tinha de escolher o
+   card de novo. Essas duas mudam pelo seletor de coleção e pelos cards da tela
+   inicial — ou por limparTela(), que o "Ver todos" usa. */
 function clearAllFilters(){
-  state.filters.category = "";
-  state.filters.categoriaEm = null;
-  state.filters.linha = "";
   state.filters.segment = "";
   state.filters.gender = "";
   state.filters.sort = "default";
@@ -5029,20 +5112,34 @@ function clearAllFilters(){
   state.filters.continuidade = false;
   state.filters.tier = "";
   const _sl = $("sliderPrice"); if(_sl){ _sl.value=_sl.max; if(typeof updateSliderLabel==="function") updateSliderLabel(); }
-  // reset cat chips
-  document.querySelectorAll(".cat-chip").forEach(b=>b.classList.toggle("active", b.dataset.cat===""));
+  // o chip e o seletor de categoria seguem a tela, que não se perde aqui:
+  // desmarcá-los faria a tela dizer "todas" enquanto mostra só uma categoria
+  const _cat = state.filters.category || "";
+  document.querySelectorAll(".cat-chip").forEach(b=>b.classList.toggle("active", b.dataset.cat===_cat));
   state.groupColors = false;
 
   // close search and reset query silently
   $("searchInput").value = "";
   closeSearch({ silent:true });
 
-  $("filterCategory").value = "";
+  $("filterCategory").value = _cat;
   $("filterSegment").value = "";
   $("filterGender").value = "";
   $("sortBy").value = "default";
   setToggleUI();
 }
+/* "Ver todos": aí sim a tela inteira volta ao zero — sem categoria e sem o
+   recorte da linha CORRE. A coleção continua de fora: é a vitrine do semestre. */
+function limparTela(){
+  state.filters.category = "";
+  state.filters.categoriaEm = null;
+  state.filters.linha = "";
+  clearAllFilters();
+  document.querySelectorAll(".cat-chip").forEach(b => b.classList.toggle("active", b.dataset.cat === ""));
+  const sel = document.getElementById("filterCategory");
+  if(sel) sel.value = "";
+}
+
 $("btnClear").addEventListener("click", ()=>{
   clearAllFilters();
   // "Limpar" volta ao padrão da tela: 2 colunas no celular, 3 no resto
@@ -5457,7 +5554,19 @@ function pintarChipsFiltro(){
   // a fila some só quando não há chip nem coleção a mostrar
   chips.hidden = !state.filters.colecao && !state.productsView.length &&
     [...chips.querySelectorAll(".chip-f")].every(b => b.hidden);
+  medirFilaChips();
 }
+
+/* As pontas da fila só desbotam quando há mesmo o que rolar; com três chips
+   num tablet largo, o desbotar sem motivo parecia defeito. */
+function medirFilaChips(){
+  const chips = document.getElementById("filtroChips");
+  if(!chips) return;
+  requestAnimationFrame(() => {
+    chips.classList.toggle("cabe", chips.scrollWidth <= chips.clientWidth + 2);
+  });
+}
+addEventListener("resize", medirFilaChips);
 
 function refreshView(resetPaging){
   if(resetPaging) state.pagination.shown = 0;
@@ -6444,6 +6553,7 @@ function renderCards(){
       card.addEventListener("click", ()=> _openCardZoom(base));
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
+      porFichaNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -6497,6 +6607,7 @@ function renderCards(){
       card.addEventListener("click", ()=> _openCardZoom(base));
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
+      porFichaNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -6550,6 +6661,7 @@ function renderCards(){
       card.addEventListener("click", ()=> _openCardZoom(base));
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
+      porFichaNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -6613,6 +6725,7 @@ function renderCards(){
       card.querySelector("[data-gridopen]").addEventListener("click", ()=> _openCardZoom(base));
       card.addEventListener("keydown", ev=>{ if(ev.key==="Enter") _openCardZoom(base); });
       card.querySelector(".btnZoomCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); openImageViewerAngles(buildAngleSrcs(base?.imagem), 0, base); });
+      porFichaNoCard(card, base);
       card.querySelector(".btnAdd")?.addEventListener("click", ev=>{ ev.stopPropagation(); handleMainCardAdd(base, ev.currentTarget); });
       card.querySelector(".btnGradeCard")?.addEventListener("click", ev=>{ ev.stopPropagation(); abrirGradeDoCard(base); });
       updateAddButtonUI(card.querySelector(".btnAdd"), cardKey);
@@ -9768,6 +9881,67 @@ function renderViewerFicha(item){
   el.classList.remove("hidden");
 }
 
+/* ── o ⓘ da ficha no card ───────────────────────────────────────────────
+   No celular e no tablet o painel do zoom vira uma coluna e a ficha ficava
+   antes do nome e da foto. Lá ela sai de cena e a ficha passa a abrir por um
+   botão no próprio card, como na vitrine do CMS — perto de onde o dedo já
+   está, sem precisar ampliar a imagem antes. */
+function abrirFichaDoCard(item){
+  const f = fichaDoItem(item);
+  if(!f) return;
+  const esc = s => String(s == null ? "" : s)
+    .replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+  $("fichaCardTit").textContent = item.produto || f.nome || item.codigo || "Produto";
+  $("fichaCardSub").textContent = [item.codigo, item.cor].filter(Boolean).join(" · ");
+  const linhas = [["Origem", f.origem], ["Gênero", f.genero], ["Tamanhos", f.tamanhos],
+                  ["Composição", f.composicao]]
+    .filter(x => x[1])
+    .map(x => `<div class="vf-lin"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
+  const tecs = (f.tecnologias || [])
+    .map(x => `<div class="vf-tec"><b>${esc(x.nome)}</b><p>${esc(x.resumo || x.texto)}</p></div>`).join("");
+  $("fichaCardCorpo").innerHTML =
+    (linhas ? `<div class="vf-linhas">${linhas}</div>` : "") +
+    (tecs ? `<div class="vf-tit">Tecnologias</div><div class="vf-tecs">${tecs}</div>` : "");
+  $("fichaCardBg").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function fecharFichaDoCard(){
+  const bg = $("fichaCardBg");
+  if(!bg || bg.hidden) return;
+  bg.hidden = true;
+  if(!document.querySelector("#imageViewer:not(.hidden)")) document.body.style.overflow = "";
+}
+document.addEventListener("click", ev => {
+  if(ev.target && ev.target.id === "fichaCardBg") fecharFichaDoCard();
+  if(ev.target && ev.target.closest && ev.target.closest("#fichaCardX")) fecharFichaDoCard();
+});
+document.addEventListener("keydown", ev => {
+  if(ev.key === "Escape" && !$("fichaCardBg")?.hidden) fecharFichaDoCard();
+});
+
+/* Põe o ⓘ no fim da linha do preço, só quando o produto tem ficha — o mesmo
+   lugar que ele ocupa na vitrine do CMS. Um dos quatro desenhos de card não
+   tem essa linha; nele o botão vai para o fim do corpo. O CSS decide se
+   aparece: no desktop fica escondido, porque lá a ficha mora no painel. */
+function porFichaNoCard(card, base){
+  if(!card || !base || !fichaDoItem(base)) return;
+  if(card.querySelector(".btnFichaCard")) return;
+  /* No canto de baixo da FOTO. A linha do preço e o rodapé seriam os lugares
+     naturais, mas os dois já estão apertados no celular: na linha do preço o ⓘ
+     cortava o valor (de 45 para 32px) e no rodapé roubava o botão de grade.
+     Sobre a foto ele não disputa espaço com ninguém. */
+  const alvo = card.querySelector(".btnZoomCard")?.parentElement;
+  if(!alvo) return;
+  const bt = document.createElement("button");
+  bt.type = "button";
+  bt.className = "btnFichaCard focus-ring";
+  bt.setAttribute("aria-label", "Ver a ficha do produto");
+  bt.title = "Ficha: composição, origem e tecnologias";
+  bt.textContent = "i";
+  alvo.appendChild(bt);
+  bt.addEventListener("click", ev => { ev.stopPropagation(); abrirFichaDoCard(base); });
+}
+
 // "2/5" no painel e junto das setas do celular; com uma cor só, nada disso aparece
 function _viewerPosicao(idx, total){
   const txt = total > 1 ? `${idx+1}/${total}` : "";
@@ -11336,8 +11510,8 @@ function updateSliderLabel(){
         refreshView(true);
       }
     } else {
-      // "Ver todos" — limpa filtros, menos a coleção escolhida na tela inicial
-      clearAllFilters();
+      // "Ver todos" — zera a tela, menos a coleção escolhida na tela inicial
+      limparTela();
       if(typeof syncColecaoCards === "function") syncColecaoCards();
       if(typeof syncTierBar === "function") syncTierBar();
       if(state.productsRaw && state.productsRaw.length > 0) refreshView(true);
@@ -11523,7 +11697,7 @@ function injectHomeCategoryImages(){
     var sel = document.getElementById("filterCategory");
     if(sel) sel.value = cat || "";
     if(!cat){
-      clearAllFilters();
+      limparTela();
       if(typeof syncColecaoCards === "function") syncColecaoCards();
       if(typeof syncTierBar === "function") syncTierBar();
     }
