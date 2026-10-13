@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Todas as cores numa página</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<style>
+  :root{ --tinta:#0F172A; --fraco:#64748b; --linha:#E5E7EB; --azul:#2836D4; }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:#30343c; color:var(--tinta);
+    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif }
+  .aviso{ max-width:1120px; margin:22px auto 16px; color:#cbd5e1; font-size:13.5px;
+    line-height:1.55; padding:0 16px }
+  .aviso b{ color:#fff }
+  .aviso h1{ margin:0 0 6px; font-size:20px; font-weight:800; color:#fff }
+
+  .folha{ width:1120px; height:792px; margin:0 auto 22px; background:#fff;
+    display:flex; flex-direction:column; box-shadow:0 18px 44px rgba(0,0,0,.45); overflow:hidden }
+  .cab{ flex:none; height:60px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; border-bottom:1px solid var(--linha) }
+  .cab .logo{ height:21px; width:auto }
+  .cab .col{ font-size:11px; font-weight:800; letter-spacing:.14em; color:var(--fraco) }
+  .miolo{ flex:1; min-height:0; display:flex; gap:26px; padding:20px 26px }
+
+  /* O mosaico enche a largura primeiro: a área é mais larga que alta, e assim
+     cada foto fica com a maior caixa possível. */
+  .mosaico{ flex:1 1 auto; min-width:0; display:grid; gap:10px;
+    grid-template-columns:repeat(var(--cols,4), 1fr); align-content:stretch }
+  .mosaico figure{ margin:0; min-height:0; display:flex; flex-direction:column; gap:4px;
+    border:1px solid var(--linha); border-radius:11px; padding:8px 8px 6px; background:#fff }
+  .mosaico img{ flex:1; min-height:0; width:100%; object-fit:contain }
+  .mosaico figcaption{ flex:none; font-size:9px; font-weight:800; letter-spacing:.06em;
+    color:var(--fraco); text-transform:uppercase; text-align:center;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+
+  .dados{ flex:none; width:268px; border-left:1px solid var(--linha); padding-left:20px;
+    display:flex; flex-direction:column }
+  .dados .seg{ margin:0; font-size:10px; font-weight:800; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--fraco) }
+  .dados h2{ margin:5px 0 2px; font-size:24px; font-weight:800; line-height:1.07;
+    letter-spacing:-.02em; text-transform:uppercase }
+  .dados .art{ margin:0; font-size:12px; font-weight:700; color:var(--fraco);
+    font-variant-numeric:tabular-nums }
+  .selo{ display:inline-block; align-self:flex-start; margin-top:9px; padding:4px 11px;
+    border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.07em;
+    text-transform:uppercase }
+  .selo.lanc{ background:#DCFCE7; color:#15803D }
+  .selo.nova{ background:#EDE9FE; color:#6D28D9 }
+  .dados .pdv{ margin:12px 0 0; font-size:28px; font-weight:800; color:var(--azul);
+    letter-spacing:-.02em; font-variant-numeric:tabular-nums }
+
+  /* a ficha: dados primeiro, tecnologias depois */
+  .dados dl{ margin:13px 0 0; display:flex; flex-direction:column;
+    border-top:1px solid var(--linha) }
+  .dados dl > div{ display:flex; align-items:baseline; gap:10px; padding:6px 0;
+    border-bottom:1px solid var(--linha) }
+  .dados dt{ flex:none; width:76px; font-size:9px; font-weight:800; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--fraco) }
+  .dados dd{ margin:0; font-size:12px; font-weight:700; line-height:1.3 }
+
+  .tec{ margin-top:14px }
+  .tec .tt{ margin:0 0 7px; font-size:9px; font-weight:800; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--fraco) }
+  .tec ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px }
+  .tec li{ display:flex; flex-direction:column; gap:1px; padding-left:9px;
+    border-left:2px solid var(--azul) }
+  .tec strong{ font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase }
+  .tec span{ font-size:10.5px; font-weight:500; line-height:1.34; color:#475569 }
+
+  .pe{ flex:none; height:40px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; border-top:1px solid var(--linha); font-size:10px; color:var(--fraco);
+    font-weight:600 }
+
+  @media print{
+    @page{ size:A4 landscape; margin:0 }
+    body{ background:#fff }
+    .aviso{ display:none }
+    .folha{ width:100%; height:100vh; margin:0; box-shadow:none; page-break-after:always }
+  }
+</style>
+</head>
+<body>
+  <div class="aviso">
+    <h1>Todas as cores numa página, com a ficha</h1>
+    <p>Todas as cores do produto na mesma página e a <b>ficha técnica</b> na coluna da direita —
+       dados primeiro, tecnologias depois, sem descrição. A primeira é de
+       <b>calçado</b> e as outras duas de vestuário — todas lendo as 212 fichas
+       trazidas do catálogo oficial. <b>Ctrl+P</b> mostra como sai impresso.</p>
+  </div>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27 · 7 cores</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico" style="--cols:4">
+        <figure>
+          <img src="imagens_olympikus/43560542_PTO_PT.jpg" alt="PTO/PT">
+          <figcaption>PTO/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_MRF_PT.jpg" alt="MRF/PT">
+          <figcaption>MRF/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_AREPET.jpg" alt="AREPET">
+          <figcaption>AREPET</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_CHBMLT.jpg" alt="CHBMLT">
+          <figcaption>CHBMLT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_BCMHAZ.jpg" alt="BCMHAZ">
+          <figcaption>BCMHAZ</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_CNZMST.jpg" alt="CNZMST">
+          <figcaption>CNZMST</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_DPBCPK.jpg" alt="DPBCPK">
+          <figcaption>DPBCPK</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Corrida · Unissex</p>
+        <h2>FOCO</h2>
+        <p class="art">43560542</p>
+        <span class="selo lanc">Lançamento</span>
+        <p class="pdv">R$ 299,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>34/48</dd></div>
+          <div><dt>Origem</dt><dd>Nacional</dd></div>
+          <div><dt>Gênero</dt><dd>Unissex</dd></div>
+          <div><dt>Linha</dt><dd>Corrida/Treino</dd></div>
+          
+          <div><dt>Cores</dt><dd>7</dd></div>
+        </dl>
+        <div class="tec">
+          <p class="tt">Tecnologias</p>
+          <ul><li>
+            <strong>ELEVA +</strong>
+            <span>Amortece a passada e devolve a energia.</span>
+          </li><li>
+            <strong>HYPERSOX</strong>
+            <span>Cano em meia: leve, flexível e fácil de calçar.</span>
+          </li><li>
+            <strong>ULTRAX</strong>
+            <span>Solado antiderrapante e mais durável.</span>
+          </li></ul>
+        </div>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27 · 8 cores</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico" style="--cols:4">
+        <figure>
+          <img src="imagens_olympikus/OIWWT26615_PRETO.jpg" alt="PRETO">
+          <figcaption>PRETO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_BRANCO.jpg" alt="BRANCO">
+          <figcaption>BRANCO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_MAUVE.jpg" alt="MAUVE">
+          <figcaption>MAUVE</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_SALMAO.jpg" alt="SALMAO">
+          <figcaption>SALMAO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_JEANS.jpg" alt="JEANS">
+          <figcaption>JEANS</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_NAVAL.jpg" alt="NAVAL">
+          <figcaption>NAVAL</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_TAPTRY.jpg" alt="TAPTRY">
+          <figcaption>TAPTRY</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/OIWWT26615_ORVLHO.jpg" alt="ORVLHO">
+          <figcaption>ORVLHO</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Treino · Feminino</p>
+        <h2>T-SHIRT ESSENTIAL MC F</h2>
+        <p class="art">OIWWT26615</p>
+        
+        <p class="pdv">R$ 89,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>P-M-G-GG-G1-G2-G3</dd></div>
+          <div><dt>Origem</dt><dd>Importado</dd></div>
+          <div><dt>Gênero</dt><dd>Feminino</dd></div>
+          <div><dt>Linha</dt><dd>Vestuário</dd></div>
+          <div><dt>Composição</dt><dd>100% Poliéster</dd></div>
+          <div><dt>Cores</dt><dd>8</dd></div>
+        </dl>
+        <div class="tec">
+          <p class="tt">Tecnologias</p>
+          <ul><li>
+            <strong>DRY ACTION</strong>
+            <span>Absorve e elimina o suor, sem grudar no corpo.</span>
+          </li><li>
+            <strong>SOLARTECH</strong>
+            <span>Protege dos raios UVA e UVB.</span>
+          </li></ul>
+        </div>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27 · 7 cores</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico" style="--cols:4">
+        <figure>
+          <img src="imagens_olympikus/43279525_CHB_PT.jpg" alt="CHB/PT">
+          <figcaption>CHB/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_MRHO.jpg" alt="MRHO">
+          <figcaption>MRHO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_ARENIT.jpg" alt="ARENIT">
+          <figcaption>ARENIT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_PRETO.jpg" alt="PRETO">
+          <figcaption>PRETO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_CASTOR.jpg" alt="CASTOR">
+          <figcaption>CASTOR</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_ALGODA.jpg" alt="ALGODA">
+          <figcaption>ALGODA</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_ROSA.jpg" alt="ROSA">
+          <figcaption>ROSA</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Caminhada · Unissex</p>
+        <h2>ESFERA</h2>
+        <p class="art">43279525</p>
+        <span class="selo lanc">Lançamento</span>
+        <p class="pdv">R$ 229,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>37/48</dd></div>
+          <div><dt>Origem</dt><dd>Nacional</dd></div>
+          <div><dt>Gênero</dt><dd>Unissex</dd></div>
+          <div><dt>Linha</dt><dd>Conforto Masculino</dd></div>
+          
+          <div><dt>Cores</dt><dd>7</dd></div>
+        </dl>
+        <div class="tec">
+          <p class="tt">Tecnologias</p>
+          <ul><li>
+            <strong>EVASENSE</strong>
+            <span>EVA macio: conforto do começo ao fim.</span>
+          </li></ul>
+        </div>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+</body>
+</html>

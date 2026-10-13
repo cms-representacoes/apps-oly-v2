@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catálogo em PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<style>
+  :root{ --tinta:#0F172A; --fraco:#64748b; --linha:#E5E7EB; --azul:#2836D4; }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:#30343c; color:var(--tinta);
+    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+  .aviso{ max-width:1120px; margin:22px auto 16px; color:#cbd5e1; font-size:13.5px;
+    line-height:1.55; padding:0 16px }
+  .aviso b{ color:#fff }
+  .aviso h1{ margin:0 0 6px; font-size:20px; font-weight:800; color:#fff }
+
+  /* A folha: A4 deitado */
+  .folha{ width:1120px; height:792px; margin:0 auto 22px; background:#fff;
+    display:flex; flex-direction:column; box-shadow:0 18px 44px rgba(0,0,0,.45); overflow:hidden }
+  .cab{ flex:none; height:60px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; border-bottom:1px solid var(--linha) }
+  .cab .logo{ height:21px; width:auto }
+  .cab .col{ font-size:11px; font-weight:800; letter-spacing:.14em; color:var(--fraco) }
+  .miolo{ flex:1; min-height:0; display:flex; gap:26px; padding:20px 26px }
+
+  /* esquerda: quatro cores do mesmo tamanho. A página mostra a linha de
+     cores, não um retrato com acompanhantes. */
+  .mosaico{ flex:1 1 auto; min-width:0; display:grid; gap:12px;
+    grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr }
+  .mosaico.tres{ grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr }
+  .mosaico figure{ margin:0; min-height:0; display:flex; flex-direction:column; gap:6px;
+    border:1px solid var(--linha); border-radius:12px; padding:10px 10px 8px; background:#fff }
+  .mosaico img{ flex:1; min-height:0; width:100%; object-fit:contain }
+  .mosaico figcaption{ flex:none; font-size:9.5px; font-weight:800; letter-spacing:.07em;
+    color:var(--fraco); text-transform:uppercase; text-align:center }
+
+  /* direita: os dados */
+  .dados{ flex:none; width:272px; border-left:1px solid var(--linha); padding-left:22px;
+    display:flex; flex-direction:column }
+  .dados .seg{ margin:0; font-size:10px; font-weight:800; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--fraco) }
+  .dados h2{ margin:5px 0 2px; font-size:28px; font-weight:800; line-height:1.06;
+    letter-spacing:-.02em; text-transform:uppercase }
+  .dados .art{ margin:0; font-size:12px; font-weight:700; color:var(--fraco);
+    font-variant-numeric:tabular-nums }
+  /* o selo só existe quando vale para o produto inteiro */
+  .selo{ display:inline-block; align-self:flex-start; margin-top:10px; padding:4px 11px;
+    border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.07em;
+    text-transform:uppercase }
+  .selo.lanc{ background:#DCFCE7; color:#15803D }
+  .selo.nova{ background:#EDE9FE; color:#6D28D9 }
+  .dados .pdv{ margin:16px 0 0; font-size:31px; font-weight:800; color:var(--azul);
+    letter-spacing:-.02em; font-variant-numeric:tabular-nums }
+  .dados dl{ margin:20px 0 0; display:flex; flex-direction:column;
+    border-top:1px solid var(--linha) }
+  .dados dl > div{ display:flex; align-items:baseline; gap:10px; padding:9px 0;
+    border-bottom:1px solid var(--linha) }
+  .dados dt{ flex:none; width:88px; font-size:9.5px; font-weight:800; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--fraco) }
+  .dados dd{ margin:0; font-size:13.5px; font-weight:700 }
+  .dados .mais{ font-size:10px; font-weight:700; color:var(--fraco) }
+  .pe{ flex:none; height:40px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; border-top:1px solid var(--linha); font-size:10px; color:var(--fraco);
+    font-weight:600 }
+
+  @media print{
+    @page{ size:A4 landscape; margin:0 }
+    body{ background:#fff }
+    .aviso{ display:none }
+    .folha{ width:100%; height:100vh; margin:0; box-shadow:none; page-break-after:always }
+  }
+</style>
+</head>
+<body>
+  <div class="aviso">
+    <h1>O catálogo em PDF</h1>
+    <p>Uma página por produto, em <b>paisagem</b>: quatro cores em mosaico à esquerda e os
+       dados à direita. O selo aparece só quando vale para o produto inteiro.
+       São 4 produtos reais da 1S27. <b>Ctrl+P</b> mostra como sai impresso.</p>
+  </div>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico">
+        <figure>
+          <img src="imagens_olympikus/43560542_PTO_PT.jpg" alt="PTO/PT">
+          <figcaption>PTO/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_MRF_PT.jpg" alt="MRF/PT">
+          <figcaption>MRF/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_AREPET.jpg" alt="AREPET">
+          <figcaption>AREPET</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43560542_CHBMLT.jpg" alt="CHBMLT">
+          <figcaption>CHBMLT</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Corrida · Unissex</p>
+        <h2>FOCO</h2>
+        <p class="art">43560542</p>
+        <span class="selo lanc">Lançamento</span>
+        <p class="pdv">R$ 299,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>34/48</dd></div>
+          <div><dt>Cores</dt><dd>7 <span class="mais">· 4 nesta página</span></dd></div>
+        </dl>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico">
+        <figure>
+          <img src="imagens_olympikus/43279525_CHB_PT.jpg" alt="CHB/PT">
+          <figcaption>CHB/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_MRHO.jpg" alt="MRHO">
+          <figcaption>MRHO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_ARENIT.jpg" alt="ARENIT">
+          <figcaption>ARENIT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43279525_PRETO.jpg" alt="PRETO">
+          <figcaption>PRETO</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Caminhada · Unissex</p>
+        <h2>ESFERA</h2>
+        <p class="art">43279525</p>
+        <span class="selo lanc">Lançamento</span>
+        <p class="pdv">R$ 229,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>37/48</dd></div>
+          <div><dt>Cores</dt><dd>7 <span class="mais">· 4 nesta página</span></dd></div>
+        </dl>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico">
+        <figure>
+          <img src="imagens_olympikus/43814549_PTO_PT.jpg" alt="PTO/PT">
+          <figcaption>PTO/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43814549_MRF_PT.jpg" alt="MRF/PT">
+          <figcaption>MRF/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43814549_AREPET.jpg" alt="AREPET">
+          <figcaption>AREPET</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43814549_CHBMLT.jpg" alt="CHBMLT">
+          <figcaption>CHBMLT</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Corrida · Infantil</p>
+        <h2>FOCO INFANTIL</h2>
+        <p class="art">43814549</p>
+        <span class="selo lanc">Lançamento</span>
+        <p class="pdv">R$ 279,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>28/36</dd></div>
+          <div><dt>Cores</dt><dd>7 <span class="mais">· 4 nesta página</span></dd></div>
+        </dl>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+
+  <section class="folha">
+    <header class="cab">
+      <img class="logo" src="logo-olympikus.png" alt="Olympikus">
+      <span class="col">1S27</span>
+    </header>
+    <div class="miolo">
+      <div class="mosaico">
+        <figure>
+          <img src="imagens_olympikus/43815548_CHB_PT.jpg" alt="CHB/PT">
+          <figcaption>CHB/PT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43815548_MRHO.jpg" alt="MRHO">
+          <figcaption>MRHO</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43815548_ARENIT.jpg" alt="ARENIT">
+          <figcaption>ARENIT</figcaption>
+        </figure><figure>
+          <img src="imagens_olympikus/43815548_PRETO.jpg" alt="PRETO">
+          <figcaption>PRETO</figcaption>
+        </figure>
+      </div>
+      <aside class="dados">
+        <p class="seg">Caminhada · Infantil</p>
+        <h2>ESFERA INFANTIL</h2>
+        <p class="art">43815548</p>
+        <span class="selo lanc">Lançamento</span>
+        <p class="pdv">R$ 229,99</p>
+        <dl>
+          <div><dt>Numeração</dt><dd>28/36</dd></div>
+          <div><dt>Cores</dt><dd>7 <span class="mais">· 4 nesta página</span></dd></div>
+        </dl>
+      </aside>
+    </div>
+    <footer class="pe"><span>CMS Representações</span><span>Catálogo 1S27 · Olympikus</span></footer>
+  </section>
+</body>
+</html>

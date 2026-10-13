@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prévia · visualizador no computador</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;height:100%}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#6b7280;color:#fff;overflow:hidden}
+  :root{--primary:#7c3aed}
+  button{font-family:inherit;cursor:pointer}
+
+  /* seletor das opções (só da prévia) */
+  .troca{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;
+    background:#fff;padding:3px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .troca button{border:0;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800;background:transparent;color:#0f172a}
+  .troca button.on{background:#0f172a;color:#fff}
+
+  .fundo{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:8px}
+  .caixa{background:rgba(0,0,0,.92);border:1px solid rgba(255,255,255,.1);border-radius:22px;overflow:hidden;
+    width:min(1240px,100%);height:min(96vh,860px);position:relative}
+
+  /* peças comuns */
+  .titulo{font-weight:800;font-size:15px;line-height:1.2}
+  .pdv{color:#c4b5fd;font-weight:800;font-size:20px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .fechar{flex:none;width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.1);color:#fff;font-size:14px}
+  .seta{flex:none;width:40px;height:40px;border-radius:999px;border:0;background:rgba(255,255,255,.92);color:#111;font-size:14px;
+    box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  /* a foto é o maior quadrado que cabe no palco, descontando as duas setas */
+  .palco{container-type:size}
+  .foto{position:relative;width:min(100cqh, 100cqw - 104px);height:min(100cqh, 100cqw - 104px);background:#fff;border-radius:12px;overflow:hidden;flex:none}
+  .foto img{width:100%;height:100%;object-fit:contain;display:block}
+  .selo{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;padding:3px 3px 3px 9px;border-radius:999px;
+    background:rgba(15,23,42,.78);font-size:10.5px;font-weight:700;white-space:nowrap}
+  .chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;background:#fff;color:#0f172a;font-size:10px;font-weight:800}
+  .chip i{font-size:9px;color:var(--primary)}
+  .mini{width:100%;aspect-ratio:1;border-radius:9px;background:#fff;border:2px solid transparent;padding:0;overflow:hidden}
+  .mini img{width:100%;height:100%;object-fit:contain;display:block}
+  .mini.on{border-color:#a78bfa;box-shadow:0 0 0 2px rgba(167,139,250,.35)}
+  .acao{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;border:0;
+    color:#fff;font-size:13px;font-weight:800;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .acao.grade{background:var(--primary)}
+  .acao.sacola{background:#0f172a;border:1px solid rgba(255,255,255,.2)}
+  .rotulo{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+
+  /* ── A: foto à esquerda com toda a altura, painel estreito à direita ── */
+  .A{display:flex;padding:12px;gap:14px}
+  .A .palco{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px}
+  /* A: a moldura é um retângulo com toda a área entre as setas; o script
+     amplia a foto até o calçado ocupar a largura, cortando só o branco */
+  .A .foto{width:calc(100cqw - 104px);height:100cqh}
+  .A .foto img{position:absolute;max-width:none;width:auto;height:auto}
+  .A .artcor{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;font-weight:700;color:#334155}
+  .A .artcor .chip{background:#fff;border:1px solid #e2e8f0;font-size:11px;padding:3px 9px}
+  body:not(.claro) .A .artcor{color:rgba(255,255,255,.85)}
+  .A .painel{flex:none;width:250px;display:flex;flex-direction:column;gap:12px;padding:4px 2px 2px}
+  .A .cab{display:flex;align-items:flex-start;gap:8px}
+  .A .cab > div{flex:1;min-width:0}
+  .A .minis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow-y:auto;min-height:0;padding:2px}
+  .A .acoes{margin-top:auto;display:flex;align-items:center;gap:8px}
+  .A .acoes .acao{flex:1}
+  .A .nav-mob{display:none}
+
+  /* ── B: uma barra fina em cima, miniaturas em coluna à esquerda ── */
+  .B{display:flex;flex-direction:column}
+  .B .barra{flex:none;display:flex;align-items:center;gap:10px;padding:8px 10px 6px 16px}
+  .B .barra .titulo{font-size:14px}
+  .B .barra .pdv{font-size:17px}
+  .B .barra .acao{height:34px;font-size:12px}
+  .B .corpo{flex:1 1 auto;min-height:0;display:flex;gap:10px;padding:0 12px 12px}
+  .B .minis{flex:none;width:62px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;padding:2px}
+  .B .palco{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px}
+
+  /* ── fundo claro: a caixa tem o branco das fotos, e a borda do quadrado some ── */
+  .troca .sep{width:1px;background:#e2e8f0;margin:3px 2px}
+  body.claro .caixa{background:#fff;border-color:rgba(15,23,42,.08);box-shadow:0 24px 60px rgba(15,23,42,.35)}
+  body.claro .titulo{color:#0f172a}
+  body.claro .pdv{color:#6d28d9}
+  body.claro .rotulo{color:#64748b}
+  body.claro .fechar{background:#f1f5f9;border-color:#e2e8f0;color:#0f172a}
+  body.claro .fechar:hover{background:#e2e8f0}
+  body.claro .seta{background:#f1f5f9;color:#0f172a;border:1px solid #e2e8f0;box-shadow:none}
+  body.claro .seta:hover{background:#e2e8f0}
+  body.claro .foto{border-radius:0}
+  body.claro .mini{border-color:#e5e7eb}
+  body.claro .mini.on{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.18)}
+  body.claro .acao{box-shadow:none}
+  body.claro .acao.sacola{border-color:#0f172a}
+  body.claro .A .painel{background:#f8fafc;border:1px solid #eef2f6;border-radius:16px;padding:14px}
+  body.claro .B .barra{border-bottom:1px solid #eef2f6;padding-bottom:8px;margin-bottom:10px}
+
+  /* ══ celular e tablet em pé: uma coluna ══
+     nome e PDV · artigo e cor · foto · cores · botões */
+  @media (max-width:899.98px), (orientation:portrait){
+    .fundo{padding:8px}
+    .caixa.A{flex-direction:column;height:auto;max-height:100%;overflow-y:auto;padding:14px;gap:10px}
+    .A .painel{display:contents}
+    body.claro .A .painel{background:none;border:0;padding:0}
+    .A .cab{order:1}
+    .A .titulo{font-size:17px}
+    .A .pdv{font-size:22px}
+    .A .artcor{order:2;margin-top:-4px}
+    .A .palco{order:3;flex:none;height:min(78vw,58vh)}
+    .A .rotulo{display:none}
+    .A .minis{order:4;display:flex;overflow-x:auto;overflow-y:hidden;gap:8px;padding:2px}
+    .A .minis .mini{flex:none;width:64px}
+    .A .acoes{order:5;margin-top:2px}
+    .A .acoes .acao{flex:none;padding:0 18px}
+    .A .nav-mob{display:flex;align-items:center;gap:8px;margin-right:auto}
+    .A .nav-mob .seta{display:none}
+    .A .nav-mob .pos{font-size:12px;font-weight:800;color:#64748b}
+  }
+  /* celular: as setas descem para junto dos botões e a foto ganha a largura toda */
+  @media (max-width:639.98px){
+    .fundo{padding:6px}
+    .caixa.A{padding:12px;gap:8px;border-radius:18px}
+    .A .titulo{font-size:14px}
+    .A .pdv{font-size:18px}
+    .A .artcor{font-size:11px}
+    .A .artcor .chip{font-size:10px;padding:2px 8px}
+    .A .palco{height:min(86vw,54vh);gap:0}
+    .A .palco .seta{display:none}
+    .A .foto{width:100cqw}
+    .A .minis{gap:6px}
+    .A .minis .mini{width:50px;border-radius:8px}
+    .A .acoes{gap:6px}
+    .A .acoes .acao{height:36px;padding:0 12px;font-size:12px}
+    .A .nav-mob{gap:4px}
+    .A .nav-mob .seta{display:inline-block;width:34px;height:34px;font-size:12px}
+    .A .nav-mob .pos{min-width:28px;text-align:center;font-size:11px}
+  }
+  body.limpo .troca{display:none}
+</style>
+</head>
+<body class="claro">
+<div class="troca">
+  <button data-op="A" class="on">A · painel ao lado (Recomendada)</button>
+  <button data-op="B">B · barra fina em cima</button>
+  <span class="sep"></span>
+  <button data-fundo="claro" class="on">Fundo claro</button>
+  <button data-fundo="escuro">Escuro (hoje)</button>
+</div>
+
+<div class="fundo">
+  <!-- A -->
+  <div class="caixa A" id="opA">
+    <div class="palco">
+      <button class="seta"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="foto"><img class="fotoImg" alt=""></div>
+      <button class="seta"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+    <div class="painel">
+      <div class="cab">
+        <div>
+          <div class="titulo">VIBRA</div>
+          <div class="pdv">R$ 449,99</div>
+        </div>
+        <button class="fechar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="artcor"><span><span style="opacity:.6">Art.</span> 43510490</span><span class="chip"><i class="fa-solid fa-palette"></i><span class="corNome">LUNBEG</span></span></div>
+      <div class="rotulo">Cores · <span class="pos">1/5</span></div>
+      <div class="minis"></div>
+      <div class="acoes">
+        <div class="nav-mob">
+          <button class="seta"><i class="fa-solid fa-arrow-left"></i></button>
+          <span class="pos">1/5</span>
+          <button class="seta"><i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <button class="acao grade"><i class="fa-solid fa-layer-group"></i>Grade</button>
+        <button class="acao sacola"><i class="fa-solid fa-bag-shopping"></i>Sacola</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="caixa B" id="opB" hidden>
+    <div class="barra">
+      <span class="titulo">VIBRA</span><span class="pdv">R$ 449,99</span>
+      <span class="rotulo" style="margin-left:6px"><span class="pos">1/5</span></span>
+      <span style="flex:1"></span>
+      <button class="acao grade"><i class="fa-solid fa-layer-group"></i>Grade</button>
+      <button class="acao sacola"><i class="fa-solid fa-bag-shopping"></i>Sacola</button>
+      <button class="fechar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="corpo">
+      <div class="minis"></div>
+      <div class="palco">
+        <button class="seta"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="foto"><img class="fotoImg" alt=""><div class="selo"><span><span style="opacity:.7">Art.</span> 43510490</span><span class="chip"><i class="fa-solid fa-palette"></i><span class="corNome">LUNBEG</span></span></div></div>
+        <button class="seta"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+      <div style="flex:none;width:62px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cores = ['LUNBEG','MARORG','LIMATL','CHBMLT','PTO_CH'];
+  const url = c => 'imagens_olympikus/43510490_' + c + '.jpg';
+  let atual = 0;
+  function mostra(){
+    document.querySelectorAll('.fotoImg').forEach(i => i.src = url(cores[atual]));
+    document.querySelectorAll('.corNome').forEach(s => s.textContent = cores[atual].replace('_','/'));
+    document.querySelectorAll('.pos').forEach(s => s.textContent = (atual+1) + '/' + cores.length);
+    document.querySelectorAll('.minis').forEach(m => m.querySelectorAll('.mini').forEach((b,i) => b.classList.toggle('on', i === atual)));
+  }
+  document.querySelectorAll('.minis').forEach(m => cores.forEach((c,i) => {
+    const b = document.createElement('button'); b.className = 'mini'; b.innerHTML = '<img alt="" src="' + url(c) + '">';
+    b.onclick = () => { atual = i; mostra(); }; m.appendChild(b);
+  }));
+  // em cada par, a primeira seta volta e a segunda avança
+  document.querySelectorAll('.seta').forEach(s => s.onclick = () => {
+    const volta = s === s.parentElement.querySelector('.seta');
+    atual = (atual + (volta ? cores.length - 1 : 1)) % cores.length; mostra();
+  });
+  if (/limpo/.test(location.search)) document.body.classList.add('limpo');
+  document.querySelectorAll('.troca [data-fundo]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.troca [data-fundo]').forEach(x => x.classList.toggle('on', x === b));
+    document.body.classList.toggle('claro', b.dataset.fundo === 'claro');
+  });
+  document.querySelectorAll('.troca [data-op]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.troca [data-op]').forEach(x => x.classList.toggle('on', x === b));
+    opA.hidden = b.dataset.op !== 'A'; opB.hidden = b.dataset.op !== 'B';
+  });
+  // Acha o contorno do produto (o que não é branco) numa cópia pequena da foto
+  // e amplia até ele ocupar ~88% da largura ou ~92% da altura da moldura,
+  // o que vier primeiro. Bota, sandália ou roupa de corpo inteiro ocupam mais
+  // altura e por isso crescem menos: nada do produto é cortado.
+  const contornos = new Map();
+  function contorno(img){
+    if (contornos.has(img.src)) return contornos.get(img.src);
+    const N = 160, c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, N, N);
+    const d = g.getImageData(0, 0, N, N).data;
+    let x0 = N, y0 = N, x1 = -1, y1 = -1;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const i = (y * N + x) * 4;
+      if (d[i] < 240 || d[i+1] < 240 || d[i+2] < 240) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    const r = x1 < 0 ? { x0: 0, y0: 0, x1: 1, y1: 1 } : { x0: x0 / N, y0: y0 / N, x1: (x1 + 1) / N, y1: (y1 + 1) / N };
+    contornos.set(img.src, r); return r;
+  }
+  function enquadra(img){
+    const moldura = img.parentElement, W = moldura.clientWidth, H = moldura.clientHeight;
+    if (!img.naturalWidth || !W || !H || !moldura.closest('.A')) return;
+    const b = contorno(img), bw = b.x1 - b.x0, bh = b.y1 - b.y0;
+    const lado = Math.max(Math.min(W, H), Math.min(W * .88 / bw, H * .92 / bh));   // nunca menor que a foto inteira
+    img.style.width = img.style.height = lado + 'px';
+    img.style.left = (W / 2 - (b.x0 + bw / 2) * lado) + 'px';
+    img.style.top = (H / 2 - (b.y0 + bh / 2) * lado) + 'px';
+  }
+  document.querySelectorAll('.fotoImg').forEach(img => {
+    img.addEventListener('load', () => enquadra(img));
+    new ResizeObserver(() => enquadra(img)).observe(img.parentElement);
+  });
+  mostra();
+</script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prévia · imagens da tela inicial</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{ --primary:#7c3aed; --text:#0F172A; --muted:#6B7280; --border:#E5E7EB; --bg:#F5F6FA; --card-bg:#fff; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:'Plus Jakarta Sans',system-ui,sans-serif; color:var(--text); background:#6b7280; }
+  button{ font-family:inherit; cursor:pointer; }
+  [hidden]{ display:none !important; }
+
+  .fundo{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:12px; }
+  .sheet{
+    width:min(600px, calc(100vw - 24px)); max-height:92vh; max-height:92dvh;
+    background:var(--card-bg); border:1px solid var(--border); border-radius:24px; overflow:hidden;
+    box-shadow:0 24px 70px rgba(0,0,0,.22); display:flex; flex-direction:column;
+  }
+  .cab{ display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); }
+  .cab .eyebrow{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--primary); }
+  .cab h1{ margin:0; font-size:19px; font-weight:900; }
+  .titulos{ flex:1; min-width:0; }
+  .cab .eyebrow{ display:flex; align-items:center; gap:8px; }
+  .marca{ display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; letter-spacing:0; text-transform:none;
+    padding:2px 8px; border-radius:999px; background:#F3E8FF; color:#6D28D9; white-space:nowrap; }
+  .fechar{ width:40px; height:40px; border-radius:999px; border:1px solid var(--border); background:#fff; color:var(--primary); flex:none; }
+
+  .corpo{ overflow-y:auto; padding:14px 16px 18px; display:flex; flex-direction:column; gap:18px; }
+  .secao-tit{ display:flex; align-items:baseline; gap:8px; margin:0 0 8px; }
+  .secao-tit h2{ margin:0; font-size:13px; font-weight:800; }
+  .secao-tit span{ font-size:11px; color:var(--muted); }
+
+  /* prévia do banner, na proporção de verdade */
+  .previa-cab{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .previa-cab small{ font-size:11px; color:var(--muted); }
+  .seg{ display:inline-flex; padding:3px; border-radius:999px; background:var(--bg); border:1px solid var(--border); }
+  .seg button{ border:0; background:transparent; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:800; color:var(--muted);
+    display:inline-flex; align-items:center; gap:5px; }
+  .seg button.on{ background:#fff; color:var(--primary); box-shadow:0 1px 3px rgba(15,23,42,.12); }
+  .banner{ position:relative; width:100%; overflow:hidden; border-radius:0 0 16px 16px; background:#111; }
+  .banner.pc{ aspect-ratio:1366/130; }
+  .banner.cel{ aspect-ratio:390/90; max-width:390px; margin:0 auto; border-radius:0 0 14px 14px; }
+  .banner .grade{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px; height:100%; }
+  .banner .cel-img{ overflow:hidden; background:#1a1a2e; position:relative; }
+  .banner img{ width:100%; height:100%; object-fit:cover; object-position:center 20%; display:block; }
+  .banner .sombra{ position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.10) 38%, rgba(0,0,0,.72) 100%); }
+  .banner .txt{ position:absolute; left:10px; bottom:6px; color:#fff; pointer-events:none; }
+  .banner .txt b{ display:block; font-size:13px; font-weight:900; letter-spacing:-.3px; text-shadow:0 2px 8px rgba(0,0,0,.5); }
+  .banner .txt i{ font-style:normal; font-size:8px; font-weight:600; opacity:.92; }
+  .banner.cel .txt b{ font-size:15px; }
+  /* o texto acompanha a largura da prévia, como na tela de verdade */
+  .banner{ container-type:inline-size; }
+  .banner.pc .txt{ left:1.2cqw; bottom:.7cqw; }
+  .banner.pc .txt b{ font-size:clamp(6px, 1.9cqw, 13px); }
+  .banner.pc .txt i{ font-size:clamp(4px, .9cqw, 8px); }
+  .banner .num{ position:absolute; top:4px; right:4px; width:16px; height:16px; border-radius:999px; background:rgba(255,255,255,.92);
+    color:#0f172a; font-size:9px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+  .banner .cel-img.nova{ outline:2px solid #22c55e; outline-offset:-2px; }
+
+  /* linhas: as mesmas das categorias */
+  .row{ display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:12px; }
+  .row + .row{ margin-top:8px; }
+  .thumb{ width:54px; height:54px; border-radius:10px; background:#fff; border:1px solid var(--border); overflow:hidden; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .thumb.larga{ width:84px; }
+  .thumb img{ width:100%; height:100%; object-fit:cover; }
+  .info{ flex:1; min-width:0; }
+  .nome{ font-size:13px; font-weight:800; }
+  .meta{ font-size:10px; color:var(--muted); margin-top:2px; }
+  .status{ font-size:10px; font-weight:700; margin-top:3px; min-height:13px; color:#16a34a; }
+  .btn{ border-radius:10px; padding:8px 12px; font-size:11px; font-weight:800; border:1px solid var(--border); background:#fff; color:var(--primary);
+    display:inline-flex; align-items:center; gap:5px; flex:none; }
+  .btn:hover{ background:var(--primary); color:#fff; border-color:var(--primary); }
+
+  .dica{ display:flex; gap:8px; align-items:flex-start; font-size:11px; color:var(--muted); line-height:1.45;
+    background:var(--bg); border:1px dashed var(--border); border-radius:12px; padding:9px 12px; margin-top:8px; }
+  .dica i{ color:var(--primary); margin-top:2px; }
+
+  .nota{ position:fixed; left:50%; bottom:10px; transform:translateX(-50%); background:#0f172a; color:#fff; font-size:11px; font-weight:700;
+    padding:6px 12px; border-radius:999px; white-space:nowrap; z-index:5; }
+
+  @media (max-width:520px){
+    .cab{ padding:12px 14px; }
+    .cab h1{ font-size:17px; }
+    .previa-cab small{ display:none; }
+    .previa-cab{ justify-content:flex-end; }
+    .corpo{ padding:12px; }
+    .thumb.larga{ width:64px; }
+    .btn{ padding:8px 10px; }
+    .nota{ white-space:normal; width:calc(100% - 32px); text-align:center; }
+  }
+</style>
+</head>
+<body>
+<div class="fundo">
+  <div class="sheet" role="dialog" aria-label="Imagens da tela inicial">
+    <div class="cab">
+      <div class="titulos">
+        <div class="eyebrow">Personalizar <span class="marca"><i class="fa-solid fa-tag"></i>Olympikus</span></div>
+        <h1>Imagens da tela inicial</h1>
+      </div>
+      <button class="fechar" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="corpo">
+      <!-- ── Banner ── -->
+      <section>
+        <div class="secao-tit"><h2>Banner do topo</h2><span>3 fotos lado a lado</span></div>
+        <div class="previa-cab">
+          <small>Como aparece para o vendedor</small>
+          <div class="seg" id="seg">
+            <button class="on" data-d="pc"><i class="fa-solid fa-display"></i>Computador</button>
+            <button data-d="cel"><i class="fa-solid fa-mobile-screen"></i>Celular</button>
+          </div>
+        </div>
+        <div class="banner pc" id="banner">
+          <div class="grade">
+            <div class="cel-img" data-slot="1"><img src="hero1.webp" alt=""><span class="num">1</span></div>
+            <div class="cel-img" data-slot="2"><img src="hero2.webp" alt=""><span class="num">2</span></div>
+            <div class="cel-img" data-slot="3"><img src="hero3.webp" alt=""><span class="num">3</span></div>
+          </div>
+          <div class="sombra"></div>
+          <div class="txt"><b>Bem-vindo 👋</b><i>Escolha uma categoria para começar</i></div>
+        </div>
+
+        <div style="margin-top:10px">
+          <div class="row" data-slot="1">
+            <div class="thumb larga"><img src="hero1.webp" alt=""></div>
+            <div class="info"><div class="nome">Foto 1 · esquerda</div><div class="meta">Fica atrás do “Bem-vindo”</div><div class="status"></div></div>
+            <input type="file" accept="image/*" hidden>
+            <button class="btn"><i class="fa-solid fa-upload"></i>Trocar</button>
+          </div>
+          <div class="row" data-slot="2">
+            <div class="thumb larga"><img src="hero2.webp" alt=""></div>
+            <div class="info"><div class="nome">Foto 2 · centro</div><div class="meta">Meio do banner</div><div class="status"></div></div>
+            <input type="file" accept="image/*" hidden>
+            <button class="btn"><i class="fa-solid fa-upload"></i>Trocar</button>
+          </div>
+          <div class="row" data-slot="3">
+            <div class="thumb larga"><img src="hero3.webp" alt=""></div>
+            <div class="info"><div class="nome">Foto 3 · direita</div><div class="meta">Canto direito</div><div class="status"></div></div>
+            <input type="file" accept="image/*" hidden>
+            <button class="btn"><i class="fa-solid fa-upload"></i>Trocar</button>
+          </div>
+        </div>
+        <div class="dica"><i class="fa-solid fa-lightbulb"></i>
+          <span>Use foto deitada (por exemplo 1200×800) com o produto no meio. No computador cada foto vira uma faixa bem larga e baixa; no celular, quase quadrada. As bordas de cima e de baixo são cortadas.</span></div>
+      </section>
+
+      <!-- ── Categorias (como já é hoje) ── -->
+      <section>
+        <div class="secao-tit"><h2>Cards das categorias</h2><span>quadradas, ~600×600</span></div>
+        <div id="cats"></div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="nota">Prévia: escolher uma foto só mostra aqui, nada é enviado.</div>
+
+<script>
+  const BASE = 'https://cms-representacoes.github.io/apps-oly/imagens_olympikus/categorias/';
+  const CATS = [
+    ['FTW', 'Tênis', '👟', 'Corrida, treino e lifestyle'],
+    ['CHI', 'Chinelos', '👡', 'Conforto para o dia a dia'],
+    ['VA', 'Vestuário', '👕', 'Roupas e acessórios esportivos'],
+    ['ACC', 'Acessórios', '🎒', 'Mochilas, bonés e mais'],
+    ['MEIA', 'Meias', '🧦', 'Performance e casual']
+  ];
+  document.getElementById('cats').innerHTML = CATS.map(([id, nome, ic, sub]) => `
+    <div class="row">
+      <div class="thumb"><img src="${BASE}${id}.png" alt="" onerror="this.replaceWith(document.createTextNode('${ic}'))"></div>
+      <div class="info"><div class="nome">${nome}</div><div class="meta">${sub}</div><div class="status"></div></div>
+      <input type="file" accept="image/*" hidden>
+      <button class="btn"><i class="fa-solid fa-upload"></i>Trocar</button>
+    </div>`).join('');
+
+  // no celular a prévia já abre no modo celular
+  if(innerWidth < 520){
+    document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('on', x.dataset.d === 'cel'));
+    document.getElementById('banner').className = 'banner cel';
+  }
+  // computador / celular
+  document.getElementById('seg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('on', x === b));
+    document.getElementById('banner').className = 'banner ' + b.dataset.d;
+  });
+
+  // Trocar: abre o seletor e mostra a foto escolhida na linha e no banner
+  document.querySelector('.corpo').addEventListener('click', e => {
+    const b = e.target.closest('.btn'); if(!b) return;
+    b.parentElement.querySelector('input[type=file]').click();
+  });
+  document.querySelector('.corpo').addEventListener('change', e => {
+    const inp = e.target; if(!inp.files || !inp.files[0]) return;
+    const url = URL.createObjectURL(inp.files[0]);
+    const row = inp.closest('.row');
+    const th = row.querySelector('.thumb');
+    th.innerHTML = `<img src="${url}" alt="">`;
+    row.querySelector('.status').textContent = '✓ Trocada agora (prévia)';
+    if(row.dataset.slot){
+      const cel = document.querySelector(`#banner .cel-img[data-slot="${row.dataset.slot}"]`);
+      cel.querySelector('img').src = url;
+      cel.classList.add('nova');
+    }
+    inp.value = '';
+  });
+</script>
+</body>
+</html>

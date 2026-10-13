@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prévia · etiquetas Nova cor e Lançamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --bg:#F4F6FA; --text:#0F172A; --muted:#6B7280; --border:#E5E7EB; --card:#fff;
+  --primary:#7c3aed; --primary-rgb:124,58,237;
+  --lanc:#047857; --lanc-bg:rgba(5,150,105,.12); --lanc-bd:rgba(5,150,105,.32);
+  --nova:#6d28d9; --nova-bg:rgba(124,58,237,.10); --nova-bd:rgba(124,58,237,.30);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+.pg{max-width:1280px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:21px;font-weight:900;letter-spacing:-.02em;margin:0}
+.sub{color:var(--muted);font-size:13px;font-weight:600;margin:6px 0 0;max-width:70ch;line-height:1.5}
+
+.opcoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:22px}
+.opcao{background:#fff;border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.opcao header{padding:12px 14px 10px;border-bottom:1px solid var(--border)}
+.opcao h2{margin:0;font-size:14px;font-weight:900;display:flex;align-items:center;gap:8px}
+.opcao h2 .tag{font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.tag.hoje{background:#F3F4F6;color:var(--muted)}
+.tag.rec{background:rgba(var(--primary-rgb),.12);color:var(--primary)}
+.opcao p{margin:5px 0 0;font-size:12px;color:var(--muted);font-weight:600;line-height:1.45}
+/* a moldura tem a largura de um celular de 375px, com as duas colunas */
+.tela{width:343px;max-width:100%;margin:12px auto 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ── o card, nos tamanhos que o catálogo usa hoje no celular ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.foto{position:relative;aspect-ratio:1/1;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.foto img{width:100%;height:100%;object-fit:contain}
+.bola{position:absolute;top:8px;height:24px;width:24px;border-radius:50%;background:rgba(255,255,255,.92);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--primary)}
+.bola.gen{left:8px} .bola.zoom{right:8px}
+.bola.gen.f{background:rgba(236,72,153,.12);border-color:rgba(236,72,153,.35);color:#db2777}
+.corpo{padding:7px 8px 8px;display:flex;flex-direction:column;gap:4px}
+.nome{font-size:11.5px;font-weight:800;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.linha{display:flex;align-items:center;gap:5px;min-width:0}
+.preco{font-size:12px;font-weight:800;color:#2836D4;white-space:nowrap}
+.cor{font-size:9px;font-weight:800;border:1px solid var(--border);background:var(--bg);border-radius:999px;padding:2px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.botoes{display:flex;gap:6px;margin-top:2px}
+.add{flex:1;height:30px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.gr{height:30px;width:30px;border-radius:999px;border:2px solid var(--primary);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px}
+
+/* etiqueta padrão (a de hoje) */
+.eti{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:800;letter-spacing:.03em;padding:1px 6px;border-radius:999px;white-space:nowrap}
+.eti.lanc{background:var(--lanc-bg);color:var(--lanc);border:1px solid var(--lanc-bd)}
+.eti.nova{background:var(--nova-bg);color:var(--nova);border:1px solid var(--nova-bd)}
+
+/* HOJE: sobre a foto, embaixo à esquerda */
+.v-hoje .etis{position:absolute;left:8px;bottom:8px;display:flex;gap:3px;flex-wrap:wrap}
+
+/* A: acima do nome, fora da foto */
+.v-a .etis{display:flex;gap:3px;flex-wrap:wrap}
+
+/* B: faixa fina de ponta a ponta entre a foto e o nome */
+.v-b .faixa{display:flex;align-items:center;justify-content:center;gap:6px;height:17px;font-size:8.5px;font-weight:900;letter-spacing:.08em}
+.v-b .faixa.lanc{background:#059669;color:#fff}
+.v-b .faixa.nova{background:var(--primary);color:#fff}
+.v-b .faixa.dupla{background:linear-gradient(90deg,#059669 50%,var(--primary) 50%);color:#fff;justify-content:space-around}
+
+/* C: selo pequeno no rodapé da foto, colado na borda de baixo, só ícone + palavra curta */
+.v-c .selo{position:absolute;left:0;bottom:0;display:flex;gap:0}
+.v-c .selo span{display:inline-flex;align-items:center;gap:3px;height:15px;padding:0 6px;font-size:7.5px;font-weight:900;letter-spacing:.06em;color:#fff}
+.v-c .selo .lanc{background:#059669;border-top-right-radius:8px}
+.v-c .selo .nova{background:var(--primary);border-top-right-radius:8px}
+.v-c .selo .lanc + .nova{border-top-left-radius:0}
+
+/* D: bolinha com ícone junto do botão de gênero, no alto */
+.v-d .selos{position:absolute;top:8px;left:36px;display:flex;gap:4px}
+.v-d .selos i{height:24px;width:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.v-d .selos .lanc{background:#059669}
+.v-d .selos .nova{background:var(--primary)}
+.v-d .legenda{display:flex;gap:10px;justify-content:center;font-size:10.5px;font-weight:700;color:var(--muted);margin:-4px 0 12px}
+.v-d .legenda i{color:#fff;border-radius:50%;height:16px;width:16px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;margin-right:4px}
+</style>
+</head>
+<body>
+<div class="pg">
+  <h1>Etiquetas Nova cor e Lançamento · alternativas</h1>
+  <p class="sub">Hoje a etiqueta fica sobre a foto, no canto de baixo. No tênis ela cai no fundo branco, mas
+    na roupa a modelo ocupa a foto inteira e a etiqueta cobre a peça. Abaixo, a situação de hoje e quatro
+    jeitos de resolver, com produtos reais do catálogo, na largura de um celular.</p>
+
+  <div class="opcoes" id="opcoes"></div>
+</div>
+
+<script>
+const IMG = './imagens_olympikus/';
+const PRODUTOS = [
+  { nome: 'T-SHIRT RUNNER MC 2.0 F', img: 'OIWWR25602_OCRE.jpg', preco: 'R$ 119,99', cor: 'OCRE', gen: 'f', nova: true },
+  { nome: 'REGATA RUNNER 2.0 F', img: 'OIWWR25701_OCRE.jpg', preco: 'R$ 109,99', cor: 'OCRE', gen: 'f', lanc: true },
+  { nome: 'T-SHIRT ULTRA M', img: 'OIMSR23605_FLOTAL.jpg', preco: 'R$ 169,99', cor: 'FLOTAL', gen: 'm', lanc: true, nova: true },
+  { nome: 'LEGGING KNIT MINIMAL F', img: 'OIWSR25152_TAPTRY.jpg', preco: 'R$ 159,99', cor: 'TAPTRY', gen: 'f', nova: true },
+];
+
+const eti = p => (p.lanc ? '<span class="eti lanc">LANÇAMENTO</span>' : '') + (p.nova ? '<span class="eti nova">NOVA COR</span>' : '');
+
+function card(p, v){
+  const gen = `<span class="bola gen ${p.gen}"><i class="fa-solid ${p.gen === 'f' ? 'fa-venus' : 'fa-mars'}"></i></span>`;
+  const zoom = `<span class="bola zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>`;
+  let sobreFoto = '', entreFotoENome = '', acimaDoNome = '';
+  if (v === 'hoje') sobreFoto = `<div class="etis">${eti(p)}</div>`;
+  if (v === 'a') acimaDoNome = (p.lanc || p.nova) ? `<div class="etis">${eti(p)}</div>` : '';
+  if (v === 'b' && (p.lanc || p.nova)) {
+    const cls = p.lanc && p.nova ? 'dupla' : p.lanc ? 'lanc' : 'nova';
+    const txt = p.lanc && p.nova ? '<span>LANÇAMENTO</span><span>NOVA COR</span>' : p.lanc ? 'LANÇAMENTO' : 'NOVA COR';
+    entreFotoENome = `<div class="faixa ${cls}">${txt}</div>`;
+  }
+  if (v === 'c' && (p.lanc || p.nova)) {
+    sobreFoto = `<div class="selo">${p.lanc ? '<span class="lanc"><i class="fa-solid fa-rocket"></i> NOVO</span>' : ''}${p.nova ? '<span class="nova"><i class="fa-solid fa-palette"></i> COR</span>' : ''}</div>`;
+  }
+  if (v === 'd' && (p.lanc || p.nova)) {
+    sobreFoto = `<div class="selos">${p.lanc ? '<i class="lanc fa-solid fa-rocket" title="Lançamento"></i>' : ''}${p.nova ? '<i class="nova fa-solid fa-palette" title="Nova cor"></i>' : ''}</div>`;
+  }
+  return `<div class="card">
+    <div class="foto"><img src="${IMG + p.img}" alt="">${gen}${zoom}${sobreFoto}</div>
+    ${entreFotoENome}
+    <div class="corpo">
+      ${acimaDoNome}
+      <div class="nome">${p.nome}</div>
+      <div class="linha"><span class="preco">${p.preco}</span><span class="cor">${p.cor}</span></div>
+      <div class="botoes"><span class="add">Adicionar</span><span class="gr"><i class="fa-solid fa-layer-group"></i></span></div>
+    </div>
+  </div>`;
+}
+
+const OPCOES = [
+  { v: 'hoje', tag: '<span class="tag hoje">Hoje</span>', titulo: 'Sobre a foto, no canto de baixo',
+    texto: 'Na roupa, a etiqueta cobre as pernas ou a barra da peça.' },
+  { v: 'a', tag: '<span class="tag rec">Recomendada</span>', titulo: 'A · Acima do nome, fora da foto',
+    texto: 'Mesma etiqueta de hoje, só que no começo do texto do card. A foto fica limpa e a informação continua bem à vista. Cresce uma linha pequena só nos produtos que têm etiqueta.' },
+  { v: 'b', tag: '', titulo: 'B · Faixa colorida entre a foto e o nome',
+    texto: 'Uma faixa fina de ponta a ponta. É a mais chamativa e não cobre nada, mas deixa os cards com e sem etiqueta com alturas diferentes na mesma linha.' },
+  { v: 'c', tag: '', titulo: 'C · Selo colado na borda de baixo da foto',
+    texto: 'Ainda fica sobre a foto, mas bem baixo e fino (15px), com palavra curta: "NOVO" e "COR". Cobre menos que hoje, mas não resolve de vez.' },
+  { v: 'd', tag: '', titulo: 'D · Bolinha com ícone no alto, ao lado do gênero',
+    texto: 'Só um ícone: foguete para lançamento, paleta para nova cor. É a que menos ocupa espaço, mas o vendedor precisa aprender o que cada ícone quer dizer.' },
+];
+
+document.getElementById('opcoes').innerHTML = OPCOES.map(o => `
+  <section class="opcao v-${o.v}">
+    <header><h2>${o.titulo} ${o.tag}</h2><p>${o.texto}</p></header>
+    <div class="tela">${PRODUTOS.map(p => card(p, o.v)).join('')}</div>
+    ${o.v === 'd' ? '<div class="legenda"><span><i class="fa-solid fa-rocket" style="background:#059669"></i>Lançamento</span><span><i class="fa-solid fa-palette" style="background:#7c3aed"></i>Nova cor</span></div>' : ''}
+  </section>`).join('');
+</script>
+</body>
+</html>

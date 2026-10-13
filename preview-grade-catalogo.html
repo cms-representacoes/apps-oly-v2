@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prévia · grade da sacola do catálogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap">
+<style>
+:root{
+  --bg:#F4F6FA; --text:#0F172A; --muted:#6B7280; --border:#E5E7EB;
+  --primary:#7c3aed; --primary-rgb:124,58,237; --card-bg:#fff; --card-chip:#F3F4F6; --input-bg:#fff;
+}
+.escuro{
+  --bg:#0E1016; --text:#F0F2F8; --muted:#9BA3BC; --border:#2E3245;
+  --primary:#a78bfa; --primary-rgb:167,139,250; --card-bg:#181B27; --card-chip:#1F2333; --input-bg:#1F2333;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+.pg{max-width:1160px;margin:0 auto;padding:22px 16px 60px}
+.cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+h1{font-size:21px;font-weight:900;letter-spacing:-.02em;margin:0}
+.sub{color:var(--muted);font-size:13px;font-weight:600;margin:4px 0 0;max-width:62ch;line-height:1.5}
+.tema{border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);
+  font:inherit;font-size:12.5px;font-weight:800;border-radius:999px;padding:8px 14px;cursor:pointer}
+.tema:hover{border-color:var(--primary)}
+
+.par{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px;align-items:start}
+@media(max-width:900px){ .par{grid-template-columns:1fr} }
+
+.folha{background:var(--card-bg);border:1px solid var(--border);border-radius:22px;
+  box-shadow:0 2px 4px rgba(15,23,42,.06),0 18px 38px rgba(15,23,42,.10);overflow:hidden}
+.escuro .folha{box-shadow:0 2px 4px rgba(0,0,0,.3),0 18px 38px rgba(0,0,0,.35)}
+.etiq{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:11px;font-weight:900;
+  letter-spacing:.08em;text-transform:uppercase}
+.etiq.hoje{background:var(--card-chip);color:var(--muted)}
+.etiq.nova{background:rgba(var(--primary-rgb),.10);color:var(--primary)}
+.etiq .pt{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+.topo{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--border)}
+.topo .rot{font-size:11.5px;font-weight:800;color:var(--muted)}
+.topo .nome{font-weight:900;font-size:16px;letter-spacing:-.01em}
+.topo .cor{font-size:12px;color:var(--muted);font-weight:600;margin-top:1px}
+.xis{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:transparent;
+  color:var(--primary);font-size:15px;cursor:default;flex:none}
+
+.corpo{padding:14px 20px 4px}
+.rolo{max-height:330px;overflow:auto}
+
+/* ── como está hoje: uma linha por tamanho ── */
+.linha{display:grid;grid-template-columns:52px 1fr 36px 44px 36px;align-items:center;gap:8px;
+  padding:12px 0;border-bottom:1px solid var(--border)}
+.linha:last-child{border-bottom:none}
+.rot-tam{font-weight:800;font-size:13px;text-align:center;background:var(--card-chip);
+  border:1.5px solid var(--border);border-radius:10px;padding:6px 4px}
+.bt{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:transparent;
+  color:var(--primary);font-size:14px;font-weight:800;cursor:pointer}
+.bt:hover{background:rgba(var(--primary-rgb),.08)}
+.qtd{width:44px;text-align:center;font-weight:800;font-size:15px;border:2px solid var(--border);
+  border-radius:10px;padding:6px 4px;background:var(--input-bg);color:var(--text);outline:none;
+  -moz-appearance:textfield}
+.qtd::-webkit-inner-spin-button,.qtd::-webkit-outer-spin-button{-webkit-appearance:none}
+.qtd:focus{border-color:var(--primary)}
+
+/* ── como fica: a grade da vitrine ── */
+.grade{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 10px}
+.cx{width:56px;text-align:center}
+.cx .t{display:block;font-size:10px;font-weight:900;color:var(--primary);letter-spacing:.02em;
+  margin-bottom:3px}
+.cx input{width:100%;height:42px;text-align:center;font:inherit;font-size:16px;font-weight:800;
+  border:2px solid var(--border);border-radius:12px;background:var(--input-bg);color:var(--text);
+  outline:none;-moz-appearance:textfield}
+.cx input::-webkit-inner-spin-button,.cx input::-webkit-outer-spin-button{-webkit-appearance:none}
+.cx input::placeholder{color:var(--muted);font-weight:600;opacity:.55}
+.cx input:placeholder-shown{border-color:var(--border);background:var(--card-bg)}
+.cx input:not(:placeholder-shown){border-color:rgba(var(--primary-rgb),.55);
+  background:rgba(var(--primary-rgb),.06)}
+.cx input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(var(--primary-rgb),.18)}
+.cx .d{display:block;font-size:9.5px;font-weight:700;color:var(--muted);margin-top:2px}
+
+.dica{display:flex;align-items:center;gap:8px;margin:2px 0 12px;padding:9px 12px;border-radius:12px;
+  background:var(--card-chip);color:var(--muted);font-size:11.5px;font-weight:700}
+.tecla{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
+  padding:0 5px;border-radius:6px;border:1.5px solid var(--border);background:var(--card-bg);
+  color:var(--text);font-size:11px;font-weight:900}
+
+.pe{border-top:1px solid var(--border);padding:14px 20px 18px;display:grid;gap:10px}
+.tot{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:800}
+.tot .n{font-size:19px;font-weight:900;color:var(--primary)}
+.tot .rot{color:var(--muted)}
+.confirma{width:100%;border:0;border-radius:16px;background:var(--primary);color:#fff;
+  font:inherit;font-size:14px;font-weight:900;padding:15px;cursor:default}
+
+.notas{margin-top:26px;background:var(--card-bg);border:1px solid var(--border);border-radius:18px;padding:18px 20px}
+.notas h2{font-size:13px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.notas ul{margin:0;padding-left:18px;display:grid;gap:7px}
+.notas li{font-size:13.5px;line-height:1.55;font-weight:600}
+.notas b{font-weight:900}
+.alt{font-size:12.5px;color:var(--muted);font-weight:700;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="pg">
+  <div class="cab">
+    <div>
+      <h1>Grade da sacola do catálogo · prévia</h1>
+      <p class="sub">À esquerda, como a grade é digitada hoje no catálogo digital. À direita, o
+        mesmo jeito da vitrine: caixinhas lado a lado, digitação direta e as setas do teclado
+        andando pelos campos. O lado novo está funcionando — pode digitar e usar as setas.</p>
+    </div>
+    <button class="tema" id="btnTema" type="button">Modo escuro</button>
+  </div>
+
+  <div class="par">
+    <!-- ─────────── HOJE ─────────── -->
+    <section class="folha">
+      <div class="etiq hoje"><span class="pt"></span> Como está hoje</div>
+      <div class="topo">
+        <div>
+          <div class="rot">Grade de tamanhos</div>
+          <div class="nome">CORRE MAX 2</div>
+          <div class="cor">43304478 · PRETO</div>
+        </div>
+        <button class="xis" tabindex="-1">✕</button>
+      </div>
+      <div class="corpo">
+        <div class="rolo" id="listaHoje"></div>
+      </div>
+      <div class="pe">
+        <div class="tot"><span class="rot">Total desta grade</span><span class="n" id="totHoje">0</span></div>
+        <button class="confirma" tabindex="-1">Adicionar Grade à Sacola</button>
+      </div>
+    </section>
+
+    <!-- ─────────── NOVO ─────────── -->
+    <section class="folha">
+      <div class="etiq nova"><span class="pt"></span> Como fica · jeito da vitrine</div>
+      <div class="topo">
+        <div>
+          <div class="rot">Grade de tamanhos</div>
+          <div class="nome">CORRE MAX 2</div>
+          <div class="cor">43304478 · PRETO</div>
+        </div>
+        <button class="xis" tabindex="-1">✕</button>
+      </div>
+      <div class="corpo">
+        <div class="dica">
+          <span class="tecla">←</span><span class="tecla">→</span>
+          <span>trocam de campo</span>
+          <span class="tecla">↑</span><span class="tecla">↓</span>
+          <span>sobem e descem de linha</span>
+        </div>
+        <div class="grade" id="gradeNova"></div>
+      </div>
+      <div class="pe">
+        <div class="tot"><span class="rot">Total desta grade</span><span class="n" id="totNovo">0</span></div>
+        <button class="confirma" tabindex="-1">Adicionar Grade à Sacola</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="notas">
+    <h2>O que muda</h2>
+    <ul>
+      <li><b>Uma tela só, sem rolar.</b> Os doze tamanhos cabem de uma vez. Hoje cada tamanho ocupa
+        uma linha inteira e a lista passa da altura da tela no celular.</li>
+      <li><b>Digitar em vez de clicar.</b> A quantidade vai direto no campo. Os botões
+        <b>−</b> e <b>+</b> saem: para 12 pares eram doze toques.</li>
+      <li><b>Setas do teclado.</b> Esquerda e direita trocam de campo; cima e baixo vão para a linha
+        vizinha. No campo, o que está escrito fica selecionado: é só digitar por cima.</li>
+      <li><b>O que já tem quantidade fica marcado</b> com a cor da marca, então dá para conferir a
+        caixa inteira de relance.</li>
+      <li><b>O resto do modal continua igual:</b> data desejada, caixas, pedido do cliente, total e o
+        botão de adicionar à sacola.</li>
+    </ul>
+    <p class="alt">Uma dúvida para você decidir: mantenho os botões − e + em algum lugar (por
+      exemplo, só no celular) ou tiro de vez, como está na vitrine?</p>
+  </div>
+</div>
+
+<script>
+const TAMANHOS = ['33','34','35','36','37','38','39','40','41','42','43','44'];
+const $ = id => document.getElementById(id);
+
+/* ── lado de hoje: uma linha por tamanho, com − e + ── */
+const lista = $('listaHoje');
+lista.innerHTML = TAMANHOS.map((t, i) => `
+  <div class="linha">
+    <div class="rot-tam">${t}</div><div></div>
+    <button class="bt" data-menos="${i}" tabindex="-1">−</button>
+    <input class="qtd" type="number" min="0" max="999" value="0" data-i="${i}">
+    <button class="bt" data-mais="${i}" tabindex="-1">+</button>
+  </div>`).join('');
+lista.addEventListener('click', e => {
+  const menos = e.target.closest('[data-menos]'), mais = e.target.closest('[data-mais]');
+  const alvo = menos || mais;
+  if (!alvo) return;
+  const i = alvo.dataset.menos ?? alvo.dataset.mais;
+  const campo = lista.querySelector(`input[data-i="${i}"]`);
+  campo.value = Math.max(0, Math.min(999, (Number(campo.value) || 0) + (menos ? -1 : 1)));
+  somar('listaHoje', 'totHoje');
+});
+lista.addEventListener('input', () => somar('listaHoje', 'totHoje'));
+
+/* ── lado novo: a grade da vitrine ── */
+$('gradeNova').innerHTML = TAMANHOS.map(t => `
+  <label class="cx"><span class="t">${t}</span>
+    <input type="number" inputmode="numeric" min="0" max="999" placeholder="0" data-t="${t}"></label>`).join('');
+
+/* As setas andam pelos campos — o mesmo código da vitrine. Campo de número não
+   diz onde está o cursor, e são caixas de um ou dois dígitos: esquerda e
+   direita sempre trocam de campo. Cima e baixo vão para a linha vizinha, na
+   coluna mais próxima, e param o passo do type=number, que mexeria no valor. */
+const grade = $('gradeNova');
+grade.addEventListener('keydown', e => {
+  if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return;
+  if (!(e.target instanceof HTMLInputElement)) return;
+  const campos = [...grade.querySelectorAll('input')];
+  const i = campos.indexOf(e.target);
+  const linha = c => Math.round(c.getBoundingClientRect().top);
+  let alvo;
+  if (e.key === 'ArrowLeft') alvo = campos[i - 1];
+  else if (e.key === 'ArrowRight') alvo = campos[i + 1];
+  else {
+    const acima = e.key === 'ArrowUp';
+    const y = linha(e.target), x = e.target.getBoundingClientRect().left;
+    const vizinhos = campos.filter(c => acima ? linha(c) < y : linha(c) > y);
+    if (vizinhos.length) {
+      const yAlvo = acima ? Math.max(...vizinhos.map(linha)) : Math.min(...vizinhos.map(linha));
+      const perto = (m, c) => Math.abs(c.getBoundingClientRect().left - x) < Math.abs(m.getBoundingClientRect().left - x) ? c : m;
+      alvo = vizinhos.filter(c => linha(c) === yAlvo).reduce(perto);
+    }
+  }
+  e.preventDefault();
+  if (alvo) { alvo.focus(); alvo.select(); }
+});
+grade.addEventListener('input', () => somar('gradeNova', 'totNovo'));
+
+function somar(de, para) {
+  let t = 0;
+  for (const i of $(de).querySelectorAll('input')) t += Math.max(0, Number(i.value) || 0);
+  $(para).textContent = t;
+}
+
+$('btnTema').addEventListener('click', () => {
+  const escuro = document.documentElement.classList.toggle('escuro');
+  $('btnTema').textContent = escuro ? 'Modo claro' : 'Modo escuro';
+});
+</script>
+</body>
+</html>

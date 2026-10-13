@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Prévia · visualizador nos aparelhos</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e5e7eb;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#0f172a;padding:16px}
+  .linha{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+  figure{margin:0}
+  figcaption{font-size:12px;font-weight:800;margin-bottom:6px}
+  .tela{overflow:hidden;border-radius:18px;border:6px solid #111;background:#111;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  iframe{border:0;transform-origin:0 0;display:block}
+</style>
+</head>
+<body>
+<div class="linha">
+  <figure><figcaption>Celular 360×740</figcaption><div class="tela" data-w="360" data-h="740" data-e=".62"></div></figure>
+  <figure><figcaption>Celular 390×844</figcaption><div class="tela" data-w="390" data-h="844" data-e=".62"></div></figure>
+  <figure><figcaption>Tablet em pé 820×1180</figcaption><div class="tela" data-w="820" data-h="1180" data-e=".44"></div></figure>
+  <figure><figcaption>Tablet deitado 1180×820</figcaption><div class="tela" data-w="1180" data-h="820" data-e=".44"></div></figure>
+</div>
+<script>
+  document.querySelectorAll('.tela').forEach(t => {
+    const w = +t.dataset.w, h = +t.dataset.h, e = +t.dataset.e;
+    t.style.width = w * e + 'px'; t.style.height = h * e + 'px';
+    const f = document.createElement('iframe');
+    f.src = 'preview-viewer.html?limpo'; f.width = w; f.height = h; f.style.transform = 'scale(' + e + ')';
+    t.appendChild(f);
+  });
+</script>
+</body>
+</html>
