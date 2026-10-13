@@ -756,6 +756,13 @@
     .home-cat-all { border-style: dashed; border-color: var(--primary, var(--primary)); background: rgba(var(--primary-rgb),0.03); }
     .dark-mode .home-cat-card { background: #1F2937; border-color: #374151; }
     .dark-mode .home-cat-all  { background: rgba(var(--primary-rgb),0.08); }
+    /* A linha CORRE tem cor própria — laranja, a mesma dos chips dela —, para
+       se distinguir dos cards de categoria à primeira vista. */
+    .home-cat-corre { border-color:#FDBA74; background:linear-gradient(140deg,#FFFDFA 0%,#FFF8F0 100%); }
+    .home-cat-corre:hover { border-color:#EA580C; box-shadow:0 4px 16px rgba(234,88,12,.14); }
+    .home-cat-corre .home-cat-name { color:#C2410C; }
+    .dark-mode .home-cat-corre { background:rgba(234,88,12,.09); border-color:rgba(253,186,116,.35); }
+    .dark-mode .home-cat-corre .home-cat-name { color:#FDBA74; }
 
     .home-cat-info { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
     .home-cat-icon {
@@ -2276,11 +2283,14 @@
       --vw-fundo:#fff; --vw-borda:rgba(15,23,42,.08); --vw-texto:#0f172a; --vw-suave:#64748b;
       --vw-pdv:#6d28d9; --vw-botao:#f1f5f9; --vw-botao-hover:#e2e8f0; --vw-linha:#e2e8f0;
       --vw-painel:#f8fafc; --vw-painel-borda:#eef2f6; --vw-mini:#e5e7eb;
+      /* o verde da ficha: destaca a tecnologia sem brigar com o roxo da marca */
+      --vf-tec:#0f766e; --vf-tec-bg:#f0fdfa; --vf-tec-linha:#99f6e4;
     }
     .dark-mode #imageViewer{
       --vw-fundo:#11141b; --vw-borda:rgba(255,255,255,.08); --vw-texto:#fff; --vw-suave:rgba(255,255,255,.6);
       --vw-pdv:#c4b5fd; --vw-botao:rgba(255,255,255,.10); --vw-botao-hover:rgba(255,255,255,.18); --vw-linha:rgba(255,255,255,.18);
       --vw-painel:rgba(255,255,255,.04); --vw-painel-borda:rgba(255,255,255,.08); --vw-mini:rgba(255,255,255,.15);
+      --vf-tec:#5eead4; --vf-tec-bg:rgba(45,212,191,.10); --vf-tec-linha:rgba(94,234,212,.28);
     }
     #imageViewer .viewer-caixa{
       position:relative; display:flex; gap:14px; padding:12px;
@@ -2344,7 +2354,30 @@
     }
     #imageViewer .viewer-thumb:hover{ border-color:#a78bfa; transform:none; }
     #imageViewer .viewer-thumb.active{ border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,.18); }
-    #imageViewer .viewer-acoes{ margin-top:auto; display:flex; align-items:center; gap:8px; }
+    /* ── a ficha do catálogo oficial ──
+       Os dados vêm primeiro, em linhas; as tecnologias depois, uma por linha e
+       resumidas — o texto oficial tem 170 caracteres e tomava o painel todo.
+       A ficha rola sozinha; os botões ficam presos embaixo. */
+    #imageViewer .viewer-ficha{ display:flex; flex-direction:column; gap:9px;
+      border-top:1px dashed var(--vw-linha); padding-top:10px; min-height:0; overflow:auto; }
+    #imageViewer .viewer-ficha.hidden{ display:none; }
+    #imageViewer .vf-tit{ font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--vw-suave); }
+    #imageViewer .vf-linhas{ display:flex; flex-direction:column; border:1px solid var(--vw-linha);
+      border-radius:10px; overflow:hidden; background:var(--vw-botao); }
+    #imageViewer .vf-lin{ display:flex; align-items:baseline; gap:8px; padding:6px 10px; font-size:11.5px; }
+    #imageViewer .vf-lin + .vf-lin{ border-top:1px solid var(--vw-linha); }
+    #imageViewer .vf-lin span{ flex:none; width:74px; font-size:9.5px; font-weight:800; letter-spacing:.05em;
+      text-transform:uppercase; color:var(--vw-suave); }
+    #imageViewer .vf-lin b{ font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+    #imageViewer .vf-tecs{ display:flex; flex-direction:column; gap:5px; }
+    #imageViewer .vf-tec{ display:flex; gap:8px; align-items:baseline; border-radius:9px; padding:6px 9px;
+      border:1px solid var(--vf-tec-linha); background:var(--vf-tec-bg); }
+    #imageViewer .vf-tec b{ flex:none; font-size:10px; font-weight:800; letter-spacing:.02em;
+      text-transform:uppercase; color:var(--vf-tec); }
+    #imageViewer .vf-tec p{ margin:0; font-size:11px; line-height:1.35; color:var(--vw-texto); }
+    #imageViewer .viewer-acoes{ margin-top:auto; display:flex; align-items:center; gap:8px;
+      flex:none; padding-top:9px; border-top:1px solid var(--vw-linha); }
     #imageViewer .viewer-acao{
       flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px;
       height:38px; padding:0 14px; border-radius:999px; color:#fff; font-size:13px; font-weight:800; white-space:nowrap;
@@ -2667,6 +2700,32 @@
         <div class="home-cat-img-wrap">
           <img id="home-cat-img-MEIA" alt="Meias" class="home-cat-img" style="display:none">
           <div id="home-cat-ph-MEIA" class="home-cat-placeholder" style="background:linear-gradient(135deg,#FFF1F2 60%,#FECDD3)"><svg viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="24"><path d="M12 4 L12 24 C12 24 10 26 8 30 C6 34 10 38 14 38 L26 38 C30 38 32 34 28 30 L24 24 L24 4 Z" fill="#F43F5E" opacity="0.15" stroke="#F43F5E" stroke-width="2" stroke-linejoin="round"/><path d="M12 10 L24 10" stroke="#F43F5E" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 2"/><path d="M12 15 L24 15" stroke="#F43F5E" stroke-width="1" stroke-linecap="round" stroke-dasharray="2 2" opacity="0.6"/></svg></div>
+        </div>
+        <i class="fa-solid fa-chevron-right home-cat-arrow"></i>
+      </button>
+      <!-- ── A linha CORRE, em dois cards próprios ──
+           É produto segmentado: tem tênis, roupa e acessório, e quem monta uma
+           oferta de CORRE não quer o resto do catálogo no caminho. Por isso ela
+           sai dos cards de Tênis, Vestuário e Acessórios e vive aqui. -->
+      <button class="home-cat-card home-cat-corre focus-ring" data-cat="CORRE-FTW">
+        <div class="home-cat-info">
+          <div class="home-cat-icon home-cat-icon-grad" style="background:linear-gradient(140deg,#FFF9F2 0%,#FFF4E6 55%,#FFD9A8 100%);"><svg viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="21"><path d="M3 23 C3 23 9 12 18 12 C23 12 25 15 30 15 C34 15 36 13 37 13 L37 24 C37 26 35 27 33 27 L6 27 C4 27 3 26 3 24 Z" fill="#EA580C" opacity="0.16" stroke="#EA580C" stroke-width="2" stroke-linejoin="round"/><path d="M3 24 L37 24" stroke="#EA580C" stroke-width="1.5"/><path d="M8 7 L16 7 M5 11 L13 11" stroke="#EA580C" stroke-width="2" stroke-linecap="round" opacity="0.75"/></svg></div>
+          <div class="home-cat-label"><span class="home-cat-name">Corre</span><span class="home-cat-sub">A linha inteira, só os tênis</span></div>
+        </div>
+        <div class="home-cat-img-wrap">
+          <img id="home-cat-img-CORREFTW" alt="Corre" class="home-cat-img" style="display:none">
+          <div id="home-cat-ph-CORREFTW" class="home-cat-placeholder" style="background:linear-gradient(135deg,#FFF4E6 60%,#FFD9A8)"><svg viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="21"><path d="M3 23 C3 23 9 12 18 12 C23 12 25 15 30 15 C34 15 36 13 37 13 L37 24 C37 26 35 27 33 27 L6 27 C4 27 3 26 3 24 Z" fill="#EA580C" opacity="0.16" stroke="#EA580C" stroke-width="2" stroke-linejoin="round"/><path d="M3 24 L37 24" stroke="#EA580C" stroke-width="1.5"/><path d="M8 7 L16 7 M5 11 L13 11" stroke="#EA580C" stroke-width="2" stroke-linecap="round" opacity="0.75"/></svg></div>
+        </div>
+        <i class="fa-solid fa-chevron-right home-cat-arrow"></i>
+      </button>
+      <button class="home-cat-card home-cat-corre focus-ring" data-cat="CORRE-VA">
+        <div class="home-cat-info">
+          <div class="home-cat-icon home-cat-icon-grad" style="background:linear-gradient(140deg,#FFF9F2 0%,#FFF4E6 55%,#FFD9A8 100%);"><svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="23" height="23"><path d="M13 5 L8 8 L5 14 L9 16 L10 14 L10 30 C10 31 11 32 12 32 L24 32 C25 32 26 31 26 30 L26 14 L27 16 L31 14 L28 8 L23 5 C23 5 21 8 18 8 C15 8 13 5 13 5 Z" fill="#EA580C" opacity="0.16" stroke="#EA580C" stroke-width="2" stroke-linejoin="round"/><path d="M14 20 L22 20" stroke="#EA580C" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/></svg></div>
+          <div class="home-cat-label"><span class="home-cat-name">Roupa do Corre</span><span class="home-cat-sub">Confecção e acessórios da linha</span></div>
+        </div>
+        <div class="home-cat-img-wrap">
+          <img id="home-cat-img-CORREVA" alt="Roupa do Corre" class="home-cat-img" style="display:none">
+          <div id="home-cat-ph-CORREVA" class="home-cat-placeholder" style="background:linear-gradient(135deg,#FFF4E6 60%,#FFD9A8)"><svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="23" height="23"><path d="M13 5 L8 8 L5 14 L9 16 L10 14 L10 30 C10 31 11 32 12 32 L24 32 C25 32 26 31 26 30 L26 14 L27 16 L31 14 L28 8 L23 5 C23 5 21 8 18 8 C15 8 13 5 13 5 Z" fill="#EA580C" opacity="0.16" stroke="#EA580C" stroke-width="2" stroke-linejoin="round"/><path d="M14 20 L22 20" stroke="#EA580C" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/></svg></div>
         </div>
         <i class="fa-solid fa-chevron-right home-cat-arrow"></i>
       </button>
@@ -3590,6 +3649,9 @@
             </div>
             <div id="viewerRotulo" class="viewer-rotulo">Cores · <span id="viewerIndex">—</span></div>
             <div id="viewerThumbs" class="hidden viewer-miniaturas"></div>
+            <!-- A ficha do catálogo oficial: composição, origem e as tecnologias.
+                 O painel tinha espaço sobrando e é onde o cliente pergunta. -->
+            <div id="viewerFicha" class="viewer-ficha hidden"></div>
             <div class="viewer-acoes">
               <!-- no celular as setas descem para cá e a foto fica com a largura toda -->
               <div id="viewerNavMob" class="viewer-nav-mob">
@@ -4013,8 +4075,11 @@ const state = {
   // No celular 3 colunas espremem demais o card — abre em 2. Em telas maiores
   // segue em 3. O botão de layout continua alternando livremente depois disso.
   cardLayout: ehTelaDeToque() ? "duo" : "trio",
-  filters: { category:"", segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"",
-             novaCor:false, lancamento:false, corre:false, continuidade:false },
+  // linha: recorte da família CORRE. "" = tudo, "corre" = só ela, "sem" = o
+  // resto. categoriaEm: quando o card junta mais de uma categoria (a roupa do
+  // CORRE é confecção E acessório).
+  filters: { category:"", categoriaEm:null, segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"2S26", tier:"",
+             linha:"", novaCor:false, lancamento:false, corre:false, continuidade:false },
   pagination: { pageSize: 24, shown: 0 },
   ui: { lastScrollY: 0, view: 'main' },
   productModal: { open:false, item:null, group:null, qty:1, fromCart:false, editKey:null, editing:false },
@@ -4078,6 +4143,13 @@ function expandTam(tam, categoria){
   }
   if(/^\d+\/\d+$/.test(s)){
     const [a, b] = s.split("/").map(Number);
+    /* Em chinelo o tamanho VEM aos pares — "33/34" é um tamanho só, não a
+       faixa de 33 a 34. A regra de baixo é dos calçados, onde "34/44" é mesmo
+       a faixa inteira. Sem esta guarda, um TAM truncado na planilha (o
+       SERENO 2 e o POS CORRE 2 da 1S27 chegaram com "33/34") virava uma grade
+       de "33" e "34" soltos, dois tamanhos que não existem. */
+    if(Math.abs(b - a) === 1 && typeof isSlipperCategory === "function"
+       && isSlipperCategory(categoria)) return [s];
     const result = [];
     for(let i = Math.min(a,b); i <= Math.max(a,b); i++) result.push(String(i));
     return result;
@@ -4938,8 +5010,14 @@ function buildFilterOptions(){
 
   setToggleUI();
 }
-function clearAllFilters(manterColecao){
+/* Limpa os FILTROS — a coleção não é um deles. Ela é a tela em que ele está:
+   quem está na 1S27 e limpa os filtros continua na 1S27, não volta para a
+   2S26. O parâmetro antigo (manterColecao) deixou de existir porque nenhum
+   chamador queria o contrário; a coleção muda só pelo seletor de coleção. */
+function clearAllFilters(){
   state.filters.category = "";
+  state.filters.categoriaEm = null;
+  state.filters.linha = "";
   state.filters.segment = "";
   state.filters.gender = "";
   state.filters.sort = "default";
@@ -4949,12 +5027,7 @@ function clearAllFilters(manterColecao){
   state.filters.lancamento = false;
   state.filters.corre = false;
   state.filters.continuidade = false;
-  // Quem vem da tela inicial já escolheu a coleção ali — limpar os filtros
-  // não pode desfazer essa escolha.
-  if(!manterColecao){
-    state.filters.colecao = "2S26";
-    state.filters.tier = "";
-  }
+  state.filters.tier = "";
   const _sl = $("sliderPrice"); if(_sl){ _sl.value=_sl.max; if(typeof updateSliderLabel==="function") updateSliderLabel(); }
   // reset cat chips
   document.querySelectorAll(".cat-chip").forEach(b=>b.classList.toggle("active", b.dataset.cat===""));
@@ -5397,6 +5470,13 @@ function refreshView(resetPaging){
 
 
   if(state.filters.category) list = list.filter(p => p.categoria === state.filters.category);
+  else if(state.filters.categoriaEm && state.filters.categoriaEm.length)
+    list = list.filter(p => state.filters.categoriaEm.includes(p.categoria));
+  /* A linha CORRE tem cards próprios: o de tênis e o de roupa. Nos cards das
+     outras categorias ela sai de cena, porque é produto segmentado e misturar
+     atrapalha quem está montando a oferta. "Ver todos" continua trazendo tudo. */
+  if(state.filters.linha === "corre")     list = list.filter(p => ehDaCorre(p));
+  else if(state.filters.linha === "sem")  list = list.filter(p => !ehDaCorre(p));
   if(state.filters.segment) list = list.filter(p => p.segmento === state.filters.segment);
   if(state.filters.gender) list = list.filter(p => p.genero === state.filters.gender);
   if(state.filters.colecao) list = list.filter(p => p.colecao === state.filters.colecao);
@@ -8399,6 +8479,11 @@ function isSockCategory(cat){
 function isApparelCategory(cat){
   return normalizeHeaderKey(cat) === "V&A";
 }
+// Chinelo: a grade vem aos pares ("33/34", "35/36"), ao contrário do calçado,
+// que vem em faixa contínua ("34/44" = 34, 35, 36…).
+function isSlipperCategory(cat){
+  return normalizeHeaderKey(cat) === "CHI";
+}
 function isFootwearCategory(cat){
   const c = normalizeHeaderKey(cat);
   return c === "FTW" || c === "CHI";
@@ -9586,6 +9671,7 @@ function renderImageViewer(){
     _viewerPosicao(idx, total);
     // Modo ângulos: esconde thumbs de cores
     $("viewerThumbs")?.classList.add("hidden");
+    renderViewerFicha(item);
   } else {
     const it = viewerState.variants[viewerState.index];
     if(!it) return;
@@ -9637,7 +9723,48 @@ function renderImageViewer(){
     _viewerPosicao(viewerState.index, viewerState.variants.length);
     // Modo cores: renderiza thumbs
     _renderViewerThumbs();
+    renderViewerFicha(it);
   }
+}
+
+/* ══ A FICHA DO CATÁLOGO OFICIAL ══════════════════════════════════════
+   data/fichas-oly.json traz, por artigo, a composição, a origem e as
+   tecnologias — lidas da página de cada produto no catálogo da Olympikus,
+   onde elas vêm no HTML (não há API). A chave é o artigo, então a ficha vale
+   para todas as cores dele.
+
+   Cada tecnologia tem um resumo escrito à mão no lugar do texto oficial, que
+   tem perto de 170 caracteres e tomava o painel inteiro. O texto completo vai
+   junto no arquivo, para o dia em que alguém quiser mostrá-lo. */
+let FICHAS_OLY = null;
+async function carregarFichas(){
+  if(FICHAS_OLY) return FICHAS_OLY;
+  try{
+    const r = await fetch("./data/fichas-oly.json?t=" + Date.now(), { cache: "no-store" });
+    const d = await r.json();
+    FICHAS_OLY = (d && d.fichas) ? d.fichas : {};
+  }catch(_){ FICHAS_OLY = {}; }   // sem o arquivo, o painel fica como era
+  return FICHAS_OLY;
+}
+const fichaDoItem = it => (FICHAS_OLY || {})[String((it && it.codigo) || "").trim()] || null;
+
+function renderViewerFicha(item){
+  const el = $("viewerFicha");
+  if(!el) return;
+  const f = fichaDoItem(item);
+  if(!f){ el.classList.add("hidden"); el.innerHTML = ""; return; }
+  const esc = s => String(s == null ? "" : s)
+    .replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+  const linhas = [["Origem", f.origem], ["Gênero", f.genero], ["Tamanhos", f.tamanhos],
+                  ["Composição", f.composicao]]
+    .filter(x => x[1])
+    .map(x => `<div class="vf-lin"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
+  const tecs = (f.tecnologias || [])
+    .map(t => `<div class="vf-tec"><b>${esc(t.nome)}</b><p>${esc(t.resumo || t.texto)}</p></div>`).join("");
+  if(!linhas && !tecs){ el.classList.add("hidden"); el.innerHTML = ""; return; }
+  el.innerHTML = (linhas ? `<div class="vf-linhas">${linhas}</div>` : "") +
+                 (tecs ? `<div class="vf-tit">Tecnologias</div><div class="vf-tecs">${tecs}</div>` : "");
+  el.classList.remove("hidden");
 }
 
 // "2/5" no painel e junto das setas do celular; com uma cor só, nada disso aparece
@@ -11186,21 +11313,30 @@ function updateSliderLabel(){
 
     // Aguarda catálogo estar no DOM e aplica filtro
     if(cat){
-      // Seta o filtro de categoria
-      state.filters.category = cat;
+      // Os dois cards da linha CORRE não são categorias da planilha: são
+      // recortes dela. O resto dos cards entra sem a CORRE.
+      const RECORTE = {
+        "CORRE-FTW": { category:"FTW", categoriaEm:null,          linha:"corre" },
+        "CORRE-VA":  { category:"",    categoriaEm:["V&A","ACC"], linha:"corre" },
+      };
+      const r = RECORTE[cat];
+      state.filters.category    = r ? r.category    : cat;
+      state.filters.categoriaEm = r ? r.categoriaEm : null;
+      state.filters.linha       = r ? r.linha       : "sem";
       // Sincroniza chips de categoria no drawer
+      const chipCat = state.filters.category;
       document.querySelectorAll(".cat-chip").forEach(b=>{
-        b.classList.toggle("active", b.dataset.cat === cat);
+        b.classList.toggle("active", b.dataset.cat === chipCat);
       });
       const hiddenSel = document.getElementById("filterCategory");
-      if(hiddenSel) hiddenSel.value = cat;
+      if(hiddenSel) hiddenSel.value = chipCat;
       // Dispara refresh se catálogo já carregado
       if(state.productsRaw && state.productsRaw.length > 0){
         refreshView(true);
       }
     } else {
       // "Ver todos" — limpa filtros, menos a coleção escolhida na tela inicial
-      clearAllFilters(true);
+      clearAllFilters();
       if(typeof syncColecaoCards === "function") syncColecaoCards();
       if(typeof syncTierBar === "function") syncTierBar();
       if(state.productsRaw && state.productsRaw.length > 0) refreshView(true);
@@ -11374,6 +11510,8 @@ function injectHomeCategoryImages(){
     }
     _updateFilterBadge();
     if(typeof injectHomeCategoryImages === "function") injectHomeCategoryImages();
+    // as fichas entram em paralelo: o catálogo não espera por elas
+    if(typeof carregarFichas === "function") carregarFichas();
   };
 
   function _applyCategory(cat){
@@ -11384,7 +11522,7 @@ function injectHomeCategoryImages(){
     var sel = document.getElementById("filterCategory");
     if(sel) sel.value = cat || "";
     if(!cat){
-      clearAllFilters(true);
+      clearAllFilters();
       if(typeof syncColecaoCards === "function") syncColecaoCards();
       if(typeof syncTierBar === "function") syncTierBar();
     }
@@ -11488,12 +11626,17 @@ function injectHomeCategoryImages(){
 
 // Imagens fixas por categoria (com prioridade pra custom enviada pelo admin)
 function injectHomeCategoryImages(){
+  /* O card de Tênis mostrava o CORRE SUPRA 2 — que saiu dele e foi para o card
+     da própria linha. Agora o Tênis abre com um QUADRA 3, que é dele mesmo, e a
+     linha CORRE abre com um CORRE 5 cor nova da 1S27. */
   var CAT_IMAGES = {
-    "FTW":  "43777397_ARENML__02",
-    "CHI":  "54111405_AMR_LM__02",
-    "VA":   "OIWCR25104_PRETO",
-    "ACC":  "OIWB211800_OLYMPN__04",
-    "MEIA": "OBMSR241922_AMBCLC__03"
+    "FTW":      "43251518_PTO_VD",
+    "CHI":      "54111405_AMR_LM__02",
+    "VA":       "OIWCR25104_PRETO",
+    "ACC":      "OIWB211800_OLYMPN__04",
+    "MEIA":     "OBMSR241922_AMBCLC__03",
+    "CORREFTW": "43206446_BCPTVC",
+    "CORREVA":  "OIMWL27116_BLINMA"
   };
   var EXTS = [".jpg",".jpeg",".png",".webp"];
   var base = (typeof DATA_CONFIG !== "undefined" && DATA_CONFIG.imagesBasePath) ? DATA_CONFIG.imagesBasePath : "./imagens_olympikus/";
