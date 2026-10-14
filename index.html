@@ -4147,6 +4147,14 @@ const DATA_CONFIG = { xlsxPath: MARCA_ATUAL.xlsx, imagesBasePath: "./imagens_oly
   if(bn) bn.textContent = MARCA_ATUAL.nome;
   document.title = "Catálogo " + MARCA_ATUAL.nome;
 
+  /* A linha CORRE é da Olympikus. No catálogo da Under Armour os dois cards
+     dela abririam vazios, então saem da entrada. */
+  if(MARCA_ATUAL.id === "ua"){
+    document.querySelectorAll('.home-cat-card[data-cat^="CORRE"]').forEach(function(c){
+      c.hidden = true;
+    });
+  }
+
   // Botão de troca de marca: mostra a logo + nome da OUTRA marca
   var outraId = MARCA_ATUAL.id === "oly" ? "ua" : "oly";
   var outra = MARCAS[outraId];
@@ -5643,8 +5651,12 @@ function pintarChipsFiltro(){
     btn.setAttribute("aria-pressed", ligado ? "true" : "false");
     const n = btn.querySelector("[data-n]");
     if(n) n.textContent = quanto[k] ? quanto[k] : "";
-    // sem nenhum produto para oferecer, o chip não tem o que fazer ali
-    btn.hidden = !quanto[k] && !ligado;
+    /* O chip CORRE só vale onde a linha é o assunto. Quem entrou por
+       Calçados, Acessórios ou Vestuário veio buscar o resto do catálogo —
+       a linha tem os dois cards próprios na entrada —, e ali o chip só
+       repetia um caminho que já existe. */
+    const soNaLinha = k === "corre" && state.filters.category && state.filters.linha !== "corre";
+    btn.hidden = soNaLinha || (!quanto[k] && !ligado);
   });
   // a fila some só quando não há chip nem coleção a mostrar
   chips.hidden = !state.filters.colecao && !state.productsView.length &&
@@ -10081,7 +10093,7 @@ function pdfParaJpeg(im, maxLado){
   const g = c.getContext("2d");
   g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
   g.drawImage(im, 0, 0, c.width, c.height);
-  return { dados: c.toDataURL("image/jpeg", 0.84), prop: c.width / c.height };
+  return { dados: c.toDataURL("image/jpeg", 0.92), prop: c.width / c.height };
 }
 let PDF_LOGO = null;
 async function pdfLogo(){
@@ -10289,9 +10301,11 @@ async function gerarCatalogoPdf(){
     for(let i = 0; i < grupos.length; i++){
       const itens = grupos[i];
       const nome = itens[0]?.produto || itens[0]?.codigo || "";
-      // quanto maior o mosaico, menor cada foto: não adianta guardar pixel que
-      // não vai aparecer, e o arquivo agradece
-      const lado = itens.length <= 2 ? 900 : itens.length <= 6 ? 700 : 520;
+      // A foto tem de aguentar zoom, não só caber na página: o cliente amplia
+      // para ver costura, solado e etiqueta. A maior ocupa ~90mm impressa, que
+      // a 300 DPI pede 1060px — o dobro disso dá duas ampliações antes de
+      // borrar. O mosaico cheio reduz porque lá cada foto é pequena mesmo.
+      const lado = itens.length <= 2 ? 2000 : itens.length <= 6 ? 1500 : 1100;
       const fotos = [];
       for(const it of itens){
         await pdfAndamento(feitas / totalFotos, i + 1, total, nome);
@@ -10310,6 +10324,7 @@ async function gerarCatalogoPdf(){
     const col = (grupos[0][0]?.colecao || "").toLowerCase().replace(/[^\w]+/g, "");
     doc.save(["catalogo-olympikus", col, carimbo].filter(Boolean).join("-") + ".pdf");
     PdfProg.concluir();
+    limparMarcados();
     toast && toast(total + (total > 1 ? " produtos salvos" : " produto salvo") + " em PDF.");
   }catch(e){
     PdfProg.falhar(e);
