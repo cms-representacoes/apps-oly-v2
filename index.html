@@ -656,6 +656,32 @@
     .selo-colecao:hover{ border-color:var(--primary); }
     .selo-colecao:active{ transform:scale(.97); }
     .dark-mode .selo-colecao{ background:#1F2937; border-color:#374151; }
+    .selo-colecao[aria-expanded="true"]{ border-color:var(--primary); }
+    .selo-colecao .seta{ font-size:9px; opacity:.55; margin-left:-1px; }
+    /* ── a troca de coleção, ali mesmo ──
+       O chip levava de volta à tela inicial para trocar, e quem estava no
+       meio da lista perdia a categoria, os filtros e o lugar em que estava.
+       Agora ele abre a escolha onde o dedo já está. */
+    .selo-col-wrap{ position:relative; display:inline-flex; }
+    .col-pop{ position:absolute; top:calc(100% + 8px); left:0; z-index:45;
+      min-width:190px; background:#fff; border:1px solid var(--border,#E5E7EB);
+      border-radius:14px; padding:8px; display:none;
+      box-shadow:0 8px 24px rgba(15,23,42,.12), 0 2px 4px rgba(15,23,42,.05);
+      animation:tierPopIn .18s cubic-bezier(.2,.7,.2,1) both; }
+    .col-pop.show{ display:block; }
+    .col-pop-tit{ font-size:10px; font-weight:800; color:var(--muted);
+      letter-spacing:.5px; text-transform:uppercase; padding:2px 6px 7px; }
+    .col-pop-op{ display:flex; align-items:center; gap:8px; width:100%;
+      padding:8px 10px; border-radius:10px; border:0; background:none; cursor:pointer;
+      font-size:13px; font-weight:800; color:var(--text,#0F172A); text-align:left; }
+    .col-pop-op:hover{ background:var(--bg,#F8FAFC); }
+    .col-pop-op .n{ margin-left:auto; font-size:11px; font-weight:700; color:var(--muted); }
+    .col-pop-op .tick{ width:13px; font-size:11px; color:var(--primary); opacity:0; }
+    .col-pop-op.on .tick{ opacity:1; }
+    .col-pop-op.on{ background:color-mix(in srgb, var(--primary) 9%, transparent); }
+    .dark-mode .col-pop{ background:#1F2937; border-color:#374151; }
+    .dark-mode .col-pop-op{ color:#E5E7EB; }
+    .dark-mode .col-pop-op:hover{ background:#111827; }
     /* a contagem acompanha a coleção, mais apagada por ser informação e não botão */
     .selo-conta{ margin-right:auto; display:inline-flex; align-items:center; min-height:32px;
       font-size:11.5px; font-weight:800; letter-spacing:.03em;
@@ -1260,6 +1286,16 @@
     .btn-open-grade .grade-label.hidden-out { animation: grade-fade-out 0.4s ease forwards; }
 
     /* ✅ Modal de Grade */
+    /* o mesmo chip âmbar do visualizador, na altura do nome do produto */
+    .grade-chip-disp{
+      display:inline-flex; align-items:center; gap:4px; margin-top:5px;
+      border-radius:999px; padding:3px 9px; font-size:11px; font-weight:800; line-height:1.3;
+      background:#FFFBEB; border:1px solid #FDE68A; color:#92400E;
+    }
+    .grade-chip-disp[hidden]{ display:none; }
+    .grade-chip-disp i{ font-size:9px; color:#B45309; }
+    .dark-mode .grade-chip-disp{ background:rgba(180,83,9,.18); border-color:rgba(253,230,138,.35); color:#FCD34D; }
+    .dark-mode .grade-chip-disp i{ color:#FCD34D; }
     #gradeModal .grade-sheet {
       transition: transform 0.3s cubic-bezier(.4,0,.2,1);
       transform: translateY(100%);
@@ -2314,10 +2350,17 @@
       box-shadow:0 24px 60px rgba(15,23,42,.35);
     }
 
+    /* a coluna da esquerda: foto em cima, fila de cores embaixo */
+    #imageViewer .viewer-esq{
+      flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:10px;
+    }
+    /* o rótulo veio junto com as miniaturas: sozinho no painel ele apontava
+       para uma fila que não estava mais lá */
+    #imageViewer .viewer-esq .viewer-rotulo{ margin-bottom:-6px; }
     /* palco: a moldura é o retângulo entre as setas; a foto dentro dela é
        posicionada pelo script */
     #imageViewer .viewer-palco{
-      flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; gap:12px;
+      flex:1 1 auto; min-height:0; min-width:0; display:flex; align-items:center; justify-content:center; gap:12px;
       container-type:size;
     }
     #imageViewer .viewer-foto{
@@ -2337,7 +2380,7 @@
 
     /* painel */
     #imageViewer .viewer-painel{
-      flex:none; width:250px; min-height:0; display:flex; flex-direction:column; gap:12px;
+      flex:none; width:312px; min-height:0; display:flex; flex-direction:column; gap:12px;
       padding:14px; background:var(--vw-painel); border:1px solid var(--vw-painel-borda); border-radius:16px;
     }
     #imageViewer .viewer-cab{ display:flex; align-items:flex-start; gap:8px; }
@@ -2356,17 +2399,29 @@
       font-size:11px; font-weight:800; line-height:1.3; background:#fff; color:#0f172a; border:1px solid #e2e8f0;
     }
     #imageViewer .viewer-chip i{ font-size:9px; color:var(--primary); }
+    /* Disponibilidade e fábrica: dois dados que o cliente pergunta e que
+       antes não estavam em lugar nenhum. Âmbar para "quando", cinza para
+       "onde" — a data é que muda a conversa. */
+    #imageViewer .viewer-chip.vw-disp{ background:#FFFBEB; border-color:#FDE68A; color:#92400E; }
+    #imageViewer .viewer-chip.vw-disp i{ color:#B45309; }
+    #imageViewer .viewer-chip.vw-emp{ background:#F8FAFC; border-color:#E2E8F0; color:#475569; }
+    #imageViewer .viewer-chip.vw-emp i{ color:#64748B; }
+    #imageViewer .viewer-chip[hidden]{ display:none; }
+    .dark-mode #imageViewer .viewer-chip.vw-disp{ background:rgba(180,83,9,.18); border-color:rgba(253,230,138,.35); color:#FCD34D; }
+    .dark-mode #imageViewer .viewer-chip.vw-disp i{ color:#FCD34D; }
+    .dark-mode #imageViewer .viewer-chip.vw-emp{ background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); color:#CBD5E1; }
+    .dark-mode #imageViewer .viewer-chip.vw-emp i{ color:#94A3B8; }
     #imageViewer .viewer-rotulo{ font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--vw-suave); }
-    /* As miniaturas aparecem todas: sao a escolha da cor, o que mais se usa
-       aqui. Quem cede espaco e rola e a ficha, logo abaixo. O teto so existe
-       para o caso extremo de um artigo com dezenas de cores. */
+    /* Sob a foto, numa fila só: as cores ficam lado a lado, na largura
+       inteira da imagem, e rolam de lado quando o artigo tem muitas. Era um
+       grid de três colunas dentro do painel, que comia 58% da altura dele. */
     #imageViewer .viewer-miniaturas{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:6px; align-content:start;
-      flex:none; max-height:58%; overflow-y:auto; padding:2px; scrollbar-width:thin;
+      display:flex; gap:8px; flex:none; align-items:center;
+      overflow-x:auto; overflow-y:hidden; padding:2px; scrollbar-width:thin;
     }
     #imageViewer .viewer-miniaturas.hidden{ display:none; }
     #imageViewer .viewer-thumb{
-      width:100%; height:auto; aspect-ratio:1; border-radius:9px; background:#fff;
+      flex:none; width:72px; height:auto; aspect-ratio:1; border-radius:9px; background:#fff;
       border:2px solid var(--vw-mini); transform:none;
     }
     #imageViewer .viewer-thumb:hover{ border-color:#a78bfa; transform:none; }
@@ -2524,6 +2579,9 @@
     @media (max-width:899.98px), (orientation:portrait){
       #imageViewer .viewer-caixa{ flex-direction:column; height:auto; max-height:100%; overflow-y:auto; padding:14px; gap:10px; }
       #imageViewer .viewer-painel{ display:contents; }
+      /* a coluna da esquerda se dissolve: foto e miniaturas voltam a ser
+         irmãs dos outros pedaços, cada um com a sua ordem */
+      #imageViewer .viewer-esq{ display:contents; }
       #imageViewer .viewer-cab{ order:1; }
       #imageViewer .viewer-titulo{ font-size:17px; }
       #imageViewer .viewer-pdv{ font-size:22px; }
@@ -2532,14 +2590,11 @@
       #imageViewer .viewer-rotulo{ display:none; }
       #imageViewer .viewer-miniaturas{ order:4; display:flex; overflow-x:auto; overflow-y:hidden; gap:8px; }
       #imageViewer .viewer-thumb{ flex:none; width:64px; }
-      #imageViewer .viewer-acoes{ order:5; margin-top:2px; }
+      #imageViewer .viewer-ficha{ order:5; }
+      #imageViewer .viewer-acoes{ order:6; margin-top:2px; }
       #imageViewer .viewer-acao{ flex:none; padding:0 18px; }
       #imageViewer .viewer-nav-mob{ display:flex; align-items:center; gap:8px; margin-right:auto; }
       #imageViewer .viewer-nav-mob .viewer-seta{ display:none; }
-      /* Aqui o painel vira display:contents e cada parte tem a sua ordem: a
-         ficha caía antes do nome e da foto. No lugar dela, o ⓘ no card abre a
-         ficha num quadro próprio — mais perto de onde o dedo já está. */
-      #imageViewer .viewer-ficha{ display:none !important; }
     }
     /* celular: setas junto dos botões, foto com a largura toda */
     @media (max-width:639.98px){
@@ -2553,6 +2608,10 @@
       #imageViewer .viewer-foto{ width:100cqw; }
       #imageViewer .viewer-miniaturas{ gap:6px; }
       #imageViewer .viewer-thumb{ width:50px; border-radius:8px; }
+      /* Só aqui a ficha sai: na tela curta ela empurrava os botões para
+         longe do dedo. No lugar dela, o ⓘ do card a abre num quadro
+         próprio. No tablet ela cabe, e fica. */
+      #imageViewer .viewer-ficha{ display:none !important; }
       #imageViewer .viewer-acoes{ gap:6px; }
       #imageViewer .viewer-acao{ height:36px; padding:0 12px; font-size:12px; }
       #imageViewer .viewer-nav-mob{ gap:4px; }
@@ -3183,11 +3242,18 @@
 
       <section id="grid" class="hidden mt-4">
         <div class="filtro-chips" id="filtroChips">
-          <button type="button" class="selo-colecao focus-ring" id="seloColecao"
-                  title="Trocar de coleção">
-            <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
-            <span id="seloColecaoNome">—</span>
-          </button>
+          <span class="selo-col-wrap">
+            <button type="button" class="selo-colecao focus-ring" id="seloColecao"
+                    title="Trocar de coleção" aria-haspopup="true" aria-expanded="false">
+              <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+              <span id="seloColecaoNome">—</span>
+              <i class="fa-solid fa-chevron-down seta" aria-hidden="true"></i>
+            </button>
+            <div class="col-pop" id="colecaoPop" role="menu" aria-labelledby="seloColecao">
+              <div class="col-pop-tit">Coleção</div>
+              <div id="colecaoPopLista"></div>
+            </div>
+          </span>
           <span class="selo-conta" id="productCounter"></span>
           <button type="button" class="chip-f chip-f-novacor focus-ring" data-chip="novaCor"
                   aria-pressed="false">Nova cor <span class="chip-f-n" data-n></span></button>
@@ -3670,8 +3736,12 @@
               </div>
               <div>
                 <label class="order-field-label" for="oxPriceTable">Tab. de Preço <span class="req-mark">*</span></label>
-                <input id="oxPriceTable" class="order-field-control" list="oxPriceTableList" placeholder="Ex.: OL025" data-required="1" autocomplete="off" />
+                <input id="oxPriceTable" class="order-field-control" list="oxPriceTableList" placeholder="Ex.: OL029" data-required="1" autocomplete="off" />
+                <!-- as da coleção 1S27 vêm primeiro; as anteriores ficam para
+                     quem ainda digita pedido de coleção passada -->
                 <datalist id="oxPriceTableList">
+                  <option value="OL029">Olympikus · 1S27</option>
+                  <option value="UA040">Under Armour · SS27</option>
                   <option value="OL025"></option>
                   <option value="OL024"></option>
                 </datalist>
@@ -3810,7 +3880,11 @@
              do produto (enquadrarFotoViewer), cortando só o branco em volta. -->
         <div class="viewer-caixa">
 
-          <!-- ── Palco: seta · foto · seta ── -->
+          <!-- ── Esquerda: a foto grande e, sob ela, a fila de cores ──
+               No computador e no tablet as miniaturas saem do painel e vêm
+               para cá: lá elas comiam mais da metade da altura e a ficha
+               ficava espremida num vão de duas linhas. -->
+          <div class="viewer-esq">
           <div class="viewer-palco">
             <button id="viewerPrev" class="viewer-seta focus-ring" aria-label="Cor anterior"><i class="fa-solid fa-arrow-left"></i></button>
             <div class="viewer-foto">
@@ -3823,6 +3897,9 @@
               </div>
             </div>
             <button id="viewerNext" class="viewer-seta focus-ring" aria-label="Próxima cor"><i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+            <div id="viewerRotulo" class="viewer-rotulo">Cores · <span id="viewerIndex">—</span></div>
+            <div id="viewerThumbs" class="hidden viewer-miniaturas"></div>
           </div>
 
           <!-- ── Painel: produto, artigo e cor, cores, botões ── -->
@@ -3845,9 +3922,16 @@
                 <i class="fa-solid fa-palette"></i>
                 <span>—</span>
               </span>
+              <!-- Quando a fábrica libera e de qual filial sai. Vem da circular
+                   da coleção; produto de continuidade não tem, e aí os chips
+                   somem em vez de mostrar um traço. -->
+              <span id="viewerDisp" class="viewer-chip vw-disp" hidden>
+                <i class="fa-regular fa-calendar"></i><span></span>
+              </span>
+              <span id="viewerEmpresa" class="viewer-chip vw-emp" hidden>
+                <i class="fa-solid fa-industry"></i><span></span>
+              </span>
             </div>
-            <div id="viewerRotulo" class="viewer-rotulo">Cores · <span id="viewerIndex">—</span></div>
-            <div id="viewerThumbs" class="hidden viewer-miniaturas"></div>
             <!-- A ficha do catálogo oficial: composição, origem e as tecnologias.
                  O painel tinha espaço sobrando e é onde o cliente pergunta. -->
             <div id="viewerFicha" class="viewer-ficha hidden"></div>
@@ -3990,6 +4074,9 @@
             <div class="text-xs font-bold text-oly-muted">Grade de tamanhos</div>
             <div id="gradeProduto" class="font-extrabold truncate">—</div>
             <div id="gradeCor" class="text-xs text-oly-muted mt-0.5">—</div>
+            <!-- quando a fábrica libera: aqui é onde se escolhe a data, e é
+                 aqui que a informação muda a escolha -->
+            <span id="gradeDisp" class="grade-chip-disp" hidden></span>
           </div>
           <button id="btnCloseGrade" class="focus-ring h-10 w-10 rounded-full border border-oly-border hover:bg-oly-bg shrink-0">
             <i class="fa-solid fa-xmark text-oly-blue"></i>
@@ -5199,20 +5286,46 @@ $("filtersDrawerWrap").addEventListener("click", (e)=>{
 function uniqSorted(arr){
   return Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),"pt-BR",{sensitivity:"base"}));
 }
+/* ── Segmento ───────────────────────────────────────────────
+   Ele vem da planilha como cada um digitou. "CHINELOS" e "Chinelos" são o
+   mesmo segmento em duas caixas, e no filtro viravam duas linhas que
+   dividiam os produtos ao meio: quem escolhesse uma via 52 calçados e
+   perdia os outros 33. O mesmo com "Corrida" e "corrida".
+
+   A CHAVE é o nome sem acento e em maiúsculas, e é ela que o filtro compara;
+   o RÓTULO sai capitalizado, como já estavam os que vieram certos da
+   planilha (Caminhada, Casual, Clássicos, Treino). */
+const chaveSegmento = v => String(v == null ? "" : v).trim()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+const rotuloSegmento = v => {
+  const t = String(v == null ? "" : v).trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : "";
+};
+/* Um item por segmento de verdade, com o rótulo já no padrão. */
+function segmentosDoCatalogo(produtos){
+  const porChave = new Map();
+  for(const p of produtos){
+    const k = chaveSegmento(p.segmento);
+    if(k && !porChave.has(k)) porChave.set(k, rotuloSegmento(p.segmento));
+  }
+  return Array.from(porChave, ([chave, rotulo]) => ({ chave, rotulo }))
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR", { sensitivity:"base" }));
+}
+
 function setToggleUI(){
   $("toggleTrack").dataset.on = String(state.groupColors);
   $("toggleLabel").textContent = state.groupColors ? "On" : "Off";
 }
 function buildFilterOptions(){
   const cats = uniqSorted(state.productsRaw.map(p=>p.categoria));
-  const segs = uniqSorted(state.productsRaw.map(p=>p.segmento));
+  const segs = segmentosDoCatalogo(state.productsRaw);
   const gens = uniqSorted(state.productsRaw.map(p=>p.genero));
 
   $("filterCategory").innerHTML = `<option value="">Categoria: Todas</option>` + cats.map(c=>{
     const label = CATEGORY_LABELS[c] || c;
     return `<option value="${escapeHtml(c)}">${escapeHtml(label)} (${escapeHtml(c)})</option>`;
   }).join("");
-  $("filterSegment").innerHTML = `<option value="">Segmento: Todos</option>` + segs.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+  $("filterSegment").innerHTML = `<option value="">Segmento: Todos</option>` + segs.map(s=>`<option value="${escapeHtml(s.chave)}">${escapeHtml(s.rotulo)}</option>`).join("");
   $("filterGender").innerHTML = `<option value="">Gênero: Todos</option>` + gens.map(g=>`<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
 
   setToggleUI();
@@ -5297,19 +5410,28 @@ function syncColecaoCards(){
   const wrap = document.getElementById("tierBarWrap");
   if(wrap) wrap.classList.toggle("show", state.filters.colecao === "2S26");
 }
+/* Trocar de coleção é a mesma coisa vinda de dois lugares: dos cartões da
+   tela inicial e do chip da lista. A regra mora aqui para não viver em duas
+   cópias que um dia divergem. */
+function escolherColecao(sel, naLista){
+  if(!sel || state.filters.colecao === sel) return;
+  state.filters.colecao = sel;
+  // Ao trocar de coleção, limpa o tier (só a 2S26 tem classificação)
+  if(sel !== "2S26"){
+    state.filters.tier = "";
+    syncTierBar();
+  }
+  syncColecaoCards();
+  // Na tela inicial ainda não há lista para refazer; na grade, há — e a
+  // paginação volta ao começo, senão a coleção nova abre no meio.
+  if(naLista){
+    state.pagination.shown = 0;
+    refreshView(true);
+  }
+  if(typeof toast === "function") toast(`Coleção ${sel} selecionada`);
+}
 document.querySelectorAll(".colecao-card").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const sel = btn.dataset.colecao;
-    if(state.filters.colecao === sel) return; // Caso B
-    state.filters.colecao = sel;
-    // Ao trocar de coleção, limpa o tier (só a 2S26 tem classificação)
-    if(sel !== "2S26"){
-      state.filters.tier = "";
-      syncTierBar();
-    }
-    syncColecaoCards();
-    if(typeof toast === "function") toast(`Coleção ${sel} selecionada`);
-  });
+  btn.addEventListener("click", () => escolherColecao(btn.dataset.colecao, false));
 });
 // Sincroniza estado visual inicial (a coleção corrente, 1S27, vem marcada)
 syncColecaoCards();
@@ -5713,7 +5835,10 @@ function refreshView(resetPaging){
      atrapalha quem está montando a oferta. "Ver todos" continua trazendo tudo. */
   if(state.filters.linha === "corre")     list = list.filter(p => ehDaCorre(p));
   else if(state.filters.linha === "sem")  list = list.filter(p => !ehDaCorre(p));
-  if(state.filters.segment) list = list.filter(p => p.segmento === state.filters.segment);
+  if(state.filters.segment){
+    const alvo = chaveSegmento(state.filters.segment);
+    list = list.filter(p => chaveSegmento(p.segmento) === alvo);
+  }
   if(state.filters.gender) list = list.filter(p => p.genero === state.filters.gender);
   if(state.filters.colecao) list = list.filter(p => p.colecao === state.filters.colecao);
   if(state.filters.tier) list = list.filter(p => p[state.filters.tier] === true);
@@ -5818,16 +5943,60 @@ function refreshView(resetPaging){
   $("btnLoadMore").classList.toggle("hidden", !(state.pagination.shown < state.productsView.length) || state.productsView.length===0);
 }
 
-// Um clique liga, outro desliga. Os três convivem: dá para pedir lançamento
-// da linha CORRE ao mesmo tempo.
-// Clicar na coleção leva de volta à tela inicial, que é onde se troca.
+/* As coleções que ESTA marca tem, com quantos produtos cada uma, na ordem
+   dos cartões da tela inicial. */
+function colecoesDisponiveis(){
+  const lista = state.productsRaw || [];
+  const conta = new Map();
+  for(const p of lista){
+    const c = String(p.colecao || "").toUpperCase();
+    if(c) conta.set(c, (conta.get(c) || 0) + 1);
+  }
+  return [...document.querySelectorAll(".colecao-card")]
+    .map(b => String(b.dataset.colecao || "").toUpperCase())
+    .filter(c => conta.has(c))
+    .map(c => ({ nome:c, n:conta.get(c) }));
+}
+function montarColecaoPop(){
+  const cx = document.getElementById("colecaoPopLista");
+  if(!cx) return;
+  cx.innerHTML = colecoesDisponiveis().map(c => `
+    <button type="button" class="col-pop-op${c.nome === state.filters.colecao ? ' on' : ''}"
+            role="menuitem" data-col="${escapeHtml(c.nome)}">
+      <i class="fa-solid fa-check tick" aria-hidden="true"></i>
+      <span>${escapeHtml(c.nome)}</span>
+      <span class="n">${c.n}</span>
+    </button>`).join("");
+}
+function fecharColecaoPop(){
+  const pop = document.getElementById("colecaoPop");
+  const bt  = document.getElementById("seloColecao");
+  if(pop) pop.classList.remove("show");
+  if(bt) bt.setAttribute("aria-expanded", "false");
+}
+// O chip abre a escolha ali mesmo, em vez de voltar à tela inicial.
 document.addEventListener("click", ev => {
   if(ev.target.closest("#seloColecao")){
-    const voltar = document.getElementById("btnBackToHome");
-    if(voltar) voltar.click();
-    else if(typeof goHome === "function") goHome();
+    const pop = document.getElementById("colecaoPop");
+    const bt  = document.getElementById("seloColecao");
+    if(!pop) return;
+    const abrindo = !pop.classList.contains("show");
+    if(abrindo) montarColecaoPop();
+    pop.classList.toggle("show", abrindo);
+    bt.setAttribute("aria-expanded", abrindo ? "true" : "false");
     return;
   }
+  const op = ev.target.closest(".col-pop-op");
+  if(op){
+    fecharColecaoPop();
+    escolherColecao(op.dataset.col, true);
+    return;
+  }
+  // clique em qualquer outro lugar fecha
+  if(!ev.target.closest("#colecaoPop")) fecharColecaoPop();
+});
+document.addEventListener("keydown", ev => {
+  if(ev.key === "Escape") fecharColecaoPop();
 });
 document.addEventListener("click", ev => {
   const btn = ev.target.closest(".chip-f");
@@ -7028,12 +7197,12 @@ function openProductModal({ item, group, fromCart=false, editing=false, editKey=
 
   $("pmTitle").textContent = item.produto || "Produto";
   if($("pmCodigo")) $("pmCodigo").textContent = item.codigo || "—";
-  if($("pmSegmento")) $("pmSegmento").textContent = item.segmento || "—";
+  if($("pmSegmento")) $("pmSegmento").textContent = rotuloSegmento(item.segmento) || "—";
   if($("pmGenero")) $("pmGenero").textContent = item.genero || "—";
   // Linha compacta: Código · Segmento
   if($("pmCodeSeg")){
     const code = item.codigo || "—";
-    const seg = item.segmento || "—";
+    const seg = rotuloSegmento(item.segmento) || "—";
     $("pmCodeSeg").textContent = `${code} · ${seg}`;
   }
 
@@ -10359,6 +10528,76 @@ async function gerarCatalogoPdf(){
    Cada tecnologia tem um resumo escrito à mão no lugar do texto oficial, que
    tem perto de 170 caracteres e tomava o painel inteiro. O texto completo vai
    junto no arquivo, para o dia em que alguém quiser mostrá-lo. */
+/* ── A circular da coleção ──────────────────────────────────────
+   Quando a fábrica libera cada cor e de qual filial ela sai — dois dados
+   que o cliente pergunta e que não existem na planilha do EBM. Vêm da
+   circular que a Olympikus manda a cada coleção.
+
+   A chave é artigo + COR, não só o artigo: o mesmo tênis tem cores que são
+   lançamento e cores que são continuidade, e só as primeiras constam. O
+   NUVEM, por exemplo, tem três cores na circular e outras três que vêm da
+   coleção passada — essas ficam sem a informação, e os chips somem. */
+let CIRCULAR = null;
+const _chaveCirc = (art, cor) =>
+  String(art == null ? "" : art).trim().toUpperCase() + "|" +
+  String(cor == null ? "" : cor).trim().toUpperCase();
+async function carregarCircular(){
+  if(CIRCULAR) return CIRCULAR;
+  const mapa = {};
+  try{
+    const r = await fetch("./data/circular-1s27.json?t=" + Date.now(), { cache: "no-store" });
+    const d = await r.json();
+    for(const it of (d && d.itens) || []){
+      for(const c of (it.cores || [])){
+        mapa[_chaveCirc(it.artigo, c)] = { disp: it.disp, empresa: it.empresa };
+      }
+    }
+  }catch(_){ /* sem o arquivo, os chips simplesmente não aparecem */ }
+  CIRCULAR = mapa;
+  return CIRCULAR;
+}
+/* Fora da circular, o produto da 1S27 sai "conforme disponibilidade": é a
+   continuidade, que a fábrica atende do que tiver. Sem a filial, porque essa
+   a circular não diz. Outras coleções não recebem nada — a circular é desta. */
+function circularDoItem(it){
+  const achado = (CIRCULAR || {})[_chaveCirc(it && it.codigo, it && it.cor)];
+  if(achado) return achado;
+  const col = String((it && it.colecao) || "").trim().toUpperCase();
+  return col === "1S27" ? { disp: "conforme", empresa: "" } : null;
+}
+
+const MESES_CIRC = { jan:0, fev:1, mar:2, abr:3, mai:4, jun:5,
+                     jul:6, ago:7, set:8, out:9, nov:10, dez:11 };
+/* O primeiro dia em que a fábrica libera: 1ª quinzena começa no dia 1, a 2ª
+   no dia 16. "conforme" não tem data — sai quando houver. */
+function dataDeDisponibilidade(disp){
+  const m = /^([12])\/(\w+)\/(\d{4})$/.exec(String(disp || "").trim());
+  if(!m) return null;
+  const mes = MESES_CIRC[m[2].toLowerCase()];
+  if(mes === undefined) return null;
+  return new Date(Number(m[3]), mes, m[1] === "1" ? 1 : 16);
+}
+/* "1ª Quinz. mar de 2027", por extenso, para o aviso */
+function disponibilidadePorExtenso(disp){
+  const d = dataDeDisponibilidade(disp);
+  if(!d) return "conforme a disponibilidade da fábrica";
+  const m = /^([12])\//.exec(String(disp));
+  const mesNome = ["janeiro","fevereiro","março","abril","maio","junho","julho",
+                   "agosto","setembro","outubro","novembro","dezembro"][d.getMonth()];
+  return (m && m[1] === "1" ? "1ª" : "2ª") + " quinzena de " + mesNome + " de " + d.getFullYear();
+}
+/* "1/mar/2027" vira "1ª Quinz. mar"; "conforme" vira "Conf. Dispo.". A forma
+   curta é a que cabe no chip ao lado da cor. */
+function rotuloDisponibilidade(d){
+  const t = String(d == null ? "" : d).trim();
+  if(!t) return "";
+  if(t === "conforme") return "Conf. Dispo.";
+  // "2/abr/2027" -> "2ª Quinz. abr". O ano fica de fora: não cabe no chip e
+  // a coleção já diz de que ano se está falando.
+  const m = /^([12])\/(\w+)(?:\/\d{4})?$/.exec(t);
+  return m ? m[1] + "ª Quinz. " + m[2] : t;
+}
+
 let FICHAS_OLY = null;
 async function carregarFichas(){
   if(FICHAS_OLY) return FICHAS_OLY;
@@ -10371,7 +10610,24 @@ async function carregarFichas(){
 }
 const fichaDoItem = it => (FICHAS_OLY || {})[String((it && it.codigo) || "").trim()] || null;
 
+/* Os dois chips da circular, ao lado do da cor. Ficam fora da ficha porque
+   valem mesmo quando o artigo não tem ficha do catálogo oficial. */
+function renderViewerCircular(item){
+  const cD = $("viewerDisp"), cE = $("viewerEmpresa");
+  if(!cD || !cE) return;
+  const c = circularDoItem(item);
+  const disp = rotuloDisponibilidade(c && c.disp);
+  const emp  = String((c && c.empresa) || "").trim();
+  cD.querySelector("span").textContent = disp;
+  cD.hidden = !disp;
+  cD.title = disp ? "Disponibilidade na fábrica, pela circular da coleção" : "";
+  cE.querySelector("span").textContent = emp;
+  cE.hidden = !emp;
+  cE.title = emp ? "Filial onde o produto é fabricado" : "";
+}
+
 function renderViewerFicha(item){
+  renderViewerCircular(item);
   const el = $("viewerFicha");
   if(!el) return;
   const f = fichaDoItem(item);
@@ -10668,6 +10924,47 @@ function _saveLastGradeUsed(entry){
   };
 }
 
+/* O chip da disponibilidade no cabeçalho da grade: é aqui que a data do
+   pedido é escolhida, então é aqui que saber quando a fábrica libera muda a
+   escolha. Em lote não aparece: são vários produtos, cada um com a sua. */
+function pintarGradeDisp(item){
+  const el = $("gradeDisp");
+  if(!el) return;
+  const c = (typeof circularDoItem === "function") ? circularDoItem(item) : null;
+  const txt = c ? rotuloDisponibilidade(c.disp) : "";
+  if(!txt){ el.hidden = true; el.innerHTML = ""; return; }
+  el.innerHTML = '<i class="fa-regular fa-calendar" aria-hidden="true"></i>' + escapeHtml(txt);
+  el.title = "Disponibilidade na fábrica, pela circular da coleção";
+  el.hidden = false;
+}
+
+/* Pedir para antes de a fábrica liberar é um pedido que vai esperar na
+   carteira sem ninguém saber por quê. O aviso diz quando tem e oferece a
+   data certa; quem quiser manter a sua, mantém. Devolve a data a usar. */
+async function conferirDataContraDisponibilidade(item, dataISO){
+  if(!dataISO) return dataISO;
+  const c = (typeof circularDoItem === "function") ? circularDoItem(item) : null;
+  const liberaEm = c ? dataDeDisponibilidade(c.disp) : null;
+  if(!liberaEm) return dataISO;                 // sem data declarada, nada a conferir
+  const escolhida = new Date(dataISO + "T00:00:00");
+  if(isNaN(escolhida.getTime()) || escolhida >= liberaEm) return dataISO;
+
+  const p2 = n => String(n).padStart(2, "0");
+  const iso = liberaEm.getFullYear() + "-" + p2(liberaEm.getMonth() + 1) + "-" + p2(liberaEm.getDate());
+  const usar = await appConfirm({
+    title: "A fábrica ainda não libera nessa data",
+    message: `<strong>${escapeHtml(item.produto || "Este produto")}</strong>` +
+      `${item.cor ? " · " + escapeHtml(item.cor) : ""} fica disponível na ` +
+      `<strong>${escapeHtml(disponibilidadePorExtenso(c.disp))}</strong>, ` +
+      `a partir de <strong>${escapeHtml(_formatDataBR(iso))}</strong>.<br><br>` +
+      `Você pediu para <strong>${escapeHtml(_formatDataBR(dataISO))}</strong>, que é antes disso.`,
+    okText: "Usar " + _formatDataBR(iso),
+    cancelText: "Manter " + _formatDataBR(dataISO),
+    tone: "warning"
+  });
+  return usar ? iso : dataISO;
+}
+
 function openGradeModal(item, opts={}){
   gradeState.item = item;
   gradeState.fromCart = !!opts.fromCart;
@@ -10743,6 +11040,7 @@ function openGradeModal(item, opts={}){
   // Header do modal
   $("gradeProduto").textContent = item.produto || "Produto";
   $("gradeCor").textContent = `${item.cor || ""}${item.corCodigo ? " · " + item.corCodigo : ""}`;
+  pintarGradeDisp(item);
 
   // Botão "Repetir última grade": só aparece se houver grade salva na sessão E não estiver editando uma grade existente
   {
@@ -11527,6 +11825,7 @@ $("btnConfirmGrade").addEventListener("click", async ()=>{
     $("gradeDataDesejada")?.focus();
     return;
   }
+  entry.dataDesejada = await conferirDataContraDisponibilidade(gradeState.item, entry.dataDesejada);
   const fromCart = gradeState.fromCart;
   state.cart.set(entry.key, entry);
   _saveLastGradeUsed(entry);
@@ -11540,7 +11839,7 @@ $("btnConfirmGrade").addEventListener("click", async ()=>{
 });
 
 // Botão "Adicionar à sacola e abrir outra grade"
-$("btnAddAnotherGrade")?.addEventListener("click", ()=>{
+$("btnAddAnotherGrade")?.addEventListener("click", async ()=>{
   const entry = gradeToCartEntry();
   if(entry.qty === 0){ toast("Adicione ao menos 1 par antes de continuar ✅"); return; }
   if(!entry.dataDesejada){
@@ -11548,6 +11847,7 @@ $("btnAddAnotherGrade")?.addEventListener("click", ()=>{
     $("gradeDataDesejada")?.focus();
     return;
   }
+  entry.dataDesejada = await conferirDataContraDisponibilidade(gradeState.item, entry.dataDesejada);
   // Salva a grade atual
   state.cart.set(entry.key, entry);
   _saveLastGradeUsed(entry);
@@ -12196,6 +12496,7 @@ function injectHomeCategoryImages(){
     if(typeof injectHomeCategoryImages === "function") injectHomeCategoryImages();
     // as fichas entram em paralelo: o catálogo não espera por elas
     if(typeof carregarFichas === "function") carregarFichas();
+    if(typeof carregarCircular === "function") carregarCircular();
     if(typeof carregarMarcados === "function"){ carregarMarcados(); pintarBarraMarcados(); }
   };
 

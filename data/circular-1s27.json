@@ -1,0 +1,34 @@
+{
+  "colecao": "1S27",
+  "fonte": "Circular Nº 01 — Coleção SS27 Olympikus, 14 de outubro de 2026",
+  "lido_em": "2026-10-15",
+  "observacao": "Disponibilidade e empresa (filial) por artigo+cor. Os lançamentos têm quinzena e mês; as inclusões de cor saem conforme disponibilidade. Produtos de continuidade não constam da circular e ficam sem a informação.",
+  "itens": [
+    { "artigo": "43222531", "modelo": "INSTINTO",        "disp": "1/mar/2027",    "empresa": "VULTS", "cores": ["PRETO", "AZ/MRH", "VRD/CL", "BEGE", "CORAL"] },
+    { "artigo": "43313524", "modelo": "VISTA",           "disp": "1/fev/2027",    "empresa": "AZABA", "cores": ["PTO/CH", "BEGMLT", "AMEIXA", "AZUL", "ROSA"] },
+    { "artigo": "43560542", "modelo": "FOCO",            "disp": "1/fev/2027",    "empresa": "AZABA", "cores": ["PTO/PT", "MRF/PT", "AREPET", "CHBMLT", "BCMHAZ", "CNZMST", "DPBCPK"] },
+    { "artigo": "43814549", "modelo": "FOCO INFANTIL",   "disp": "1/abr/2027",    "empresa": "AZABA", "cores": ["PTO/PT", "MRF/PT", "AREPET", "CHBMLT", "BCMHAZ", "CNZMST", "DPBCPK"] },
+    { "artigo": "43251518", "modelo": "QUADRA 3",        "disp": "1/mar/2027",    "empresa": "VULTS", "cores": ["CHB/PT", "CASCHU", "PTO/VD"] },
+    { "artigo": "43495537", "modelo": "TREINO 2",        "disp": "1/abr/2027",    "empresa": "VULTS", "cores": ["PTO/PT", "AREPET", "BEGE"] },
+    { "artigo": "54372545", "modelo": "SERENO 2",        "disp": "2/abr/2027",    "empresa": "AZABA", "cores": ["PTO/PT", "AZL/CL", "CSTNHO", "BRANCO"] },
+
+    { "artigo": "43621538", "modelo": "TUBE",            "disp": "1/mar/2027",    "empresa": "AZABA", "cores": ["PTO/PT", "MARBRI", "BG/CZA", "AREAZL"] },
+    { "artigo": "43529510", "modelo": "MOVEM",           "disp": "2/jan/2027",    "empresa": "VULTS", "cores": ["PTO/PT", "PEWCAS", "ARNARE", "VDCDOU", "CRILUN"] },
+    { "artigo": "43292528", "modelo": "TUBE LT",         "disp": "1/mar/2027",    "empresa": "AZABA", "cores": ["PTODEP", "AREAZL", "AREIA"] },
+    { "artigo": "43278512", "modelo": "SOLARI",          "disp": "2/jan/2027",    "empresa": "VULTS", "cores": ["PTOCES", "CHBMLT", "ARENML", "AREMLT", "BC/MST"] },
+    { "artigo": "43528515", "modelo": "PRISMA",          "disp": "2/fev/2027",    "empresa": "VULTS", "cores": ["GFT/PT", "BEGMRF", "CZA/MH", "PTO/BG", "BEGDUS"] },
+    { "artigo": "43604507", "modelo": "YOGA",            "disp": "2/jan/2027",    "empresa": "VULTS", "cores": ["PTO/PT", "PRETO", "CRSTAL", "BEGE"] },
+    { "artigo": "43288508", "modelo": "LIBERTY",         "disp": "1/dez/2026",    "empresa": "AZABA", "cores": ["PTO/PT", "CHB/PT", "AZ/CZA", "BCOCRI", "AR/ALG"] },
+    { "artigo": "43277511", "modelo": "AXIS",            "disp": "2/jan/2027",    "empresa": "AZABA", "cores": ["PTO/PT", "PTRMRH", "VDMLPT"] },
+    { "artigo": "43279525", "modelo": "ESFERA",          "disp": "2/jan/2027",    "empresa": "AZABA", "cores": ["CHB/PT", "MRHO", "ARENIT", "PRETO", "CASTOR", "ALGODA", "ROSA"] },
+    { "artigo": "43316529", "modelo": "VEGA",            "disp": "1/fev/2027",    "empresa": "VULTS", "cores": ["PTO/PT", "AZUL", "VRD/CL", "ARENIT"] },
+    { "artigo": "43815548", "modelo": "ESFERA INFANTIL", "disp": "1/abr/2027",    "empresa": "AZABA", "cores": ["CHB/PT", "MRHO", "ARENIT", "PRETO", "CASTOR", "ALGODA", "ROSA"] },
+
+    { "artigo": "43342471", "modelo": "NUVEM",           "disp": "conforme", "empresa": "AZABA", "cores": ["CINZA", "CRISTAL", "VRD/CL"] },
+    { "artigo": "43500491", "modelo": "VELOZ 4",         "disp": "conforme", "empresa": "VULTS", "cores": ["PTVDCL", "HORPTO", "ROXPNK", "BCOPTO"] },
+    { "artigo": "43341472", "modelo": "CHALLENGER 6",    "disp": "conforme", "empresa": "VULTS", "cores": ["CZA/PT", "AREPET", "STOMUL", "AREIA"] },
+    { "artigo": "43231496", "modelo": "CICLO",           "disp": "conforme", "empresa": "AZABA", "cores": ["AMEIXA", "BEGE"] },
+    { "artigo": "43552497", "modelo": "CICLO INFANTIL",  "disp": "conforme", "empresa": "AZABA", "cores": ["AMEIXA", "BEGE"] },
+    { "artigo": "43752263", "modelo": "VERSA",           "disp": "conforme", "empresa": "AZABA", "cores": ["BDMARR", "ARNARE"] }
+  ]
+}
