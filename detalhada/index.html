@@ -2059,9 +2059,7 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
         <!-- Volta para a casa dos aplicativos sem encerrar a sessão; quem
              quer encerrar usa o Sair, na outra ponta. Vem primeiro porque
              no celular a barra rola e só os primeiros ficam à vista. -->
-        <a class="btn-icon btn-portal-nome" id="btn-portal-topo" href="#" title="Voltar ao Portal">
-          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>Portal</span>
-        </a>
+        <a class="portal-btn" href="#" title="Voltar ao Portal" id="btn-portal-topo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg><span>Portal</span></a>
         <span class="cab-div" aria-hidden="true"></span>
         <button class="btn-icon" id="btn-admin" title="Atualizar base (admin)" style="display:none;">
           <i class="fa-solid fa-file-arrow-up"></i>
@@ -12948,13 +12946,6 @@ button.rfv-ficha:hover{ border-color:var(--border-2); }
   background:var(--card-bg); color:var(--text-1); border-radius:999px; padding:6px 14px;
   font:700 12px inherit; cursor:pointer; }
 .rfv-foco-volta:hover{ border-color:var(--primary-2); color:var(--primary-2); }
-/* ── Portal com seta e nome, como nos outros aplicativos ─────────────── */
-.cab-acoes #btn-portal-topo.btn-portal-nome{ width:auto; min-width:0; flex:0 0 auto;
-  padding:0 12px; gap:7px; font-weight:700; font-size:12.5px; }
-.cab-acoes #btn-portal-topo.btn-portal-nome span{ white-space:nowrap; }
-@media (max-width:560px){
-  .cab-acoes #btn-portal-topo.btn-portal-nome span{ display:none; }
-  .cab-acoes #btn-portal-topo.btn-portal-nome{ width:32px; padding:0; }
 }
 .rfv-quadro .sem2{ border-left:2px solid var(--border-2); }
 .rfv-quadro td.cid,.rfv-quadro th.cid{ text-align:left; padding-left:10px; white-space:nowrap;
@@ -15771,7 +15762,7 @@ html.vn .fab-limpar{ font-family:var(--ds-font); font-weight:800; }
 .ap-rot{ margin:0 0 7px; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ds-muted); }
 .ap-opcoes{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .ap-opcoes button{
-  height:42px; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:42px; display:inline-flex; align-items:center; justify-content:center; gap:7px;
   border-radius:12px; border:1px solid var(--ds-line); background:var(--ds-card); color:var(--ds-ink);
   font:inherit; font-size:13.5px; font-weight:700; cursor:pointer;
 }
@@ -15784,7 +15775,7 @@ html.vn .fab-limpar{ font-family:var(--ds-font); font-weight:800; }
 .ap-cor{ width:16px; height:16px; border-radius:50%; box-shadow:inset 0 0 0 2px rgba(255,255,255,.6); }
 html.vn .ap-opcoes button{ border-radius:999px; }
 .ap-atualizar{
-  width:100%; height:42px; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; height:42px; display:inline-flex; align-items:center; justify-content:center; gap:7px;
   border-radius:12px; border:1px solid var(--ds-line); background:var(--ds-card); color:var(--ds-ink);
   font:inherit; font-size:13.5px; font-weight:700; cursor:pointer;
 }
@@ -16242,6 +16233,28 @@ html.dark :is(#screen-rfv,#screen-es,#screen-prob,#screen-reat) .rfv-quadro thea
   html.vn :is(#screen-rfv,#screen-es,#screen-prob,#screen-reat) .rfv-mapa{ border-radius:16px; }
 }
 </style>
+<style>
+/* ── Voltar ao Portal ─────────────────────────────────────
+   A mesma peça em todas as aplicações, para o vendedor reconhecer a saída
+   sem procurar: pílula branca de 36px, seta à esquerda e a palavra Portal.
+   Branca também sobre cabeçalho escuro — é o que mantém a peça a mesma. */
+.portal-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  flex:none; height:36px; padding:0 12px; border-radius:999px;
+  border:1px solid #E2E8F0; background:#FFFFFF; color:#475569;
+  font-family:inherit; font-size:14px; font-weight:700; line-height:1;
+  text-decoration:none; cursor:pointer; white-space:nowrap;
+  transition:background .15s ease, border-color .15s ease;
+}
+.portal-btn:hover{ background:#F8FAFC; border-color:#CBD5E1; color:#334155; }
+.portal-btn:focus-visible{ outline:2px solid #475569; outline-offset:2px; }
+.portal-btn svg{ width:14px; height:14px; flex:none; }
+.portal-btn i{ font-size:12px; }
+/* sem isto o display:inline-flex venceria o hidden, e as telas que escondem
+   o botão por JS continuariam mostrando ele */
+.portal-btn[hidden]{ display:none; }
+</style>
+
 
 
 </body>

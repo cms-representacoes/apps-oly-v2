@@ -355,7 +355,7 @@
       display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
     }
     .bulk-select-btn {
-      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      display:inline-flex; align-items:center; justify-content:center; gap:7px;
       min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--border);
       background:#fff; font-size:12px; font-weight:800; color:var(--text); cursor:pointer;
     }
@@ -2690,6 +2690,28 @@
     @media (prefers-reduced-motion:reduce){ .topo-fab{ transition:none; } }
 
   </style>
+
+<style>
+/* ── Voltar ao Portal ─────────────────────────────────────
+   A mesma peça em todas as aplicações, para o vendedor reconhecer a saída
+   sem procurar: pílula branca de 36px, seta à esquerda e a palavra Portal.
+   Branca também sobre cabeçalho escuro — é o que mantém a peça a mesma. */
+.portal-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  flex:none; height:36px; padding:0 12px; border-radius:999px;
+  border:1px solid #E2E8F0; background:#FFFFFF; color:#475569;
+  font-family:inherit; font-size:14px; font-weight:700; line-height:1;
+  text-decoration:none; cursor:pointer; white-space:nowrap;
+  transition:background .15s ease, border-color .15s ease;
+}
+.portal-btn:hover{ background:#F8FAFC; border-color:#CBD5E1; color:#334155; }
+.portal-btn:focus-visible{ outline:2px solid #475569; outline-offset:2px; }
+.portal-btn svg{ width:14px; height:14px; flex:none; }
+.portal-btn i{ font-size:12px; }
+/* sem isto o display:inline-flex venceria o hidden, e as telas que escondem
+   o botão por JS continuariam mostrando ele */
+.portal-btn[hidden]{ display:none; }
+</style>
 </head>
 
 <body class="min-h-full">
@@ -2712,10 +2734,7 @@
           <div id="brandName" class="text-base font-extrabold leading-tight text-oly-text">Olympikus</div>
         </div>
         <div class="home-acoes ml-auto flex items-center gap-1.5 sm:gap-2">
-          <a href="https://cms-representacoes.github.io/apps-oly/" class="focus-ring flex flex-col items-center justify-center gap-0.5 w-14 sm:w-16 py-1.5 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Voltar ao Portal" aria-label="Voltar ao Portal">
-            <i class="fa-solid fa-arrow-left text-oly-muted text-sm"></i>
-            <span class="text-[9.5px] sm:text-[10px] font-bold text-oly-muted leading-none">Portal</span>
-          </a>
+          <a class="portal-btn" href="https://cms-representacoes.github.io/apps-oly/" title="Voltar ao Portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg><span>Portal</span></a>
           <button id="btnPreferences" class="focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Minhas preferências" aria-label="Preferências do vendedor">
             <i class="fa-solid fa-sliders text-oly-muted text-base"></i>
           </button>
