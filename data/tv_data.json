@@ -1,67 +1,67 @@
 {
-  "generatedAt": "2026-10-13T07:38:19.160243-03:00",
+  "generatedAt": "2026-10-15T08:48:23.885257-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 347324,
+    "total": 340987,
     "meses": [
       {
         "label": "OUT",
-        "v": 123532
+        "v": 117978
       },
       {
         "label": "NOV",
-        "v": 165434
+        "v": 163367
       },
       {
         "label": "DEZ",
-        "v": 57566
+        "v": 58886
       }
     ],
     "horizonte": "ate dez/26"
   },
   "mes": {
     "label": "OUTUBRO",
-    "dia": 9,
-    "faturado": 17425,
+    "dia": 14,
+    "faturado": 24304,
     "anterior": 177546,
     "anteriorLabel": "setembro",
-    "falta": 123532,
-    "diasUteis": 15,
-    "paresDia": 8235,
-    "projecao": 54764,
-    "barW": 10,
+    "falta": 117978,
+    "diasUteis": 12,
+    "paresDia": 9832,
+    "projecao": 53469,
+    "barW": 14,
     "markW": 100
   },
   "novHoje": {
-    "total": 6612,
+    "total": 8362,
     "linhas": [
       [
         "Jorge",
         [
-          108,
-          298,
-          17,
+          798,
           0,
-          0
+          0,
+          0,
+          12
         ]
       ],
       [
         "Willame",
         [
-          153,
+          876,
           0,
           0,
           0,
-          0
+          144
         ]
       ],
       [
         "Leandro",
         [
-          0,
+          1146,
           0,
           0,
           0,
@@ -71,62 +71,62 @@
       [
         "Rafael",
         [
-          3000,
+          1566,
           0,
           0,
           0,
-          216
+          0
         ]
       ],
       [
         "Mariana",
         [
-          12,
+          786,
+          502,
           0,
           0,
-          0,
-          0
+          36
         ]
       ],
       [
         "Cms",
         [
-          2748,
+          2496,
           0,
           0,
           0,
-          60
+          0
         ]
       ]
     ]
   },
   "novMes": {
-    "total": 30710,
+    "total": 39072,
     "linhas": [
       [
         "Jorge",
         [
-          1056,
+          1854,
           298,
           53,
           61,
-          0
+          12
         ]
       ],
       [
         "Willame",
         [
-          285,
+          1161,
           120,
           8,
           0,
-          672
+          816
         ]
       ],
       [
         "Leandro",
         [
-          708,
+          1854,
           228,
           120,
           0,
@@ -136,7 +136,7 @@
       [
         "Rafael",
         [
-          4560,
+          6126,
           2614,
           34,
           0,
@@ -146,17 +146,17 @@
       [
         "Mariana",
         [
-          1158,
-          0,
+          1944,
+          502,
           21,
           0,
-          24
+          60
         ]
       ],
       [
         "Cms",
         [
-          15792,
+          18288,
           0,
           0,
           0,
@@ -168,29 +168,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 123.532 pares para zerar a carteira de outubro"
+      "t": "faltam 117.978 pares para zerar a carteira de outubro"
     },
     {
       "c": "#2BC48A",
-      "t": "+6.612 pares novos entraram na carteira hoje"
+      "t": "+8.362 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "outubro acumula 30.710 pares novos na carteira"
+      "t": "outubro acumula 39.072 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 347.324 pares"
+      "t": "carteira aberta do periodo: 340.987 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 165.434 pares"
+      "t": "NOV e o maior mes da carteira: 163.367 pares"
     },
     {
       "c": "#9B6BF0",
       "t": "proximo grande faturamento: 01/11 - CASA PIO (22.644 pares)"
     }
   ],
-  "publicadoEm": "2026-10-13T10:38:21.714Z",
+  "publicadoEm": "2026-10-15T11:48:24.933Z",
   "por": "script diario"
 }
