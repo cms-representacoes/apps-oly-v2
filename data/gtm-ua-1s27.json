@@ -1,0 +1,32 @@
+{
+  "colecao": "1S27",
+  "marca": "ua",
+  "fonte": "Produtos GTM Distribuição — Under Armour 2027",
+  "lido_em": "2026-10-16",
+  "observacao": "As cores marcadas com estrela verde na apresentação. A folha da Under Armour traz só a foto de cada cor, sem o nome: o código veio do casamento das fotos com as do catálogo (artigo + cor da 1S27), e a descrição entre parênteses é leitura da imagem, não nome oficial.",
+  "produtos": [
+    { "artigo": "6020660", "nome": "TRIBASE REPS 3", "grupo": "Treino", "preco": "R$ 549,99", "publico": "Masculino", "cores": [
+      { "cor": "BLKBLK", "rotulo": "BLKBLK", "descricao": "preto com caramelo" },
+      { "cor": "SWSWPP", "rotulo": "SWSWPP", "descricao": "pêssego com marrom" },
+      { "cor": "SWSWBN", "rotulo": "SWSWBN", "descricao": "branco com cinza e amarelo" } ] },
+
+    { "artigo": "6024809", "nome": "QUICKER 3", "grupo": "Corrida", "preco": "R$ 499,99", "publico": "Unissex", "destaque": true, "cores": [
+      { "cor": "PGBKMP", "rotulo": "PGBKMP", "descricao": "cinza e preto, sola creme" },
+      { "cor": "BKMGMP", "rotulo": "BKMGMP", "descricao": "preto" },
+      { "cor": "BIVPBS", "rotulo": "BIVPBS", "descricao": "pêssego" } ] },
+
+    { "artigo": "6020667", "nome": "SLIGHT 4", "grupo": "Corrida", "preco": "R$ 399,99", "publico": "Unissex", "cores": [
+      { "cor": "BKCAMP", "rotulo": "BKCAMP", "descricao": "preto, sola creme" },
+      { "cor": "BLKMTG", "rotulo": "BLKMTG", "descricao": "preto com dourado" },
+      { "cor": "BKMPMP", "rotulo": "BKMPMP", "descricao": "preto, sola rosa" } ] },
+
+    { "artigo": "6024815", "nome": "BOUNDLESS", "grupo": "Corrida", "preco": "R$ 399,99", "publico": "Unissex", "destaque": true, "cores": [
+      { "cor": "BKBKMP", "rotulo": "BKBKMP", "descricao": "preto" },
+      { "cor": "PGPGHG", "rotulo": "PGPGHG", "descricao": "cinza-escuro" },
+      { "cor": "SCSCPB", "rotulo": "SCSCPB", "descricao": "rosa-claro" } ] },
+
+    { "artigo": "6020665", "nome": "WING 2 SE", "grupo": "Corrida", "preco": "R$ 359,99", "publico": "Unissex", "cores": [
+      { "cor": "BKBKMP", "rotulo": "BKBKMP", "descricao": "preto" },
+      { "cor": "BIVPBS", "rotulo": "BIVPBS", "descricao": "pêssego" } ] }
+  ]
+}

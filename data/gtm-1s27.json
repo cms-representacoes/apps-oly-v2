@@ -1,0 +1,83 @@
+{
+  "colecao": "1S27",
+  "fonte": "Visão GTM Distribuição — Convenção Olympikus, outubro de 2026",
+  "lido_em": "2026-10-16",
+  "observacao": "As cores marcadas com estrela na apresentação do GTM. A estrela amarela é a marcação comum; a azul aparece uma única vez, no CHALLENGER 6 ARENITO/PETROLEO. Alguns produtos trazem a estrela no próprio título (ESFERA, AXIS e FOCO) — esses vão marcados como destaque.",
+  "produtos": [
+    { "artigo": "43409454", "nome": "EROS 2",         "grupo": "Clássicos",       "preco": "R$ 249,99", "publico": "Unissex",   "cores": [
+      { "cor": "PRETO",  "rotulo": "Preto" },
+      { "cor": "ALGODA", "rotulo": "Algodão" },
+      { "cor": "BRANCO", "rotulo": "Branco" } ] },
+
+    { "artigo": "43286101", "nome": "ATMOS",          "grupo": "Caminhada",       "preco": "R$ 189,99", "publico": "Feminino",  "cores": [
+      { "cor": "PRETO",  "rotulo": "Preto" },
+      { "cor": "MARITM", "rotulo": "Marítimo" } ] },
+
+    { "artigo": "43547338", "nome": "VENUS 3",        "grupo": "Caminhada",       "preco": "R$ 199,99", "publico": "Feminino",  "cores": [
+      { "cor": "MRHRSA", "rotulo": "Marinho/Rosa" },
+      { "cor": "LILAS",  "rotulo": "Lilás" } ] },
+
+    { "artigo": "43395156", "nome": "MARTE",          "grupo": "Caminhada",       "preco": "R$ 199,99", "publico": "Masculino", "cores": [
+      { "cor": "PRETO",  "rotulo": "Preto" },
+      { "cor": "MILITR", "rotulo": "Militar" },
+      { "cor": "PTRLEO", "rotulo": "Petróleo" } ] },
+
+    { "artigo": "43279525", "nome": "ESFERA",         "grupo": "Caminhada",       "preco": "R$ 229,99", "publico": "Unissex", "destaque": true, "cores": [
+      { "cor": "MRHO",   "rotulo": "Marinho" },
+      { "cor": "ROSA",   "rotulo": "Rosa" },
+      { "cor": "CHB/PT", "rotulo": "Chumbo/Preto" } ] },
+
+    { "artigo": "43231496", "nome": "CICLO",          "grupo": "Caminhada",       "preco": "R$ 259,99", "publico": "Unissex",   "cores": [
+      { "cor": "PTO/PT", "rotulo": "Preto/Preto" },
+      { "cor": "MRH/PT", "rotulo": "Marinho/Preto" },
+      { "cor": "BEGE",   "rotulo": "Bege" } ] },
+
+    { "artigo": "43277511", "nome": "AXIS",           "grupo": "Caminhada",       "preco": "R$ 259,99", "publico": "Masculino", "destaque": true, "cores": [
+      { "cor": "PTO/PT", "rotulo": "Preto/Preto" },
+      { "cor": "PTRMRH", "rotulo": "Petróleo/Marinho" } ] },
+
+    { "artigo": "43320114", "nome": "PROOF 3",        "grupo": "Caminhada",       "preco": "R$ 259,99", "publico": "Masculino", "cores": [
+      { "cor": "MRHPTR", "rotulo": "Marinho/Petróleo" },
+      { "cor": "PTO/CH", "rotulo": "Preto/Chumbo" } ] },
+
+    { "artigo": "43467492", "nome": "DAY 2",          "grupo": "Caminhada",       "preco": "R$ 279,99", "publico": "Feminino",  "cores": [
+      { "cor": "PRETO",  "rotulo": "Preto" },
+      { "cor": "PEWCAS", "rotulo": "Pewter/Castor" } ] },
+
+    { "artigo": "43353470", "nome": "ELEVADO",        "grupo": "Caminhada",       "preco": "R$ 279,99", "publico": "Masculino", "cores": [
+      { "cor": "CST/PT", "rotulo": "Castor/Preto" },
+      { "cor": "ARECZA", "rotulo": "Arenito/Cinza" } ] },
+
+    { "artigo": "43701259", "nome": "BEATS",          "grupo": "Caminhada",       "preco": "R$ 299,99", "publico": "Masculino", "cores": [
+      { "cor": "PRETO",  "rotulo": "Preto" },
+      { "cor": "MLT/PT", "rotulo": "Militar/Preto" },
+      { "cor": "CZESCH", "rotulo": "Cinza-escuro/Chumbo" } ] },
+
+    { "artigo": "43298343", "nome": "DYNAMIC",        "grupo": "Caminhada",       "preco": "R$ 329,99", "publico": "Masculino", "cores": [
+      { "cor": "MRHDRD", "rotulo": "Marinho/Dourado" },
+      { "cor": "PRETO",  "rotulo": "Preto" } ] },
+
+    { "artigo": "43772253", "nome": "STREAM",         "grupo": "Infantil",        "preco": "R$ 229,99", "publico": "Unissex",   "cores": [
+      { "cor": "PRETO",  "rotulo": "Preto" },
+      { "cor": "MRHRSA", "rotulo": "Marinho/Rosa" } ] },
+
+    { "artigo": "43552497", "nome": "CICLO INFANTIL", "grupo": "Infantil",        "preco": "R$ 249,99", "publico": "Unissex",   "cores": [
+      { "cor": "MRH/PT", "rotulo": "Marinho/Preto" },
+      { "cor": "AMEIXA", "rotulo": "Ameixa" } ] },
+
+    { "artigo": "43441487", "nome": "SWIFT 6",        "grupo": "Corrida e treino", "preco": "R$ 299,99", "publico": "Feminino", "cores": [
+      { "cor": "MARORG", "rotulo": "Marítimo/Organza" },
+      { "cor": "PTODST", "rotulo": "Preto/Dusty" } ] },
+
+    { "artigo": "43560542", "nome": "FOCO",           "grupo": "Corrida e treino", "preco": "R$ 299,99", "publico": "Unissex", "destaque": true, "cores": [
+      { "cor": "PTO/PT", "rotulo": "Preto" },
+      { "cor": "CHBMLT", "rotulo": "Chumbo Multi" },
+      { "cor": "DPBCPK", "rotulo": "Deep/Branco/Pink" },
+      { "cor": "CNZMST", "rotulo": "Cinza/Mist" } ] },
+
+    { "artigo": "43341472", "nome": "CHALLENGER 6",   "grupo": "Corrida e treino", "preco": "R$ 349,99", "publico": "Unissex", "cores": [
+      { "cor": "CZA/PT", "rotulo": "Cinza/Preto" },
+      { "cor": "AREPET", "rotulo": "Arenito/Petróleo", "estrela": "azul" },
+      { "cor": "STOMUL", "rotulo": "Stone/Multi" } ] }
+  ]
+}
