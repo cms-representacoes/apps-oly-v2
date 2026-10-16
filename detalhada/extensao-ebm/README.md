@@ -109,6 +109,27 @@ Com **um GCI** o EBM pula a lista e cai direto no detalhe, onde o botão é
 `form1:btnPedido`. Por isso as telas são reconhecidas por elemento, não por
 endereço. O operador também muda: `=` para um, `IN` (INFORMADOS) para vários.
 
+## Quantos GCIs cabem no filtro
+
+O campo de valor do critério tem um limite de tamanho que o EBM não diz qual é.
+Passar dele **não dá erro**: o campo guarda o que coube, a consulta traz menos
+encomendas e o PDF sai parecendo completo — com um pedido só, quando se pediram
+vinte e dois.
+
+Conferir isso exige ler a célula com o editor **fechado**. Com ele aberto, quem
+responde é o `value` do input, que é o que a própria extensão acabou de escrever:
+a conferência aprova sempre, inclusive quando o EBM não ficou com nada daquilo.
+
+Não dando para conferir pela célula, ainda resta uma prova: o EBM só pula para a
+tela de detalhe quando achou **uma** encomenda. Tendo pedido várias, isso diz que
+o filtro saiu curto.
+
+Nos dois casos a extensão devolve `codigo: gcis-nao-couberam` com `cabem`:
+pela célula, quantos entraram; pelo detalhe, metade do que foi pedido. A Detalhada
+guarda esse número, refaz o arquivo em lotes desse tamanho e, não cabendo ainda,
+parte de novo pela metade — em quatro ou cinco idas acha o limite do campo sem
+nunca ter gerado um arquivo errado pelo caminho.
+
 ## A lista de encomendas (2 ou mais GCIs)
 
 As caixas de seleção **nascem desmarcadas**. O `CMS_ENCOMENDAS.py` tem um

@@ -9567,6 +9567,26 @@ function temExtensao() {
   return !!document.documentElement.dataset.cmsEbm;
 }
 
+/* A versão da extensão importa quando o arquivo tem vários pedidos: foi da
+   0.4.0 em diante que ela passou a conferir se os GCIs entraram mesmo no
+   filtro do EBM. Com a anterior o PDF sai com um pedido só e nada avisa —
+   e, como a extensão se atualiza à mão, "corrigido" e "instalado" são
+   coisas diferentes. O aviso não impede nada: só diz onde olhar. */
+const VERSAO_EBM_CONFERE_GCIS = '0.4.0';
+
+function versaoEbmInstalada() {
+  return String(document.documentElement.dataset.cmsEbm || '');
+}
+
+function versaoMenor(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const x = pa[i] || 0, y = pb[i] || 0;
+    if (x !== y) return x < y;
+  }
+  return false;
+}
+
 /** Ícone de PDF desenhado aqui — ver botaoPdfHTML. */
 const ICONE_PDF = `<svg class="ico-pdf" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
   <path d="M6.2 2.6h7.4L19.4 8.4V21a1.8 1.8 0 0 1-1.8 1.8H6.2A1.8 1.8 0 0 1 4.4 21V4.4a1.8 1.8 0 0 1 1.8-1.8Z"
@@ -9709,6 +9729,66 @@ function gruposDaSelecao() {
   }));
 }
 
+/* ---------- quantos GCIs cabem numa consulta do EBM ----------
+   O campo de valor do critério tem um limite de tamanho que o EBM não
+   documenta e ninguém sabe de cabeça. Passar dele não dá erro: o campo
+   guarda o que coube e a consulta sai com menos encomendas, o que gerava um
+   PDF com um pedido só parecendo completo.
+
+   Em vez de chutar um número, a extensão mede quantos entraram e devolve o
+   valor; aqui ele fica guardado e, daí em diante, o arquivo já nasce em
+   lotes desse tamanho. Sem medição nenhuma vai tudo junto — que é o certo
+   quando cabe, e é o que cabe na maioria das vezes. */
+const CHAVE_LIMITE_GCI = 'detalhada_ebm_gcis_por_consulta';
+
+function limiteGcisPorConsulta() {
+  try {
+    const n = Number(localStorage.getItem(CHAVE_LIMITE_GCI));
+    return n >= 1 ? n : Infinity;
+  } catch (e) { return Infinity; }
+}
+
+function guardarLimiteGcis(n) {
+  n = Math.max(1, Math.floor(Number(n) || 0));
+  if (!n) return;
+  const antes = limiteGcisPorConsulta();
+  if (n >= antes) return;          // só aperta, nunca afrouxa
+  try { localStorage.setItem(CHAVE_LIMITE_GCI, String(n)); } catch (e) { /* segue */ }
+}
+
+/** O nome do arquivo sem o "(n de m)" — é por ele que se reconhece dois
+ *  lotes do mesmo cliente. */
+const baseDe = g => g.base || g.arquivo || g.nome;
+
+/** Um grupo vira vários quando não cabe numa consulta só.
+ *
+ *  O nome sai sempre do , nunca do nome já sufixado: refatiar duas
+ *  vezes rendia "CLIENTE (1 de 2) (1 de 3)".
+ *
+ *  E os lotes saem do mesmo tamanho, dividindo o que falta pelo que resta
+ *  de partes, em vez de encher os primeiros e deixar um pedido solto no
+ *  fim — um arquivo com um pedido só custa o mesmo minuto que um cheio. */
+function fatiarGrupo(g, max) {
+  const gcis = g.gcis || [];
+  if (!(max >= 1) || gcis.length <= max) return [g];
+  const base = g.base || g.arquivo || g.nome;
+  const partes = Math.ceil(gcis.length / max);
+  const lotes = [];
+  for (let k = 0, i = 0; k < partes; k++) {
+    const tam = Math.ceil((gcis.length - i) / (partes - k));
+    lotes.push({ ...g, base, gcis: gcis.slice(i, i + tam),
+                 arquivo: `${base} (${k + 1} de ${partes})` });
+    i += tam;
+  }
+  return lotes;
+}
+
+/** Os arquivos que vão sair de fato — já em lotes, se for o caso. */
+function gruposParaGerar(grupos) {
+  const max = limiteGcisPorConsulta();
+  return (grupos || gruposDaSelecao()).flatMap(g => fatiarGrupo(g, max));
+}
+
 /** O que a fila vai gerar, em uma linha — é por ela que se confere se saiu
  *  tudo. Marcar 23 itens pode dar 18 pedidos (um pedido tem várias
  *  referências) e 4 arquivos (dois clientes, cada um com carteira e
@@ -9742,6 +9822,9 @@ function renderBarraSelecao() {
   const n = APP.selecao.size;
   const grupos = gruposDaSelecao();
   const resumo = resumoDaSelecao(grupos);
+  // O resumo fala de pedidos e clientes; o botão, de arquivos. São contas
+  // diferentes quando um cliente não cabe numa consulta só.
+  const arquivos = gruposParaGerar(grupos);
 
   const info = $('bs-info');
   info.hidden = !grupos.length;
@@ -9753,10 +9836,10 @@ function renderBarraSelecao() {
   $('bs-gerar').style.display = temExtensao() ? '' : 'none';
   $('bs-gerar').disabled = !n || !!_pdfEmCurso;
   $('bs-gerar-label').textContent = n
-    ? `Gerar ${grupos.length} PDF${grupos.length > 1 ? 's' : ''}`
+    ? `Gerar ${arquivos.length} PDF${arquivos.length > 1 ? 's' : ''}`
     : 'Gerar';
-  $('bs-gerar').title = grupos.length
-    ? `${grupos.length} arquivo${grupos.length > 1 ? 's' : ''} — ${resumo.texto}` +
+  $('bs-gerar').title = arquivos.length
+    ? `${arquivos.length} arquivo${arquivos.length > 1 ? 's' : ''} — ${resumo.texto}` +
       (resumo.fat ? ' — o EBM consulta carteira e faturado em telas separadas, ' +
         'um arquivo para cada' : '')
     : 'Marque as encomendas que entram no PDF';
@@ -9775,8 +9858,14 @@ function renderBarraSelecao() {
 function gerarSelecionados() {
   if (!temExtensao()) { toast('Extensão do EBM não instalada neste navegador'); return; }
   if (_pdfEmCurso) { toast('Já tem um PDF sendo gerado — aguarde'); return; }
-  const grupos = gruposDaSelecao();
+  const grupos = gruposParaGerar();
   if (!grupos.length) return;
+
+  if (grupos.some(g => g.gcis.length > 1) &&
+      versaoMenor(versaoEbmInstalada(), VERSAO_EBM_CONFERE_GCIS)) {
+    toast(`Extensão do EBM na versão ${versaoEbmInstalada() || '?'} — ` +
+          `recarregue-a (a ${VERSAO_EBM_CONFERE_GCIS} confere se todos os pedidos entraram)`);
+  }
 
   // Marcar um produto inteiro pega dezenas de clientes sem parecer que
   // pega: 82 encomendas de um modelo viraram 36 arquivos no teste. Cada
@@ -10215,6 +10304,45 @@ function ligarRespostaPdf() {
       toast(d.texto || 'PDF gerado');
       return;
     }
+    // O campo de critério do EBM não coube com todos os GCIs. A extensão diz
+    // quantos entraram; a partir desse número o mesmo cliente sai em lotes, e
+    // a fila recomeça do arquivo que falhou — sem refazer os que já saíram e
+    // sem pedir nada a quem está esperando.
+    if (d.tipo === 'erro' && d.codigo === 'gcis-nao-couberam' && d.cabem >= 1) {
+      guardarLimiteGcis(d.cabem);
+      const pendente = _pdfUltimo;
+      _pdfEmCurso = null;
+      if (!APP.fila && pendente) {
+        APP.fila = { atual: 0, ok: 0, falhas: [], grupos: [{
+          nome: pendente.nomeCliente, arquivo: pendente.nomeCliente,
+          status: pendente.status, gcis: pendente.gcis }] };
+      }
+      const f = APP.fila;
+      const atual = f && f.grupos[f.atual];
+      if (atual) {
+        // Tudo o que ainda não saiu daquele cliente volta a ser um só e é
+        // renumerado de uma vez. Refatiando lote a lote, o segundo também
+        // começaria em "(1 de 3)" e dois arquivos sairiam com o mesmo nome.
+        const base = baseDe(atual);
+        let fim = f.atual;
+        while (fim + 1 < f.grupos.length && baseDe(f.grupos[fim + 1]) === base) fim++;
+        const juntos = { ...atual, base,
+          gcis: f.grupos.slice(f.atual, fim + 1).flatMap(g => g.gcis) };
+        const lotes = fatiarGrupo(juntos, limiteGcisPorConsulta());
+        if (lotes.length > 1) {
+          f.grupos.splice(f.atual, fim - f.atual + 1, ...lotes);
+          $('tarja-pdf-titulo').textContent = 'O EBM não leva tudo de uma vez';
+          $('tarja-pdf-detalhe').textContent =
+            `Refazendo em ${lotes.length} arquivos de até ${d.cabem} pedidos`;
+          renderBarraSelecao();
+          setTimeout(proximoDaFila, 1200);
+          return;
+        }
+      }
+      // Um lote só já não coube: o limite não explica mais nada, e insistir
+      // seria um laço. Cai no erro comum, que mostra a mensagem da extensão.
+    }
+
     if (d.tipo === 'erro' && d.codigo === 'popup-bloqueado') {
       _pdfEmCurso = null;
       const pendente = _pdfUltimo;

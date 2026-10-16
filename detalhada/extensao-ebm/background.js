@@ -375,7 +375,9 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.aviso) anotar('página: ' + msg.aviso);
   if (msg.erro) {
     anotar('página relatou: ' + msg.erro);
-    encerrar(false, msg.erro, msg.codigo ? { codigo: msg.codigo } : {});
+    encerrar(false, msg.erro, msg.codigo
+      ? { codigo: msg.codigo, ...(msg.cabem ? { cabem: msg.cabem } : {}) }
+      : {});
   }
   if (!job && (msg.erro || msg.aviso)) {
     console.log('[CMS] (sem trabalho em curso)', msg.erro || msg.aviso);

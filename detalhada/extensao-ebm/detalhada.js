@@ -16,7 +16,7 @@
    ============================================================ */
 
 // Marca a página para o app saber que a extensão está instalada.
-document.documentElement.dataset.cmsEbm = '0.3.2';
+document.documentElement.dataset.cmsEbm = '0.4.0';
 // Esta versão sabe guardar o login do EBM e entrar sozinha.
 document.documentElement.dataset.cmsEbmLogin = '1';
 

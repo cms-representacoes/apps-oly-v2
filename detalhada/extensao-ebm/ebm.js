@@ -459,31 +459,65 @@
       await preencherColuna(linha, COL.VALOR1, valor, 'Valor',
         (v, t) => v === valor || t.includes(cmd.gcis[0]));
 
-      // Conferir GCI a GCI, e nao so o primeiro.
-      //
-      // A conferencia acima aceita quando o texto contem o primeiro GCI. Se o
-      // campo do EBM tiver limite de caracteres e cortar a lista, ela passa e a
-      // consulta sai com menos encomendas do que se pediu — o PDF chega
-      // parecendo completo, com um pedido so, e nada avisa. Um PDF errado que
-      // se toma por certo e pior que nenhum: aqui a falta vira erro.
-      if (!umSo) {
-        const { valor: v2, texto: t2 } = valorDaCelula(linha, COL.VALOR1);
-        const gravado = String(v2 || t2 || '');
-        const faltando = cmd.gcis.filter(g => !gravado.includes(g));
-        if (faltando.length) {
-          relatar({ aviso: `campo do EBM guardou ${gravado.length} de ${valor.length} caracteres` });
-          throw new Error(
-            `o campo do EBM ficou com ${cmd.gcis.length - faltando.length} de ` +
-            `${cmd.gcis.length} GCIs (faltou ${faltando.slice(0, 3).join(', ')}` +
-            `${faltando.length > 3 ? '…' : ''}) — parece limite de tamanho do campo`);
-        }
-        relatar({ aviso: `os ${cmd.gcis.length} GCIs entraram no campo` });
-      }
-
       // O campo de valor é texto, e num <input> da grade é o `hideEdit`
       // que grava o que foi digitado. Consultar com ele aberto correria o
       // risco de buscar sem o GCI.
       await fecharEditores(linha, -1);
+
+      // SÓ AGORA dá para conferir, e é preciso conferir GCI a GCI.
+      //
+      // Com o editor ABERTO, `valorDaCelula` devolve o `value` do input — o
+      // que esta extensão acabou de escrever. Conferir ali é perguntar a ela
+      // mesma: aprova sempre, inclusive quando o EBM não ficou com nada
+      // daquilo. Foi assim que 22 GCIs viraram um PDF com um pedido só, sem
+      // nenhum aviso. Fechado o editor, quem responde é a célula — que é
+      // exatamente o que a consulta vai usar.
+      if (!umSo) {
+        const gravado = String(textoCelula(linha, COL.VALOR1) || '');
+        const dentro = cmd.gcis.filter(g => gravado.includes(g));
+        // Nenhum GCI à vista não quer dizer campo vazio: quer dizer que esta
+        // célula não mostra o valor, e então não dá para conferir por aqui.
+        // Tomar isso por corte faria a lista ser fatiada em arquivos de um
+        // GCI, quebrando o que hoje funciona. A prova de corte é outra: a
+        // célula mostra parte da lista e pára no meio.
+        if (!dentro.length) {
+          relatar({ aviso: 'a célula do valor não mostra os GCIs — seguindo sem conferir' });
+        } else if (dentro.length < cmd.gcis.length) {
+          const faltam = cmd.gcis.filter(g => !gravado.includes(g));
+          relatar({ aviso: `a célula ficou com ${gravado.length} caracteres dos ${valor.length} escritos` });
+          // `cabem` volta para a Detalhada, que refaz o arquivo em lotes desse
+          // tamanho. O limite do campo não está escrito em lugar nenhum: ele
+          // se descobre assim, uma vez, e fica guardado.
+          relatar({
+            erro: `o campo do EBM ficou com ${dentro.length} de ${cmd.gcis.length} GCIs ` +
+                  `(faltou ${faltam.slice(0, 3).join(', ')}${faltam.length > 3 ? '…' : ''}) ` +
+                  '— é o limite de tamanho do campo',
+            codigo: 'gcis-nao-couberam',
+            cabem: Math.max(1, dentro.length),
+          });
+          return;
+        } else {
+          relatar({ aviso: `os ${cmd.gcis.length} GCIs entraram no campo` });
+        }
+      }
+
+      // O operador pela mesma régua. Se o EBM não aceitou INFORMADOS e
+      // voltou para IGUAL, a consulta procura um texto cheio de vírgulas:
+      // acha uma encomenda, ou nenhuma, e o PDF sai parecendo certo.
+      // Só acusa quando dá para ler os dois lados: a célula diz um operador
+      // conhecido e ele é o outro. Um texto que não é nem um nem outro é
+      // célula ilegível, não operador errado — e aí segue, com o aviso.
+      const opGravado = String(textoCelula(linha, COL.OPERADOR) || '').trim();
+      const ehIgual = /^(igual|=)$/i.test(opGravado);
+      const ehLista = /^(informados|in)$/i.test(opGravado);
+      if (ehIgual || ehLista) {
+        if (umSo !== ehIgual) {
+          throw new Error(`o operador do EBM ficou em "${opGravado}" e não em ` +
+            `${umSo ? 'IGUAL' : 'INFORMADOS'} — a consulta sairia errada`);
+        }
+      } else if (opGravado) {
+        relatar({ aviso: `operador da célula: "${opGravado}" — não dá para conferir` });
+      }
 
       relatar({ aviso: 'consultando' });
       const btn = await ate(() => $(ID.consultar));
@@ -515,6 +549,13 @@
       const pedidos = (cmd && Array.isArray(cmd.gcis)) ? cmd.gcis.length : null;
       relatar({ aviso: `a consulta trouxe ${cbs.length} encomenda(s)` +
         (pedidos ? ` para ${pedidos} GCI(s) pedidos` : '') });
+      // Vir menos do que se pediu aqui não é corte de campo (o critério já
+      // foi conferido inteiro): é encomenda que o EBM não tem nesse status.
+      // Segue, mas dito em voz alta — o PDF vai sair sem elas.
+      if (pedidos && cbs.length < pedidos) {
+        relatar({ aviso: `ATENÇÃO: ${pedidos - cbs.length} GCI(s) não apareceram na ` +
+          'consulta e ficam de fora do PDF' });
+      }
 
       const faltam = cbs.filter(c => !c.checked);
       if (faltam.length) {
@@ -532,7 +573,25 @@
     },
 
     /** Um GCI só: o EBM já abre o detalhe, e o botão é outro. */
-    async detalhe() {
+    async detalhe(cmd) {
+      // O EBM só pula para o detalhe quando a consulta achou UMA encomenda.
+      // Tendo pedido várias, isso é a prova de que o filtro saiu curto — e o
+      // PDF sairia com um pedido só, com cara de completo. Melhor parar aqui.
+      const pedidos = (cmd && Array.isArray(cmd.gcis)) ? cmd.gcis.length : 1;
+      if (pedidos > 1) {
+        // Uma encomenda de várias pedidas não acontece por acaso: é o campo
+        // que cortou sem a célula deixar ver. Em vez de parar, devolve a
+        // metade — a Detalhada refaz nesse tamanho e, se também não couber,
+        // volta a partir pela metade. Em quatro ou cinco idas acha o limite
+        // do campo sem nunca gerar um arquivo errado pelo caminho.
+        relatar({
+          erro: `a consulta trouxe uma encomenda só para ${pedidos} GCIs pedidos ` +
+                '— o filtro do EBM não ficou com a lista inteira',
+          codigo: 'gcis-nao-couberam',
+          cabem: Math.max(1, Math.floor(pedidos / 2)),
+        });
+        return;
+      }
       relatar({ aviso: 'tela de detalhe (uma encomenda)' });
       const btn = await ate(() => $(ID.pedidoUm));
       if (!btn) throw new Error('não achei o botão de visualizar pedido');
