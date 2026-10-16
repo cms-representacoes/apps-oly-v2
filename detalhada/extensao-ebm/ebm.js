@@ -557,18 +557,74 @@
           'consulta e ficam de fora do PDF' });
       }
 
-      const faltam = cbs.filter(c => !c.checked);
-      if (faltam.length) {
-        faltam.forEach(c => { if (!c.checked) c.click(); });
-        await espera(400);
+      /* Marcar as 22, e não só a última.
+       *
+       *  O comentário antigo dizia que as caixas são comuns e que marcar não
+       *  dispara postback. Nesta tela não é bem assim: clicando nas 22 em
+       *  sequência, só a última ficava marcada — cada clique desfazia o
+       *  anterior. A consulta trazia as 22 ("1 - 22 / 22" na barra da grade),
+       *  e mesmo assim o PDF saía com um pedido só.
+       *
+       *  Então: a caixa do cabeçalho primeiro, que marca a grade inteira numa
+       *  tacada; o que sobrar, uma a uma, reconferindo a cada volta; e, se a
+       *  conta não fechar, para aqui. */
+      const marcarTodas = () =>
+        [...document.querySelectorAll('input[type=checkbox][id*=":grdGrid:"]')]
+          .find(c => !c.disabled && !/:row\d+:/.test(c.id));
+
+      const quantas = () => caixas().length;
+      const marcadasAgora = () => caixas().filter(c => c.checked).length;
+
+      const topo = marcarTodas();
+      if (topo && marcadasAgora() < quantas()) {
+        relatar({ aviso: 'marcando pela caixa do cabeçalho' });
+        // Ela é um interruptor: estando ligada, um clique desliga tudo. Passar
+        // pelo desligado garante que o próximo clique ligue a grade inteira.
+        if (topo.checked) { topo.click(); await espera(350); }
+        topo.click();
+        await espera(800);
+        relatar({ aviso: `pelo cabeçalho: ${marcadasAgora()} de ${quantas()}` });
       }
 
-      const marcadas = caixas().filter(c => c.checked).length;
+      for (let volta = 1; volta <= 3 && marcadasAgora() < quantas(); volta++) {
+        const antes = marcadasAgora();
+        const faltam = caixas().filter(c => !c.checked);
+        relatar({ aviso: `volta ${volta}: faltam ${faltam.length} de ${quantas()}` });
+        for (const c of faltam) { c.click(); await espera(70); }
+        await espera(500);
+        // Uma volta que não adiantou é a assinatura da grade em que o clique
+        // desfaz o anterior: insistir só gastaria tempo.
+        if (marcadasAgora() <= antes) break;
+      }
+
+      // Ainda faltando: marcar sem clicar. O que desfaz a seleção é o clique;
+      // o estado da caixa é o que vai no POST do "visualizar pedido". Fica por
+      // último porque é o caminho que menos se parece com uma pessoa usando a
+      // tela — mas é melhor do que um PDF pela metade.
+      if (marcadasAgora() < quantas()) {
+        relatar({ aviso: 'marcando sem clicar (o clique desta grade desfaz o anterior)' });
+        for (const c of caixas()) {
+          if (!c.checked) {
+            c.checked = true;
+            c.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+        await espera(500);
+      }
+
+      const total = quantas();
+      const marcadas = marcadasAgora();
       if (!marcadas) throw new Error('não consegui marcar as encomendas da lista');
+      // Marcar parte e seguir era o pior dos mundos: saía um PDF com cara de
+      // completo e menos pedidos dentro, e ninguém tinha como desconfiar.
+      if (marcadas < total) {
+        throw new Error(`marquei ${marcadas} de ${total} encomendas da lista — ` +
+          'o PDF sairia incompleto');
+      }
 
       const btn = await ate(() => $(ID.pedidoLista), 8000);
       if (!btn) throw new Error('não achei o botão "visualizar pedido"');
-      relatar({ aviso: `${marcadas} de ${cbs.length} marcadas · clicando em visualizar pedido` });
+      relatar({ aviso: `${marcadas} de ${total} marcadas · clicando em visualizar pedido` });
       btn.click();
     },
 

@@ -138,8 +138,20 @@ tudo marcado porque era o próprio roteiro que acabara de marcar, e isso se lia
 como "já vinha assim". Se um dia a dúvida voltar, o teste é abrir a lista na mão
 e olhar antes de qualquer automação tocar nela.
 
-São caixas comuns, sem `onclick` — marcar não dispara postback. Por isso marcar e
-clicar em "visualizar pedido" acontece na mesma passada. Uma versão anterior
+**O clique numa caixa desfaz a seleção anterior.** Por muito tempo ficou escrito
+aqui que eram caixas comuns, sem `onclick`, e que marcar não disparava nada.
+Não é o que acontece: clicando nas 22 em sequência, só a última fica marcada — e
+o PDF sai com um pedido só, com cara de completo. A consulta estava certa o
+tempo todo (`1 - 22 / 22` na barra da grade); quem falhava era a marcação.
+
+A ordem que funciona: a caixa do **cabeçalho** primeiro, que marca a grade
+inteira numa tacada; o que sobrar, uma a uma, reconferindo a cada volta (uma
+volta que não adianta é a assinatura dessa grade, e aí não vale insistir); e, em
+último caso, `checked = true` sem clique — o que desfaz a seleção é o clique,
+e o que vai no POST é o estado da caixa. Não fechando a conta, o roteiro
+**para**: um PDF incompleto que se toma por completo é pior do que nenhum.
+
+Marcar e clicar em "visualizar pedido" acontecem na mesma passada. Uma versão anterior
 marcava e devolvia o passo, esperando um recarregamento que nunca vinha: a lista
 ficava pronta na tela aguardando um clique que não vinha junto.
 

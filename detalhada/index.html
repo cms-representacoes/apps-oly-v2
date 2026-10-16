@@ -9861,10 +9861,19 @@ function gerarSelecionados() {
   const grupos = gruposParaGerar();
   if (!grupos.length) return;
 
+  // A extensão velha não confere nada: o arquivo sai com um pedido só e com
+  // cara de completo, e quem recebe não tem como desconfiar. Isso é grave
+  // demais para um toast que passa correndo — aqui ela para e explica.
   if (grupos.some(g => g.gcis.length > 1) &&
       versaoMenor(versaoEbmInstalada(), VERSAO_EBM_CONFERE_GCIS)) {
-    toast(`Extensão do EBM na versão ${versaoEbmInstalada() || '?'} — ` +
-          `recarregue-a (a ${VERSAO_EBM_CONFERE_GCIS} confere se todos os pedidos entraram)`);
+    const ok = confirm([
+      `A extensão do EBM instalada é a ${versaoEbmInstalada() || '?'}, e a partir da ` +
+      `${VERSAO_EBM_CONFERE_GCIS} ela confere se todos os pedidos entraram no filtro.`,
+      'Com a anterior o PDF pode sair com um pedido só, parecendo completo.',
+      'Para atualizar: chrome://extensions → Atualizar, e depois F5 nesta página.',
+      'Gerar assim mesmo?',
+    ].join(String.fromCharCode(10, 10)));
+    if (!ok) return;
   }
 
   // Marcar um produto inteiro pega dezenas de clientes sem parecer que
