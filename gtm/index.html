@@ -908,7 +908,13 @@ document.addEventListener('focusin', ev => {
    · Tudo fechado: a pergunta é se é para mandar mesmo — o mix vai assinado e
      não se troca depois.
    Cor em branco não entra nessa conta: ela é a cor que ele não quer. */
-const pendentesDoMix = () => (GTM.produtos || []).filter(p => somaDoProduto(p) !== 100);
+/* Pela metade é erro: 60% não é escolha nenhuma, é conta que ficou pelo
+   caminho. Em branco é escolha: é o modelo que ele não quer. Só o primeiro
+   trava; o segundo vira aviso na hora de confirmar. */
+const pendentesDoMix = () => (GTM.produtos || [])
+  .filter(p => { const sm = somaDoProduto(p); return sm > 0 && sm !== 100; });
+
+const modelosDeFora = () => (GTM.produtos || []).filter(p => somaDoProduto(p) === 0);
 
 let _irPara = null;      // o modelo que o botão "Ir preencher" vai mostrar
 
@@ -920,15 +926,23 @@ function modoDoModal(travado){
 
 function avisarQueFalta(pendentes){
   const total = GTM.produtos.length;
-  _irPara = pendentes[0];
+  _irPara = pendentes[0] || GTM.produtos[0];
   $('confTit').textContent = 'Falta preencher';
   const MOSTRA = 8;
-  let corpo = `<p>Não dá para enviar ainda: <b>${pendentes.length}</b> de ${total} ` +
-    `modelo${total > 1 ? 's' : ''} ainda não ${pendentes.length > 1 ? 'fecharam' : 'fechou'} ` +
-    `<b>100%</b>.</p>`;
+  if(!pendentes.length){
+    modoDoModal(true);
+    $('confCorpo').innerHTML = `<p>Nada preenchido ainda: os <b>${total}</b> modelos ` +
+      `estão em branco.</p><p style="margin-top:9px;color:var(--fraco);font-size:13px">` +
+      `Reparta 100% nos modelos que você quer. Os que não quiser, deixe em branco.</p>`;
+    $('modalConfirma').hidden = false;
+    return;
+  }
+  let corpo = `<p>Não dá para enviar ainda: <b>${pendentes.length}</b> ` +
+    `modelo${pendentes.length > 1 ? 's' : ''} começado${pendentes.length > 1 ? 's' : ''} ` +
+    `e não fechado${pendentes.length > 1 ? 's' : ''} em <b>100%</b>.</p>`;
   corpo += `<p style="margin-top:9px;color:var(--fraco);font-size:13px">` +
-    `Cor que você não quer pode ficar em branco — o que precisa fechar é a ` +
-    `soma de cada modelo.</p>`;
+    `Modelo que você não quer pode ficar <b>inteiro em branco</b> — esse passa. ` +
+    `O que não passa é o que foi começado e parou no meio.</p>`;
   corpo += '<div class="falta-lista">' +
     pendentes.slice(0, MOSTRA).map(p => {
       const sm = somaDoProduto(p);
@@ -945,13 +959,41 @@ function avisarQueFalta(pendentes){
 
 function perguntarSeEnvia(){
   const total = GTM.produtos.length;
+  const fora = modelosDeFora();
+  const fechados = total - fora.length;
   $('confTit').textContent = 'Enviar o mix';
-  let corpo = `<p>Os <b>${total}</b> modelos estão fechados em 100%.</p>`;
+  let corpo = fechados
+    ? `<p><b>${fechados}</b> de ${total} modelo${total > 1 ? 's' : ''} ` +
+      `${fechados > 1 ? 'fechados' : 'fechado'} em 100%.</p>`
+    : `<p>Nenhum modelo foi preenchido.</p>`;
+
+  // Em branco é "não quero", mas esquecer também deixa em branco: as duas
+  // coisas se parecem na tela. Listar aqui, antes de mandar, é o único ponto
+  // em que dá para separar uma da outra — depois o mix não se troca.
+  if(fora.length){
+    const MOSTRA = 6;
+    corpo += `<div class="falta-lista">` +
+      fora.slice(0, MOSTRA).map(p =>
+        `<div class="falta-item"><b>${esc(p.nome)}</b>` +
+        `<span class="q vazio">fica de fora</span></div>`).join('') +
+      (fora.length > MOSTRA
+        ? `<div class="falta-mais">e mais ${fora.length - MOSTRA}…</div>` : '') +
+      `</div>`;
+    corpo += `<p style="margin-top:9px;color:var(--falta)">` +
+      `<b>${fora.length}</b> modelo${fora.length > 1 ? 's' : ''} ` +
+      `${fora.length > 1 ? 'vão' : 'vai'} sem nenhum par. ` +
+      `Se ${fora.length > 1 ? 'algum deles ficou' : 'ele ficou'} assim por esquecimento, ` +
+      `volte e preencha.</p>`;
+  }
 
   // Cor em branco não é esquecimento necessariamente: pode ser a cor que ele
   // não quer. Como só ele sabe qual das duas coisas é, aqui avisa e deixa
   // passar — travar seria obrigar a escrever 0 numa cor já descartada.
+  // Só nos modelos que ele preencheu: contar as cores dos que ficaram
+  // inteiros de fora seria dizer duas vezes a mesma coisa, com um número
+  // bem maior.
   const semCor = GTM.produtos
+    .filter(p => somaDoProduto(p) > 0)
     .map(p => ({ p, n: p.cores.filter(c => !Number(valores[chave(p.artigo, c.cor)])).length }))
     .filter(x => x.n > 0);
   if(semCor.length){
@@ -978,8 +1020,11 @@ function perguntarSeEnvia(){
 
 $('btEnviar').addEventListener('click', () => {
   const pendentes = pendentesDoMix();
-  if(pendentes.length) avisarQueFalta(pendentes);
-  else perguntarSeEnvia();
+  if(pendentes.length){ avisarQueFalta(pendentes); return; }
+  // Tudo em branco não é "não quero nenhum": é não ter começado. Mandar
+  // assim gastaria o único envio que a pessoa tem.
+  if(modelosDeFora().length === GTM.produtos.length){ avisarQueFalta([]); return; }
+  perguntarSeEnvia();
 });
 
 /* Fechar o modal e deixar a pessoa procurando o modelo na tela seria devolver
