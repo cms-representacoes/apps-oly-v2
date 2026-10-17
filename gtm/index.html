@@ -98,6 +98,20 @@ input{ font:inherit }
   justify-content:center; font-size:11px; font-weight:800; color:#fff; letter-spacing:.02em;
   background:linear-gradient(145deg,#a970ff 0%,#8b5cf6 48%,#7439e0 100%);
   box-shadow:0 5px 14px rgba(124,58,237,.38), inset 0 1px 0 rgba(255,255,255,.28) }
+/* ── o que falta fechar, dentro do modal ──
+   Uma linha por modelo, com a soma de cada um à direita: ler "60%" ao lado
+   do nome diz na hora o que fazer, coisa que "4 modelos pendentes" não diz. */
+.falta-lista{ display:flex; flex-direction:column; gap:1px; margin-top:11px;
+  border:1px solid var(--linha); border-radius:12px; overflow:hidden; background:var(--linha) }
+.falta-item{ display:flex; align-items:center; gap:10px; background:var(--carta);
+  padding:9px 12px; font-size:13.5px }
+.falta-item b{ flex:1 1 auto; min-width:0; font-weight:700; color:var(--tinta);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.falta-item .q{ flex:none; font-variant-numeric:tabular-nums; font-weight:800;
+  font-size:13px; color:var(--falta) }
+.falta-item .q.vazio{ color:var(--fraco); font-weight:600 }
+.falta-mais{ background:var(--suave); padding:8px 12px; font-size:12.5px; color:var(--fraco) }
+
 /* ── as duas marcas ──
    A que está valendo fica acesa; a outra, apagada e esperando o clique. */
 .marcas{ display:flex; align-items:center; gap:6px; flex:none }
@@ -422,8 +436,13 @@ body[data-marca="ua"] .cor-foto{ background:#F0F0F0 }
   /* o modal encosta nas bordas: cada pixel conta numa tela de 375 */
   #modalRes{ padding:0 }
   #modalRes .cx{ height:100vh; border-radius:0 }
-  .cx-cab{ padding:10px 12px; gap:7px; flex-wrap:wrap }
-  .cx-cab h2{ font-size:14.5px; flex:1 1 100% }
+  .cx-cab{ padding:10px 12px; gap:7px }
+  .cx-cab h2{ font-size:14.5px }
+  /* Só o painel do resultado quebra o cabeçalho em linhas: ele tem busca e
+     dois botões de exportar. No modal de enviar, isso jogava o X sozinho
+     numa segunda linha. */
+  #modalRes .cx-cab{ flex-wrap:wrap }
+  #modalRes .cx-cab h2{ flex:1 1 100% }
   .res-marcas .marca-bt{ width:32px; height:28px; border-radius:8px }
   .res-marcas .marca-bt[data-marca="oly"] img{ width:20px }
   .res-marcas .marca-bt[data-marca="ua"]  img{ height:13px }
@@ -517,7 +536,8 @@ body[data-marca="ua"] .cor-foto{ background:#F0F0F0 }
       <button class="icone" data-fecha="modalConfirma" aria-label="Fechar">✕</button></div>
     <div class="cx-corpo" id="confCorpo"></div>
     <div class="cx-pe">
-      <button class="bt" data-fecha="modalConfirma">Voltar</button>
+      <button class="bt" data-fecha="modalConfirma" id="btConfVoltar">Voltar</button>
+      <button class="bt forte" id="btIrPendente" hidden>Ir preencher</button>
       <button class="bt forte" id="btConfirmaEnvio">Enviar</button>
     </div>
   </div>
@@ -623,12 +643,16 @@ const WORKER_URL = 'https://repasse-worker-cms.marcosrep-cms.workers.dev/';
 const chaveLocal = (m) => MARCAS[m || MARCA].chave;
 let MODO_LOCAL = false;
 
-async function lerTodosOsMixes(m){
+/* `so` traz apenas o mix daquele vendedor. A tela do vendedor pede só o
+   dele: é tudo de que ela precisa, e um não enxerga o mix do outro. O
+   painel da CMS pede sem `so` e recebe todos. */
+async function lerTodosOsMixes(m, so){
   m = m || MARCA;
   try{
     const r = await fetch(WORKER_URL, { method:'PATCH',
       headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ action:'getMixGtm', colecao:'1S27', marca:m }) });
+      body: JSON.stringify({ action:'getMixGtm', colecao:'1S27', marca:m,
+                             ...(so ? { codigo: String(so) } : {}) }) });
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     if(!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('resposta estranha');
@@ -879,23 +903,98 @@ document.addEventListener('focusin', ev => {
 });
 
 /* ══ enviar ═════════════════════════════════════════════════════════════ */
-$('btEnviar').addEventListener('click', () => {
+/* São dois estados, e cada um tem o seu modal.
+   · Algum modelo sem fechar 100%: o envio não acontece. Ali falta preencher.
+   · Tudo fechado: a pergunta é se é para mandar mesmo — o mix vai assinado e
+     não se troca depois.
+   Cor em branco não entra nessa conta: ela é a cor que ele não quer. */
+const pendentesDoMix = () => (GTM.produtos || []).filter(p => somaDoProduto(p) !== 100);
+
+let _irPara = null;      // o modelo que o botão "Ir preencher" vai mostrar
+
+function modoDoModal(travado){
+  $('btConfirmaEnvio').hidden = travado;
+  $('btIrPendente').hidden = !travado;
+  $('btConfVoltar').textContent = travado ? 'Fechar' : 'Voltar';
+}
+
+function avisarQueFalta(pendentes){
   const total = GTM.produtos.length;
-  const fechados = produtosFechados();
-  const abertos = GTM.produtos.filter(p => { const s = somaDoProduto(p); return s > 0 && s !== 100; });
-  const vazios = GTM.produtos.filter(p => somaDoProduto(p) === 0);
-  let corpo = `<p>O mix vai assinado como <b>${esc(meuNome())}</b> e <b>não pode ser trocado depois</b>.</p>`;
-  corpo += `<p style="margin-top:9px">Fechados em 100%: <b>${fechados}</b> de ${total}.</p>`;
-  if(abertos.length) corpo += `<p style="margin-top:9px;color:var(--falta)">` +
-    `<b>${abertos.length}</b> modelo(s) com soma diferente de 100 vão como estão: ` +
-    esc(abertos.map(p => p.nome).join(', ')) + `.</p>`;
-  if(vazios.length) corpo += `<p style="margin-top:9px;color:var(--fraco)">` +
-    `${vazios.length} modelo(s) sem nada preenchido ficam em branco.</p>`;
+  _irPara = pendentes[0];
+  $('confTit').textContent = 'Falta preencher';
+  const MOSTRA = 8;
+  let corpo = `<p>Não dá para enviar ainda: <b>${pendentes.length}</b> de ${total} ` +
+    `modelo${total > 1 ? 's' : ''} ainda não ${pendentes.length > 1 ? 'fecharam' : 'fechou'} ` +
+    `<b>100%</b>.</p>`;
+  corpo += `<p style="margin-top:9px;color:var(--fraco);font-size:13px">` +
+    `Cor que você não quer pode ficar em branco — o que precisa fechar é a ` +
+    `soma de cada modelo.</p>`;
+  corpo += '<div class="falta-lista">' +
+    pendentes.slice(0, MOSTRA).map(p => {
+      const sm = somaDoProduto(p);
+      return `<div class="falta-item"><b>${esc(p.nome)}</b>` +
+        `<span class="q${sm ? '' : ' vazio'}">${sm ? sm + '%' : 'em branco'}</span></div>`;
+    }).join('') +
+    (pendentes.length > MOSTRA
+      ? `<div class="falta-mais">e mais ${pendentes.length - MOSTRA}…</div>` : '') +
+    '</div>';
+  modoDoModal(true);
+  $('confCorpo').innerHTML = corpo;
+  $('modalConfirma').hidden = false;
+}
+
+function perguntarSeEnvia(){
+  const total = GTM.produtos.length;
+  $('confTit').textContent = 'Enviar o mix';
+  let corpo = `<p>Os <b>${total}</b> modelos estão fechados em 100%.</p>`;
+
+  // Cor em branco não é esquecimento necessariamente: pode ser a cor que ele
+  // não quer. Como só ele sabe qual das duas coisas é, aqui avisa e deixa
+  // passar — travar seria obrigar a escrever 0 numa cor já descartada.
+  const semCor = GTM.produtos
+    .map(p => ({ p, n: p.cores.filter(c => !Number(valores[chave(p.artigo, c.cor)])).length }))
+    .filter(x => x.n > 0);
+  if(semCor.length){
+    const cores = semCor.reduce((a, x) => a + x.n, 0);
+    corpo += `<p style="margin-top:9px;color:var(--fraco)">` +
+      `<b>${cores}</b> cor${cores > 1 ? 'es' : ''} ` +
+      `${cores > 1 ? 'ficaram' : 'ficou'} sem percentual em ` +
+      `${semCor.length} modelo${semCor.length > 1 ? 's' : ''}: ` +
+      `${esc(semCor.slice(0, 4).map(x => x.p.nome).join(', '))}` +
+      `${semCor.length > 4 ? ' e outros' : ''}. ` +
+      `${cores > 1 ? 'Elas vão' : 'Ela vai'} como zero.</p>`;
+  }
+
+  corpo += `<p style="margin-top:9px">O mix vai assinado como <b>${esc(meuNome())}</b> ` +
+    `e <b>não pode ser trocado depois</b>.</p>`;
   if(MODO_LOCAL) corpo += `<p style="margin-top:9px;color:var(--falta)">` +
     `O servidor não respondeu: o mix fica <b>guardado só neste aparelho</b> ` +
     `e a CMS não vai enxergá-lo.</p>`;
+  corpo += `<p style="margin-top:11px"><b>Deseja enviar agora?</b></p>`;
+  modoDoModal(false);
   $('confCorpo').innerHTML = corpo;
   $('modalConfirma').hidden = false;
+}
+
+$('btEnviar').addEventListener('click', () => {
+  const pendentes = pendentesDoMix();
+  if(pendentes.length) avisarQueFalta(pendentes);
+  else perguntarSeEnvia();
+});
+
+/* Fechar o modal e deixar a pessoa procurando o modelo na tela seria devolver
+   o problema. O botão leva ao primeiro que falta e põe o cursor na primeira
+   cor em branco dele — ou na primeira cor, se todas tiverem valor. */
+$('btIrPendente').addEventListener('click', () => {
+  $('modalConfirma').hidden = true;
+  const p = _irPara;
+  if(!p) return;
+  const campos = [...document.querySelectorAll(
+    `input[data-art="${CSS.escape(String(p.artigo))}"]`)];
+  const alvo = campos.find(c => !Number(c.value)) || campos[0];
+  if(!alvo) return;
+  trazerModeloParaVista(alvo);
+  setTimeout(() => { try{ alvo.focus(); alvo.select(); }catch(_){} }, 420);
 });
 
 $('btConfirmaEnvio').addEventListener('click', async () => {
@@ -1204,7 +1303,8 @@ document.getElementById('marcas').addEventListener('click', ev => {
     return;
   }
 
-  MIXES = await lerTodosOsMixes();
+  // O vendedor pede so o mix dele; a CMS, o de todo mundo — o painel vive disso.
+  MIXES = await lerTodosOsMixes(MARCA, ehCms() ? null : meuCodigo());
   MEU = MIXES[meuCodigo()] || null;
   if(MEU) for(const it of (MEU.itens || [])) valores[chave(it.artigo, it.cor)] = it.pct;
 
