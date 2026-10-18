@@ -10300,8 +10300,20 @@ function pdfDesenhaFolha(doc, itens, fotos){
   const dir = PDF_L - PDF_MARGEM - PDF_COL;   // onde começa a coluna da ficha
 
   // ── cabeçalho e rodapé
-  if(PDF_LOGO) doc.addImage(PDF_LOGO.dados, "JPEG", PDF_MARGEM, 5.6,
-    5.6 * PDF_LOGO.prop, 5.6);
+  const logoL = PDF_LOGO ? 5.6 * PDF_LOGO.prop : 0;
+  if(PDF_LOGO) doc.addImage(PDF_LOGO.dados, "JPEG", PDF_MARGEM, 5.6, logoL, 5.6);
+
+  /* O segmento ao lado da logo. O catálogo sai agrupado por segmento, e
+     quem folheia precisa saber em que parte do caderno está sem ter de ler
+     a ficha do lado direito. Menor que o nome do produto de propósito: o
+     nome continua sendo o que manda na página. */
+  const segTopo = String(base.segmento || base.categoria || "").toUpperCase();
+  if(segTopo){
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(...PDF_TINTA);
+    doc.setCharSpace(0.3);
+    doc.text(segTopo, PDF_MARGEM + logoL + (logoL ? 4.5 : 0), 11.2);
+    doc.setCharSpace(0);
+  }
   doc.setDrawColor(...PDF_LINHA); doc.setLineWidth(0.2);
   doc.line(PDF_MARGEM, PDF_CAB, PDF_L - PDF_MARGEM, PDF_CAB);
   doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...PDF_FRACO);
@@ -10347,8 +10359,9 @@ function pdfDesenhaFolha(doc, itens, fotos){
   const larg = PDF_COL;
   doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.setTextColor(...PDF_FRACO);
   doc.setCharSpace(0.35);
-  doc.text(String([base.segmento, f.genero || base.genero].filter(Boolean).join("  ·  ")).toUpperCase(),
-    dir, y);
+  // Só o gênero: o segmento passou a ter lugar próprio no cabeçalho, e
+  // repeti-lo aqui era a mesma palavra duas vezes na mesma página.
+  doc.text(String(f.genero || base.genero || "").toUpperCase(), dir, y);
   doc.setCharSpace(0);
   y += 5.5;
 
