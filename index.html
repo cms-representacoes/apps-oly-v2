@@ -10445,6 +10445,50 @@ function pdfAndamento(fracao, pagina, total, texto){
   return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 }
 
+/* ── a ordem das páginas do catálogo ────────────────────────────
+   Quem recebe o arquivo folheia por segmento, e dentro dele quer ver
+   primeiro o que é novo. A ordem dos segmentos é a da casa, não a
+   alfabética.
+
+   Segmento que não está nesta lista — Chinelos, e o que a planilha trouxer
+   amanhã — vai para o fim em ordem alfabética, e produto sem segmento
+   nenhum fica por último: melhor um bloco previsível no fim do que uma
+   página perdida no meio do caderno. */
+const ORDEM_SEGMENTO = ["CORRIDA", "CAMINHADA", "CASUAL", "CLASSICOS", "TREINO", "PERFORMANCE"];
+
+function postoSegmento(seg){
+  const k = chaveSegmento(seg);
+  if(!k) return ORDEM_SEGMENTO.length + 1;        // sem segmento: por último
+  const i = ORDEM_SEGMENTO.indexOf(k);
+  return i >= 0 ? i : ORDEM_SEGMENTO.length;
+}
+
+/* Ordena os grupos (um por artigo) no lugar. Estável de propósito: dentro
+   do mesmo segmento e do mesmo bloco, a ordem que a tela já tinha é
+   preservada — ela mantém as cores de um modelo juntas, e isso continua
+   valendo aqui. */
+function ordenarParaOCatalogo(grupos){
+  // O mesmo critério de "novo" que a tela usa: o artigo conta como
+  // lançamento quando QUALQUER cor dele é nova. Olhar só a primeira cor
+  // mandaria o modelo inteiro para trás por causa da ordem das fotos.
+  const ehLanc = g => (g || []).some(i => i.isLanc || i.isNew || i.isNewColor);
+  const segDe = g => chaveSegmento((g && g[0] && (g[0].segmento || g[0].categoria)) || "");
+  const ondeEstava = new Map(grupos.map((g, i) => [g, i]));
+  grupos.sort((a, b) => {
+    const pa = postoSegmento(segDe(a)), pb = postoSegmento(segDe(b));
+    if(pa !== pb) return pa - pb;
+    // entre os que não estão na lista da casa, alfabética
+    if(pa === ORDEM_SEGMENTO.length){
+      const r = segDe(a).localeCompare(segDe(b), "pt-BR", { sensitivity:"base" });
+      if(r) return r;
+    }
+    const la = ehLanc(a) ? 0 : 1, lb = ehLanc(b) ? 0 : 1;
+    if(la !== lb) return la - lb;
+    return ondeEstava.get(a) - ondeEstava.get(b);
+  });
+  return grupos;
+}
+
 async function gerarCatalogoPdf(){
   if(!MARCADOS.size){ toast && toast("Marque pelo menos um produto."); return; }
   const motor = window.jspdf && window.jspdf.jsPDF;
@@ -10472,7 +10516,7 @@ async function gerarCatalogoPdf(){
   juntar(state.productsRaw);
   if(!porArtigo.size){ toast && toast("Não achei os produtos marcados."); return; }
 
-  const grupos = [...porArtigo.values()];
+  const grupos = ordenarParaOCatalogo([...porArtigo.values()]);
   const total = grupos.length;
   const totalFotos = grupos.reduce((s, g) => s + g.length, 0);
   let feitas = 0;
