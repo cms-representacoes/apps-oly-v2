@@ -7630,6 +7630,28 @@ $("cartModal").addEventListener("change", (e)=>{
   toast("Data atualizada ✅");
 });
 
+/* Escolher exatamente o dia que o campo já sugeria não dispara `change` — o
+   valor não mudou. Sem isto, quem abrisse o calendário da quinzena e
+   confirmasse o primeiro dia sairia achando que gravou, e o item continuaria
+   sem data até a hora de finalizar.
+
+   O preço disso: abrir o calendário e fechar sem escolher também grava a
+   sugestão, porque o campo nativo não distingue "confirmei" de "desisti" —
+   o valor fica o mesmo nos dois casos. Vale a troca: a data gravada é o
+   primeiro dia em que a fábrica libera, o chip passa a mostrá-la em roxo e
+   um toque nele troca. O contrário — confirmar e nada acontecer — não tem
+   conserto à vista de quem está usando. */
+$("cartModal").addEventListener("focusout", (e)=>{
+  const campo = e.target?.closest?.('[data-edit-date="true"]');
+  if(!campo) return;
+  const key = campo.getAttribute("data-key");
+  const data = campo.value;
+  if(!key || !data) return;
+  const it = state.cart.get(key);
+  if(!it || it.dataDesejada === data) return;      // já gravado pelo change
+  campo.dispatchEvent(new Event("change", { bubbles: true }));
+});
+
 // ── Busca dentro da sacola ──
 (function initCartSearch(){
   const wrap = document.getElementById("cartSearchWrap");
@@ -8297,7 +8319,7 @@ function renderCartUI(){
                   const idx = ordemNoBase.get(it.key) || 1;
                   return total > 1 ? `<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD"><i class="fa-solid fa-layer-group" style="font-size:10px"></i> Grade ${idx}/${total}</span>` : "";
                 })()}
-                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="${escapeHtml(_formatDataBR(it.dataDesejada))} · clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataDiaMes(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : (true ? `<label class="cart-date-pill cart-date-pill-pulse inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="" aria-label="Definir data do pedido"></label>` : "")}
+                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="${escapeHtml(_formatDataBR(it.dataDesejada))} · clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataDiaMes(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : (true ? `<label class="cart-date-pill cart-date-pill-pulse inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(dataSugeridaDoItem(it))}" aria-label="Definir data do pedido"></label>` : "")}
                 ${it.pedidoCliente ? `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:rgba(59,130,246,.10);color:#1d4ed8;border:1px solid rgba(59,130,246,.35)" title="Clique para editar o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> ${escapeHtml(it.pedidoCliente)}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>` : `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:transparent;color:var(--muted);border:1px dashed var(--oly-border,#d4d4d8)" title="Clique para definir o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> Pedido<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>`}
                 ${isPending ? `<span class="grade-pending-badge"><i class="fa-solid fa-triangle-exclamation"></i> Grade pendente</span>` : ""}
               </div>
@@ -10676,6 +10698,23 @@ async function carregarCircular(){
 /* Fora da circular, o produto da 1S27 sai "conforme disponibilidade": é a
    continuidade, que a fábrica atende do que tiver. Sem a filial, porque essa
    a circular não diz. Outras coleções não recebem nada — a circular é desta. */
+/** O primeiro dia em que a fábrica libera este item, em ISO — ou "".
+ *
+ *  É o que o campo de data da sacola usa para o calendário nativo abrir no
+ *  mês certo: com o campo vazio ele abre sempre no mês corrente, e quem
+ *  precisa marcar março de 2027 teria de avançar mês a mês. Quem não tem
+ *  quinzena declarada ("conforme", ou fora da circular) devolve "" e segue
+ *  livre. */
+function dataSugeridaDoItem(it){
+  try{
+    const c = circularDoItem(it);
+    const d = c ? dataDeDisponibilidade(c.disp) : null;
+    if(!d) return "";
+    const p2 = n => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate());
+  }catch(_){ return ""; }
+}
+
 function circularDoItem(it){
   const achado = (CIRCULAR || {})[_chaveCirc(it && it.codigo, it && it.cor)];
   if(achado) return achado;
