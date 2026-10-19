@@ -9381,8 +9381,24 @@ const PdfProg = {
 
 async function exportOrderPdf(showGrade = true){
   if(state.cart.size === 0){ toast("Sacola vazia ✅"); return; }
+
+  /* Nem todo PDF vai para a mesma pessoa, e o que vai ao cliente nem sempre
+     deve carregar a data combinada. A pergunta só aparece quando há data
+     para esconder — sem isso ela seria um clique a mais por nada. */
+  let showDatas = true;
+  if([...state.cart.values()].some(it => it.dataDesejada)){
+    showDatas = await appConfirm({
+      title: "Exibir a data de faturamento?",
+      message: "As datas aparecem em cada item e no resumo do pedido.<br>" +
+               "Sem elas, o PDF sai só com os produtos, as grades e os totais.",
+      okText: "Exibir as datas",
+      cancelText: "Sem as datas",
+      tone: "info"
+    });
+  }
+
   try{
-    return await _exportOrderPdf(showGrade);
+    return await _exportOrderPdf(showGrade, showDatas);
   }catch(e){
     // Sem isto, uma exceção no meio da geração só aparecia no console e o
     // usuário ficava olhando para uma tela que não fazia nada.
@@ -9390,7 +9406,7 @@ async function exportOrderPdf(showGrade = true){
   }
 }
 
-async function _exportOrderPdf(showGrade = true){
+async function _exportOrderPdf(showGrade = true, showDatas = true){
   PdfProg.abrir();
   saveCustomerToStorage();
 
@@ -9633,7 +9649,7 @@ async function _exportOrderPdf(showGrade = true){
     }
 
     // Data desejada (pílula roxa) — embaixo da grade
-    if(it.dataDesejada){
+    if(showDatas && it.dataDesejada){
       const dyData = y + (showGrade && it.grade ? 78 : 48);
       setFill(C.purpleLight);
       doc.roundedRect(infoX, dyData, 115, 13, 6, 6, "F");
@@ -9702,6 +9718,7 @@ async function _exportOrderPdf(showGrade = true){
 
   // ─────────── RESUMO POR DATA ───────────
   function drawResumoPorData(yStart){
+    if(!showDatas) return yStart;          // sem datas, não há o que resumir
     // Agrupa itens por data desejada
     const byDate = new Map();
     for(const it of items){
@@ -9779,7 +9796,7 @@ async function _exportOrderPdf(showGrade = true){
         const precoUnit = (typeof getPrecoPorPrazo === "function") ? getPrecoPorPrazo(it, dias) : 0;
         totalValor += precoUnit * qty;
       }
-      if(it.dataDesejada) datasSet.add(it.dataDesejada);
+      if(showDatas && it.dataDesejada) datasSet.add(it.dataDesejada);
     }
     const boxH = 42;
     setFill(C.dark);
