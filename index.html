@@ -5729,12 +5729,68 @@ function handleLoadMore(ev){
       return;
     }
 
+    // `shown` ainda e o indice do primeiro card que vai entrar: e para ele
+    // que a vista vai depois de pintar.
+    const primeiroNovo = shown;
     state.pagination.shown = Math.min(shown + pageSize, total);
-    requestAnimationFrame(() => renderCards());
+    requestAnimationFrame(() => {
+      renderCards();
+      mostrarPrimeiroItemNovo(primeiroNovo);
+    });
   }catch(err){
     console.error("[LoadMore] falha ao carregar mais produtos", err);
     toast("Não foi possível carregar mais produtos");
   }
+}
+
+/** Leva a vista ao primeiro item que acabou de chegar.
+ *
+ *  Sem isto o carregamento acontecia às escondidas: os cards novos entram
+ *  abaixo do que está na tela e o botão desce com eles — medido em 3.700px
+ *  num iPhone SE 2, cuja tela tem 667. Nada mudava no campo de visão, e o
+ *  dedo, voltando ao mesmo ponto, acertava um card em vez do botão. No
+ *  desktop isso incomoda menos porque a grade tem várias colunas e a roda do
+ *  mouse cobre a distância num gesto; no celular, coluna única, não.
+ *
+ *  Vai para o começo do que chegou, e não para o botão: o que a pessoa pediu
+ *  foram os produtos, não o botão de novo. */
+function mostrarPrimeiroItemNovo(indice){
+  const wrap = $("cards");
+  const card = wrap && wrap.children ? wrap.children[indice] : null;
+  if(!card) return;
+  let suave = true;
+  try{ suave = !matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(_){ /* segue suave */ }
+
+  /* Quem rola aqui NÃO é a janela: o conteúdo vive num container com
+     overflow próprio. Nesta tela `scrollY` fica em zero o tempo todo e
+     `scrollTo` na janela não faz nada. E o container ignora
+     `scroll-margin-top`: com ou sem margem, `scrollIntoView` encosta o card
+     em -1. Mexer no `scrollTop` dele funciona, então a folga do cabeçalho
+     entra na conta aqui mesmo. */
+  let cont = wrap.parentElement;
+  while(cont){
+    const cs = getComputedStyle(cont);
+    if(/(auto|scroll|overlay)/.test(cs.overflowY) && cont.scrollHeight > cont.clientHeight + 2) break;
+    cont = cont.parentElement;
+  }
+
+  // O cabeçalho da home vem antes no HTML e está escondido: vale o que está
+  // de fato na tela.
+  const cab = [...document.querySelectorAll("header")].find(h => h.offsetParent !== null);
+  const folga = (cab ? cab.getBoundingClientRect().height : 0) + 12;
+
+  if(cont){
+    const alvo = cont.scrollTop + card.getBoundingClientRect().top
+               - cont.getBoundingClientRect().top - folga;
+    try{ cont.scrollTo({ top: Math.max(0, alvo), behavior: suave ? "smooth" : "auto" }); }
+    catch(_){ cont.scrollTop = Math.max(0, alvo); }
+    return;
+  }
+
+  // Sem container próprio, quem rola é a página.
+  card.style.scrollMarginTop = folga + "px";
+  try{ card.scrollIntoView({ block: "start", behavior: suave ? "smooth" : "auto" }); }
+  catch(_){ card.scrollIntoView(true); }
 }
 
 (function bindLoadMoreButton(){
