@@ -4099,14 +4099,16 @@
             <div id="gradeSizeList"></div>
           </div>
 
-          <!-- Data desejada (obrigatória) + Caixas + Repetir última grade -->
+          <!-- Data desejada (opcional aqui) + Caixas + Repetir última grade
+               Quem quiser ja informa; quem estiver com o cliente na frente
+               segue montando as grades e resolve as datas na sacola. -->
           <div class="px-4 sm:px-5 pb-3 pt-1">
             <div class="flex gap-2.5 items-end flex-wrap">
               <div style="width:130px;flex-shrink:0">
                 <label class="text-[11px] font-extrabold uppercase tracking-wider text-oly-muted block mb-1.5">
-                  📅 Data <span style="color:#dc2626">*</span>
+                  📅 Data <span style="color:var(--muted);font-weight:700">(opcional)</span>
                 </label>
-                <input id="gradeDataDesejada" type="date" required
+                <input id="gradeDataDesejada" type="date"
                        class="w-full rounded-xl border border-oly-border px-2 py-2.5 text-sm font-bold focus:outline-none focus:ring-2"
                        style="background:var(--card-bg,#fff);color:var(--text)">
               </div>
@@ -4127,7 +4129,7 @@
                 </div>
               </div>
             </div>
-            <div id="gradeDataError" class="hidden text-xs font-bold mt-1.5" style="color:#dc2626">⚠️ Preencha a data desejada antes de adicionar</div>
+            <div id="gradeDataError" class="hidden text-xs font-bold mt-1.5" style="color:#dc2626"></div>
 
             <!-- Botão "Repetir última grade" (visível só se houver grade salva na sessão) -->
             <div id="gradeRepeatBtnWrap" class="hidden mt-3">
@@ -8239,7 +8241,7 @@ function renderCartUI(){
                   const idx = ordemNoBase.get(it.key) || 1;
                   return total > 1 ? `<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD"><i class="fa-solid fa-layer-group" style="font-size:10px"></i> Grade ${idx}/${total}</span>` : "";
                 })()}
-                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="${escapeHtml(_formatDataBR(it.dataDesejada))} · clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataDiaMes(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : ((isAccessoryCategory(it.categoria) || it.pendingDate) ? `<label class="cart-date-pill cart-date-pill-pulse inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="" aria-label="Definir data do pedido"></label>` : "")}
+                ${it.dataDesejada ? `<label class="cart-date-pill inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold relative cursor-pointer" style="background:#EDE9FE;color:var(--primary);border:1px solid #C4B5FD" title="${escapeHtml(_formatDataBR(it.dataDesejada))} · clique para alterar a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${escapeHtml(_formatDataDiaMes(it.dataDesejada))}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i><input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.dataDesejada)}" aria-label="Alterar data do pedido"></label>` : (true ? `<label class="cart-date-pill cart-date-pill-pulse inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold relative cursor-pointer" style="background:rgba(251,191,36,.15);color:#B45309;border:1px dashed rgba(251,191,36,.7)" title="Clique para definir a data"><i class="fa-regular fa-calendar" style="font-size:10px"></i> Definir data<input type="date" class="cart-date-input" data-edit-date="true" data-key="${escapeHtml(it.key)}" value="" aria-label="Definir data do pedido"></label>` : "")}
                 ${it.pedidoCliente ? `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:rgba(59,130,246,.10);color:#1d4ed8;border:1px solid rgba(59,130,246,.35)" title="Clique para editar o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> ${escapeHtml(it.pedidoCliente)}<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>` : `<button type="button" class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer hover:opacity-90 transition" style="background:transparent;color:var(--muted);border:1px dashed var(--oly-border,#d4d4d8)" title="Clique para definir o pedido do cliente" data-edit-pedido="true" data-key="${escapeHtml(it.key)}"><i class="fa-solid fa-clipboard-list" style="font-size:10px"></i> Pedido<i class="fa-solid fa-pen" style="font-size:8px;opacity:.6;margin-left:2px"></i></button>`}
                 ${isPending ? `<span class="grade-pending-badge"><i class="fa-solid fa-triangle-exclamation"></i> Grade pendente</span>` : ""}
               </div>
@@ -8713,11 +8715,13 @@ function getCartItemsWithPendingGrade(){
     return needsGrade && !hasGrade;
   });
 }
-/** Itens com data pendente — exigidos para finalizar pedido (ACCs sem data + duplicatas) */
+/** Itens sem data — exigidos para finalizar o pedido.
+ *
+ *  Antes isto olhava só acessório e duplicata, porque na grade a data era
+ *  obrigatória e calçado nunca chegava aqui sem ela. Agora chega: a grade
+ *  deixou de cobrar, e quem cobra é a sacola. */
 function getCartAccessoriesWithoutDate(){
-  return [...state.cart.values()].filter(it =>
-    (isAccessoryCategory(it.categoria) || it.pendingDate) && !it.dataDesejada
-  );
+  return [...state.cart.values()].filter(it => !it.dataDesejada);
 }
 /** Itens visíveis na sacola (respeita filtro de gênero) sem data desejada — usado pro lote de data */
 function getCartItemsWithoutDateVisible(){
@@ -11624,8 +11628,10 @@ function renderGradeSizeList(){
     if(voltarApagando(e.target)) e.preventDefault();
   });
 
-  /* Teclado: as setas andam pelos campos e o Enter fecha a grade indo para a
-     data, que é o próximo passo obrigatório — e já abre o calendário.
+  /* Teclado: as setas andam pelos campos e o Enter fecha a grade indo para o
+     campo de data. O calendário não abre mais sozinho: a data deixou de ser
+     passo obrigatório aqui, e abrir uma janela por cima de quem só queria
+     terminar a grade era justamente o que atrapalhava o atendimento.
      Campo de número não diz onde está o cursor (selectionStart é nulo), e são
      caixas de um ou dois dígitos: esquerda e direita sempre trocam de campo.
      Cima e baixo vão para a linha vizinha, na coluna mais próxima, e param o
@@ -11674,7 +11680,6 @@ function irParaDataDesejada(){
   const data = $("gradeDataDesejada");
   if(!data) return;
   data.focus();
-  try{ data.showPicker?.(); }catch(_){ /* o toque no campo abre do mesmo jeito */ }
 }
 
 function updateGradeTotal(){
@@ -11805,13 +11810,9 @@ $("btnConfirmGrade").addEventListener("click", async ()=>{
     }
     if(totalQty === 0){ toast("Adicione ao menos 1 par ✅"); return; }
 
-    // Valida data desejada obrigatória (igual ao fluxo normal)
+    // A data é opcional aqui: sem ela os itens entram na sacola marcados
+    // como pendentes, e é lá que ela é cobrada.
     const dataLote = $("gradeDataDesejada")?.value || "";
-    if(!dataLote){
-      $("gradeDataError")?.classList.remove("hidden");
-      $("gradeDataDesejada")?.focus();
-      return;
-    }
 
     const gradeResume = Object.entries(gradeMap).map(([t,q])=>t+"x"+q).join(" | ");
     const targets = gradeState.bulkApplyMode === "selected"
@@ -11854,6 +11855,8 @@ $("btnConfirmGrade").addEventListener("click", async ()=>{
         gradeResume,
         qty: totalQty,
         dataDesejada: dataLote,
+        // Sem data no lote, cada item vai pendente — a sacola cobra.
+        ...(dataLote ? {} : { pendingDate: true }),
         appliedInBulk: true,
         bulkDate: dataLote
       });
@@ -11876,13 +11879,13 @@ $("btnConfirmGrade").addEventListener("click", async ()=>{
   // ── Modo normal ──────────────────────────────────
   const entry = gradeToCartEntry();
   if(entry.qty === 0){ toast("Adicione ao menos 1 par ✅"); return; }
-  // Valida data desejada obrigatória
-  if(!entry.dataDesejada){
-    $("gradeDataError")?.classList.remove("hidden");
-    $("gradeDataDesejada")?.focus();
-    return;
+  // Sem data o item entra pendente: a sacola mostra a etiqueta "Definir
+  // data" e o finalizar não passa enquanto sobrar algum sem.
+  if(entry.dataDesejada){
+    entry.dataDesejada = await conferirDataContraDisponibilidade(gradeState.item, entry.dataDesejada);
+  }else{
+    entry.pendingDate = true;
   }
-  entry.dataDesejada = await conferirDataContraDisponibilidade(gradeState.item, entry.dataDesejada);
   const fromCart = gradeState.fromCart;
   state.cart.set(entry.key, entry);
   _saveLastGradeUsed(entry);
@@ -11899,12 +11902,11 @@ $("btnConfirmGrade").addEventListener("click", async ()=>{
 $("btnAddAnotherGrade")?.addEventListener("click", async ()=>{
   const entry = gradeToCartEntry();
   if(entry.qty === 0){ toast("Adicione ao menos 1 par antes de continuar ✅"); return; }
-  if(!entry.dataDesejada){
-    $("gradeDataError")?.classList.remove("hidden");
-    $("gradeDataDesejada")?.focus();
-    return;
+  if(entry.dataDesejada){
+    entry.dataDesejada = await conferirDataContraDisponibilidade(gradeState.item, entry.dataDesejada);
+  }else{
+    entry.pendingDate = true;
   }
-  entry.dataDesejada = await conferirDataContraDisponibilidade(gradeState.item, entry.dataDesejada);
   // Salva a grade atual
   state.cart.set(entry.key, entry);
   _saveLastGradeUsed(entry);
