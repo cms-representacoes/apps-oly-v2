@@ -2720,6 +2720,23 @@
     #cartTotalQty{ font-size:16px; margin-top:0; line-height:1.2; }
     #cartSidebar div:has(> #cartTotalQty) > .text-xs{ font-size:11px; }
     #cartTotalValue{ font-size:16px; margin-top:0; line-height:1.2; }
+    /* O chip do prazo mora colado no valor: o número nunca aparece sem
+       dizer de qual condição de pagamento ele saiu. */
+    .cart-prazo-chip{
+      display:inline-flex; align-items:center; gap:4px; cursor:pointer;
+      border-radius:999px; padding:3px 9px; margin-top:4px;
+      background:rgba(124,58,237,.10); color:var(--primary);
+      border:1px solid rgba(124,58,237,.30);
+      font-size:10px; font-weight:800; white-space:nowrap;
+      transition:background .15s, border-color .15s;
+    }
+    .cart-prazo-chip:hover{ background:rgba(124,58,237,.18); }
+    .cart-prazo-chip:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+    .cart-prazo-chip-vazio{
+      background:rgba(251,191,36,.15); color:#B45309;
+      border:1px dashed rgba(251,191,36,.7);
+    }
+    .cart-prazo-chip-vazio:hover{ background:rgba(251,191,36,.26); }
     #cartSidebar .mt-4.space-y-2{ margin-top:4px; font-size:11.5px; }
     #cartSidebar .mt-4.space-y-2 > * + *{ margin-top:1px; }
     #cartSidebar .mt-4.space-y-2 > *{ line-height:1.4; }
@@ -4025,6 +4042,32 @@
     </div>
 
     <!-- Modal genérico de seleção de data (reaproveitável) -->
+    <!-- Escolha de uma opção (hoje: a condição de pagamento da sacola) -->
+    <div id="escolhaModal" class="hidden fixed inset-0 z-[95]">
+      <div class="absolute inset-0 bg-black/50" id="escolhaBackdrop"></div>
+      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-[420px] bg-white rounded-2xl shadow-lift overflow-hidden" style="background:var(--card-bg,#fff);color:var(--text)">
+        <div class="px-5 pt-5 pb-2">
+          <div class="flex items-start gap-3">
+            <div class="h-10 w-10 rounded-full flex items-center justify-center shrink-0" style="background:rgba(124,58,237,.1);color:var(--primary)">
+              <i class="fa-regular fa-calendar-check text-lg"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 id="escolhaTitle" class="text-base font-extrabold leading-tight">Escolher</h3>
+              <div id="escolhaMessage" class="mt-1.5 text-sm font-medium" style="color:var(--muted);line-height:1.5"></div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <select id="escolhaSelect" class="w-full rounded-xl border border-oly-border px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2" style="background:var(--card-bg,#fff);color:var(--text)"></select>
+            <div id="escolhaHint" class="mt-1.5 text-xs font-bold" style="color:var(--muted)"></div>
+          </div>
+        </div>
+        <div class="px-5 pb-5 pt-3 flex gap-2 justify-end">
+          <button id="escolhaCancelBtn" class="focus-ring rounded-xl border border-oly-border px-4 py-2 text-sm font-bold hover:bg-oly-bg">Cancelar</button>
+          <button id="escolhaOkBtn" class="focus-ring rounded-xl bg-oly-blue px-4 py-2 text-sm font-extrabold text-white hover:opacity-95">Aplicar</button>
+        </div>
+      </div>
+    </div>
+
     <div id="datePickModal" class="hidden fixed inset-0 z-[95]">
       <div class="absolute inset-0 bg-black/50" id="datePickBackdrop"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-[380px] bg-white rounded-2xl shadow-lift overflow-hidden" style="background:var(--card-bg,#fff);color:var(--text)">
@@ -7795,6 +7838,59 @@ $("btnClearCart").addEventListener("click", ()=>{
   };
 });
 
+/** A condição de pagamento que vale para o valor mostrado na sacola.
+ *
+ *  Vem do pedido em curso quando existe; na falta, da última que o vendedor
+ *  usou — que é a mesma o dia inteiro com o mesmo cliente. Só o prazo entra
+ *  na conta: a campanha viaja para o Excel e para o PDF, mas não muda a
+ *  coluna da tabela de preço. */
+const CHAVE_PRAZO_SACOLA = "oly_cart_prazo_v1";
+
+function prazoDaSacola(){
+  const emCurso = state.lastOrderCfg && state.lastOrderCfg.payment;
+  if(emCurso) return String(emCurso);
+  try{ return String(lsGet(CHAVE_PRAZO_SACOLA) || ""); }catch(_){ return ""; }
+}
+
+/* Chave própria, e não a configuração do pedido: aquela apaga payment,
+   cliente e campanha na leitura, de propósito, para o modal de finalizar
+   nunca herdar dados do cliente anterior. Essa proteção fica de pé — aqui
+   se guarda apenas o prazo, que serve para calcular o valor. */
+function guardarPrazoDaSacola(pgto){
+  try{ lsSet(CHAVE_PRAZO_SACOLA, String(pgto || "")); }catch(_){ /* segue sem memoria */ }
+}
+
+/** Troca a condição de pagamento da sacola sem passar pelo finalizar.
+ *
+ *  O que for escolhido aqui já entra na configuração do pedido, então o
+ *  modal de finalizar nasce preenchido — ninguém digita duas vezes. */
+async function escolherPrazoDaSacola(){
+  const escolhido = await appEscolher({
+    title: "Prazo do pedido",
+    message: "O valor da sacola sai da coluna da tabela que corresponde ao " +
+             "prazo médio desta condição.",
+    options: ORDER_PAYMENT_OPTIONS.map(v => {
+      const d = (typeof getPrazoMedio === "function") ? getPrazoMedio(v) : null;
+      return { value: v, label: v, hint: d !== null ? `Prazo médio: ${d} dias — preço da coluna ${getColunaPrazo(d) || "—"}` : "" };
+    }),
+    current: prazoDaSacola()
+  });
+  if(!escolhido) return;
+
+  // Guarda nos dois lugares: no pedido em curso, se houver, e na configuração
+  // que o modal de finalizar lê na próxima vez.
+  if(state.lastOrderCfg) state.lastOrderCfg.payment = escolhido;
+  guardarPrazoDaSacola(escolhido);
+  const sel = $("oxPayment");
+  if(sel){
+    if(typeof populateOrderPaymentSelect === "function") populateOrderPaymentSelect();
+    sel.value = escolhido;
+  }
+  renderCartUI();
+  const d = (typeof getPrazoMedio === "function") ? getPrazoMedio(escolhido) : null;
+  toast(`Prazo: ${String(escolhido).split(" - ")[0]}${d !== null ? ` · ${d} dias` : ""} ✅`);
+}
+
 function cartTotals(){
   let items = 0;
   let cartSize = 0;
@@ -7803,9 +7899,10 @@ function cartTotals(){
   const by = { masc:0, fem:0, inf:0, uni:0, acess:0, vest:0 };
   const norm = (s)=> String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 
-  // Se já gerou Excel, sabemos a Cond. Pagamento → calcula preço por prazo médio
-  const cfg = state.lastOrderCfg;
-  const dias = cfg && typeof getPrazoMedio === "function" ? getPrazoMedio(cfg.payment) : null;
+  // A Cond. Pagamento vem do pedido em curso ou da última usada — assim o
+  // valor aparece antes de gerar o Excel, que era quando ele só nascia.
+  const pgto = prazoDaSacola();
+  const dias = (pgto && typeof getPrazoMedio === "function") ? getPrazoMedio(pgto) : null;
 
   for(const it of state.cart.values()){
     cartSize++;
@@ -8099,14 +8196,44 @@ function renderCartUI(){
   // - Aparece SÓ se: sacola tem itens + Cond. Pagamento já foi definida (após gerar Excel)
   // - O toggle de preferências controla via CSS body.prefs-hide-prices
   const valWrap = $("cartTotalValueWrap");
-  const hasOrder = !!(state.lastOrderCfg && state.lastOrderCfg.payment);
-  if(valWrap) valWrap.classList.toggle("hidden", !hasOrder || cartSize === 0);
-  // Dica do prazo (ex: "Z35 · prazo médio 91 dias")
+  const pgtoSacola = prazoDaSacola();
+  // O bloco aparece sempre que há sacola: com prazo mostra o valor, sem
+  // prazo mostra o convite para definir um. Escondê-lo deixava a pessoa sem
+  // saber que esse número existe.
+  if(valWrap) valWrap.classList.toggle("hidden", cartSize === 0);
+
+  /* O chip abaixo do valor diz de qual prazo ele veio, e troca com um
+     toque. Fica colado no número de propósito: o valor nunca aparece sem
+     dizer de onde saiu, senão um dia sai calculado com o prazo do cliente
+     anterior e ninguém percebe. */
   const hint = $("cartTotalValueHint");
-  if(hint && hasOrder){
-    const dias = (typeof getPrazoMedio === "function") ? getPrazoMedio(state.lastOrderCfg.payment) : null;
-    const zLabel = String(state.lastOrderCfg.payment).split(" - ")[0] || state.lastOrderCfg.payment;
-    hint.textContent = dias !== null ? `${zLabel} · prazo médio ${dias} dias` : zLabel;
+  const valEl = $("cartTotalValue");
+  if(hint){
+    hint.classList.add("cart-prazo-chip");
+    hint.setAttribute("role", "button");
+    hint.setAttribute("tabindex", "0");
+    if(hint.dataset.ligado !== "1"){
+      hint.dataset.ligado = "1";
+      hint.addEventListener("click", escolherPrazoDaSacola);
+      hint.addEventListener("keydown", (e)=>{
+        if(e.key === "Enter" || e.key === " "){ e.preventDefault(); escolherPrazoDaSacola(); }
+      });
+    }
+    if(pgtoSacola){
+      const d = (typeof getPrazoMedio === "function") ? getPrazoMedio(pgtoSacola) : null;
+      const zLabel = String(pgtoSacola).split(" - ")[0] || pgtoSacola;
+      hint.innerHTML = `<i class="fa-regular fa-calendar-check"></i> ` +
+        (d !== null ? `${escapeHtml(zLabel)} · ${d} dias` : escapeHtml(zLabel)) +
+        ` <i class="fa-solid fa-pen" style="font-size:8px;opacity:.6"></i>`;
+      hint.title = pgtoSacola + " — toque para trocar o prazo";
+      hint.classList.remove("cart-prazo-chip-vazio");
+      if(valEl) valEl.classList.remove("hidden");
+    } else {
+      hint.innerHTML = `<i class="fa-regular fa-calendar"></i> Definir prazo para ver o valor`;
+      hint.title = "Escolher a condição de pagamento";
+      hint.classList.add("cart-prazo-chip-vazio");
+      if(valEl) valEl.classList.add("hidden");
+    }
   }
 
   const setRow = (rowId, valId, val)=>{
@@ -8934,7 +9061,13 @@ async function openOrderExportModal(opts = {}){
   if(MP.editandoRascunhoId && state.lastOrderCfg){
     fillOrderExportForm({ ...loadOrderExportConfig(), ...state.lastOrderCfg });
   } else {
-    fillOrderExportForm(loadOrderExportConfig());
+    // O prazo escolhido na sacola vem junto: foi por ele que o vendedor viu
+    // o valor, e repetir a escolha aqui seria digitar duas vezes. Cliente e
+    // campanha continuam nascendo em branco, que é o que a config protege.
+    const base = loadOrderExportConfig();
+    const daSacola = prazoDaSacola();
+    if(daSacola && !base.payment) base.payment = daSacola;
+    fillOrderExportForm(base);
   }
   // Limpa estado inválido de aberturas anteriores
   ["oxCommission","oxClientCode","oxPayment","oxPriceTable"].forEach(id => $(id)?.classList.remove("invalid"));
@@ -11446,6 +11579,64 @@ function appSuccess(opts = {}){
  * appDatePick({ title, message, initial, okText, cancelText }) -> Promise<string|null>
  *   resolve com a data ISO (YYYY-MM-DD) ou null se cancelar.
  */
+/** Escolher uma opção de uma lista. Devolve o valor, ou null no cancelar.
+ *  `options`: [{ value, label, hint }] — o hint aparece abaixo do campo e
+ *  acompanha a opção em foco. */
+function appEscolher(opts = {}){
+  return new Promise((resolve)=>{
+    const modal  = document.getElementById("escolhaModal");
+    const okBtn  = document.getElementById("escolhaOkBtn");
+    const cancel = document.getElementById("escolhaCancelBtn");
+    const backd  = document.getElementById("escolhaBackdrop");
+    const titleEl= document.getElementById("escolhaTitle");
+    const msgEl  = document.getElementById("escolhaMessage");
+    const sel    = document.getElementById("escolhaSelect");
+    const hintEl = document.getElementById("escolhaHint");
+    if(!modal || !okBtn || !cancel || !sel){ resolve(null); return; }
+
+    const lista = Array.isArray(opts.options) ? opts.options : [];
+    titleEl.textContent = opts.title || "Escolher";
+    msgEl.innerHTML = opts.message || "";
+    okBtn.textContent = opts.okText || "Aplicar";
+    cancel.textContent = opts.cancelText || "Cancelar";
+    sel.innerHTML = lista.map(o =>
+      `<option value="${escapeHtml(String(o.value))}">${escapeHtml(String(o.label ?? o.value))}</option>`
+    ).join("");
+    if(opts.current && lista.some(o => String(o.value) === String(opts.current))){
+      sel.value = String(opts.current);
+    }
+    const pintarHint = () => {
+      const o = lista.find(x => String(x.value) === sel.value);
+      if(hintEl) hintEl.textContent = (o && o.hint) ? o.hint : "";
+    };
+    pintarHint();
+
+    modal.classList.remove("hidden");
+    setTimeout(()=> sel.focus(), 30);
+
+    const fim = (v) => {
+      modal.classList.add("hidden");
+      okBtn.removeEventListener("click", onOk);
+      cancel.removeEventListener("click", onCancel);
+      backd.removeEventListener("click", onCancel);
+      sel.removeEventListener("change", pintarHint);
+      document.removeEventListener("keydown", onKey);
+      resolve(v);
+    };
+    const onOk = ()=> fim(sel.value || null);
+    const onCancel = ()=> fim(null);
+    const onKey = (e)=>{
+      if(e.key === "Escape") onCancel();
+      if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); onOk(); }
+    };
+    okBtn.addEventListener("click", onOk);
+    cancel.addEventListener("click", onCancel);
+    backd.addEventListener("click", onCancel);
+    sel.addEventListener("change", pintarHint);
+    document.addEventListener("keydown", onKey);
+  });
+}
+
 function appDatePick(opts = {}){
   return new Promise((resolve)=>{
     const modal = document.getElementById("datePickModal");
