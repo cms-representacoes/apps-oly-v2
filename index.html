@@ -1945,6 +1945,20 @@
       animation:mpAbaPulse 1.4s ease-out infinite;
       border-color:var(--primary);
     }
+    /* As duas pontas do "refazer", no cabeçalho do card. */
+    #meusPedidosModal .mp-pedido-tarjas { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+    #meusPedidosModal .mp-tarja {
+      display:inline-flex; align-items:center; gap:4px; border-radius:999px;
+      padding:2px 8px; font-size:10px; font-weight:800; letter-spacing:.01em;
+      border:1px solid transparent; white-space:nowrap;
+    }
+    #meusPedidosModal .mp-tarja i { font-size:9px; }
+    #meusPedidosModal .mp-tarja-refeito {
+      background:#FEF3C7; color:#92400E; border-color:#FCD34D;
+    }
+    #meusPedidosModal .mp-tarja-refaz {
+      background:#EDE9FE; color:#5B21B6; border-color:#C4B5FD;
+    }
     #meusPedidosModal .mp-sheet-header { flex:0 0 auto; }
     #meusPedidosModal .mp-sheet-filters { flex:0 0 auto; }
     #meusPedidosModal .mp-sheet-stats { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; background:var(--card-bg); }
@@ -7768,6 +7782,9 @@ $("btnClearCart").addEventListener("click", ()=>{
     state.cart.clear();
     state.lastOrderCfg = null;
     MP.editandoRascunhoId = null;
+    // Esvaziar a sacola desfaz tambem o "refazendo": sem isto, o proximo
+    // pedido montado do zero sairia marcado como se refizesse aquele.
+    MP.refazendoPedidoId = null;
     _atualizarLabelRascunho();
     saveCartToStorage();
     _marcarSacolaSalva(); // sacola vazia = nada a perder
@@ -9179,7 +9196,10 @@ function _doExportXlsx(salvarHist){
   if(salvarHist && typeof salvarPedidoNoHistorico === "function"){
     salvarPedidoNoHistorico(cfg)
       .then(async () => {
-        toast("Pedido salvo no histórico 📋");
+        toast(MP.refazendoPedidoId
+          ? "Pedido refeito e salvo no histórico 📋"
+          : "Pedido salvo no histórico 📋");
+        MP.refazendoPedidoId = null;
         // Se este pedido veio de um RASCUNHO, remove o rascunho (virou finalizado)
         if(MP.editandoRascunhoId){
           const rascId = MP.editandoRascunhoId;
@@ -13427,6 +13447,7 @@ const MP = {
   customDe: "",
   customAte: "",
   editandoRascunhoId: null, // id do rascunho sendo editado na sacola (null = sacola normal)
+  refazendoPedidoId: null,  // id do pedido finalizado que a sacola esta refazendo
 };
 
 const COMISSIONISTAS = [
@@ -13867,7 +13888,11 @@ function buildPedidoSnapshot(cfg){
     pedidoCliente: cfg.pedidoCliente || "",
     items,
     totalItens,
-    valorTotal: Number(valorTotal.toFixed(2))
+    valorTotal: Number(valorTotal.toFixed(2)),
+    // Pedido refeito: guarda de qual veio. O lado contrário ("este foi
+    // refeito") sai da própria lista, procurando quem aponta para ele — assim
+    // o pedido original, que já está gravado, não precisa ser reescrito.
+    refazDe: MP.refazendoPedidoId || undefined
   };
 }
 
@@ -14188,6 +14213,18 @@ function _mpRenderFinalizados(){
       </div>`;
     }).join("");
 
+    /* As duas pontas do "refazer": o pedido que foi substituído e o que
+       substituiu. Sem isso, dois pedidos quase iguais do mesmo cliente ficam
+       lado a lado e ninguém sabe qual valeu — e o risco não é estético, é
+       mandar o Excel errado para a fábrica. */
+    const refeitoPor = lista.find(o => o.refazDe && String(o.refazDe) === String(p.id));
+    const origem = p.refazDe ? lista.find(o => String(o.id) === String(p.refazDe)) : null;
+    const tarjas =
+      (refeitoPor ? `<span class="mp-tarja mp-tarja-refeito" title="Este pedido foi substituído por outro">` +
+        `<i class="fa-solid fa-rotate"></i> Refeito</span>` : "") +
+      (p.refazDe ? `<span class="mp-tarja mp-tarja-refaz" title="Este pedido substitui um anterior">` +
+        `<i class="fa-solid fa-rotate-left"></i> Refaz ${origem ? "o pedido de " + _mpEscape(String(_mpFormatBR(origem.createdAt)).split(" · ")[0]) : "um pedido anterior"}</span>` : "");
+
     return `<div class="mp-pedido-item" data-pedido-id="${_mpEscape(p.id)}">
       <div class="mp-pedido-head" onclick="this.parentElement.classList.toggle('open')">
         <div class="mp-pedido-left">
@@ -14196,6 +14233,7 @@ function _mpRenderFinalizados(){
             <span>${data}</span>
             <span class="mp-pedido-meta-tag">${ped}</span>
           </div>
+          ${tarjas ? `<div class="mp-pedido-tarjas">${tarjas}</div>` : ""}
         </div>
         <div class="mp-pedido-right">
           <div class="mp-pedido-itens-count">${p.totalItens} iten${p.totalItens!==1?"s":""}</div>
@@ -14205,6 +14243,7 @@ function _mpRenderFinalizados(){
       <div class="mp-pedido-body">
         ${itens}
         <div class="mp-pedido-actions">
+          <button class="mp-pedido-btn" onclick="mpRefazerPedido('${_mpEscape(p.id)}')" title="Trazer este pedido de volta para a sacola, alterar e gerar um novo"><i class="fa-solid fa-pen"></i> Refazer</button>
           <button class="mp-pedido-btn" onclick="mpReordenar('${_mpEscape(p.id)}')"><i class="fa-solid fa-rotate-left"></i> Reordenar</button>
           <button class="mp-pedido-btn primary" onclick="mpBaixarExcel('${_mpEscape(p.id)}')"><i class="fa-solid fa-file-excel"></i> Excel</button>
           <button class="mp-pedido-btn" onclick="mpBaixarPDF('${_mpEscape(p.id)}')"${sacolaVazia ? "" : ' title="Esvazie a sacola para gerar o PDF deste pedido"'}><i class="fa-solid fa-file-pdf"></i> PDF</button>
@@ -14380,6 +14419,7 @@ function mpEditarRascunho(id){
     }
     // Marca que estamos editando este rascunho
     MP.editandoRascunhoId = r.id;
+    MP.refazendoPedidoId = null;   // um de cada vez
     if(typeof saveCartToStorage === "function") saveCartToStorage();
     if(typeof updateCartBadge === "function") updateCartBadge();
     if(typeof renderCartUI === "function") renderCartUI();
@@ -14522,6 +14562,9 @@ function mpReordenar(id){
   const sacolaAtual = state.cart.size;
   const fazReordenar = () => {
     state.cart.clear(); state.lastOrderCfg = null;
+    // Reordenar monta um pedido NOVO com os mesmos produtos — nao e a
+    // correcao de um pedido antigo, entao nao herda o vinculo.
+    MP.refazendoPedidoId = null;
     for(const it of (pedido.items||[])){
       const base = _mpPedidoItemToCartItem(it);
       const key = cartKeyFor(base);
@@ -14551,6 +14594,63 @@ function mpReordenar(id){
   } else {
     fazReordenar();
   }
+}
+
+/** REFAZER um pedido finalizado: traz tudo de volta para a sacola.
+ *
+ *  Diferente de Reordenar, que leva só os produtos para montar um pedido do
+ *  zero. Aqui o cliente pediu para tirar um item de um pedido que já fechou,
+ *  então o que volta é o pedido inteiro — grade, caixas, data de faturamento,
+ *  pedido do cliente — e também os dados do cabeçalho (cliente, comissionista,
+ *  condição, tabela, campanha), que são justamente os que não mudam.
+ *
+ *  O pedido original não é tocado: ele é a prova do que foi mandado antes. O
+ *  que sair daqui nasce como pedido novo, apontando para ele. */
+function mpRefazerPedido(id){
+  const pedido = _mpFindPedidoById(id);
+  if(!pedido){ toast("Pedido não encontrado ⚠️"); return; }
+
+  const fazer = () => {
+    state.cart.clear();
+    state.lastOrderCfg = {
+      commission: pedido.comissionista || "",
+      clientCode: pedido.clientCode || "",
+      payment: pedido.payment || "",
+      priceTable: pedido.priceTable || "",
+      campaign: pedido.campaign || "",
+      pedidoCliente: pedido.pedidoCliente || ""
+    };
+    for(const it of (pedido.items || [])){
+      // O mesmo conversor do rascunho: ele é o que preserva grade, caixas e
+      // data. O de Reordenar deixa tudo isso para trás de propósito.
+      const base = _mpRascunhoItemToCartItem(it);
+      const key = cartKeyFor(base);
+      state.cart.set(key, { ...base, key });
+    }
+    MP.refazendoPedidoId = pedido.id;
+    MP.editandoRascunhoId = null;
+    if(typeof saveCartToStorage === "function") saveCartToStorage();
+    if(typeof updateCartBadge === "function") updateCartBadge();
+    if(typeof renderCartUI === "function") renderCartUI();
+    if(typeof syncCardAddStatusFromCart === "function") syncCardAddStatusFromCart();
+    if(typeof refreshView === "function") refreshView();
+    if(typeof _marcarSacolaSalva === "function") _marcarSacolaSalva();
+    closeMeusPedidosModal();
+    if(typeof openCartModal === "function") openCartModal();
+    toast(`Refazendo o pedido — ${(pedido.items||[]).length} item(ns) na sacola ✏️`);
+  };
+
+  const quantos = (pedido.items || []).length;
+  $("mpConfirmMsg").innerHTML =
+    `Os <b>${quantos}</b> item(ns) deste pedido voltam para a sacola para você alterar.` +
+    `<br><br>Ao finalizar, sai um <b>pedido novo</b>, com Excel e PDF novos. ` +
+    `Este pedido continua guardado como está.` +
+    (state.cart.size > 0
+      ? `<br><br><b>Atenção:</b> sua sacola tem ${state.cart.size} item(ns) e eles serão substituídos.`
+      : "");
+  $("mpConfirmModal").classList.remove("hidden");
+  $("mpConfirmCancel").onclick = () => $("mpConfirmModal").classList.add("hidden");
+  $("mpConfirmOk").onclick = () => { $("mpConfirmModal").classList.add("hidden"); fazer(); };
 }
 
 // Baixar Excel direto do histórico
