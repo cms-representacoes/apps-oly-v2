@@ -16055,7 +16055,7 @@ loadCatalog({ cacheBust:false });
      margens é "nenhum lugar". Um card, os chips ou a barra de cima não
      recolhem - ali a pessoa está usando a tela, não saindo da trilha.  */
   var ARRASTO = 36;        // o quanto a mão precisa andar para valer gesto
-  var px = 0, py = 0, medindo = false, arrastou = false;
+  var px = 0, py = 0, medindo = false;
 
   function trilhaAVista(){
     return rail && getComputedStyle(rail).display !== 'none';
@@ -16066,11 +16066,15 @@ loadCatalog({ cacheBust:false });
   }
 
   rail.addEventListener('pointerdown', function(ev){
-    if(ev.pointerType === 'mouse' && ev.button !== 0) return;
-    px = ev.clientX; py = ev.clientY; medindo = true; arrastou = false;
-    /* Segura o ponteiro: recolhida, a aba tem 36px de largura, e sem isto o
-       dedo saía dela no primeiro movimento e o gesto de reabrir morria antes
-       de ser medido. */
+    /* Só no toque: no computador existe a seta, e ninguém arrasta barra com
+       o mouse. */
+    if(ev.pointerType === 'mouse') return;
+    /* Só fora dos botões: em cima de um botão, a mão está tocando, não
+       arrastando. Esta linha também é o que mantém os botões funcionando -
+       com o ponteiro seguro, o clique vai para quem segurou, e a seta
+       deixava de abrir. */
+    if(ev.target.closest && ev.target.closest('button')) return;
+    px = ev.clientX; py = ev.clientY; medindo = true;
     try{ rail.setPointerCapture(ev.pointerId); }catch(_){}
   });
   rail.addEventListener('pointermove', function(ev){
@@ -16078,7 +16082,7 @@ loadCatalog({ cacheBust:false });
     var dx = ev.clientX - px, dy = ev.clientY - py;
     // movimento mais vertical que horizontal é rolagem, não gesto
     if(Math.abs(dx) < ARRASTO || Math.abs(dx) <= Math.abs(dy)) return;
-    medindo = false; arrastou = true;
+    medindo = false;
     var fechada = grade.classList.contains('trilha-fechada');
     if(dx < 0 && !fechada) recolher(true);
     else if(dx > 0 && fechada) recolher(false);
@@ -16088,15 +16092,6 @@ loadCatalog({ cacheBust:false });
   ['pointerup','pointercancel'].forEach(function(e){
     rail.addEventListener(e, function(){ medindo = false; });
   });
-
-  /* O clique que vem depois de um arrasto não é um clique: sem isto,
-     arrastar começando em cima de um botão trocaria a categoria junto.
-     Na captura do documento, antes de qualquer um que escute lá dentro. */
-  document.addEventListener('click', function(ev){
-    if(!arrastou) return;
-    arrastou = false;
-    ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
-  }, true);
 
   document.addEventListener('click', function(ev){
     if(!trilhaAVista() || grade.classList.contains('trilha-fechada')) return;
