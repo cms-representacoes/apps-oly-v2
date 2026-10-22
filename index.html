@@ -2912,6 +2912,13 @@ html.dark-mode body::before{
        fica escondida, como a da fila de chips - a trilha só rola em janela
        baixa, e por poucos pixels. */
     overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;
+    /* pan-y: a trilha continua rolando de cima a baixo pelo dedo, e o
+       arrasto de lado chega até o código em vez de virar gesto do navegador.
+
+       user-select:none não é enfeite: sem ele um arrasto deixa o texto dos
+       botões selecionado, e o arrasto seguinte por cima dessa seleção vira
+       arrastar-e-soltar do navegador, que mata o gesto com pointercancel. */
+    touch-action:pan-y; user-select:none; -webkit-user-select:none;
     border-radius:22px; padding:12px 8px;
     /* carta branca sobre o papel, como na vitrine CMS: agora que as
        figurinhas são da tela toda, é o branco que separa a trilha do fundo */
@@ -16036,6 +16043,70 @@ loadCatalog({ cacheBust:false });
     var fechada = !grade.classList.contains('trilha-fechada');
     pintarTrilha(fechada);
     try{ localStorage.setItem(CH_TRILHA, fechada ? '1' : '0'); }catch(_){}
+  });
+
+
+  /* ----- recolher por gesto e por clique no vazio -------------------
+     Arrastar a trilha para a esquerda recolhe; arrastar a aba para a
+     direita traz de volta - um sem o outro deixaria quem fechou
+     arrastando sem saber como reabrir.
+
+     Clicar fora dela e fora da vitrine também recolhe: o papel das
+     margens é "nenhum lugar". Um card, os chips ou a barra de cima não
+     recolhem - ali a pessoa está usando a tela, não saindo da trilha.  */
+  var ARRASTO = 36;        // o quanto a mão precisa andar para valer gesto
+  var px = 0, py = 0, medindo = false, arrastou = false;
+
+  function trilhaAVista(){
+    return rail && getComputedStyle(rail).display !== 'none';
+  }
+  function recolher(fechada){
+    pintarTrilha(fechada);
+    try{ localStorage.setItem(CH_TRILHA, fechada ? '1' : '0'); }catch(_){}
+  }
+
+  rail.addEventListener('pointerdown', function(ev){
+    if(ev.pointerType === 'mouse' && ev.button !== 0) return;
+    px = ev.clientX; py = ev.clientY; medindo = true; arrastou = false;
+    /* Segura o ponteiro: recolhida, a aba tem 36px de largura, e sem isto o
+       dedo saía dela no primeiro movimento e o gesto de reabrir morria antes
+       de ser medido. */
+    try{ rail.setPointerCapture(ev.pointerId); }catch(_){}
+  });
+  rail.addEventListener('pointermove', function(ev){
+    if(!medindo) return;
+    var dx = ev.clientX - px, dy = ev.clientY - py;
+    // movimento mais vertical que horizontal é rolagem, não gesto
+    if(Math.abs(dx) < ARRASTO || Math.abs(dx) <= Math.abs(dy)) return;
+    medindo = false; arrastou = true;
+    var fechada = grade.classList.contains('trilha-fechada');
+    if(dx < 0 && !fechada) recolher(true);
+    else if(dx > 0 && fechada) recolher(false);
+  });
+  // pointerleave fica de fora: com o ponteiro seguro, sair da aba nao
+  // significa desistir do gesto
+  ['pointerup','pointercancel'].forEach(function(e){
+    rail.addEventListener(e, function(){ medindo = false; });
+  });
+
+  /* O clique que vem depois de um arrasto não é um clique: sem isto,
+     arrastar começando em cima de um botão trocaria a categoria junto.
+     Na captura do documento, antes de qualquer um que escute lá dentro. */
+  document.addEventListener('click', function(ev){
+    if(!arrastou) return;
+    arrastou = false;
+    ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+  }, true);
+
+  document.addEventListener('click', function(ev){
+    if(!trilhaAVista() || grade.classList.contains('trilha-fechada')) return;
+    if(!ev.target || !ev.target.closest) return;
+    // a trilha, a vitrine, a barra de cima e o que estiver aberto por cima
+    // continuam sendo "dentro"
+    if(ev.target.closest('#catRail, #grid, header, #productModal, ' +
+                         '#filtersDrawerWrap, #cartDrawer, #meusPedidosModal, ' +
+                         '[role="dialog"], button, a, input, select, label')) return;
+    recolher(true);
   });
 
   var topo = document.querySelector('#app > header');
