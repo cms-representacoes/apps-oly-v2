@@ -2937,15 +2937,20 @@ html.dark-mode body::before{
     border:1px solid #E2E6F0; background:#F7F8FC; color:var(--primary);
     cursor:pointer; transition:background .15s, border-color .15s;
   }
-  #crToggle i{ font-size:10px; transition:transform .22s ease; }
+  #crToggle i{ font-size:10px; transition:transform .15s ease-out; }
   #crToggle:hover{ background:#fff;
     border-color:color-mix(in srgb, var(--primary) 34%, transparent); }
   .dark-mode #crToggle{ background:#1F2937; border-color:#2A3357; }
 
   /* Recolhida: a coluna encolhe até uma aba fina, e só a seta fica. A
      trilha não some de todo - sem a aba não haveria caminho de volta. */
-  #grid:not(.hidden){ transition:grid-template-columns .22s ease; }
-  #catRail{ transition:width .22s ease, padding .22s ease; }
+  /* .15s com ease-out: o grosso do movimento acontece no começo, e é isso
+     que faz parecer que a barra responde na hora, sem virar um corte seco. */
+  #grid:not(.hidden){ transition:grid-template-columns .15s ease-out; }
+  #catRail{ transition:width .15s ease-out, padding .15s ease-out; }
+  @media (prefers-reduced-motion:reduce){
+    #grid:not(.hidden), #catRail, #crToggle i{ transition:none; }
+  }
   #grid.trilha-fechada{ --cr-w:36px; }
   #grid.trilha-fechada > #catRail{ padding:7px 5px; border-radius:14px; }
   #grid.trilha-fechada .cr-tit,
