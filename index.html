@@ -13270,6 +13270,16 @@ function injectHomeCategoryImages(){
         if(state.productsRaw && state.productsRaw.length){
           clearInterval(_espera);
           _applyCategory(_volta);
+          /* A volta de uma troca de marca nunca traz a linha CORRE junto.
+             Quem entra pela tela inicial recebe o recorte "sem CORRE" dos
+             cards; aqui ninguém dava esse recorte, e o padrão de `linha` é
+             mostrar tudo - os CORRE voltavam misturados aos tênis (medido:
+             231 produtos viravam 246). */
+          if(state.filters.linha !== 'sem' || state.filters.categoriaEm){
+            state.filters.linha = 'sem';
+            state.filters.categoriaEm = null;
+            refreshView(true);
+          }
           _soltar();
         }
       }, 150);
