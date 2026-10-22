@@ -16106,11 +16106,17 @@ loadCatalog({ cacheBust:false });
   document.addEventListener('click', function(ev){
     if(!trilhaAVista() || grade.classList.contains('trilha-fechada')) return;
     if(!ev.target || !ev.target.closest) return;
-    // a trilha, a vitrine, a barra de cima e o que estiver aberto por cima
-    // continuam sendo "dentro"
-    if(ev.target.closest('#catRail, #grid, header, #productModal, ' +
-                         '#filtersDrawerWrap, #cartDrawer, #meusPedidosModal, ' +
-                         '[role="dialog"], button, a, input, select, label')) return;
+    /* "Dentro" e a trilha, um PRODUTO, a barra de cima, a fila de chips e o
+       que estiver aberto por cima. O resto - o papel das margens, os vãos
+       entre os cards, o espaço abaixo deles - é "nenhum lugar" e recolhe.
+
+       Antes eu guardava o #grid inteiro, e o #grid ocupa quase toda a
+       largura: no tablet em pé sobravam 12px de cada lado, e não havia onde
+       clicar. Medido: 11% da tela fechava num monitor de 1366. */
+    if(ev.target.closest('#catRail, article[data-card-key], header, .filtro-chips, ' +
+                         '#productModal, #filtersDrawerWrap, #cartDrawer, ' +
+                         '#meusPedidosModal, [role="dialog"], ' +
+                         'button, a, input, select, label')) return;
     recolher(true);
   });
 
