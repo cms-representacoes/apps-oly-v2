@@ -4868,8 +4868,18 @@ function cartItemMatchesSearch(it, query=state.cartSearchQuery){
   const qNorm = q.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return partes.includes(qNorm);
 }
+/** Ja tem grade preenchida? Grade com tudo zerado nao conta como preenchida. */
+function cartItemHasGrade(it){
+  const g = it && it.grade;
+  if(!g || typeof g !== "object") return false;
+  return Object.values(g).some(q => Number(q) > 0);
+}
 function cartItemEligibleForBulkGrade(it, filter=state.cartGenderFilter){
   if(!tamNeedsGrade(it?.categoria, it?.tam)) return false;
+  /* Quem ja tem grade fica de fora do lote, mesmo sendo do genero escolhido:
+     o lote serve para preencher o que falta, nunca para refazer o que o
+     vendedor ja montou a mao. Antes ele passava por cima de tudo. */
+  if(cartItemHasGrade(it)) return false;
   return cartItemMatchesGenderFilter(it, filter);
 }
 function getBulkGradeTargets(mode, opts={}){
