@@ -2815,8 +2815,10 @@
    da largura dos cards. Em flexbox a margem negativa desconta do espaço
    que o item ocupa, e por isso a conta fecha sozinha.
 
-   A cor é a clássica da vitrine CMS - papel #E8EBF1 e azul #2c39e2 - com
-   o mesmo fundo de figurinhas, a mesma máscara, copiada de lá.
+   O desenho das figurinhas é o da vitrine CMS, a mesma máscara copiada de
+   lá, mas a COR é a da marca aberta: --primary, que já troca sozinha entre
+   o roxo da Olympikus e o vermelho da Under Armour, no claro e no escuro.
+   Por isso nenhuma cor de marca aparece escrita neste bloco.
 
    A linha CORRE fica de fora de propósito: não é categoria da planilha,
    é um recorte dela, e mora nos cards da tela inicial.                */
@@ -2825,11 +2827,11 @@
    fica no <html>, o <body> é transparente e as figurinhas moram num
    ::before preso à janela, atrás de tudo (z-index negativo). É o que
    permite que elas fiquem debaixo do conteúdo sem um elemento a mais. */
-html{ background:#E8EBF1; }
+html{ background:color-mix(in srgb, var(--primary) 6%, #F1F3F8); }
 body{ background:transparent; }
 body::before{
   content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  background-color:color-mix(in srgb, #2c39e2 15%, transparent);
+  background-color:color-mix(in srgb, var(--primary) 15%, transparent);
   -webkit-mask-image:var(--cr-fig); mask-image:var(--cr-fig);
   -webkit-mask-size:440px 440px; mask-size:440px 440px;
   -webkit-mask-repeat:repeat; mask-repeat:repeat;
@@ -2843,7 +2845,7 @@ body::before{
 html.dark-mode{ background:#0E1016; }
 html.dark-mode body{ background:transparent !important; }
 html.dark-mode body::before{
-  background-color:color-mix(in srgb, #8E99FF 19%, transparent); }
+  background-color:color-mix(in srgb, var(--primary) 19%, transparent); }
 
 /* O Limpar acende quando ha categoria ou genero filtrando a vitrine: de
    relance se ve que a lista esta recortada, sem precisar conferir a trilha. */
@@ -2915,7 +2917,8 @@ html.dark-mode body::before{
        figurinhas são da tela toda, é o branco que separa a trilha do fundo */
     background:#FFFFFF;
     border:1px solid #DDE2EE;
-    box-shadow:0 1px 2px rgba(15,23,42,.04), 0 10px 26px -14px rgba(44,57,226,.26);
+    box-shadow:0 1px 2px rgba(15,23,42,.04),
+               0 10px 26px -14px color-mix(in srgb, var(--primary) 26%, transparent);
   }
 
   /* A seta de recolher. Aberta, fica encostada na ponta direita da carta;
@@ -2924,12 +2927,13 @@ html.dark-mode body::before{
     display:flex; align-items:center; justify-content:center;
     width:24px; height:24px; border-radius:8px; flex:none;
     margin:0 auto 7px; padding:0;
-    border:1px solid #E2E6F0; background:#F7F8FC; color:#2c39e2;
+    border:1px solid #E2E6F0; background:#F7F8FC; color:var(--primary);
     cursor:pointer; transition:background .15s, border-color .15s;
   }
   #crToggle i{ font-size:10px; transition:transform .22s ease; }
-  #crToggle:hover{ background:#fff; border-color:rgba(44,57,226,.34); }
-  .dark-mode #crToggle{ background:#1F2937; border-color:#2A3357; color:#A8B2FF; }
+  #crToggle:hover{ background:#fff;
+    border-color:color-mix(in srgb, var(--primary) 34%, transparent); }
+  .dark-mode #crToggle{ background:#1F2937; border-color:#2A3357; }
 
   /* Recolhida: a coluna encolhe até uma aba fina, e só a seta fica. A
      trilha não some de todo - sem a aba não haveria caminho de volta. */
@@ -2969,7 +2973,7 @@ html.dark-mode body::before{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:4px; width:100%; padding:9px 4px 8px; border-radius:15px;
     background:#F7F8FC;
-    border:1px solid rgba(44,57,226,.13);
+    border:1px solid color-mix(in srgb, var(--primary) 13%, transparent);
     color:#334155; font-size:10px; font-weight:800; line-height:1.1;
     cursor:pointer; text-align:center;
     transition:background .16s, border-color .16s, color .16s, transform .12s;
@@ -2977,20 +2981,21 @@ html.dark-mode body::before{
   #catRail .cr-btn .cr-ico{
     display:flex; align-items:center; justify-content:center;
     width:28px; height:28px; border-radius:50%;
-    background:rgba(44,57,226,.10); color:#2c39e2;
+    background:color-mix(in srgb, var(--primary) 10%, transparent); color:var(--primary);
     transition:background .16s, color .16s;
   }
   #catRail .cr-btn i{ font-size:13px; }
-  #catRail .cr-btn:hover{ background:#fff; border-color:rgba(44,57,226,.34); }
+  #catRail .cr-btn:hover{ background:#fff;
+    border-color:color-mix(in srgb, var(--primary) 34%, transparent); }
   #catRail .cr-btn:active{ transform:scale(.97); }
 
   /* o ativo é pilula cheia no azul clássico. O !important aqui responde ao
      !important do .cat-chip.active, que pinta os chips da gaveta na cor da
      marca do catálogo - aqui a cor é a da vitrine. */
   #catRail .cr-btn.active{
-    background:#2c39e2 !important; border-color:#2c39e2 !important;
+    background:var(--primary) !important; border-color:var(--primary) !important;
     color:#fff !important;
-    box-shadow:0 6px 16px -8px rgba(44,57,226,.85);
+    box-shadow:0 6px 16px -8px color-mix(in srgb, var(--primary) 85%, transparent);
   }
   #catRail .cr-btn.active span{ color:#fff !important; }
   #catRail .cr-btn.active .cr-ico{ background:rgba(255,255,255,.20); }
@@ -3000,17 +3005,26 @@ html.dark-mode body::before{
   #catRail .cr-curto{ display:block; }
 
   /* escuro: o papel escurece, o azul clareia para continuar legível */
-  .dark-mode #catRail{ background:#161B2E; border-color:#2A3357;
+  .dark-mode #catRail{
+    background:color-mix(in srgb, var(--primary) 7%, #15181F);
+    border-color:color-mix(in srgb, var(--primary) 22%, #262B38);
     box-shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 26px -14px rgba(0,0,0,.6); }
   .dark-mode #catRail .cr-tit{ color:#8E96B5; }
   .dark-mode #catRail .cr-btn{ background:rgba(31,41,55,.78);
-    border-color:rgba(142,153,255,.18); color:#D7DCEC; }
+    border-color:color-mix(in srgb, var(--primary) 20%, transparent); color:#D7DCEC; }
   .dark-mode #catRail .cr-btn .cr-ico{
-    background:rgba(142,153,255,.16); color:#A8B2FF; }
+    background:color-mix(in srgb, var(--primary) 18%, transparent); color:var(--primary); }
   .dark-mode #catRail .cr-btn:hover{ background:#1F2937;
-    border-color:rgba(142,153,255,.40); }
+    border-color:color-mix(in srgb, var(--primary) 42%, transparent); }
+  /* no escuro a cor da marca já é a clara; o texto do ativo volta a ser
+     escuro, senão branco sobre lilás/rosa some */
   .dark-mode #catRail .cr-btn.active{
-    background:#4552F0 !important; border-color:#4552F0 !important; }
+    background:var(--primary) !important; border-color:var(--primary) !important;
+    color:#15181F !important; }
+  .dark-mode #catRail .cr-btn.active span,
+  .dark-mode #catRail .cr-btn.active i{ color:#15181F !important; }
+  .dark-mode #catRail .cr-btn.active .cr-ico{ background:rgba(0,0,0,.16); }
+  .dark-mode #crToggle{ color:var(--primary); }
 }
 
 /* A trilha ganha largura e os nomes inteiros em duas situações: no desktop
