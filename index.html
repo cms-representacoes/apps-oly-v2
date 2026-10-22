@@ -2845,6 +2845,22 @@ html.dark-mode body{ background:transparent !important; }
 html.dark-mode body::before{
   background-color:color-mix(in srgb, #8E99FF 19%, transparent); }
 
+/* O Limpar acende quando ha categoria ou genero filtrando a vitrine: de
+   relance se ve que a lista esta recortada, sem precisar conferir a trilha. */
+#btnClear.limpar-aceso{
+  background:#F97316 !important; border-color:#EA580C !important; color:#fff !important;
+  box-shadow:0 6px 16px -8px rgba(249,115,22,.85);
+}
+#btnClear.limpar-aceso i,
+#btnClear.limpar-aceso span{ color:#fff !important; }
+#btnClear.limpar-aceso:hover{ background:#EA580C !important; }
+.dark-mode #btnClear.limpar-aceso{ background:#EA580C !important; border-color:#C2410C !important; }
+
+/* O menu da colecao, quando mora no body em vez de dentro da fila de chips
+   (ver o porque no script que o move). A posicao vem do JS, pela medida do
+   botao; aqui ficam so as regras que nao dependem de medida. */
+#colecaoPop.col-pop-solto{ position:fixed; top:auto; left:auto; margin:0; }
+
 #catRail{ display:none; }
 
 @media (min-width:768px){
@@ -2883,6 +2899,17 @@ html.dark-mode body::before{
     display:block; width:var(--cr-w);
     margin-left:calc(-1 * var(--cr-sangra));
     position:sticky; top:calc(var(--h-topo, 84px) + 12px);
+    /* Grudada no topo, a trilha nunca sai da tela - e o que passar da borda
+       de baixo ficaria inalcançável por mais que se rolasse a página, porque
+       ela sobe junto. Numa janela baixa era o que acontecia com Infantil e
+       Unissex. Por isso ela nunca passa da altura visível: quando não cabe,
+       rola por dentro. */
+    max-height:calc(100vh - var(--h-topo, 84px) - 26px);
+    /* Sem overscroll-behavior: chegando ao fim da trilha, o dedo continua
+       rolando a página, em vez de parar em cima dela. A barra de rolagem
+       fica escondida, como a da fila de chips - a trilha só rola em janela
+       baixa, e por poucos pixels. */
+    overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;
     border-radius:22px; padding:12px 8px;
     /* carta branca sobre o papel, como na vitrine CMS: agora que as
        figurinhas são da tela toda, é o branco que separa a trilha do fundo */
@@ -2914,6 +2941,8 @@ html.dark-mode body::before{
   #grid.trilha-fechada .cr-lista{ display:none; }
   #grid.trilha-fechada #crToggle{ margin:0 auto; width:24px; height:26px; }
   #grid.trilha-fechada #crToggle i{ transform:rotate(180deg); }
+
+  #catRail::-webkit-scrollbar{ width:0; height:0; display:none; }
 
   #catRail .cr-tit{
     font-size:9.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
@@ -2998,10 +3027,10 @@ html.dark-mode body::before{
     margin:2px 0 10px; }
   #crToggle{ margin:0 0 6px auto; }        /* encostada na ponta direita */
   #grid.trilha-fechada #crToggle{ margin:0 auto; }
-  #catRail .cr-lista{ gap:7px; }
+  #catRail .cr-lista{ gap:6px; }
   #catRail .cr-btn{
     flex-direction:row; justify-content:flex-start; gap:10px;
-    padding:10px 12px; border-radius:16px; font-size:13.5px; text-align:left;
+    padding:9px 12px; border-radius:16px; font-size:13.5px; text-align:left;
   }
   #catRail .cr-btn .cr-ico{ width:32px; height:32px; }
   #catRail .cr-btn i{ font-size:14px; }
@@ -15970,6 +15999,7 @@ loadCatalog({ cacheBust:false });
     state.filters.gender = valor;
     if(selGen) selGen.value = valor;
     pintarGenero();
+    if(window._pintarLimpar) window._pintarLimpar();
     refreshView(true);
   });
   if(selGen) selGen.addEventListener('change', pintarGenero);
@@ -16005,6 +16035,92 @@ loadCatalog({ cacheBust:false });
   window.addEventListener('load', medir);
   if(window.ResizeObserver) new ResizeObserver(medir).observe(topo || document.body);
 })();
+
+/* ══ O menu da coleção sai de dentro da fila de chips ════════════════
+   Abaixo de 900px a fila de chips vira uma faixa rolável de 34px de altura
+   (overflow-x:auto, overflow-y:hidden) com uma máscara nas pontas. O menu
+   abria normalmente - as três coleções montadas, display block - mas descia
+   155px e era recortado inteiro pela faixa: ninguém via nada e o toque
+   atravessava para o que estivesse atrás. A máscara cria contexto de
+   pintura, então nem position:fixed escapa de dentro da fila.
+
+   A saída é o menu deixar de ser filho da fila: ele vai para o body na
+   primeira abertura e passa a ser posicionado pela medida do botão. No
+   desktop nada muda de aspecto - continua logo abaixo do chip.
+
+   Este bloco corre DEPOIS de quem abre o menu (o clique sobe até aqui com
+   o menu já montado), e por isso só reposiciona.                        */
+(function colecaoForaDaFila(){
+  var pop = document.getElementById('colecaoPop');
+  var bt  = document.getElementById('seloColecao');
+  if(!pop || !bt) return;
+
+  function posicionar(){
+    if(!pop.classList.contains('show')) return;
+    var r = bt.getBoundingClientRect();
+    var larg = pop.offsetWidth || 190;
+    var alt  = pop.offsetHeight || 150;
+    var esq = Math.min(r.left, window.innerWidth - larg - 10);
+    var topo = r.bottom + 8;
+    // sem espaço embaixo, o menu abre para cima
+    if(topo + alt > window.innerHeight - 8 && r.top - alt - 8 > 8) topo = r.top - alt - 8;
+    pop.style.left = Math.round(Math.max(10, esq)) + 'px';
+    pop.style.top  = Math.round(Math.max(8, topo)) + 'px';
+  }
+
+  document.addEventListener('click', function(ev){
+    if(!ev.target.closest || !ev.target.closest('#seloColecao')) return;
+    if(!pop.classList.contains('show')) return;
+    if(pop.parentNode !== document.body){
+      document.body.appendChild(pop);
+      pop.classList.add('col-pop-solto');
+    }
+    posicionar();
+  });
+
+  // o botão anda com a página; nesta tela quem rola é o body
+  document.body.addEventListener('scroll', posicionar, { passive:true });
+  window.addEventListener('scroll', posicionar, { passive:true });
+  window.addEventListener('resize', posicionar);
+})();
+
+/* ══ O Limpar aceso ═══════════════════════════════════════
+   Laranja enquanto houver categoria ou gênero recortando a vitrine. A
+   pintura é refeita a cada clique na tela, venha de onde vier - a trilha,
+   a gaveta, o próprio Limpar.                                           */
+(function limparAceso(){
+  var bt = document.getElementById('btnClear');
+  if(!bt) return;
+  /* Acende pelo que o Limpar REALMENTE tira: gênero, segmento, busca,
+     preço, a linha e os quatro chips. A categoria fica de fora de propósito
+     - o Limpar a preserva, e acender por ela faria o botão continuar laranja
+     depois de clicado, como se não tivesse funcionado.
+
+     A ordenação também fica de fora: ela muda a ordem, não recorta a
+     lista, e o Limpar a devolve ao padrão de qualquer jeito. */
+  function pintar(){
+    if(typeof state === 'undefined' || !state.filters) return;
+    var f = state.filters;
+    var tem = !!(f.gender || f.segment || f.q || f.tier ||
+                 f.novaCor || f.lancamento || f.corre || f.continuidade ||
+                 (f.priceMax !== Infinity && f.priceMax != null));
+    bt.classList.toggle('limpar-aceso', tem);
+  }
+  document.addEventListener('click', pintar);
+  /* O clique sozinho não basta: quem entra por um card da tela inicial só
+     tem a categoria aplicada 180ms depois, por causa da animação de saída -
+     aí o clique já passou. O contador de produtos muda a cada vez que a
+     vitrine é refeita, venha a mudança de onde vier, e é por ele que a
+     pintura acompanha o que está na tela. */
+  var contador = document.getElementById('productCounter');
+  if(contador && window.MutationObserver){
+    new MutationObserver(pintar).observe(contador,
+      { childList:true, characterData:true, subtree:true });
+  }
+  pintar();
+  window._pintarLimpar = pintar;   // para quem muda o filtro sem clique
+})();
+
 </script>
 
 </body>
