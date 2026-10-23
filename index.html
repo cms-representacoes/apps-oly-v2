@@ -14788,6 +14788,7 @@ function _mpRenderFinalizados(){
           <button class="mp-pedido-btn" onclick="mpRefazerPedido('${_mpEscape(p.id)}')" title="Trazer este pedido de volta para a sacola, alterar e gerar um novo"><i class="fa-solid fa-pen"></i> Refazer</button>
           <button class="mp-pedido-btn" onclick="mpReordenar('${_mpEscape(p.id)}')"><i class="fa-solid fa-rotate-left"></i> Reordenar</button>
           <button class="mp-pedido-btn primary" onclick="mpBaixarExcel('${_mpEscape(p.id)}')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="mp-pedido-btn" onclick="mpBaixarCaptacao('${_mpEscape(p.id)}')" title="Planilha com foto, grade e total de pares, para o cliente conferir"><i class="fa-solid fa-camera-retro"></i> Capta\u00e7\u00e3o</button>
           <button class="mp-pedido-btn" onclick="mpBaixarPDF('${_mpEscape(p.id)}')"${sacolaVazia ? "" : ' title="Esvazie a sacola para gerar o PDF deste pedido"'}><i class="fa-solid fa-file-pdf"></i> PDF</button>
         </div>
       </div>
@@ -15196,6 +15197,245 @@ function mpRefazerPedido(id){
 }
 
 // Baixar Excel direto do histórico
+
+/* \u2550\u2550 Capta\u00e7\u00e3o \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   A planilha que o vendedor leva para o cliente conferir o que foi digitado:
+   uma linha por cor, com a foto, a grade aberta em colunas e o total de
+   pares. O formato \u00e9 o do Cat\u00e1logo da carteira da Detalhada - as mesmas
+   larguras, o mesmo cabe\u00e7alho e a mesma moldura de foto -, para quem recebe
+   os dois reconhecer na hora.
+
+   O SheetJS que a p\u00e1gina j\u00e1 carrega n\u00e3o grava imagem nem altura de linha;
+   por isso esta sai pelo ExcelJS, buscado s\u00f3 na primeira vez que algu\u00e9m
+   pede a planilha.                                                      */
+
+async function _capGarantirExcelJs(){
+  if(window.ExcelJS) return true;
+  try{
+    await new Promise((ok, nao) => {
+      const t = document.createElement("script");
+      t.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+      t.onload = ok; t.onerror = nao;
+      document.head.appendChild(t);
+    });
+  }catch(_){ return false; }
+  return !!window.ExcelJS;
+}
+
+/* A foto reduzida a 320px: o suficiente para continuar n\u00edtida com zoom na
+   planilha sem fazer o arquivo pesar. Guardadas por caminho, porque a mesma
+   cor costuma repetir entre pedidos. */
+const _capFotos = new Map();
+function _capFoto(src, max = 320, qualidade = 0.9){
+  const chave = String(src || "") + "@" + max;
+  if(_capFotos.has(chave)) return _capFotos.get(chave);
+  const pr = new Promise(res => {
+    if(!src) return res(null);
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const cv = document.createElement("canvas");
+        cv.width  = Math.max(1, Math.round(img.naturalWidth  * k));
+        cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+        const cx = cv.getContext("2d");
+        cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+        cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+        cx.drawImage(img, 0, 0, cv.width, cv.height);
+        res({ url: cv.toDataURL("image/jpeg", qualidade), w: cv.width, h: cv.height });
+      }catch(_){ res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = src;
+  });
+  _capFotos.set(chave, pr);
+  return pr;
+}
+
+/* Lan\u00e7amento, Nova cor ou Continuidade - os mesmos selos dos cards. Vem do
+   produto no cat\u00e1logo, porque o pedido guarda s\u00f3 o que foi vendido. */
+function _capStatus(orig){
+  if(!orig) return "";
+  if(orig.isLanc)     return "Lan\u00e7amento";
+  if(orig.isNewColor) return "Nova cor";
+  if(orig.isCont)     return "Continuidade";
+  return "";
+}
+
+/* "2027-03-10" vira "10/03/2027". */
+function _capDataBR(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || "").trim());
+  return m ? m[3] + "/" + m[2] + "/" + m[1] : "";
+}
+
+function _capNomeArquivo(pedido){
+  const cod = String(pedido.clientCode || "").trim();
+  let nome = "";
+  try{ nome = (typeof nomeFantasiaPorCodigo === "function" ? nomeFantasiaPorCodigo(cod) : "") || ""; }catch(_){}
+  const d = new Date(pedido.createdAt || Date.now());
+  const p2 = n => String(n).padStart(2, "0");
+  const data = p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear();
+  const limpo = t => String(t).replace(/[\\/:*?"<>|]/g, "").trim();
+  return limpo(["Captacao", nome, cod, data].filter(Boolean).join(" ")) + ".xlsx";
+}
+
+async function mpBaixarCaptacao(id){
+  const pedido = _mpFindPedidoById(id);
+  if(!pedido){ toast("Pedido n\u00e3o encontrado \u26a0\ufe0f"); return; }
+  const brutos = pedido.items || [];
+  if(!brutos.length){ toast("Este pedido n\u00e3o tem itens"); return; }
+
+  toast("Montando a planilha\u2026");
+  if(!await _capGarantirExcelJs()){ toast("N\u00e3o consegui carregar o gerador de planilha \u26a0\ufe0f"); return; }
+  // a filial vem da circular da cole\u00e7\u00e3o, n\u00e3o da planilha de produtos
+  try{ if(typeof carregarCircular === "function") await carregarCircular(); }catch(_){}
+
+  // Uma linha por item do pedido, na ordem em que foi digitado.
+  /* A ordem das colunas de tamanho: número por número primeiro, depois as
+     letras do vestuário na ordem em que se veste. Por tamanho alfabético
+     elas sairiam G, GG, M, P - e o pedido mistura calçado e roupa. */
+  const ORDEM_LETRA = ["PP", "P", "M", "G", "GG", "XG", "XGG", "EG", "EGG"];
+  const ord = t => {
+    const texto = String(t == null ? "" : t).trim();
+    const n = parseInt(texto, 10);
+    if(!isNaN(n)) return n;
+    const i = ORDEM_LETRA.indexOf(texto.toUpperCase());
+    return i >= 0 ? 1000 + i : 2000;
+  };
+  const tams = new Set();
+  const linhas = brutos.map(it => {
+    const cheio = _mpPedidoItemToCartItem(it);
+    const grade = it.grade || {};
+    Object.keys(grade).forEach(t => { if(Number(grade[t]) > 0) tams.add(t); });
+    /* O selo vem agregado das variantes, como no card: a planilha tem uma
+       linha por tamanho, e só uma delas costuma trazer a marcação. Pegando
+       só a primeira, "Continuidade" sumia. */
+    let orig = null;
+    try{
+      const iguais = (state.productsRaw || []).filter(p =>
+        String(p.codigo) === String(cheio.codigo) &&
+        String(p.cor || p.corCodigo || "") === String(cheio.cor || cheio.corCodigo || "") &&
+        String(p.genero || "") === String(cheio.genero || ""));
+      if(iguais.length) orig = {
+        isLanc:     iguais.some(x => x.isLanc),
+        isNewColor: iguais.some(x => x.isNewColor),
+        isCont:     iguais.some(x => x.isCont),
+        colecao:    iguais[0].colecao,
+      };
+    }catch(_){}
+    const circ = (typeof circularDoItem === "function")
+      ? circularDoItem({ codigo: cheio.codigo, cor: cheio.cor, colecao: cheio.colecao || (orig && orig.colecao) })
+      : null;
+    return {
+      img: cheio.imgSrc || "",
+      ref: String(cheio.codigo || ""),
+      desc: cheio.produto || "",
+      cor: cheio.corCodigo || cheio.cor || "",
+      prev: _capDataBR(it.dataDesejada || cheio.dataDesejada || pedido.dataDesejada || ""),
+      genero: cheio.genero || "",
+      status: _capStatus(orig),
+      filial: String((circ && circ.empresa) || "").trim(),
+      grade,
+      total: Number(it.qty) || Object.values(grade).reduce((a, q) => a + (Number(q) || 0), 0),
+    };
+  });
+  const colTam = [...tams].sort((a, b) => ord(a) - ord(b) || String(a).localeCompare(String(b)));
+  const totalPares = linhas.reduce((a, l) => a + l.total, 0);
+
+  // As fotos, em lotes, para n\u00e3o abrir 40 conex\u00f5es de uma vez.
+  const fotos = new Map();
+  const caminhos = [...new Set(linhas.map(l => l.img).filter(Boolean))];
+  for(let i = 0; i < caminhos.length; i += 8){
+    // num pedido grande isto leva alguns segundos: sem o aviso, parece travado
+    if(caminhos.length > 8) toast("Buscando as fotos · " + Math.min(i + 8, caminhos.length) + " de " + caminhos.length);
+    const lote = await Promise.all(caminhos.slice(i, i + 8).map(c => _capFoto(c)));
+    lote.forEach((f, j) => { if(f) fotos.set(caminhos[i + j], f); });
+  }
+
+  const MEIO = { horizontal: "center", vertical: "middle" };
+  const VERDE = "FF0F766E";
+  const wb = new window.ExcelJS.Workbook();
+  wb.creator = "CMS Representa\u00e7\u00f5es \u00b7 Cat\u00e1logo Digital";
+  const ws = wb.addWorksheet("Capta\u00e7\u00e3o", { views: [{ state: "frozen", ySplit: 5, xSplit: 1 }] });
+
+  let nomeCli = "";
+  try{ nomeCli = (typeof nomeFantasiaPorCodigo === "function" ? nomeFantasiaPorCodigo(pedido.clientCode) : "") || ""; }catch(_){}
+  const dPed = new Date(pedido.createdAt || Date.now());
+  const topo = [
+    ["Capta\u00e7\u00e3o \u00b7 " + (nomeCli || pedido.clientCode || "sem cliente") +
+      (pedido.clientCode ? " (" + pedido.clientCode + ")" : ""),
+     { name: "Calibri", bold: true, size: 14, color: { argb: VERDE } }],
+    ["Pedido de " + dPed.toLocaleDateString("pt-BR") +
+      (pedido.pedidoCliente ? " \u00b7 Pedido do cliente: " + pedido.pedidoCliente : "") +
+      " \u00b7 Gerado em " + new Date().toLocaleString("pt-BR"),
+     { name: "Calibri", size: 10, color: { argb: "FF6B7280" } }],
+    [linhas.length + " produto" + (linhas.length !== 1 ? "s" : "") + " \u00b7 " +
+      totalPares + " par" + (totalPares !== 1 ? "es" : ""),
+     { name: "Calibri", size: 10, color: { argb: "FF6B7280" } }],
+  ];
+  topo.forEach(([texto, fonte], i) => {
+    const c = ws.getCell(i + 1, 1);
+    c.value = texto; c.font = fonte; c.alignment = MEIO;
+  });
+  ws.getRow(1).height = 18.75;
+
+  const titulos = ["Foto", "Refer\u00eancia", "Descri\u00e7\u00e3o", "Cor", "Prev. fat.",
+                   "G\u00eanero", "Status", "Filial", ...colTam, "Total de pares"];
+  const cabec = ws.getRow(5);
+  cabec.values = titulos;
+  cabec.height = 21.95;
+  cabec.eachCell(c => {
+    c.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
+    c.alignment = { ...MEIO, wrapText: true };
+  });
+
+  const ids = new Map();
+  linhas.forEach((l, i) => {
+    const n = 6 + i;
+    const row = ws.getRow(n);
+    row.values = ["", l.ref, l.desc, l.cor, l.prev, l.genero, l.status, l.filial,
+                  ...colTam.map(t => (Number(l.grade[t]) > 0 ? Number(l.grade[t]) : "")),
+                  l.total];
+    row.height = 57.95;
+    for(let c = 1; c <= titulos.length; c++) row.getCell(c).alignment = MEIO;
+    row.getCell(titulos.length).font = { name: "Calibri", size: 11, bold: true };
+
+    const f = l.img ? fotos.get(l.img) : null;
+    if(f){
+      if(!ids.has(l.img)) ids.set(l.img, wb.addImage({ base64: f.url, extension: "jpeg" }));
+      /* "Mover e dimensionar com c\u00e9lulas": a foto fica presa entre dois cantos
+         da pr\u00f3pria c\u00e9lula e acompanha quando a linha muda de tamanho ou a lista
+         \u00e9 filtrada. Os cantos v\u00e3o em EMU, a unidade do Excel, centralizados:
+         em fra\u00e7\u00e3o de c\u00e9lula o ExcelJS sup\u00f5e uma coluna padr\u00e3o e a foto sai
+         achatada. Coluna A = 12 caracteres (89 px), linha = 57,95 pt. */
+      const lado = 72, k = Math.min(lado / f.w, lado / f.h);
+      const EMU_PX = 9525, COL_EMU = 89 * EMU_PX, LIN_EMU = Math.round(57.95 * 12700);
+      const wE = Math.round(f.w * k * EMU_PX), hE = Math.round(f.h * k * EMU_PX);
+      const x0 = Math.round((COL_EMU - wE) / 2), y0 = Math.round((LIN_EMU - hE) / 2);
+      ws.addImage(ids.get(l.img), {
+        tl: { nativeCol: 0, nativeColOff: x0, nativeRow: n - 1, nativeRowOff: y0 },
+        br: { nativeCol: 0, nativeColOff: x0 + wE, nativeRow: n - 1, nativeRowOff: y0 + hE },
+        editAs: "twoCell",
+      });
+    }
+  });
+
+  // as larguras do modelo; cada tamanho com 40 pixels (5,7109375 no arquivo)
+  const larguras = [12, 11, 32, 10, 13, 11, 16, 11, ...colTam.map(() => 5.7109375), 13];
+  larguras.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + linhas.length, column: titulos.length } };
+
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = _capNomeArquivo(pedido);
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("Capta\u00e7\u00e3o gerada \u00b7 " + linhas.length + " produto" + (linhas.length !== 1 ? "s" : "") + " \u2705");
+}
+
 function mpBaixarExcel(id){
   const pedido = _mpFindPedidoById(id);
   if(!pedido) return;
