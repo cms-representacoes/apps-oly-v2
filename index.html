@@ -9676,9 +9676,7 @@ function _doExportXlsx(salvarHist){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Pedido");
 
-  const now = new Date();
-  const pad = (n)=>String(n).padStart(2,"0");
-  const fileName = `pedido_layout_operacional_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
+  const fileName = nomeArquivoPedido(cfg?.clientCode, ".xlsx");
   XLSX.writeFile(wb, fileName);
   closeOrderExportModal();
 
@@ -10400,7 +10398,7 @@ async function _exportOrderPdf(showGrade = true, showDatas = true){
   drawFooter();
 
   PdfProg.passo("finalizando o documento", 92);
-  const nomePdf = `pedido_cliente_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
+  const nomePdf = nomeArquivoPedido(cfg?.clientCode, ".pdf");
   doc.save(nomePdf);
   PdfProg.concluir();
   toast("PDF gerado ✅");
@@ -14248,6 +14246,36 @@ function nomeFantasiaPorCodigo(codigo){
   return (FANT.porCodigo && FANT.porCodigo[cod]) || nomeClientePorCodigo(cod);
 }
 
+/* ── o nome do arquivo que o vendedor envia ──
+   O pedido saía como "pedido_layout_operacional_2026-10-26_1432.xlsx": na
+   pasta de downloads, dez pedidos do dia eram dez nomes quase iguais e não
+   dava para saber de quem era qual sem abrir.
+
+   Vai o nome do cliente COMO ELE APARECE NA BUSCA do pedido — é o que o
+   vendedor reconhece. A fantasia da Detalhada entra só se a base do
+   comissionista não tiver aquele código; sem nenhum dos dois, fica o código
+   sozinho, que ainda identifica.
+
+   Mesma forma da Captação, para a pasta ficar com uma família só:
+   "Pedido ACME CALCADOS 3834566 26-10-2026.xlsx" */
+function nomeClienteParaArquivo(codigo){
+  const cod = String(codigo ?? "").trim();
+  if(!cod) return "";
+  let n = "";
+  try{ n = nomeClientePorCodigo(cod) || ""; }catch(_){}
+  if(!n){ try{ n = (FANT.porCodigo && FANT.porCodigo[cod]) || ""; }catch(_){} }
+  return n;
+}
+function nomeArquivoPedido(codigo, extensao, quando){
+  const d = quando ? new Date(quando) : new Date();
+  const p2 = n => String(n).padStart(2, "0");
+  const data = p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear();
+  const cod = String(codigo ?? "").trim();
+  // os proibidos em nome de arquivo no Windows, e espaco repetido
+  const limpo = t => String(t).replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim();
+  return limpo(["Pedido", nomeClienteParaArquivo(cod), cod, data].filter(Boolean).join(" ")) + extensao;
+}
+
 function cliBuscar(termo){
   const q = normalizeName(termo);
   if(!q){ CLI.total = 0; return []; }
@@ -15489,7 +15517,9 @@ function mpBaixarExcel(id){
   XLSX.utils.book_append_sheet(wb, ws, "Pedido");
   const d = new Date(pedido.createdAt);
   const pad = n => String(n).padStart(2,"0");
-  const fileName = `pedido_${pedido.clientCode||"sem-cliente"}_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`;
+  // mesmo nome do pedido recem-finalizado, mas com a data em que ELE foi
+  // feito — nao a de hoje: e o mesmo arquivo, baixado de novo
+  const fileName = nomeArquivoPedido(pedido.clientCode, ".xlsx", pedido.createdAt);
   XLSX.writeFile(wb, fileName);
   toast("Excel gerado do histórico ✅");
 }
