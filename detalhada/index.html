@@ -3237,6 +3237,11 @@ function instalarBase(base) {
     cor:   base.dic.cor.map(normalizar),
     oc:    base.dic.oc.map(normalizar),
   };
+  // Base nova, mapa de preposto por cliente velho: refaz. E os repasses
+  // precisam ser religados aos dicionários desta base.
+  _repPrepCli = null;
+  if (REP.carregado) repIndexar();
+  else repCarregar();
   atualizarFonteInfo();
 }
 
@@ -5013,7 +5018,325 @@ function linhaCasa(r, m) {
 /* ============================================================
    AGREGAÇÃO — uma passada nas linhas monta os grupos (ref + cor)
    ============================================================ */
+/* ============================================================
+   REPASSES DESTINADOS AO CLIENTE
+   ------------------------------------------------------------
+   A Detalhada mostra o que a fábrica ainda deve ao cliente. O repasse é
+   outra coisa: estoque que já existe e que outro vendedor liberou com
+   destino marcado. Eram duas telas para a mesma pergunta — "o que esse
+   cliente tem?" — e o vendedor somava de cabeça.
+
+   Aqui o repasse entra na mesma lista, marcado como repasse, e **nunca**
+   somado a carteira nem a faturado: são contas diferentes, e juntá-las
+   mentiria nos dois lados. A quantidade fica num campo próprio.
+
+   Cuidado com o vocabulário: nesta tela "Repassar"/"Transferências" já
+   quer dizer a ação de mandar uma encomenda embora. Isto aqui é o
+   contrário — o que está chegando para o cliente.
+   ============================================================ */
+const REP = { itens: [], porCli: new Map(), fora: [], carregado: false, erro: '' };
+
+/* Status que querem dizer "este lote já tem dono". Rascunho, recusado e
+   arquivado não entram: não há nada reservado para o cliente. É a mesma
+   lista que o app de Repasses usa para segurar a disponibilidade. */
+const REP_STATUS_VALE = new Set(['Pendente', 'Em análise', 'Aprovado', 'Atendido parcialmente']);
+
+/* Os pedidos do Worker viram uma lista plana: um item por produto+cor,
+   já com o cliente de destino em cada linha. */
+function repAchatar(pedidos) {
+  const n = v => Number(v) || 0;
+  const out = [];
+  for (const p of Array.isArray(pedidos) ? pedidos : []) {
+    if (!p || p.archived) continue;
+    const status = String(p.status || '').trim();
+    if (!REP_STATUS_VALE.has(status)) continue;
+    const cod = String(p.clienteCodigo || p.cliente || '').trim();
+    if (!cod) continue;
+    const itens = Array.isArray(p.items) ? p.items : (Array.isArray(p.itens) ? p.itens : []);
+    for (const it of itens) {
+      const ref = String((it && (it.codigo || it.referencia)) || '').trim();
+      const cor = String((it && it.cor) || '').trim();
+      if (!ref || !cor) continue;
+      // A caixa fechada guarda a conta em packSize; o avulso já vem em pares.
+      const qtd = n(it && it.totalUnits) ||
+        (String(it && it.mode) === 'boxed'
+          ? n(it && it.amount) * (n(it && it.packSize) || 1)
+          : n(it && it.amount));
+      if (!qtd) continue;
+      out.push({
+        cliCod: cod,
+        cliNome: String(p.clienteNome || p.nomeCliente || '').trim(),
+        ref, cor,
+        desc: String((it && (it.produto || it.descricao)) || '').trim(),
+        qtd, status,
+        pedido: String(p.id || ''),
+        // O envio a fabrica e a referencia para saber se o que chegou na
+        // Detalhada veio deste repasse ou ja estava la antes.
+        enviadoEm: String(p.exportedAt || p.createdAt || ''),
+        prevFat: String((it && (it.prevFaturamento || it.prevFat)) || '').trim(),
+        vendedor: String((p.preposto && p.preposto.nome) || p.vendedor || '').trim(),
+      });
+    }
+  }
+  return out;
+}
+
+/* Liga cada item aos índices dos dicionários da Detalhada — é por eles
+   que a lista agrupa, filtra e busca. Produto ou cor que a Detalhada
+   ainda não conhece entra no dicionário: o repasse pode trazer um item
+   que nenhum cliente encomendou, e ele precisa aparecer do mesmo jeito.
+   Cliente fora da base fica em REP.fora, contado e avisado. */
+function repIndexar() {
+  REP.porCli = new Map();
+  REP.fora = [];
+  if (!APP.dic || !APP.dic.cli || !REP.itens.length) return;
+
+  const iCli = new Map(); APP.dic.cli.forEach(([cod], i) => iCli.set(String(cod).trim(), i));
+  const iRef = new Map(); APP.dic.ref.forEach(([ref], i) => iRef.set(String(ref).trim(), i));
+  const iCor = new Map(); APP.dic.cor.forEach((c, i) => iCor.set(String(c).trim(), i));
+
+  for (const it of REP.itens) {
+    const ci = iCli.get(it.cliCod);
+    if (ci === undefined) { REP.fora.push(it); continue; }
+    it.cli = ci;
+    // O mesmo cliente chega do Repasses escrito de varios jeitos (POLYELLE,
+    // Polyelle, Polyélle). Vale o nome da Detalhada: e o que o vendedor ve no
+    // filtro, e sem isso a dica do selo listaria o mesmo cliente quatro vezes.
+    it.cliNome = APP.dic.cli[ci][1] || it.cliNome;
+
+    let ri = iRef.get(it.ref);
+    if (ri === undefined) {
+      ri = APP.dic.ref.length;
+      APP.dic.ref.push([it.ref, it.desc || it.ref]);
+      APP.idx.ref.push(normalizar(it.ref + ' ' + (it.desc || '')));
+      iRef.set(it.ref, ri);
+    }
+    let coi = iCor.get(it.cor);
+    if (coi === undefined) {
+      coi = APP.dic.cor.length;
+      APP.dic.cor.push(it.cor);
+      APP.idx.cor.push(normalizar(it.cor));
+      iCor.set(it.cor, coi);
+    }
+    it.refI = ri; it.corI = coi;
+    // A prev. fat. do repasse vira dia, igual a da carteira: e assim que a
+    // coluna PREV. FAT. e a ordenacao por mes sabem ler.
+    it.prevDias = dataParaDias(it.prevFat);
+
+    if (!REP.porCli.has(ci)) REP.porCli.set(ci, []);
+    REP.porCli.get(ci).push(it);
+  }
+  repMarcarEntrados();
+}
+
+/* ---- o repasse que ja entrou ----------------------------------------
+   Nem o Repasses nem o Worker sabem dizer que um repasse foi cumprido: o
+   ciclo de la termina em "Aprovado e exportado em lote", e nenhum pedido
+   chega a ser arquivado. Quem sabe e a propria Detalhada — quando a
+   fabrica fatura os pares para o cliente de destino, eles aparecem aqui.
+
+   Entao a conclusao e por inferencia, e a regra foi escolhida com os
+   numeros na mao (medidos em 27/10/2026, sobre 1.477 itens):
+
+     so FATURADO, em linha com data igual ou posterior ao envio do
+     repasse, somando pelo menos a quantidade repassada.
+
+   Exigir faturamento — e nao carteira — e o que separa "o repasse
+   chegou" de "o cliente tambem comprou esse produto da fabrica, e ainda
+   nao recebeu". A regra esconde 48% dos itens; as variantes mais soltas
+   chegavam a 64%, mas escondiam repasse que ainda nao tinha chegado. O
+   erro seguro aqui e mostrar a mais: um repasse escondido por engano some
+   da vista do vendedor, e um repetido ele enxerga e descarta.
+
+   O faturado e **consumido**: dois repasses de 12 pares do mesmo produto
+   contra 12 faturados marcam so um como entrado. */
+function repMarcarEntrados() {
+  if (!APP.L || !APP.dic) return;
+  // (cliente|ref|cor) -> linhas faturadas, com a data
+  const fatPorChave = new Map();
+  for (const r of APP.L) {
+    if (!r[C.FAT]) continue;
+    const k = r[C.CLI] + '|' + r[C.REF] + '|' + r[C.COR];
+    if (!fatPorChave.has(k)) fatPorChave.set(k, []);
+    fatPorChave.get(k).push({ dia: Math.max(r[C.DFAT], r[C.PREV]), pares: r[C.FAT] });
+  }
+  // sobra de faturado por chave, para o consumo
+  const sobra = new Map();
+  const itens = REP.itens.filter(it => it.cli != null && it.refI != null && it.corI != null);
+  // do mais antigo para o mais novo: o repasse antigo e quem tem direito
+  // ao faturamento antigo
+  itens.sort((a, b) => String(a.enviadoEm).localeCompare(String(b.enviadoEm)));
+  REP.entrados = 0; REP.paresEntrados = 0;
+  for (const it of itens) {
+    it.jaEntrou = false;
+    const k = it.cli + '|' + it.refI + '|' + it.corI;
+    const linhas = fatPorChave.get(k);
+    if (!linhas) continue;
+    const env = dataParaDias((it.enviadoEm || '').slice(0, 10));
+    if (!sobra.has(k)) sobra.set(k, linhas.map(x => ({ ...x })));
+    const pool = sobra.get(k);
+    let disponivel = 0;
+    for (const l of pool) if (env < 0 || l.dia >= env) disponivel += l.pares;
+    if (disponivel < it.qtd) continue;
+    it.jaEntrou = true;
+    REP.entrados++; REP.paresEntrados += it.qtd;
+    let falta = it.qtd;
+    for (const l of pool) {
+      if (falta <= 0) break;
+      if (env >= 0 && l.dia < env) continue;
+      const usa = Math.min(l.pares, falta);
+      l.pares -= usa; falta -= usa;
+    }
+  }
+}
+
+/* Cada cliente pertence a um preposto — a Detalhada guarda isso nas
+   linhas. Sem o mapa, o vendedor veria repasse de cliente alheio. */
+let _repPrepCli = null;
+function repPrepostoDoCliente(ci) {
+  if (!_repPrepCli) {
+    _repPrepCli = new Map();
+    for (const r of APP.L) if (!_repPrepCli.has(r[C.CLI])) _repPrepCli.set(r[C.CLI], r[C.PREP]);
+  }
+  return _repPrepCli.get(ci);
+}
+
+/* Onde o repasse aparece. "Tudo", "Carteira" e a aba própria — Carteira
+   entra porque é a aba em que a tela abre e é a pergunta que o vendedor
+   faz ("o que esse cliente ainda tem pra receber?"), e o repasse é
+   justamente isso, só que vindo de outro vendedor em vez da fábrica.
+   Em "Faturado" não entra: lá a nota já saiu. */
+function repVisivel() {
+  return REP.carregado &&
+    (APP.status === 'TUDO' || APP.status === 'CART' || APP.status === 'REP');
+}
+/* O que o selo conta quando o vendedor para o mouse em cima: de quem é o
+   repasse, quanto e em que pé está. */
+function repDica(g) {
+  const itens = g.repItens || [];
+  if (!itens.length) return '';
+  const porCli = new Map();
+  for (const it of itens) {
+    const nome = it.cliNome || it.cliCod;
+    const a = porCli.get(nome) || { q: 0, st: new Set() };
+    a.q += it.qtd; a.st.add(it.status);
+    porCli.set(nome, a);
+  }
+  return [...porCli].map(([nome, a]) =>
+    `${nome}: ${formatarNumero(a.q)} par${a.q > 1 ? 'es' : ''} (${[...a.st].join(', ')})`).join(' · ');
+}
+
+/* O mesmo pedido pode trazer o mesmo produto+cor em mais de um item
+   (grades lançadas em momentos diferentes). Na exportação isso vira
+   várias linhas idênticas, e quem lê não sabe se é repetição ou coisas
+   distintas — então viram uma só, somada. Na tela o selo já soma. */
+function repAgrupar(itens) {
+  const m = new Map();
+  for (const it of (itens || [])) {
+    const k = [it.pedido, it.cliCod, it.prevFat, it.status].join('|');
+    const a = m.get(k);
+    if (a) a.qtd += it.qtd;
+    else m.set(k, { ...it });
+  }
+  return [...m.values()];
+}
+
+/* Os itens de repasse que o recorte da tela deixa passar: mesmo cliente,
+   mesmo preposto e mesma busca que a carteira. O chip "Repasses" conta por
+   aqui e a lista monta por aqui — assim o numero do botao e o que aparece
+   ao clicar nele nunca discordam. Filtrou um cliente, o chip ja responde
+   quantos pares estao a caminho dele. */
+function repItensDoRecorte(masks) {
+  const out = [];
+  if (!REP.carregado) return out;
+  const f = APP.filtros;
+  if (masks === undefined) {
+    const termos = (APP.busca || '').split(',').map(s => normalizar(s).trim()).filter(Boolean).slice(0, 3);
+    masks = termos.map(mascaraDoTermo);
+  }
+  for (const [ci, itens] of REP.porCli) {
+    if (f.cliente.size && !f.cliente.has(ci)) continue;
+    if (!APP.veTudo && repPrepostoDoCliente(ci) !== APP.prepFixo) continue;
+    if (f.preposto.size && !f.preposto.has(repPrepostoDoCliente(ci))) continue;
+    for (const it of itens) {
+      if (it.jaEntrou) continue;   // ja esta na carteira: mostrar seria duplicar
+      if (it.refI === undefined || it.corI === undefined) continue;
+      if (masks.length) {
+        let ok = true;
+        for (const m of masks) {
+          if (!(m.cli[ci] || m.ref[it.refI] || m.cor[it.corI])) { ok = false; break; }
+        }
+        if (!ok) continue;
+      }
+      out.push(it);
+    }
+  }
+  return out;
+}
+
+/* Tem repasse para este vendedor, em qualquer cliente? E o que decide se o
+   botao existe. O numero dentro dele e outra conta: essa segue o filtro. */
+function repVendedorTemAlgum() {
+  if (!REP.carregado) return false;
+  for (const [ci, itens] of REP.porCli) {
+    if (!APP.veTudo && repPrepostoDoCliente(ci) !== APP.prepFixo) continue;
+    for (const it of itens) if (!it.jaEntrou && it.qtd > 0) return true;
+  }
+  return false;
+}
+
+function repTotalDoRecorte(masks) {
+  let t = 0;
+  for (const it of repItensDoRecorte(masks)) t += it.qtd;
+  return t;
+}
+
+/* Quantos pares o chip "Repasses" mostrou da ultima vez. Mudou o filtro,
+   mudou o numero: ai os chips sao redesenhados, e so ai — redesenhar a cada
+   render custaria a releitura das marcacoes sem nada mudar na tela. */
+let _repChipN = null;
+function sincronizarChipRepasse() {
+  if (!REP.carregado) return;
+  if (repTotalDoRecorte() !== _repChipN) renderStatusChips();
+}
+
+/* A dica do chip "Repasses" conta de quem sao os pares. Com um cliente
+   filtrado ela diz o nome: e a pergunta que o vendedor faz quando filtra. */
+function repDicaDoChip() {
+  const cli = [...APP.filtros.cliente];
+  const n = repTotalDoRecorte();
+  const pares = formatarNumero(n) + (n === 1 ? ' par' : ' pares');
+  if (cli.length === 1) {
+    const nome = APP.dic.cli[cli[0]] ? (APP.dic.cli[cli[0]][1] || APP.dic.cli[cli[0]][0]) : '';
+    return escAttr(n
+      ? `${pares} de repasse a caminho de ${nome}. Clique para ver so eles.`
+      : `${nome} nao tem repasse a caminho.`);
+  }
+  if (cli.length > 1) return escAttr(`${pares} de repasse a caminho dos ${cli.length} clientes filtrados.`);
+  return escAttr(`${pares} de repasse a caminho dos seus clientes. Filtre um cliente para ver so os dele.`);
+}
+
+async function repCarregar() {
+  try {
+    const r = await fetch(WORKER_URL, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    REP.itens = repAchatar(await r.json());
+    REP.erro = '';
+  } catch (e) {
+    REP.itens = [];
+    REP.erro = String((e && e.message) || e);
+  }
+  REP.carregado = true;
+  _repPrepCli = null;
+  repIndexar();
+  // Os chips são desenhados antes do repasse chegar da rede: sem repintar,
+  // a aba Repasses nasceria com zero e sumiria.
+  if (APP.base) { renderStatusChips(); render(); }
+}
+
 function passaFiltros(r, f) {
+  // Na aba do repasse a lista é só dele: nenhuma linha da fábrica entra.
+  if (APP.status === 'REP') return false;
   if (!APP.veTudo && r[C.PREP] !== APP.prepFixo) return false;
   if (f.preposto.size && !f.preposto.has(r[C.PREP])) return false;
   if (f.cliente.size && !f.cliente.has(r[C.CLI])) return false;
@@ -5067,9 +5390,38 @@ function agregar() {
     totLinhas++;
   }
 
+  // ---- o que está chegando de repasse para estes clientes ----------------
+  // Entra nos mesmos grupos de produto+cor, num campo próprio. Se o produto
+  // não existe na carteira nem no faturado, o grupo nasce aqui — senão um
+  // repasse de item novo não apareceria em lugar nenhum.
+  let totRep = 0;
+  if (repVisivel()) {
+    for (const it of repItensDoRecorte(masks)) {
+      const ci = it.cli;
+      const chave = mkChave(it.refI, it.corI);
+      let g = mapa.get(chave);
+      if (!g) {
+        g = { ref: it.refI, cor: it.corI, cart: 0, fat: 0, clientes: new Set(),
+              prevMin: Infinity, linhas: [] };
+        mapa.set(chave, g);
+      }
+      g.rep = (g.rep || 0) + it.qtd;
+      (g.repItens || (g.repItens = [])).push(it);
+      // O repasse tem data para faturar, e ela e guardada a parte. Entrar
+      // no prevMin reordenaria a lista inteira: muita data de repasse ja
+      // passou, e o produto saltaria para o topo da ordem por mes. Serve
+      // de reserva, para a coluna nao ficar com um travessao quando o
+      // produto so tem repasse.
+      if (it.prevDias >= 0 && (g.prevRep == null || it.prevDias < g.prevRep)) g.prevRep = it.prevDias;
+      g.clientes.add(ci);
+      clientes.add(ci);
+      totRep += it.qtd;
+    }
+  }
+
   const grupos = [...mapa.values()];
   ordenarGrupos(grupos);
-  return { grupos, totCart, totFat, totLinhas, nClientes: clientes.size };
+  return { grupos, totCart, totFat, totLinhas, totRep, nClientes: clientes.size };
 }
 
 function ordenarGrupos(g) {
@@ -5492,7 +5844,11 @@ function catAplicarRecorte({ grupos, totCart, totFat, totLinhas }) {
     let lin = g.linhas;
     if (rec.tipo === 'selecao') lin = lin.filter(i => APP.selecao.has(i));
     else if (!APP.abertos.has(chaveGrupo(g))) lin = [];
-    if (!lin.length) continue;
+    // Produto que só tem repasse não tem encomenda para marcar nem abrir;
+    // se o vendedor abriu o card dele, ainda assim vai para o recorte.
+    const soRepasseAberto = !lin.length && (g.rep || 0) > 0 &&
+      rec.tipo === 'abertos' && APP.abertos.has(chaveGrupo(g));
+    if (!lin.length && !soRepasseAberto) continue;
     let cart = 0, fat = 0, prevMin = Infinity;
     for (const i of lin) {
       const r = APP.L[i];
@@ -5518,9 +5874,15 @@ function catDados() {
     }).map(i => APP.L[i]);
     const gen = [...new Set(linhas.map(generoDaLinha).filter(Boolean))].join('/');
     return { ref: String(ref), desc: String(desc || ref), cor: String(cor), gen, linhas,
-             cart: g.cart, fat: g.fat, prev: g.prevMin === Infinity ? -1 : g.prevMin };
+             cart: g.cart, fat: g.fat,
+             prev: g.prevMin === Infinity ? (g.prevRep != null ? g.prevRep : -1) : g.prevMin,
+             // o repasse viaja junto: é daqui que o PDF e a planilha leem
+             rep: g.rep || 0, repItens: g.repItens || [] };
   });
-  return { produtos, totCart, totFat, totLinhas };
+  // Somado a partir do que sobrou do recorte, não de agregar(): o recorte
+  // pode ter tirado produtos da lista.
+  const totRep = produtos.reduce((s, p) => s + (p.rep || 0), 0);
+  return { produtos, totCart, totFat, totLinhas, totRep };
 }
 
 function catResumoFiltros() {
@@ -5598,7 +5960,7 @@ async function catExportXlsx() {
  *  carteira, um tamanho por coluna e, no fim, DESTINO e PRAZO em branco para
  *  preencher com o cliente. */
 function catLinhasPlanilha(comCliente = false) {
-  const { produtos, totCart, totFat, totLinhas } = catDados();
+  const { produtos, totCart, totFat, totLinhas, totRep } = catDados();
 
   // Os tamanhos viram colunas: a união do que aparece, em ordem de número.
   const ord = t => parseInt(String(t), 10) || 0;
@@ -5610,23 +5972,54 @@ function catLinhasPlanilha(comCliente = false) {
   const colTam = [...tams].sort((a, b) => ord(a) - ord(b) || String(a).localeCompare(String(b)));
 
   // Na carteira geral entra a coluna do cliente, logo depois do produto.
-  const cab = ['Referência', 'Descrição', 'Cor', ...(comCliente ? ['Cliente'] : []),
-               'Faixa', 'GCI', 'Prev. fat.', 'Carteira (pares)', ...colTam];
+  // "Origem" abre a planilha: é ela que diz se a linha vem da fábrica ou
+  // de um repasse, e o repasse tem coluna de pares só dele — somar as duas
+  // na mesma coluna faria o total mentir.
+  const cab = ['Origem', 'Referência', 'Descrição', 'Cor', ...(comCliente ? ['Cliente'] : []),
+               'Faixa', 'GCI', 'Prev. fat.', 'Carteira (pares)', 'Repasse (pares)', ...colTam];
   const corpo = [], fotos = [];
-  for (const p of produtos) for (const r of p.linhas) {
-    fotos.push([p.ref, p.cor]);
-    const g = gradeDaLinha(r);
-    const faixa = (APP.dic.faixa && r[C.FAIXA] != null && r[C.FAIXA] >= 0) ? APP.dic.faixa[r[C.FAIXA]] : '';
-    corpo.push([
-      String(p.ref), p.desc, p.cor, ...(comCliente ? [catRotuloCliente(r)] : []), faixa || '',
-      r[C.GCI] || '',
-      r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : '',
-      r[C.CART] || 0,
-      ...colTam.map(t => (g && g.tam && g.tam[t]) ? Number(g.tam[t]) : ''),
-    ]);
+  const vazioTam = colTam.map(() => '');
+  for (const p of produtos) {
+    for (const r of p.linhas) {
+      fotos.push([p.ref, p.cor]);
+      const g = gradeDaLinha(r);
+      const faixa = (APP.dic.faixa && r[C.FAIXA] != null && r[C.FAIXA] >= 0) ? APP.dic.faixa[r[C.FAIXA]] : '';
+      corpo.push([
+        'Carteira',
+        String(p.ref), p.desc, p.cor, ...(comCliente ? [catRotuloCliente(r)] : []), faixa || '',
+        r[C.GCI] || '',
+        r[C.CART] > 0 ? diaParaBR(r[C.PREV]) : '',
+        r[C.CART] || 0,
+        '',
+        ...colTam.map(t => (g && g.tam && g.tam[t]) ? Number(g.tam[t]) : ''),
+      ]);
+    }
+    // O repasse não tem linha na Detalhada: entra aqui, uma por destino.
+    for (const it of repAgrupar(p.repItens)) {
+      fotos.push([p.ref, p.cor]);
+      corpo.push([
+        // A origem leva o estado junto: "Repasse · Aprovado" diz de onde
+        // veio e em que pé está, sem inventar coluna nem ocupar a Faixa,
+        // que é do produto.
+        'Repasse' + (it.status ? ' · ' + it.status : ''),
+        String(p.ref), p.desc, p.cor,
+        ...(comCliente ? [`${it.cliCod} - ${it.cliNome || ''}`.trim().replace(/-\s*$/, '').trim()] : []),
+        '',
+        // Onde a carteira põe o GCI, o repasse põe o número do pedido: é o
+        // identificador equivalente, e sem ele dois repasses do mesmo
+        // produto para o mesmo cliente saem como duas linhas iguais.
+        it.pedido || '',
+        it.prevFat || '',
+        '',
+        it.qtd,
+        ...vazioTam,
+      ]);
+    }
   }
-  const nClientes = new Set(produtos.flatMap(p => p.linhas.map(r => r[C.CLI]))).size;
-  return { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam, nClientes };
+  const cliSet = new Set(produtos.flatMap(p => p.linhas.map(r => r[C.CLI])));
+  for (const p of produtos) for (const it of (p.repItens || [])) if (it.cli != null) cliSet.add(it.cli);
+  const nClientes = cliSet.size;
+  return { produtos, totCart, totFat, totLinhas, totRep, cab, corpo, fotos, colTam, nClientes };
 }
 
 async function catGarantirExcelJs() {
@@ -5650,7 +6043,7 @@ function catExportXlsxComImagens(cli) { return catGerarPlanilha(cli, true); }
  *  o SheetJS da página não grava alinhamento, cor nem largura de linha. */
 async function catGerarPlanilha(cli, comFotos) {
   const geral = cli < 0;
-  const { produtos, totCart, totFat, totLinhas, cab, corpo, fotos, colTam, nClientes } =
+  const { produtos, totCart, totFat, totLinhas, totRep, cab, corpo, fotos, colTam, nClientes } =
     geral ? catLinhasPlanilha(true) : catSoCliente(cli, () => catLinhasPlanilha(false));
   const [cod, nome] = geral ? ['', ''] : APP.dic.cli[cli];
   syncShow('Preparando a planilha…');
@@ -5679,7 +6072,7 @@ async function catGerarPlanilha(cli, comFotos) {
     [geral ? `Catálogo da carteira · ${nClientes} ${nClientes === 1 ? 'cliente' : 'clientes'}`
            : `Catálogo da carteira · ${nome || cod} (${cod})`, { name: 'Calibri', bold: true, size: 14, color: { argb: 'FF0F766E' } }],
     [`${resumo ? 'Filtros: ' + resumo + ' · ' : ''}Gerado em ${new Date().toLocaleString('pt-BR')}`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
-    [`${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
+    [`${produtos.length} produtos · ${totLinhas} encomendas · carteira ${totCart} pares · faturado ${totFat} pares${totRep ? ` · repasse ${totRep} pares` : ''}`, { name: 'Calibri', size: 10, color: { argb: 'FF6B7280' } }],
   ];
   topo.forEach(([texto, fonte], i) => {
     const c = ws.getCell(i + 1, 1);
@@ -5845,7 +6238,7 @@ async function catExportPdf() {
 
 async function catGerarPdf(cli, oferecerZap) {
   const geral = cli < 0;
-  const { produtos, totCart, totFat, totLinhas } = geral ? catDados() : catSoCliente(cli, catDados);
+  const { produtos, totCart, totFat, totLinhas, totRep } = geral ? catDados() : catSoCliente(cli, catDados);
   if (!produtos.length) return;
   syncShow('Montando o catálogo…');
   if (!await rfvGarantirPdf()) { syncHide(); toast('Não consegui carregar o gerador de PDF'); return; }
@@ -5865,7 +6258,10 @@ async function catGerarPdf(cli, oferecerZap) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const K = { verde: [15, 118, 110], verdeClaro: [204, 236, 232], texto: [15, 23, 42], fraco: [100, 116, 139],
               linha: [226, 232, 240], fundo: [248, 250, 252], branco: [255, 255, 255],
-              cart: [37, 99, 235], fat: [22, 163, 74], alerta: [217, 119, 6] };
+              cart: [37, 99, 235], fat: [22, 163, 74], alerta: [217, 119, 6],
+              // repasse: a cor da gestão (#B8672E), nem a da carteira nem a
+              // do faturado — são três contas diferentes
+              rep: [184, 103, 46] };
   const cor = (c, t = 'text') => t === 'fill' ? doc.setFillColor(...c) : t === 'draw' ? doc.setDrawColor(...c) : doc.setTextColor(...c);
   const fonte = (peso, tam) => { doc.setFont('helvetica', peso); doc.setFontSize(tam); };
   const nf = n => formatarNumero(n);
@@ -5891,6 +6287,9 @@ async function catGerarPdf(cli, oferecerZap) {
     // números do que está no catálogo
     const fichas = [[nf(produtos.length), 'produtos', K.texto], [nf(totLinhas), 'encomendas', K.texto],
                     [nf(totCart), 'pares em carteira', K.cart], [nf(totFat), 'pares faturados', K.fat]];
+    // So entra quando existe: numa carteira sem repasse a ficha vazia so
+    // ocuparia espaco e levantaria a pergunta "por que zero?".
+    if (totRep) fichas.push([nf(totRep), 'pares de repasse', K.rep]);
     let x = M;
     for (const [v, rot, c] of fichas) {
       cor(c); fonte('bold', 11); doc.text(v, x, 102);
@@ -6013,6 +6412,35 @@ async function catGerarPdf(cli, oferecerZap) {
       y = grade(r, tx, y, tw, desenhar);
       y += 5;
     }
+
+    // O que está chegando de repasse deste produto. Vem depois das
+    // encomendas, com faixa e cor próprias, para ninguém ler como carteira.
+    const reps = repAgrupar(p.repItens);
+    if (reps.length) {
+      if (desenhar) {
+        cor(K.rep); fonte('bold', 6.3);
+        doc.text('REPASSE', tx, y);
+        cor(K.linha, 'draw'); doc.setLineWidth(0.4); doc.line(tx, y + 3, tx + tw, y + 3);
+      }
+      y += 13;
+      for (const it of reps) {
+        if (desenhar) {
+          cor(K.texto); fonte('bold', 8.3);
+          doc.text(String(it.pedido || '—'), cx[0], y);
+          fonte('normal', 8.3);
+          const col2 = geral ? `${it.cliCod} ${it.cliNome || ''}`.trim() : (it.status || '—');
+          doc.text(doc.splitTextToSize(col2 || '—', cx[2] - cx[1] - 6)[0], cx[1], y);
+          cor(K.rep); fonte('bold', 8.3);
+          doc.text(nf(it.qtd) + ' pares', cx[2], y);
+          cor(K.fraco); fonte('normal', 8.3);
+          doc.text(geral ? (it.status || '—') : '—', cx[3], y);
+          cor(K.texto); fonte('normal', 8.3);
+          doc.text(it.prevFat || '—', cx[4], y);
+        }
+        y += 14;
+      }
+      y += 2;
+    }
     return Math.max(y - y0 + PAD - 5, FOTO + PAD * 2);
   }
 
@@ -6031,14 +6459,19 @@ async function catGerarPdf(cli, oferecerZap) {
   const pedacos = [];
   produtos.forEach((prod, i) => {
     if (card(prod, fotos[i], 0, false) <= maxH) { pedacos.push([prod, fotos[i]]); return; }
+    // Partido em pedaços: o repasse acompanha só o último, senão a mesma
+    // lista sairia repetida em cada pedaço — e entraria duas vezes na
+    // medição da altura.
+    const semRep = { ...prod, repItens: [] };
     let atual = [];
     for (const r of prod.linhas) {
-      if (atual.length && card({ ...prod, linhas: [...atual, r] }, fotos[i], 0, false) > maxH) {
-        pedacos.push([{ ...prod, linhas: atual }, fotos[i]]);
+      if (atual.length && card({ ...semRep, linhas: [...atual, r] }, fotos[i], 0, false) > maxH) {
+        pedacos.push([{ ...semRep, linhas: atual }, fotos[i]]);
         atual = [r];
       } else atual.push(r);
     }
     if (atual.length) pedacos.push([{ ...prod, linhas: atual }, fotos[i]]);
+    else if (prod.repItens && prod.repItens.length) pedacos.push([{ ...prod, linhas: [] }, fotos[i]]);
   });
   for (const [prod, foto] of pedacos) {
     const h = card(prod, foto, y, false);
@@ -7668,15 +8101,25 @@ function renderStatusChips() {
     // tres abas obrigavam a procurar em qual delas estava o lancamento.
     { id: 'MARCADAS', label: 'Transferências', icone: 'fa-right-left',
       n: todas.length, alerta: urgentes, vermelho: !!urgentes, ponto: novidades },
+    // O que vem chegando de repasse. Fica por último de propósito: é
+    // leitura, não fila de trabalho como as Transferências.
+    // Fica no lugar como "Tudo", "Carteira" e "Faturado": o filtro muda o
+    // numero, nunca a existencia do botao. Ver "Repasses 0" neste cliente e
+    // uma resposta; o botao sumir e so confusao.
+    { id: 'REP', label: 'Repasses', icone: 'fa-truck-ramp-box', n: (_repChipN = repTotalDoRecorte()),
+      sempre: repVendedorTemAlgum(), dica: repDicaDoChip() },
   ];
 
   $('status-chips').innerHTML = opcoes.map(o => {
-    if (o.n === 0) return '';
+    // Zerou, some — menos os que ficam sempre e a aba aberta, que sumir
+    // embaixo do pe de quem esta nela deixaria a tela vazia sem dizer por que.
+    if (o.n === 0 && !o.sempre && APP.status !== o.id) return '';
     const cont = o.n != null ? `<span class="chip-n">${o.n}</span>` : '';
     const alerta = o.alerta ? `<span class="chip-alerta" title="${o.alerta} com faturamento em menos de ${DIAS_ALERTA} dias">${o.alerta}</span>` : '';
     const ponto = o.ponto ? `<span class="chip-ponto" title="${o.ponto} novidade(s)"></span>` : '';
     const cls = ['tipo-chip', o.vermelho ? 'alerta' : '', APP.status === o.id ? 'ativo' : ''].filter(Boolean).join(' ');
-    return `<button class="${cls}" data-status="${o.id}"><i class="fa-solid ${o.icone}"></i> ${o.label}${cont}${alerta}${ponto}</button>`;
+    const dica = o.dica ? ` title="${o.dica}"` : '';
+    return `<button class="${cls}"${dica} data-status="${o.id}"><i class="fa-solid ${o.icone}"></i> ${o.label}${cont}${alerta}${ponto}</button>`;
   }).join('');
 
   atualizarVeuRolagem();
@@ -7925,7 +8368,7 @@ function render() {
   }
 
   const t0 = performance.now();
-  const { grupos, totCart, totFat, totLinhas, nClientes } = agregar();
+  const { grupos, totCart, totFat, totLinhas, totRep, nClientes } = agregar();
   APP.grupos = grupos;
   probAtualizarSelo();
   reatSelo();
@@ -7936,6 +8379,7 @@ function render() {
   $('summary').innerHTML = `
     <div class="summary-chip" title="${formatarNumero(totLinhas)} encomendas · ${formatarNumero(nClientes)} clientes"><strong class="c-cart">${formatarNumero(totCart)}</strong> carteira</div>
     <div class="summary-chip"><strong class="c-fat">${formatarNumero(totFat)}</strong> faturado</div>
+    ${totRep ? `<div class="summary-chip s-rep" title="Pares de repasse com destino para estes clientes, ainda não faturados. Não entram em carteira nem em faturado.${REP.paresEntrados ? ` Outros ${formatarNumero(REP.paresEntrados)} pares já foram faturados ao cliente e saíram desta conta para não contar duas vezes.` : ''}"><strong class="c-rep">${formatarNumero(totRep)}</strong> repasse</div>` : ''}
     <div class="summary-chip s-conv" title="faturado ÷ (carteira + faturado)"><strong class="c-conv">${pctBR(conv, 1)}</strong> conversão</div>
     <div class="summary-chip"><strong>${formatarNumero(grupos.length)}</strong> produtos</div>
     <div class="summary-chip"><strong>${formatarNumero(nClientes)}</strong> clientes</div>
@@ -7943,6 +8387,7 @@ function render() {
   // A barrinha da carteira de cada linha é medida contra a maior da lista.
   APP.maxCart = grupos.reduce((m, g) => Math.max(m, g.cart), 0);
 
+  sincronizarChipRepasse();
   atualizarBotoesFiltros();
   atualizarVeuRolagem();
   medirTopoCongelado();
@@ -7950,7 +8395,19 @@ function render() {
   const lista = $('lista');
   atualizarFabLimpar();
   if (grupos.length === 0) {
-    lista.innerHTML = `
+    // Na aba de repasse, vazio quer dizer uma coisa so — e nao "mude o termo".
+    const cli = [...APP.filtros.cliente];
+    const quem = cli.length === 1 ? (APP.dic.cli[cli[0]][1] || APP.dic.cli[cli[0]][0]) : '';
+    lista.innerHTML = APP.status === 'REP'
+      ? `
+      <div class="empty-state">
+        <i class="fa-solid fa-truck-ramp-box"></i>
+        <p>${quem ? escHtml(quem) + ' não tem repasse a caminho' : 'Nenhum repasse a caminho'}</p>
+        <p style="margin-top:8px;font-size:12px;">${quem
+          ? 'Nada que outro vendedor tenha destinado a este cliente está em aberto'
+          : 'Quando outro vendedor destinar pares aos seus clientes, eles aparecem aqui'}</p>
+      </div>`
+      : `
       <div class="empty-state">
         <i class="fa-solid fa-magnifying-glass"></i>
         <p>Nada encontrado</p>
@@ -7994,7 +8451,8 @@ function render() {
     // já está na tela: a lista carrega de 120 em 120).
     `<div class="lista-total">
        <span></span>
-       <span class="lt-rot">Total · ${formatarNumero(grupos.length)} produto${grupos.length > 1 ? 's' : ''}</span>
+       <span class="lt-rot">Total · ${formatarNumero(grupos.length)} produto${grupos.length > 1 ? 's' : ''}${
+         totRep ? ` <span class="p-repasse lt-rep"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Repasse ${formatarNumero(totRep)}</span>` : ''}</span>
        <span class="lt-n lt-cli d-num">${formatarNumero(nClientes)}</span>
        <span class="lt-n col-enc d-num">${formatarNumero(totLinhas)}</span>
        <span class="lt-n lt-cart d-num">${formatarNumero(totCart)}</span>
@@ -8037,7 +8495,17 @@ function cardProduto(g, idx) {
   const imgKey = `${referencia}_${corParaArquivo(cor)}`;
   const chave = chaveGrupo(g);
   const aberto = APP.abertos.has(chave);
-  const mesProx = g.prevMin === Infinity ? '' : diaParaMes(g.prevMin);
+  // Sem data da fabrica, vale a do repasse: a coluna nunca fica vazia
+  // quando existe alguma previsao.
+  const diaPrev = g.prevMin === Infinity ? (g.prevRep != null ? g.prevRep : -1) : g.prevMin;
+  const mesProx = diaPrev < 0 ? '' : diaParaMes(diaPrev);
+
+  // O selo do repasse: diz que aquilo não vem da fábrica, e quanto é.
+  // Fica junto do produto, não na coluna da carteira, justamente para
+  // ninguém somar as duas coisas sem perceber.
+  const seloRep = g.rep
+    ? `<span class="p-repasse" title="${escAttr(repDica(g))}"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Repasse ${formatarNumero(g.rep)}</span>`
+    : '';
 
   const imgErro = `this.classList.add('failed');`;
 
@@ -8053,6 +8521,7 @@ function cardProduto(g, idx) {
         <div class="product-info">
           <p class="product-name">${escHtml(descricao || referencia)}</p>
           <p class="product-meta"><span class="p-cor">${escHtml(cor)}</span><span class="p-sep"> · </span><span class="p-ref">${escHtml(referencia)}</span>${mesProx ? ` <span class="p-mes">${escHtml(mesCurtoRotulo(mesProx))}</span>` : ''}</p>
+          ${seloRep}
         </div>
         <span class="col-cor">${escHtml(cor)}</span>
         <span class="col-ref">${escHtml(referencia)}</span>
@@ -12249,6 +12718,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 .product-meta .p-ref{ color:var(--d-link); }      /* azul = clicável */
 .product-meta .p-mes{ color:var(--d-warn); white-space:nowrap; }   /* âmbar = prazo */
 .product-meta .p-mes i{ font-size:9px; opacity:.85; margin-right:2px; }
+
+/* repasse: o que chega de outro vendedor, não da fábrica. Cor própria —
+   nem a da carteira nem a do faturado — porque é uma terceira conta e
+   ninguém pode somar as três sem perceber. */
+.p-repasse{
+  display:inline-flex; align-items:center; gap:4px;
+  margin-left:7px; padding:1px 7px; border-radius:999px;
+  background:color-mix(in srgb, var(--ds-gestao) 14%, transparent);
+  color:var(--ds-gestao); font-weight:700; font-size:10.5px; white-space:nowrap;
+}
+.p-repasse i{ font-size:9px; opacity:.9; }
+/* Fica fora do nome e fora do .product-meta de propósito: dentro do nome
+   a reticência o comia no estreito, e dentro do meta ele sumia no painel
+   largo, onde o meta não aparece. Aqui vale nas duas larguras. */
+.p-repasse{ margin-left:0; margin-top:3px; }
+/* Na linha de total o selo fica ao lado do rotulo, na mesma linha. */
+.lista-total .p-repasse.lt-rep{ margin:0 0 0 10px; vertical-align:middle; }
+.summary-chip.s-rep .c-rep{ color:var(--ds-gestao); }
 
 /* coluna clientes: contagem neutra, sem cor */
 .product-tags.col-cli{
