@@ -5807,6 +5807,17 @@ $("btnClear").addEventListener("click", ()=>{
 });
 
 // ═══════════ SELETOR DE COLEÇÃO ═══════════
+/* A classificação por canal/tier não existe em toda coleção: depende de a
+   planilha ter as colunas Sporting Goods e Family FTW preenchidas. Quem
+   responde é o dado, não uma coleção escrita à mão — assim a coleção nova
+   ganha o filtro no dia em que o tier dela for preenchido. */
+function colecaoTemTier(colecao){
+  const alvo = String(colecao || "").toUpperCase();
+  if(!alvo) return false;
+  return (state.productsRaw || []).some(p =>
+    String(p.colecao || "").toUpperCase() === alvo &&
+    (p.sg1 || p.sg2 || p.sg3 || p.ftw1 || p.ftw2 || p.ftw3));
+}
 function syncColecaoCards(){
   // Cada marca tem as suas coleções: a Under Armour não tem 1S26, e o botão
   // levava a uma tela sem nenhum produto. Só aparece quem tem o que mostrar.
@@ -5826,10 +5837,9 @@ function syncColecaoCards(){
   document.querySelectorAll(".colecao-card").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.colecao === state.filters.colecao);
   });
-  // A barra de classificação é só da 2S26: a 1S27 ainda não tem o tier por
-  // canal preenchido na planilha.
+  // A barra de classificação aparece na coleção que tiver tier preenchido.
   const wrap = document.getElementById("tierBarWrap");
-  if(wrap) wrap.classList.toggle("show", state.filters.colecao === "2S26");
+  if(wrap) wrap.classList.toggle("show", colecaoTemTier(state.filters.colecao));
 }
 /* Trocar de coleção é a mesma coisa vinda de dois lugares: dos cartões da
    tela inicial e do chip da lista. A regra mora aqui para não viver em duas
@@ -5837,8 +5847,8 @@ function syncColecaoCards(){
 function escolherColecao(sel, naLista){
   if(!sel || state.filters.colecao === sel) return;
   state.filters.colecao = sel;
-  // Ao trocar de coleção, limpa o tier (só a 2S26 tem classificação)
-  if(sel !== "2S26"){
+  // Ao trocar de coleção, limpa o tier se a coleção nova não tiver classificação
+  if(!colecaoTemTier(sel)){
     state.filters.tier = "";
     syncTierBar();
   }
