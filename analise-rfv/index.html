@@ -374,6 +374,117 @@ function unificarCliente(cod, cli){
   return u ? { cod:u.cod, cli:u.cli } : { cod:cod, cli:cli };
 }
 
+/* ---- os dois semestres vêm da Detalhada ---------------------------
+   O relatório do EBM não sabe dizer o que foi faturado em cada semestre.
+   A coluna "2026 (M-1)" é o ANO até o mês passado — julho, agosto e
+   setembro, que são 2S26, caem dentro dela — e "Corrente + meses" é só o
+   mês atual mais o que falta faturar. Em julho a conta batia; a cada mês
+   um pedaço do 2º semestre migra para o 1º e o 2S26 encolhe.
+   Medido em 28/10/2026 no DEGRAUS SPORTS: o EBM reparte 19.352 / 8.136
+   onde o certo é 11.678 / 16.812 — o mesmo volume, dividido errado.
+
+   A Detalhada tem a data de cada faturamento e a prevista de cada
+   carteira, então é dela que os dois semestres passam a vir, com a mesma
+   conta da tela "RFV da carteira": FAT pelo mês da data de faturamento,
+   CART pelo mês da prev. fat., corte em julho.
+
+   O cruzamento é por NOME, não por código: o RFV vem por código líder (a
+   rede inteira num código) e a Detalhada vem por loja — IDEAL MAGAZINE é
+   uma linha lá e quinze aqui. Medido: 603 dos 798 líderes casam, cobrindo
+   98% do volume; quem não casa não tem movimento no ano e fica com zero
+   nos dois semestres, que é o número certo para ele.
+
+   O total de cada cliente é repartido entre as categorias na proporção em
+   que o EBM as mostra. A soma do cliente fica exata; a fatia de cada
+   categoria dentro do semestre continua tão boa quanto a do EBM, que é o
+   que os selos de categoria já usavam. */
+const DET_WORKER = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
+let DET_SEM = null;      // nome normalizado -> {s1,s2}
+let DET_ERRO = '';
+
+function normNomeCli(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\(.*?\)/g,' ')
+    .replace(/[^A-Za-z0-9 ]/g,' ')
+    .replace(/\s+/g,' ').trim().toUpperCase();
+}
+
+async function carregarSemestresDaDetalhada(){
+  if(DET_SEM) return DET_SEM;
+  try{
+    const r = await fetch(DET_WORKER, { method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'getDetalhada' }) });
+    if(!r.ok) throw new Error('worker respondeu '+r.status);
+    const b = await r.json();
+    if(!b || !Array.isArray(b.l) || !b.dic || !b.dic.cli) throw new Error('base vazia');
+    // índices da base da Detalhada (mesma ordem de lá)
+    const K = { CLI:1, PREV:10, CART:11, FAT:12, DFAT:13 };
+    const nomes = b.dic.cli.map(c => normNomeCli(c[1]));
+    const ano = new Date().getFullYear();
+    const m = new Map();
+    const soma = (nome, campo, v) => {
+      let o = m.get(nome); if(!o){ o = {s1:0,s2:0}; m.set(nome,o); }
+      o[campo] += v;
+    };
+    for(const r0 of b.l){
+      const nome = nomes[r0[K.CLI]]; if(!nome) continue;
+      const fat = r0[K.FAT]||0, cart = r0[K.CART]||0;
+      if(fat > 0 && r0[K.DFAT] >= 0){
+        const d = new Date(r0[K.DFAT]*86400000);
+        if(d.getUTCFullYear() === ano) soma(nome, d.getUTCMonth() < 6 ? 's1' : 's2', fat);
+      }
+      if(cart > 0 && r0[K.PREV] >= 0){
+        const d = new Date(r0[K.PREV]*86400000);
+        if(d.getUTCFullYear() === ano) soma(nome, d.getUTCMonth() < 6 ? 's1' : 's2', cart);
+      }
+    }
+    DET_SEM = m; DET_ERRO = '';
+    return m;
+  }catch(e){
+    DET_ERRO = String((e && e.message) || e);
+    console.warn('semestres da Detalhada indisponíveis:', DET_ERRO);
+    return null;
+  }
+}
+
+/* Troca s1/s2 de cada linha pelo que a Detalhada diz, mantendo o peso de
+   cada categoria. Guarda o valor do EBM para a troca não se acumular
+   quando a tela recarrega. Devolve quantos clientes foram corrigidos. */
+function aplicarSemestresDaDetalhada(){
+  if(!DET_SEM || !DATA.length) return 0;
+  const porCli = new Map();
+  for(const d of DATA){
+    if(d.s1ebm === undefined){ d.s1ebm = d.s1; d.s2ebm = d.s2; }
+    const k = d.cod || d.cli;
+    let a = porCli.get(k); if(!a){ a = []; porCli.set(k, a); }
+    a.push(d);
+  }
+  let n = 0;
+  for(const linhas of porCli.values()){
+    const alvo = DET_SEM.get(normNomeCli(linhas[0].cli));
+    if(!alvo) continue;
+    n++;
+    for(const campo of ['s1','s2']){
+      const ebm = campo === 's1' ? 's1ebm' : 's2ebm';
+      let peso = linhas.reduce((t,d)=>t + (d[ebm]||0), 0);
+      // categoria nenhuma com valor no semestre: reparte pelo histórico,
+      // e em último caso em partes iguais — o total do cliente é o que
+      // precisa fechar.
+      let pesos = linhas.map(d => d[ebm]||0);
+      if(!peso){ pesos = linhas.map(d => (d.h24||0)+(d.h25||0)); peso = pesos.reduce((a,b)=>a+b,0); }
+      if(!peso){ pesos = linhas.map(()=>1); peso = linhas.length; }
+      linhas.forEach((d,i)=>{ d[campo] = alvo[campo] * pesos[i] / peso; });
+    }
+    for(const d of linhas){
+      d.cur = CORR_SEM===1 ? d.s1 : d.s2;
+      d.size = (d.h24||0)+(d.h25||0)+d.s1+d.s2;
+    }
+  }
+  return n;
+}
+
 let CORR_SEM=1;         // semestre a que pertence a coluna "Corrente" (pela data de importação)
 let CUR_LABEL='1S26';   // rótulo do semestre corrente
 let CLI360=new Set();   // códigos de clientes que compram todas as categorias
@@ -564,6 +675,11 @@ async function handleItems(items, opts){
     if(!CURCAT || !CATS.includes(CURCAT)) CURCAT='Todos';
     computeCli360();
     buildControls(); render();
+    // A base da Detalhada e grande: vem em paralelo e a tela se refaz quando
+    // chega, em vez de ficar em branco esperando.
+    carregarSemestresDaDetalhada().then(()=>{
+      if(aplicarSemestresDaDetalhada()){ computeCli360(); buildControls(); render(); }
+    });
     // limpa a tela: fica só o título
     const lede=document.querySelector('.lede'); if(lede) lede.style.display='none';
     document.getElementById('drop').style.display='none';
