@@ -12632,12 +12632,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // A grade entra do cache na hora e se atualiza depois, em segundo plano:
   // ela e complemento, e esperar por ela atrasaria a lista de produtos.
-  for (const fam of NOMES_FAM) {
+  // As promessas ficam guardadas só para o pedido do assistente esperar.
+  const gradesProntas = NOMES_FAM.map(fam =>
     cacheLer(FAMILIAS[fam].cache).then(g => {
       if (g && linhasDe(g) && !APP.grades[fam]) { instalarGrade(g, fam); if (APP.base) render(); }
-      carregarGrade(fam).then(r => { if (r === 'nova' && APP.base) render(); });
-    });
-  }
+      return carregarGrade(fam).then(r => { if (r === 'nova' && APP.base) render(); });
+    }).catch(() => {}));
 
   // Quem manda é o Portal: se há sessão lá, ela vale aqui — inclusive
   // quando trocam de pessoa sem passar por esta tela.
@@ -12671,7 +12671,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (r === 'nova' && APP.sessao) irParaProdutos();
   else if (APP.sessao && APP.base && document.querySelector('#screen-produtos.active')) render();
   atualizarFonteInfo();
+  atenderAssistente(gradesProntas);
 });
+
+/* Pedido do Assistente da Detalhada (apps-oly/assistente):
+   ?cliente=COD[,COD…]&gerar=pdf|xlsx[&fotos=1|0]
+   Filtra os clientes e chama o MESMO gerador do botão da tela, para o
+   catálogo sair idêntico. Só depois da base nova, da grade (as colunas de
+   tamanho) e dos repasses — sem eles o arquivo sairia incompleto. A trava
+   de vendedor é a da própria tela: cliente de outro não entra no filtro. */
+async function atenderAssistente(gradesProntas) {
+  const q = new URLSearchParams(location.search);
+  const gerar = q.get('gerar');
+  if (!q.get('cliente') || (gerar !== 'pdf' && gerar !== 'xlsx')) return;
+  history.replaceState(null, '', location.pathname);   // recarregar não gera de novo
+  if (!APP.sessao || !APP.base) { toast('Entre no Portal e peça de novo ao assistente'); return; }
+  syncShow('Preparando o pedido do assistente…');
+  await Promise.all(gradesProntas);
+  for (let i = 0; i < 60 && !REP.carregado; i++) await new Promise(ok => setTimeout(ok, 250));
+  syncHide();
+
+  const cods = q.get('cliente').split(',').map(s => s.trim()).filter(Boolean);
+  const idx = cods.map(c => APP.dic.cli.findIndex(([cod]) => String(cod) === c)).filter(i => i >= 0);
+  if (!idx.length) { toast('Esse cliente não está na base de hoje'); return; }
+  APP.filtros.cliente = new Set(idx);
+  APP.pagina = 1;
+  render();
+  if (!catClientesFiltrados().filter(c => catSoCliente(c, () => catDados().produtos.length)).length) {
+    toast('Nada na carteira desse cliente para gerar'); return;
+  }
+  const fotos = q.get('fotos');
+  if (gerar === 'pdf') {
+    if (idx.length === 1) await catGerarPdf(idx[0], true); else await catExportPdf();
+  } else if (idx.length === 1 && (fotos === '1' || fotos === '0')) {
+    await catGerarPlanilha(idx[0], fotos === '1');
+  } else await catExportXlsx();
+}
 </script>
 
 
