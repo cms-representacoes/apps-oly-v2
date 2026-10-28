@@ -796,16 +796,6 @@
     .home-cat-card:active { transform: scale(0.98); box-shadow: none; }
     .home-cat-card:hover { border-color: var(--primary, var(--primary)); box-shadow: 0 4px 16px rgba(var(--primary-rgb),0.1); }
     .home-cat-all { border-style: dashed; border-color: var(--primary, var(--primary)); background: rgba(var(--primary-rgb),0.03); }
-    /* ── a saída, fechando a grade ──
-       O Portal não é uma categoria: é por onde se sai. Fica sozinho na coluna
-       da direita, no fim, para não se misturar com o que se está escolhendo,
-       e em cinza, porque aqui a cor marca o que é produto. Já existe um botão
-       Portal no alto da tela; este é o da mão de quem acabou de percorrer a
-       lista inteira e não quer voltar ao topo. */
-    .home-cat-portal { grid-column: 2; text-decoration: none; color: inherit; }
-    .home-cat-portal:hover { border-color:#CBD5E1; box-shadow:0 4px 16px rgba(71,85,105,0.10); }
-    .home-cat-portal .home-cat-name { color:#475569; }
-    .dark-mode .home-cat-portal .home-cat-name { color:#CBD5E1; }
     .dark-mode .home-cat-card { background: #1F2937; border-color: #374151; }
     .dark-mode .home-cat-all  { background: rgba(var(--primary-rgb),0.08); }
     /* A linha CORRE tem cor própria — laranja, a mesma dos chips dela —, para
@@ -3262,12 +3252,6 @@ html.dark-mode body::before{
         </div>
         <i class="fa-solid fa-chevron-right home-cat-arrow" style="color:var(--primary)"></i>
       </button>
-      <a class="home-cat-card home-cat-portal focus-ring" href="https://cms-representacoes.github.io/apps-oly/" title="Voltar ao Portal">
-        <div class="home-cat-info">
-          <div class="home-cat-icon home-cat-icon-grad" style="background:linear-gradient(140deg,#F8FAFC 0%,#F1F5F9 55%,#CBD5E1 100%);"><svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></div>
-          <div class="home-cat-label"><span class="home-cat-name">Portal</span><span class="home-cat-sub">Voltar para as outras telas</span></div>
-        </div>
-      </a>
       </div><!-- /home-cat-grid -->
     </div>
   </div>
@@ -13088,7 +13072,7 @@ function updateSliderLabel(){
   }
 
   // Cliques nos cards de categoria
-  document.querySelectorAll(".home-cat-card:not(.home-cat-portal)").forEach(card=>{
+  document.querySelectorAll(".home-cat-card").forEach(card=>{
     card.addEventListener("click", ()=>{
       const cat = card.dataset.cat ?? "";
       // Animação de saída suave
@@ -13332,7 +13316,7 @@ function injectHomeCategoryImages(){
     }
   }catch(_){}
 
-  document.querySelectorAll(".home-cat-card:not(.home-cat-portal)").forEach(function(card){
+  document.querySelectorAll(".home-cat-card").forEach(function(card){
     card.addEventListener("click", function(){
       var cat = card.dataset.cat !== undefined ? card.dataset.cat : "";
       homeScreen.style.opacity = "0";
