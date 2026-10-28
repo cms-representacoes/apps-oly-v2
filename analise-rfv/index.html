@@ -368,6 +368,7 @@ const CLIENTES_UNIFICADOS = {
   '4261930': { cod:'1130191', cli:'STTILUS CALCADOS' },  // "STTILUSA CALCADOS"
   '4603326': { cod:'24579',   cli:'RABELLO CALCADOS' },  // "RABELO CALCADOS"
   '1053350': { cod:'118992',  cli:'NEW CALCADOS(MA)' },  // "NEW CALCADOS"
+  '111000':  { cod:'7753',    cli:'IMPACTO CALCADOS (CO)' }, // "IMPACTO CALCADOS"
 };
 function unificarCliente(cod, cli){
   const u = CLIENTES_UNIFICADOS[String(cod||'').trim()];
@@ -402,12 +403,21 @@ const DET_WORKER = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
 let DET_SEM = null;      // nome normalizado -> {s1,s2}
 let DET_ERRO = '';
 
+/* O que está entre parênteses é o que separa IMPACTO CALCADOS (CO) de
+   IMPACTO CALCADOS, e a Detalhada escreve do mesmo jeito. Apagar isso
+   juntava clientes diferentes num nome só e cada um levava o total do
+   outro: em 28/10/2026 eram 12 nomes e 25 clientes inflados assim. */
 function normNomeCli(s){
   return String(s||'')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/\(.*?\)/g,' ')
-    .replace(/[^A-Za-z0-9 ]/g,' ')
-    .replace(/\s+/g,' ').trim().toUpperCase();
+    .toUpperCase()
+    .replace(/[^A-Z0-9() ]/g,' ')
+    .replace(/\s*\(\s*/g,'(').replace(/\s*\)\s*/g,')')
+    .replace(/\s+/g,' ').trim();
+}
+/* O nome sem o parêntese, para o segundo passe. */
+function nomeBaseCli(s){
+  return normNomeCli(s).replace(/\(.*?\)/g,' ').replace(/\s+/g,' ').trim();
 }
 
 async function carregarSemestresDaDetalhada(){
@@ -451,7 +461,16 @@ async function carregarSemestresDaDetalhada(){
 
 /* Troca s1/s2 de cada linha pelo que a Detalhada diz, mantendo o peso de
    cada categoria. Guarda o valor do EBM para a troca não se acumular
-   quando a tela recarrega. Devolve quantos clientes foram corrigidos. */
+   quando a tela recarrega.
+
+   Dois passes. O primeiro casa o nome inteiro, parênteses e tudo — é o
+   que separa IMPACTO (CO) de IMPACTO, e dá zero ambiguidade. O segundo
+   recolhe o resto: quando sobrou UM só cliente com aquele nome sem o
+   parêntese e sobraram lojas da Detalhada com esse mesmo nome que
+   ninguém levou, elas são dele. É o caso do SPORT MODAS, que no EBM vem
+   sem o parêntese que a Detalhada usa.
+
+   Devolve quantos clientes foram corrigidos. */
 function aplicarSemestresDaDetalhada(){
   if(!DET_SEM || !DATA.length) return 0;
   const porCli = new Map();
@@ -461,18 +480,16 @@ function aplicarSemestresDaDetalhada(){
     let a = porCli.get(k); if(!a){ a = []; porCli.set(k, a); }
     a.push(d);
   }
-  let n = 0;
-  for(const linhas of porCli.values()){
-    const alvo = DET_SEM.get(normNomeCli(linhas[0].cli));
-    if(!alvo) continue;
-    n++;
+
+  // reparte o total de um cliente entre as categorias dele
+  const aplicar = (linhas, alvo) => {
     for(const campo of ['s1','s2']){
       const ebm = campo === 's1' ? 's1ebm' : 's2ebm';
-      let peso = linhas.reduce((t,d)=>t + (d[ebm]||0), 0);
+      let pesos = linhas.map(d => d[ebm]||0);
+      let peso = pesos.reduce((a,b)=>a+b,0);
       // categoria nenhuma com valor no semestre: reparte pelo histórico,
       // e em último caso em partes iguais — o total do cliente é o que
       // precisa fechar.
-      let pesos = linhas.map(d => d[ebm]||0);
       if(!peso){ pesos = linhas.map(d => (d.h24||0)+(d.h25||0)); peso = pesos.reduce((a,b)=>a+b,0); }
       if(!peso){ pesos = linhas.map(()=>1); peso = linhas.length; }
       linhas.forEach((d,i)=>{ d[campo] = alvo[campo] * pesos[i] / peso; });
@@ -481,6 +498,35 @@ function aplicarSemestresDaDetalhada(){
       d.cur = CORR_SEM===1 ? d.s1 : d.s2;
       d.size = (d.h24||0)+(d.h25||0)+d.s1+d.s2;
     }
+  };
+
+  let n = 0;
+  const consumidos = new Set();       // nomes da Detalhada já entregues
+  const sobraram = [];                // clientes do RFV sem par
+  for(const linhas of porCli.values()){
+    const nome = normNomeCli(linhas[0].cli);
+    const alvo = DET_SEM.get(nome);
+    if(alvo){ aplicar(linhas, alvo); consumidos.add(nome); n++; }
+    else sobraram.push(linhas);
+  }
+
+  // segundo passe: o resto, só onde não há dúvida de quem é
+  const porBase = new Map();
+  for(const linhas of sobraram){
+    const b = nomeBaseCli(linhas[0].cli);
+    let a = porBase.get(b); if(!a){ a = []; porBase.set(b, a); }
+    a.push(linhas);
+  }
+  for(const [b, lista] of porBase){
+    if(lista.length !== 1) continue;   // dois candidatos: não dá para saber
+    const resto = { s1:0, s2:0 };
+    let achou = false;
+    for(const [nome, v] of DET_SEM){
+      if(consumidos.has(nome) || nomeBaseCli(nome) !== b) continue;
+      resto.s1 += v.s1; resto.s2 += v.s2; achou = true;
+    }
+    if(!achou || (!resto.s1 && !resto.s2)) continue;
+    aplicar(lista[0], resto); n++;
   }
   return n;
 }
