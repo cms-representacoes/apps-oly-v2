@@ -353,6 +353,27 @@ const CITY_COORDS={"RUSSAS|CE":[-4.9267,-37.9721],"NAZARE DO PIAUI|PI":[-6.9702,
 let DATA=[];            // todas as linhas
 let CATS=[];            // categorias importadas, na ordem
 let CURCAT=null;
+/* O mesmo cliente cadastrado duas vezes no EBM, com dois códigos líder.
+   Sem isto a rede aparece partida em duas linhas: os pares divididos, e a
+   recência de cada metade contando como se fossem clientes diferentes —
+   um deles podia até cair para "sem comprar" com a loja comprando.
+   Levantados em 28/10/2026 por nome, cidade, CEP e preposto; a fantasia de
+   cada um foi conferida na Detalhada antes de juntar. Os pares de nome
+   diferente na Detalhada (LEVE ESTILO × LEVE ESTILO ACESSORIOS, MRT × M&R,
+   SALES × E&S) ficaram de fora de propósito: mesmo CEP, em cidade pequena,
+   é o CEP do município, não o mesmo endereço.
+   Chave = código que sai de cena; valor = o que fica, sempre o de maior volume. */
+const CLIENTES_UNIFICADOS = {
+  '4093393': { cod:'117262',  cli:'MIL IDEIAS' },        // "LOJA MIL IDEIAS"
+  '4261930': { cod:'1130191', cli:'STTILUS CALCADOS' },  // "STTILUSA CALCADOS"
+  '4603326': { cod:'24579',   cli:'RABELLO CALCADOS' },  // "RABELO CALCADOS"
+  '1053350': { cod:'118992',  cli:'NEW CALCADOS(MA)' },  // "NEW CALCADOS"
+};
+function unificarCliente(cod, cli){
+  const u = CLIENTES_UNIFICADOS[String(cod||'').trim()];
+  return u ? { cod:u.cod, cli:u.cli } : { cod:cod, cli:cli };
+}
+
 let CORR_SEM=1;         // semestre a que pertence a coluna "Corrente" (pela data de importação)
 let CUR_LABEL='1S26';   // rótulo do semestre corrente
 let CLI360=new Set();   // códigos de clientes que compram todas as categorias
@@ -639,7 +660,7 @@ function parseRows(rows,hi,cat,cols){
     const cur = CORR_SEM===1 ? s1 : s2;              // semestre corrente
     out.push({
       cat, vend:String(vend||'—').trim(),
-      cod:txt(r,c.cod), cli:String(cli).trim(),
+      ...unificarCliente(txt(r,c.cod), String(cli).trim()),
       canal:txt(r,c.canal), abc:txt(r,c.abc),
       cidade:txt(r,c.cidade), uf:txt(r,c.uf),
       h24,h25,s1,s2,cur,
