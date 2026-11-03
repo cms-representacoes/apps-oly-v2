@@ -373,6 +373,10 @@ async function esconder(tabId) {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.de !== 'cms-ebm-pagina') return;
   if (msg.aviso) anotar('página: ' + msg.aviso);
+  // O "selecionar todos" recarrega a lista: ela tem de ser atendida de novo,
+  // e a pausa contra o clique duplo só começa quando o pedido for clicado.
+  if (job && msg.refazLista) job.pediuPedidoEm = 0;
+  if (job && msg.clicouPedido) job.pediuPedidoEm = Date.now();
   if (msg.erro) {
     anotar('página relatou: ' + msg.erro);
     encerrar(false, msg.erro, msg.codigo

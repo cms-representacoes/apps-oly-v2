@@ -10038,10 +10038,11 @@ function temExtensao() {
 
 /* A versão da extensão importa quando o arquivo tem vários pedidos: foi da
    0.4.0 em diante que ela passou a conferir se os GCIs entraram mesmo no
-   filtro do EBM. Com a anterior o PDF sai com um pedido só e nada avisa —
+   filtro do EBM, e da 0.4.1 que marca a lista pelo "selecionar todos" (a
+   0.4.0 marcava caixa a caixa e o EBM guardava só a última). Com a anterior o PDF sai com um pedido só e nada avisa —
    e, como a extensão se atualiza à mão, "corrigido" e "instalado" são
    coisas diferentes. O aviso não impede nada: só diz onde olhar. */
-const VERSAO_EBM_CONFERE_GCIS = '0.4.0';
+const VERSAO_EBM_CONFERE_GCIS = '0.4.1';
 
 function versaoEbmInstalada() {
   return String(document.documentElement.dataset.cmsEbm || '');
@@ -10337,7 +10338,7 @@ function gerarSelecionados() {
       versaoMenor(versaoEbmInstalada(), VERSAO_EBM_CONFERE_GCIS)) {
     const ok = confirm([
       `A extensão do EBM instalada é a ${versaoEbmInstalada() || '?'}, e a partir da ` +
-      `${VERSAO_EBM_CONFERE_GCIS} ela confere se todos os pedidos entraram no filtro.`,
+      `${VERSAO_EBM_CONFERE_GCIS} ela confere se todos os pedidos entraram no filtro e marca todos no EBM.`,
       'Com a anterior o PDF pode sair com um pedido só, parecendo completo.',
       'Para atualizar: chrome://extensions → Atualizar, e depois F5 nesta página.',
       'Gerar assim mesmo?',

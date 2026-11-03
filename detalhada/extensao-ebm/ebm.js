@@ -575,6 +575,32 @@
       const quantas = () => caixas().length;
       const marcadasAgora = () => caixas().filter(c => c.checked).length;
 
+      /* O ícone "selecionar todos" da barra da grade vem antes de tudo.
+       *
+       *  Caixa marcada na tela não quer dizer marcada no servidor: a grade
+       *  guarda a seleção num campo no singular, e clicar uma a uma deixa
+       *  todas com cara de marcadas e o servidor só com a última. Foi assim
+       *  que a Mazzule (3 GCIs, 03/11/2026) saiu com um pedido só, sem erro
+       *  nenhum. Só o ícone grava a lista inteira — o robô do Nexo já marca
+       *  por ele (pedido_robo.py).
+       *
+       *  O ícone faz postback. Se a página recarregar, a lista volta com as
+       *  caixas marcadas e esta mesma ação clica em "visualizar pedido";
+       *  por isso o aviso pede ao orquestrador para aceitar a lista de novo. */
+      const icone = () => document.querySelector("img[src*='selectAll'], input[type=image][src*='selectAll']");
+      if (icone() && marcadasAgora() < quantas()) {
+        relatar({ aviso: 'marcando pelo ícone "selecionar todos"', refazLista: true });
+        await espera(200);
+        icone().click();
+        await ate(() => caixas().length && marcadasAgora() >= quantas(), 15000);
+        relatar({ aviso: `pelo ícone: ${marcadasAgora()} de ${quantas()}` });
+        // Clicar uma a uma depois disso desfaria o que o ícone gravou.
+        if (marcadasAgora() < quantas()) {
+          throw new Error(`o "selecionar todos" do EBM marcou ${marcadasAgora()} de ${quantas()} — ` +
+            'o PDF sairia incompleto');
+        }
+      }
+
       const topo = marcarTodas();
       if (topo && marcadasAgora() < quantas()) {
         relatar({ aviso: 'marcando pela caixa do cabeçalho' });
@@ -624,7 +650,7 @@
 
       const btn = await ate(() => $(ID.pedidoLista), 8000);
       if (!btn) throw new Error('não achei o botão "visualizar pedido"');
-      relatar({ aviso: `${marcadas} de ${total} marcadas · clicando em visualizar pedido` });
+      relatar({ aviso: `${marcadas} de ${total} marcadas · clicando em visualizar pedido`, clicouPedido: true });
       btn.click();
     },
 
