@@ -16,12 +16,16 @@
     --paper:#F6F7F9; --card:#FFFFFF; --line:#E7EAEF; --line-2:#EFF1F5;
     --ftw:#E0A100; --ftw-lite:#F4C430; --ftw-ink:#23170A;
     --green:#0CA678; --amber:#E0A100; --orange:#E8590C; --red:#C92A2A;
+    /* verde do repasse: o mesmo da Detalhada, para o selo querer dizer a
+       mesma coisa nas duas telas */
+    --rep:#1F6F63; --rep-lite:#E6F2EF;
     --toph:82px;
   }
   [data-theme="dark"]{
     --ink:#E8EBF1; --navy:#D6DDEA; --slate:#9AA4B5; --mute:#828DA0;
     --paper:#0E131D; --card:#161B26; --line:#2A3242; --line-2:#222A37;
     --green:#34D399; --amber:#F4C430; --orange:#FB923C; --red:#F2868B;
+    --rep:#4FD1B5; --rep-lite:#14312C;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:"Inter",system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -112,6 +116,21 @@
   .cat-tabs{display:flex;gap:6px;flex-wrap:wrap}
   .cat-tab{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:pointer;white-space:nowrap}
   .cat-tab.on{background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw)}
+  /* Vendedor é outro eixo que não a categoria, então tem outro peso: ativo em
+     navy, não no amarelo da categoria. O filtro de vendedor continua no
+     #filtersRow; estes chips existem porque essa gaveta abre fechada. */
+  .vend-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:12px 0 0}
+  .vend-tabs[hidden]{display:none}
+  .vend-tabs .rot{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--mute);font-weight:600;margin-right:2px}
+  .vend-tab{font-family:"Space Grotesk",sans-serif;font-size:12.5px;font-weight:600;
+    padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);
+    color:var(--slate);cursor:pointer;white-space:nowrap}
+  .vend-tab:hover{border-color:var(--slate)}
+  .vend-tab.on{background:var(--navy);color:var(--card);border-color:var(--navy)}
+  .vend-tab .q{opacity:.6;font-weight:500;margin-left:4px}
+  .vend-tab[disabled]{cursor:default;opacity:.55}
+  .vend-tab[disabled]:hover{border-color:var(--line)}
   .fgroup{display:flex;align-items:center;gap:8px}
   .fgroup label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
   .ctrls select{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;color:var(--navy);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
@@ -126,6 +145,39 @@
   .chip .x{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--card);color:var(--slate);cursor:pointer;font-size:13px;line-height:1}
   .chip .x:hover{color:var(--red)}
   .chip.clear{background:none;border:none;color:var(--slate);cursor:pointer;text-decoration:underline;padding:5px 4px}
+
+  /* ---- repasse a caminho ---- */
+  .repbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;
+    background:var(--rep-lite);border:1px solid var(--rep);border-radius:10px;
+    padding:9px 13px;margin:14px 0 0;color:var(--ink)}
+  .repbar[hidden]{display:none}
+  .repbar b{color:var(--rep)}
+  .repbar .ir{margin-left:auto;font-family:"Space Grotesk",sans-serif;font-size:12.5px;
+    font-weight:600;color:var(--rep);background:transparent;border:1px solid var(--rep);
+    border-radius:99px;padding:4px 12px;cursor:pointer}
+  .repbar .ir:hover{background:var(--rep);color:#fff}
+  .grp-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:12px 0 0}
+  .grp-tabs[hidden]{display:none}
+  .gtab{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:600;
+    border:1px solid var(--line);background:var(--card);color:var(--slate);
+    border-radius:99px;padding:6px 14px;cursor:pointer}
+  .gtab:hover{border-color:var(--slate)}
+  .gtab[aria-current]{background:var(--navy);border-color:var(--navy);color:var(--card)}
+  .gtab.rep{border-color:var(--rep);color:var(--rep)}
+  .gtab.rep[aria-current]{background:var(--rep);border-color:var(--rep);color:#fff}
+  .gtab-xls{margin-left:auto;font-family:"Space Grotesk",sans-serif;font-size:12.5px;
+    font-weight:600;background:var(--ftw);color:var(--ftw-ink);border:0;border-radius:99px;
+    padding:7px 14px;cursor:pointer;white-space:nowrap}
+  .gtab-xls:hover{filter:brightness(1.05)}
+  .selo-rep{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+    font-family:"Space Grotesk",sans-serif;background:var(--rep-lite);color:var(--rep);
+    border:1px solid var(--rep);border-radius:99px;padding:0 8px;margin-left:7px;
+    white-space:nowrap;vertical-align:1px}
+  .envio-rep{font-size:11px;color:var(--mute);margin-top:2px}
+  @media(max-width:760px){
+    .gtab-xls{margin-left:0;width:100%;margin-top:4px}
+    .repbar .ir{margin-left:0}
+  }
   .mapbtn{display:inline-flex;align-items:center;gap:6px;background:var(--ftw);color:var(--ftw-ink);border-color:var(--ftw);box-shadow:0 2px 8px color-mix(in srgb,var(--ftw) 40%,transparent);white-space:nowrap;padding:7px 12px}
   .mapbtn:hover{filter:brightness(1.05)}
   .map-modal{position:fixed;inset:0;z-index:300;background:var(--paper);display:flex;flex-direction:column}
@@ -316,8 +368,13 @@
         <option value="maiores">Maiores (histórico)</option><option value="inativos">Inativos primeiro</option><option value="az">Cliente A–Z</option>
       </select></div>
     </div>
+    <div class="vend-tabs" id="vendTabs" hidden></div>
     <div class="chips" id="chips"></div>
     <div class="catsum" id="catsum"></div>
+    <!-- Fora do #filtersRow de propósito: o relatório abre com os filtros
+         recolhidos, e este é o recorte que o diretor usa todo mês. -->
+    <div class="repbar" id="repAviso" hidden></div>
+    <div class="grp-tabs" id="grpTabs" hidden></div>
   </section>
 
   <main id="report"></main>
@@ -403,6 +460,22 @@ const DET_WORKER = 'https://repasse-worker-cms.marcosrep-cms.workers.dev';
 let DET_SEM = null;      // nome normalizado -> {s1,s2}
 let DET_ERRO = '';
 
+/* ---------- repasse a caminho ----------
+   O RFV mostra uma linha por CÓDIGO LÍDER (a rede inteira); o app de Repasses
+   grava um pedido por CÓDIGO DA LOJA. A ponte entre os dois é a Detalhada, que
+   traz as duas coisas na mesma linha — o cliente e o COD. COMER —, e o COD.
+   COMER É o código líder do RFV. Medido em 03/11/2026: 656 dos 798 líderes do
+   RFV existem como COMER, cobrindo 99,3% do volume.
+
+   Por que não casar por nome, como a correção de semestres acima faz: por nome
+   dá 603 líderes, e dois clientes de mesmo nome em cidades diferentes trocariam
+   de repasse um com o outro. Com o código isso não acontece. */
+let DET_LIDER = null;    // código da loja -> código do líder comercial
+let DET_FAT   = null;    // código da loja -> [[dia, pares], …] ordenado por dia
+let REP_ABERTO = null;   // código do líder -> {pares, peds:[{data,pares}]}
+let REP_ERRO = '';
+const REP_URL = 'https://cms-representacoes.github.io/apps-oly/data/pedidos.json';
+
 /* O que está entre parênteses é o que separa IMPACTO CALCADOS (CO) de
    IMPACTO CALCADOS, e a Detalhada escreve do mesmo jeito. Apagar isso
    juntava clientes diferentes num nome só e cada um levava o total do
@@ -430,26 +503,57 @@ async function carregarSemestresDaDetalhada(){
     const b = await r.json();
     if(!b || !Array.isArray(b.l) || !b.dic || !b.dic.cli) throw new Error('base vazia');
     // índices da base da Detalhada (mesma ordem de lá)
-    const K = { CLI:1, PREV:10, CART:11, FAT:12, DFAT:13 };
+    const K = { CLI:1, PREV:10, CART:11, FAT:12, DFAT:13, COMER:15 };
     const nomes = b.dic.cli.map(c => normNomeCli(c[1]));
+    const codes = b.dic.cli.map(c => String(c[0]||'').trim());
+    const comers = Array.isArray(b.dic.comer) ? b.dic.comer : null;
     const ano = new Date().getFullYear();
     const m = new Map();
     const soma = (nome, campo, v) => {
       let o = m.get(nome); if(!o){ o = {s1:0,s2:0}; m.set(nome,o); }
       o[campo] += v;
     };
+    // No mesmo passe saem a ponte loja→líder e o faturamento por loja, que o
+    // repasse usa. A base tem 4 MB; baixar duas vezes seria desperdício.
+    const votos = new Map();          // loja -> Map(líder -> nº de linhas)
+    const fatL  = new Map();          // loja -> [[dia, pares], …]
     for(const r0 of b.l){
       const nome = nomes[r0[K.CLI]]; if(!nome) continue;
+      const loja = codes[r0[K.CLI]];
       const fat = r0[K.FAT]||0, cart = r0[K.CART]||0;
       if(fat > 0 && r0[K.DFAT] >= 0){
         const d = new Date(r0[K.DFAT]*86400000);
         if(d.getUTCFullYear() === ano) soma(nome, d.getUTCMonth() < 6 ? 's1' : 's2', fat);
+        if(loja){
+          let a = fatL.get(loja); if(!a){ a = []; fatL.set(loja, a); }
+          a.push([r0[K.DFAT], fat]);
+        }
       }
       if(cart > 0 && r0[K.PREV] >= 0){
         const d = new Date(r0[K.PREV]*86400000);
         if(d.getUTCFullYear() === ano) soma(nome, d.getUTCMonth() < 6 ? 's1' : 's2', cart);
       }
+      // Base publicada antes da coluna COD. COMER não tem o dicionário: aí a
+      // ponte fica vazia e a aba de repasse simplesmente não aparece.
+      if(comers && loja && r0[K.COMER] != null){
+        const lid = String(comers[r0[K.COMER]]||'').trim();
+        if(lid){
+          let v = votos.get(loja); if(!v){ v = new Map(); votos.set(loja, v); }
+          v.set(lid, (v.get(lid)||0) + 1);
+        }
+      }
     }
+    // A mesma loja pode ter linhas apontando para líderes diferentes; vale o
+    // que aparece mais vezes.
+    DET_LIDER = new Map();
+    for(const [loja, v] of votos){
+      let melhor = '', n = -1;
+      for(const [lid, q] of v) if(q > n){ melhor = lid; n = q; }
+      DET_LIDER.set(loja, melhor);
+    }
+    for(const a of fatL.values()) a.sort((x,y)=>x[0]-y[0]);
+    DET_FAT = fatL;
+
     DET_SEM = m; DET_ERRO = '';
     return m;
   }catch(e){
@@ -457,6 +561,113 @@ async function carregarSemestresDaDetalhada(){
     console.warn('semestres da Detalhada indisponíveis:', DET_ERRO);
     return null;
   }
+}
+
+/* Repasse que ainda não chegou ao cliente.
+
+   Nada é arquivado no app de Repasses — o ciclo termina em "Aprovado e
+   exportado em lote" e ninguém volta para marcar que a mercadoria chegou.
+   Então "chegou" é inferência, a mesma que a Detalhada usa desde 27/10/2026:
+   conta como cumprido o repasse cujo cliente de destino tem faturamento com
+   data a partir do envio, somando ao menos a quantidade repassada. O faturado
+   é CONSUMIDO, para dois repasses iguais não casarem com uma nota só.
+
+   Medido em 03/11/2026: dos 866 repasses vivos, 707 já chegaram e 148 estão
+   em aberto. Erra para o lado de mostrar a mais, nunca de esconder o que
+   ainda não chegou. */
+async function carregarRepasses(){
+  if(REP_ABERTO) return REP_ABERTO;
+  if(!DET_LIDER || !DET_FAT){ REP_ERRO = 'sem a ponte da Detalhada'; return null; }
+  try{
+    const r = await fetch(REP_URL + '?t=' + Date.now(), { cache:'no-store' });
+    if(!r.ok) throw new Error('pedidos respondeu '+r.status);
+    const peds = await r.json();
+    if(!Array.isArray(peds)) throw new Error('pedidos.json não é lista');
+
+    // Sobra do faturamento de cada loja, que os repasses vão consumindo. Cópia:
+    // DET_FAT é usado de novo a cada recarga.
+    const sobra = new Map();
+    for(const [loja, a] of DET_FAT) sobra.set(loja, a.map(x=>[x[0],x[1]]));
+
+    const DIA = 86400000;
+    const vivos = peds
+      .filter(p => p && p.status !== 'Cancelado' && !p.archived)
+      .sort((a,b) => String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
+
+    const out = new Map();
+    for(const p of vivos){
+      const loja = String(p.clienteCodigo||'').trim();
+      const lid = DET_LIDER.get(loja);
+      const q = Number((p.totals && p.totals.units) || 0);
+      const data = String(p.createdAt||'').slice(0,10);
+      if(!lid || !q || !data) continue;
+      const dn = Math.floor(Date.parse(data+'T00:00:00Z')/DIA);
+      if(!isFinite(dn)) continue;
+      let resta = q;
+      for(const linha of (sobra.get(loja)||[])){
+        if(linha[0] < dn || resta <= 0) continue;
+        const usa = Math.min(resta, linha[1]);
+        linha[1] -= usa; resta -= usa;
+      }
+      if(resta <= 0) continue;                 // já chegou
+      let o = out.get(lid);
+      if(!o){ o = {pares:0, peds:[]}; out.set(lid, o); }
+      o.pares += q;
+      o.peds.push({data, pares:q});
+    }
+    REP_ABERTO = out; REP_ERRO = '';
+    return out;
+  }catch(e){
+    REP_ERRO = String((e && e.message) || e);
+    console.warn('repasses indisponíveis:', REP_ERRO);
+    return null;
+  }
+}
+
+/* O repasse em aberto da linha, pelo código líder. Sem a ponte, ninguém tem. */
+function repasseDe(d){
+  if(!REP_ABERTO || !d || !d.cod) return null;
+  return REP_ABERTO.get(String(d.cod).trim()) || null;
+}
+
+/* "Sem compra" aqui é o recorte da planilha que o diretor manda, e NÃO o
+   semestre dos KPIs — os dois medem períodos diferentes, e confundi-los foi
+   o que me fez errar o número na primeira medição:
+
+     · a lista dele sai do EBM e quer dizer "nada no mês corrente nem nos
+       meses à frente" (o arquivo se chama SEM COMPRA OUT-NOV);
+     · o 2S26 da tela vem da Detalhada desde 28/10/2026 e cobre julho a
+       dezembro, faturado mais carteira.
+
+   Medido em 03/11/2026, nos 778 clientes de calçado: pelo recorte do EBM são
+   364 sem compra e 43 com repasse a caminho (1.350 pares); pelo semestre são
+   258 e 16 (492 pares). 459 das 778 linhas têm os dois números diferentes.
+   Como a razão da aba existir é parar de cobrar quem está esperando
+   mercadoria, ela segue o recorte da lista dele, e o rótulo diz os meses
+   para ninguém ler "semestre" onde está escrito "nov–dez". */
+function semCompraAlvo(d){
+  const v = (d && d.s2ebm !== undefined) ? d.s2ebm : (d ? d.s2 : 0);
+  return !(v > 0) && vivoNaCarteira(d);
+}
+
+/* "fora da lista: quem não comprou em 2025 nem em 2026" — está escrito no
+   cabeçalho da planilha dele, e é o que tira o cliente morto de uma lista de
+   cobrança. Vale na aba e na planilha, para os dois números serem o mesmo
+   número: sem isto a aba mostrava 380 e o arquivo saía com 302. Quem quiser
+   ver todo mundo, inclusive o cliente parado desde 2024, usa a aba Todos. */
+function vivoNaCarteira(d){
+  return !!d && ((d.h25||0) > 0 || (d.s1||0) > 0 || (d.s2||0) > 0);
+}
+
+/* O selo da linha. Diz os pares e desde quando — uma lista de nomes não
+   serve para o vendedor saber o que está chegando. */
+function seloRepasse(rp){
+  if(!rp) return '';
+  const dm = s => s.slice(8,10)+'/'+s.slice(5,7);
+  const datas = rp.peds.map(p=>dm(p.data)+' ('+p.pares+')').join(', ');
+  return '<span class="selo-rep" title="Enviado '+datas+'">repasse · '+
+    rp.pares+(rp.pares===1?' par':' pares')+'</span>'+
+    '<div class="envio-rep">enviado '+datas+'</div>';
 }
 
 /* Troca s1/s2 de cada linha pelo que a Detalhada diz, mantendo o peso de
@@ -725,7 +936,10 @@ async function handleItems(items, opts){
     // chega, em vez de ficar em branco esperando.
     carregarSemestresDaDetalhada().then(()=>{
       if(aplicarSemestresDaDetalhada()){ computeCli360(); buildControls(); render(); }
-    });
+      // Os repasses dependem da ponte que a base da Detalhada montou, então
+      // vêm depois dela. São poucos KB; a tela se refaz de novo quando chegam.
+      return carregarRepasses();
+    }).then(rep=>{ if(rep && rep.size) render(); });
     // limpa a tela: fica só o título
     const lede=document.querySelector('.lede'); if(lede) lede.style.display='none';
     document.getElementById('drop').style.display='none';
@@ -956,12 +1170,76 @@ function buildControls(){
   sv.innerHTML='<option value="">Todos</option>'+vends.map(v=>'<option value="'+v.replace(/"/g,'&quot;')+'">'+vendName(v)[1]+'</option>').join('');
   if(vends.includes(curv)) sv.value=curv;
   aplicarTravaVendedor();
+  buildVendTabs();
   // cidades (da categoria atual, ou todas)
   const sel=document.getElementById('fCidade'); const cur=sel.value;
   const base=(CURCAT==='Todos')?DATA:DATA.filter(d=>d.cat===CURCAT);
   const cities=[...new Set(base.map(d=>d.cidade).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   sel.innerHTML='<option value="">Todas</option>'+cities.map(c=>'<option>'+c+'</option>').join('');
   if(cities.includes(cur)) sel.value=cur;
+}
+
+/* Chips de vendedor.
+
+   O <select> de vendedor mora no #filtersRow, e essa gaveta abre FECHADA por
+   decisão antiga ("o relatório sempre abre com os filtros recolhidos"). Então
+   o filtro mais usado da tela era o único que exigia dois cliques para
+   aparecer. Os chips são o mesmo filtro, só que à vista — quem mexe no select
+   continua mandando, e os dois ficam em dia porque ambos passam por aqui.
+
+   Quando a sessão é de um vendedor, aplicarTravaVendedor() desabilita o
+   select; aí os chips mostram só o dele, sem clique, para a tela não oferecer
+   algo que o Worker e a trava não vão deixar fazer. */
+function buildVendTabs(){
+  const box=document.getElementById('vendTabs');
+  const sv=document.getElementById('fVend');
+  if(!box||!sv) return;
+  // Sem argumento de propósito: render() também chama isto, porque quem mexe
+  // no <select> (ou no mapa, ou no "Limpar tudo") passa só por render, e os
+  // chips têm de mostrar o mesmo que ele.
+  const vends=[...new Set(DATA.map(d=>d.vend))].filter(Boolean)
+    .sort((a,b)=>vendName(a)[1].localeCompare(vendName(b)[1],'pt-BR'));
+  if(vends.length<2){ box.hidden=true; box.innerHTML=''; return; }
+
+  // Quantos clientes cada um tem na categoria atual: o número ajuda a escolher
+  // e é o mesmo que a lista vai mostrar.
+  const porVend={};
+  const linhas = (CURCAT==='Todos') ? DATA : DATA.filter(d=>d.cat===CURCAT);
+  linhas.forEach(d=>{ (porVend[d.vend]=porVend[d.vend]||new Set()).add(cliKey(d)); });
+
+  box.innerHTML='';
+  box.hidden=false;
+  const travado = sv.disabled;
+  const rot=document.createElement('span');
+  rot.className='rot'; rot.textContent='Vendedor';
+  box.appendChild(rot);
+
+  const chip=(valor,texto,qtd)=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='vend-tab'+(sv.value===valor?' on':'');
+    b.textContent=texto;
+    if(qtd!=null){
+      const q=document.createElement('span');
+      q.className='q'; q.textContent=fmtN(qtd);
+      b.appendChild(q);
+    }
+    if(travado){ b.disabled=true; b.title='Sua sessão só mostra a sua carteira.'; }
+    else b.onclick=()=>{ sv.value=valor; render(); };
+    box.appendChild(b);
+  };
+
+  if(!travado) chip('', 'Todos', linhas.length?new Set(linhas.map(cliKey)).size:0);
+  // vendName devolve o primeiro nome como veio do EBM para quem ele não
+  // conhece, e o EBM escreve tudo em caixa alta: sem isto o chip do Christian
+  // fica gritando no meio dos outros.
+  // Até três letras é sigla, e CMS não vira "Cms".
+  const bonito = s => s.length <= 3 ? s
+    : s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  vends.forEach(v=>{
+    if(travado && sv.value!==v) return;
+    chip(v, bonito(vendName(v)[0]), (porVend[v]||new Set()).size);
+  });
 }
 
 // ---- filtros base ----
@@ -1034,14 +1312,154 @@ function ligarToggles(){
   aplicarUI();
 }
 
+/* Recorte da lista: 'todos' é a carteira como sempre foi; 'semcompra' é a
+   lista que o diretor manda no grupo, já SEM quem tem repasse a caminho; e
+   'repasse' é só esses. */
+let GRUPO = 'todos';
+
 // ---- render ----
 function render(){
   document.getElementById('catTabs').style.display = VIEW==='resumo' ? 'none' : '';
   document.getElementById('grpRec').style.display = VIEW==='resumo' ? 'none' : '';
   document.getElementById('grpSem').style.display = '';
+  buildVendTabs();
   renderChips();
-  if(VIEW==='resumo') return renderResumo();
+  if(VIEW==='resumo'){
+    document.getElementById('repAviso').hidden = true;
+    document.getElementById('grpTabs').hidden = true;
+    return renderResumo();
+  }
   renderVendedor();
+}
+
+/* A faixa e as abas de recorte.
+
+   As três abas ficam sempre no lugar, mesmo com zero — foi o que ele pediu na
+   Detalhada, quando o botão de repasse sumia em cliente sem repasse e ele
+   reclamou. A faixa verde é a que responde "cadê o cliente que estava aqui
+   semana passada": sem ela, tirar alguém da lista parece defeito. */
+function renderGrupos(base, bought){
+  const elAviso=document.getElementById('repAviso');
+  const elTabs=document.getElementById('grpTabs');
+  if(!elTabs) return;
+
+  // Só entra aqui quem ESTARIA na lista de sem compra. Cliente que comprou no
+  // semestre e também tem repasse a caminho nunca ia ser cobrado, então contá-lo
+  // infla o número e faz a frase da faixa mentir: medido em 03/11/2026, 92
+  // clientes têm repasse em aberto, mas 55 deles já compraram.
+  // Só entra aqui quem ESTARIA na lista de sem compra. Cliente que já tem
+  // pedido para os meses à frente nunca ia ser cobrado, então contá-lo infla o
+  // número e faz a frase da faixa mentir.
+  const comRep=base.filter(d=>semCompraAlvo(d) && !!repasseDe(d));
+  const paresRep=comRep.reduce((a,d)=>a+(repasseDe(d).pares||0),0);
+  const nSem=base.filter(d=>semCompraAlvo(d) && !repasseDe(d)).length;
+
+  elAviso.hidden = !comRep.length;
+  if(comRep.length){
+    elAviso.innerHTML=
+      '<span><b>'+fmtN(comRep.length)+(comRep.length===1?' cliente':' clientes')+'</b>'+
+      ' com repasse a caminho, <b>'+fmtN(paresRep)+(paresRep===1?' par':' pares')+'</b>'+
+      ' esperando — fora da lista de sem compra.</span>'+
+      '<button class="ir" type="button" id="repIr">'+
+      (GRUPO==='repasse'?'Voltar para sem compra':'Ver quais')+'</button>';
+    const b=document.getElementById('repIr');
+    if(b) b.onclick=()=>{ GRUPO = GRUPO==='repasse' ? 'semcompra' : 'repasse'; render(); };
+  }
+
+  const abas=[
+    ['semcompra','Sem compra '+mesesAlvo()+' · '+fmtN(nSem),''],
+    ['repasse','Repasse a caminho · '+fmtN(comRep.length),' rep'],
+    ['todos','Todos · '+fmtN(base.length),''],
+  ];
+  elTabs.hidden=false;
+  elTabs.innerHTML = abas.map(([k,lab,extra])=>
+      '<button class="gtab'+extra+'" type="button" data-grp="'+k+'"'+
+      (GRUPO===k?' aria-current="page"':'')+'>'+lab+'</button>').join('')+
+    '<button class="gtab-xls" type="button" id="btnXls">'+
+    (GRUPO==='repasse'?'Gerar planilha de repasse':'Gerar planilha')+'</button>';
+  elTabs.querySelectorAll('.gtab').forEach(b=>{
+    b.onclick=()=>{ GRUPO=b.dataset.grp; render(); };
+  });
+  const x=document.getElementById('btnXls');
+  if(x) x.onclick=()=>gerarPlanilha(base, bought);
+}
+
+/* A planilha que ele manda no grupo, do jeito que ela já vem sendo montada à
+   mão. O formato saiu do arquivo dele ("SEM COMPRA OUT-NOV - WILLAME
+   TEIXEIRA.xlsx"): duas linhas de cabeçalho explicando a regra, uma linha em
+   branco, e as colunas CÓD. CLIENTE / CLIENTE / CIDADE / UF / PARES 2025 /
+   PARES PROJETADOS — essa última vazia, que é a coluna amarela que o vendedor
+   preenche. Ordenado por pares de 2025, maior primeiro.
+
+   Uma aba por preposto: filtrado, sai uma; sem filtro, saem todas. */
+const MES3=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+/* Os dois meses do recorte: o corrente e o seguinte, que é o que o EBM
+   enxerga à frente e o que dá nome ao arquivo dele (SEM COMPRA OUT-NOV). */
+function mesesAlvo(min){
+  const h=new Date();
+  const a=MES3[h.getMonth()], b=MES3[(h.getMonth()+1)%12];
+  return min ? a+'-'+b : a.toLowerCase()+'–'+b.toLowerCase();
+}
+function gerarPlanilha(base, bought){
+  if(typeof XLSX==='undefined'){ toast('A biblioteca de planilha não carregou.'); return; }
+  const repMode = GRUPO==='repasse';
+  // O mesmo recorte da aba, para a planilha sair com o número que a tela
+  // mostra — semCompraAlvo já tira quem não compra desde 2024.
+  const alvo = repMode ? base.filter(d=>semCompraAlvo(d) && !!repasseDe(d))
+                       : base.filter(d=>semCompraAlvo(d) && !repasseDe(d));
+  if(!alvo.length){ toast('Nada para exportar neste recorte.'); return; }
+
+  const hoje=new Date();
+  const m1=MES3[hoje.getMonth()], m2=MES3[(hoje.getMonth()+1)%12];
+  const ano2=String(hoje.getFullYear()).slice(2);
+  const quando=hoje.toLocaleDateString('pt-BR');
+  const catLab = CURCAT==='Todos' ? 'RFV (todas as categorias)'
+               : CURCAT==='Tênis' ? 'RFV FTW' : 'RFV '+CURCAT;
+
+  const porVend={};
+  alvo.forEach(d=>{ (porVend[d.vend]=porVend[d.vend]||[]).push(d); });
+
+  const wb=XLSX.utils.book_new();
+  const usados=new Set();
+  Object.keys(porVend).sort().forEach(v=>{
+    const lista=porVend[v].slice().sort((a,b)=>(b.h25-a.h25)||a.cli.localeCompare(b.cli,'pt-BR'));
+    const nome=vendName(v)[1]||v;
+    const titulo = repMode
+      ? nome+' · CLIENTES COM REPASSE A CAMINHO'
+      : nome+' · CLIENTES SEM COMPRA PARA '+m1+' E '+m2+'/'+ano2;
+    const regra = repMode
+      ? 'Base: '+catLab+' de '+quando+' · repasse já enviado e ainda não faturado no destino'+
+        ' · ordem: maior compra em 2025 primeiro · '+lista.length+' clientes'
+      : 'Base: '+catLab+' de '+quando+' · fora da lista: quem não comprou em 2025 nem em 2026'+
+        ' e quem tem repasse a caminho · ordem: maior compra em 2025 primeiro'+
+        ' · preencha a coluna amarela · '+lista.length+' clientes';
+    const cab = repMode
+      ? ['CÓD. CLIENTE','CLIENTE','CIDADE','UF','PARES 2025','PARES EM REPASSE','ENVIADO EM']
+      : ['CÓD. CLIENTE','CLIENTE','CIDADE','UF','PARES 2025','PARES PROJETADOS'];
+    const linhas=[[titulo],[regra],[],cab];
+    lista.forEach(d=>{
+      const rp=repasseDe(d);
+      const base6=[d.cod||'', d.cli, d.cidade||'', d.uf||'', d.h25||0];
+      linhas.push(repMode
+        ? base6.concat([rp?rp.pares:0,
+            rp?rp.peds.map(p=>p.data.slice(8,10)+'/'+p.data.slice(5,7)).join(', '):''])
+        : base6.concat(['']));
+    });
+    const ws=XLSX.utils.aoa_to_sheet(linhas);
+    ws['!cols']=[{wch:13},{wch:34},{wch:22},{wch:5},{wch:12},{wch:16},{wch:16}];
+    // Nome de aba: 31 caracteres é o limite do Excel, e não pode repetir.
+    let aba=(vendName(v)[0]||nome).slice(0,28).replace(/[\\\/\?\*\[\]:]/g,' ')||'Preposto';
+    let n=1; while(usados.has(aba)){ aba=aba.slice(0,26)+' '+(++n); }
+    usados.add(aba);
+    XLSX.utils.book_append_sheet(wb, ws, aba);
+  });
+
+  const quem = Object.keys(porVend).length===1
+    ? ' - '+(vendName(Object.keys(porVend)[0])[1]||'').split(' ').slice(0,2).join(' ')
+    : '';
+  const arq = (repMode ? 'REPASSE A CAMINHO' : 'SEM COMPRA '+m1+'-'+m2) + quem + '.xlsx';
+  XLSX.writeFile(wb, arq);
+  toast(alvo.length+' cliente(s) na planilha.');
 }
 
 function renderVendedor(){
@@ -1066,14 +1484,24 @@ function renderVendedor(){
   base=base.filter(d=>(!F.cidade||d.cidade===F.cidade) && (!F.f360||is360(d)) && matchSearch(d,F.search));
   if(F.vend) base=base.filter(d=>d.vend===F.vend);
 
-  const tot=base.length;
-  const compraram=base.filter(bought).length;
+  // As abas de recorte: contam sobre a base já filtrada e, quando ativas,
+  // reduzem a lista. Desenhadas aqui porque é aqui que `base` existe.
+  renderGrupos(base, bought);
+  // Os KPIs do topo continuam medindo a carteira inteira: a aba recorta a
+  // lista, não a leitura do mês. Sem isso, "Compraram no 2S26" daria zero
+  // dentro da aba de sem compra e pareceria defeito.
+  const baseTudo=base;
+  if(GRUPO==='semcompra') base=base.filter(d=>semCompraAlvo(d) && !repasseDe(d));
+  else if(GRUPO==='repasse') base=base.filter(d=>semCompraAlvo(d) && !!repasseDe(d));
+
+  const tot=baseTudo.length;
+  const compraram=baseTudo.filter(bought).length;
   const semcomprar=tot-compraram;
   const pct=tot?Math.round(semcomprar*100/tot):0;
   const rotProd = (CURPROD&&PRODS[CURPROD]) ? PRODS[CURPROD].nome : '';
   if(rotProd){
     // placar do produto: o que interessa é a migração entre semestres
-    const n=k=>base.filter(d=>d.pst===k).length;
+    const n=k=>baseTudo.filter(d=>d.pst===k).length;
     const perdeu=n('perdeu'), manteve=n('manteve'), novo=n('novo'), nunca=n('nunca');
     document.getElementById('catsum').innerHTML=
       kpi(rotProd+' · perderam',fmtN(perdeu),'compravam no 1S e pararam','var(--red)')+
@@ -1115,9 +1543,10 @@ function renderVendedor(){
     if(vis.length===0) rowsHtml='<div class="vend-empty">Nenhum cliente com os filtros atuais.</div>';
     vis.forEach(d=>{
       const R=rec(d.req); const ina=R.ativo?'':' inativo';
+      const rp=repasseDe(d);
       rowsHtml+=`<div class="rrow${ina}">
         <div class="c-cod">${d.cod||'—'}</div>
-        <div class="c-cli">${d.cli}${(CURPROD&&d.pst)?pstBadge(d.pst):''}</div>
+        <div class="c-cli">${d.cli}${(CURPROD&&d.pst)?pstBadge(d.pst):''}${seloRepasse(rp)}</div>
         <div class="y24">${fmtH(d.h24)}${catBadges(d.c24)}</div>
         <div class="y25">${fmtH(d.h25)}${catBadges(d.c25)}</div>
         <div class="y26">${fmtH(d.s1)}${catBadges(d.c1)}</div>
@@ -1130,7 +1559,7 @@ function renderVendedor(){
       <div class="vfreeze">
         <div class="vhead">
           <div class="vindex">${String(idx+1).padStart(2,'0')}</div>
-          <div class="vtitle"><span class="vtag">${tag} · ${CURCAT}</span><h2>${full}</h2></div>
+          <div class="vtitle"><span class="vtag">${tag} · ${CURCAT}${GRUPO==='semcompra'?' · sem compra '+mesesAlvo():GRUPO==='repasse'?' · repasse a caminho':''}</span><h2>${full}</h2></div>
           <div class="vkpi"><div class="l">Clientes</div><div class="v" style="color:var(--ftw)">${fmtN(total)}</div><div class="s">100%</div></div>
           <div class="vkpi"><div class="l">Compraram ${semLab}</div><div class="v" style="color:var(--green)">${fmtN(at)}</div><div class="s">${total?Math.round(at*100/total):0}%</div></div>
           <div class="vkpi"><div class="l">Sem comprar ${semLab}</div><div class="v" style="color:var(--red)">${fmtN(inat)}</div><div class="s">${total?Math.round(inat*100/total):0}%</div></div>
@@ -1249,6 +1678,9 @@ function aggregateCategoria(cat){
     const sv = rec(d.req).sev; if(sv > o.sev){ o.sev = sv; o.req = d.req; }
     if(d.cat !== cat) return;
     o.h24 += d.h24; o.h25 += d.h25; o.s1 += d.s1; o.s2 += d.s2;
+    // O número do EBM vai junto: é ele que diz "nada no mês corrente nem nos
+    // meses à frente", que é o recorte da lista de sem compra.
+    o.s2ebm = (o.s2ebm||0) + (d.s2ebm!==undefined ? d.s2ebm : d.s2);
     if(d.h24>0) o.c24.add(d.cat);
     if(d.h25>0) o.c25.add(d.cat);
     if(d.s1>0)  o.c1.add(d.cat);
@@ -1266,6 +1698,7 @@ function aggregateTodos(){
       c24:new Set(),c25:new Set(),c1:new Set(),c2:new Set()};
     const o=map[k];
     o.h24+=d.h24; o.h25+=d.h25; o.s1+=d.s1; o.s2+=d.s2;
+    o.s2ebm = (o.s2ebm||0) + (d.s2ebm!==undefined ? d.s2ebm : d.s2);
     // guarda em quais categorias o cliente comprou em cada período
     if(d.h24>0) o.c24.add(d.cat);
     if(d.h25>0) o.c25.add(d.cat);
