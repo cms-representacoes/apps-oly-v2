@@ -9429,7 +9429,9 @@ async function openOrderExportModal(opts = {}){
   renderOrderDateOverride();
   // Reaplica a trava do Portal por último — garante que nada acima (ex: config salva) sobrescreva.
   _travarComissionistaPortal();
-  cliInit(); // autocomplete do Código Cliente (carrega a base do comissionista)
+  // Ids explícitos: o modal de gerar xlsx aponta o combo para o campo dele,
+  // e sem isto o de finalizar continuaria escrevendo no campo do outro.
+  cliInit({ input:"oxClientCode", sug:"cliSug", hint:"cliHint", com:"oxCommission" });
   const modal = $("orderExportModal");
   if(!modal) return;
   modal.classList.remove("hidden");
@@ -14053,8 +14055,14 @@ const CLI_TTL_MS = 12 * 60 * 60 * 1000;
 const CLI_LIMITE = 40;
 const CLI = {
   chave:"", lista:[], loadedFor:"", loading:false, falhas:[], todos:false,
-  porCodigo:{}, matches:[], total:0, active:-1, bound:false
+  porCodigo:{}, matches:[], total:0, active:-1, bound:new Set()
 };
+
+/* O combo de cliente serve a DOIS campos: o do modal de finalizar e o do modal
+   de gerar xlsx. Como só um modal fica aberto por vez, basta apontar estes ids
+   para o campo em uso — cliInit() faz isso ao abrir. Antes os ids estavam
+   escritos dentro de cada função, e o segundo campo não tinha como usá-las. */
+const CLI_IDS = { input:"oxClientCode", sug:"cliSug", hint:"cliHint", com:"oxCommission" };
 
 // Quem manda na base: vendedor comum usa a própria sessão; CMS usa o
 // Comissionista escolhido no formulário (ele lança em nome de qualquer um).
@@ -14062,7 +14070,8 @@ function cliComissionistaAtual(){
   const session = getPortalSession();
   const isCms = session && mandaEmTudo(session.nome);
   if(session && !isCms) return String(session.codigo || "").trim();
-  return String($("oxCommission")?.value || "").trim();
+  // O campo de comissionista do modal em uso — o de finalizar ou o do xlsx.
+  return String($(CLI_IDS.com)?.value || "").trim();
 }
 
 function cliLerCache(chave){
@@ -14285,7 +14294,7 @@ function cliBuscar(termo){
 }
 
 function cliSetHint(tipo, texto){
-  const el = $("cliHint");
+  const el = $(CLI_IDS.hint);
   if(!el) return;
   if(!tipo){ el.hidden = true; el.textContent = ""; return; }
   el.className = "cli-hint " + tipo;
@@ -14293,7 +14302,7 @@ function cliSetHint(tipo, texto){
   el.hidden = false;
 }
 function cliAtualizarPlaceholder(){
-  const input = $("oxClientCode");
+  const input = $(CLI_IDS.input);
   if(!input) return;
   if(CLI.loading){ input.placeholder = "Carregando clientes..."; return; }
   input.placeholder = CLI.lista.length
@@ -14301,13 +14310,13 @@ function cliAtualizarPlaceholder(){
     : "Ex.: 104988";
 }
 function cliFechar(){
-  const box = $("cliSug");
+  const box = $(CLI_IDS.sug);
   if(box){ box.hidden = true; box.innerHTML = ""; }
-  $("oxClientCode")?.setAttribute("aria-expanded","false");
+  $(CLI_IDS.input)?.setAttribute("aria-expanded","false");
   CLI.matches = []; CLI.active = -1;
 }
 function cliRender(){
-  const box = $("cliSug");
+  const box = $(CLI_IDS.sug);
   if(!box) return;
   const ms = CLI.matches;
   if(!ms.length){ cliFechar(); return; }
@@ -14325,13 +14334,13 @@ function cliRender(){
     box.innerHTML += `<div class="cli-sug-info">Mostrando ${ms.length} de ${CLI.total} — digite mais para refinar</div>`;
   }
   box.hidden = false;
-  $("oxClientCode")?.setAttribute("aria-expanded","true");
+  $(CLI_IDS.input)?.setAttribute("aria-expanded","true");
 }
 // Só o CÓDIGO entra no campo — o XLSX exportado não muda em nada.
 function cliEscolher(idx){
   const c = CLI.matches[idx];
   if(!c) return;
-  const input = $("oxClientCode");
+  const input = $(CLI_IDS.input);
   input.value = String(c.codigo ?? "");
   input.classList.remove("invalid");
   cliFechar();
@@ -14339,7 +14348,7 @@ function cliEscolher(idx){
   cliSetHint("ok", `${c.nome || ""}${loc ? " · " + loc : ""}${c._vend ? " · " + c._vend : ""}`);
 }
 function cliAvaliarCampo(){
-  const input = $("oxClientCode");
+  const input = $(CLI_IDS.input);
   if(!input) return;
   const v = (input.value || "").trim();
   if(!v){
@@ -14363,20 +14372,28 @@ function cliAvaliarCampo(){
   }
 }
 
-function cliInit(){
-  const input = $("oxClientCode");
-  const box = $("cliSug");
+function cliInit(ids){
+  if(ids) Object.assign(CLI_IDS, ids);
+  const input = $(CLI_IDS.input);
+  const box = $(CLI_IDS.sug);
   if(!input || !box) return;
 
-  if(!CLI.bound){
-    CLI.bound = true;
+  // Um campo por vez, mas cada um precisa dos seus próprios listeners. E cada
+  // listener reaponta CLI_IDS para o SEU campo antes de qualquer coisa: sem
+  // isso, quem abriu um modal por último roubava a lista do outro — digitar no
+  // campo de finalizar desenhava as sugestões dentro do modal do xlsx.
+  const meus = { ...CLI_IDS };
+  if(!CLI.bound.has(CLI_IDS.input)){
+    CLI.bound.add(CLI_IDS.input);
     input.addEventListener("input", ()=>{
+      Object.assign(CLI_IDS, meus);
       CLI.matches = cliBuscar(input.value);
       CLI.active = CLI.matches.length ? 0 : -1;
       cliRender();
       cliSetHint(null);
     });
     input.addEventListener("keydown", (e)=>{
+      Object.assign(CLI_IDS, meus);
       const n = CLI.matches.length;
       if(e.key === "Escape"){ cliFechar(); return; }
       if(!n) return;
@@ -14384,16 +14401,18 @@ function cliInit(){
       else if(e.key === "ArrowUp"){ e.preventDefault(); CLI.active = (CLI.active-1+n)%n; cliRender(); }
       else if(e.key === "Enter" && CLI.active >= 0){ e.preventDefault(); cliEscolher(CLI.active); }
     });
-    input.addEventListener("blur", ()=>{ setTimeout(()=>{ cliFechar(); cliAvaliarCampo(); }, 120); });
+    input.addEventListener("blur", ()=>{ setTimeout(()=>{ Object.assign(CLI_IDS, meus); cliFechar(); cliAvaliarCampo(); }, 120); });
     // mousedown (e não click) para disparar antes do blur fechar a lista
     box.addEventListener("mousedown", (e)=>{
+      Object.assign(CLI_IDS, meus);
       const btn = e.target.closest(".cli-opt");
       if(!btn) return;
       e.preventDefault();
       cliEscolher(Number(btn.dataset.idx));
     });
     // CMS troca de comissionista → recarrega a base daquele preposto
-    $("oxCommission")?.addEventListener("change", ()=>{
+    $(CLI_IDS.com)?.addEventListener("change", ()=>{
+      Object.assign(CLI_IDS, meus);
       CLI.loadedFor = ""; CLI.lista = []; CLI.falhas = []; CLI.todos = false;
       cliIndexar(); cliFechar(); cliSetHint(null);
       cliCarregar();
@@ -15566,23 +15585,13 @@ function _rxAbrir(origem){
     selPg.dataset.ready = "1";
   }
 
-  /* Clientes do comissionista, para o campo aceitar nome e não só código.
-     CLI.porCodigo só nasce quando alguém abre o modal de finalizar; aqui ele
-     pode estar vazio, então peço a base e repinto a lista quando chegar — o
-     campo funciona digitando o código enquanto isso. */
-  const pintarClientes = () => {
-    const dl = $("rxClientList");
-    if(!dl) return;
-    const porCod = (CLI && CLI.porCodigo) ? CLI.porCodigo : {};
-    dl.innerHTML = Object.keys(porCod).slice(0, 4000).map(cod =>
-      `<option value="${escapeHtml(cod)}">${escapeHtml(nomeFantasiaPorCodigo(cod) || "")}</option>`
-    ).join("");
-  };
-  pintarClientes();
-  if(r.comissionista && typeof cliCarregar === "function"){
-    Promise.resolve(cliCarregar(String(r.comissionista))).then(pintarClientes).catch(()=>{});
+  /* O MESMO combo do modal de finalizar: lista com código, nome e cidade, setas
+     e Enter para escolher. cliInit aponta o combo para os campos daqui e carrega
+     a base do comissionista do rascunho/da sacola. */
+  if(typeof cliInit === "function"){
+    cliInit({ input:"rxClientCode", sug:"rxCliSug", hint:"rxCliHint", com:"rxCommission" });
   }
-  if(typeof fantCarregar === "function") Promise.resolve(fantCarregar()).then(pintarClientes).catch(()=>{});
+  if(typeof fantCarregar === "function") Promise.resolve(fantCarregar()).catch(()=>{});
 
   set("rxCommission", r.comissionista || def.commission);
   set("rxClientCode", r.clientCode || "");
@@ -15712,16 +15721,7 @@ function _rxLigar(){
   $("btnCancelRascExport")?.addEventListener("click", fecharRascExportModal);
   $("rascExportBackdrop")?.addEventListener("click", fecharRascExportModal);
   $("btnConfirmRascExport")?.addEventListener("click", _rxGerarPlanilha);
-  // O nome do cliente aparece embaixo do campo, como confirmação de que o
-  // código digitado é mesmo quem ele pensa.
-  $("rxClientCode")?.addEventListener("input", ()=>{
-    const hint = $("rxCliHint");
-    if(!hint) return;
-    const cod = ($("rxClientCode").value || "").trim();
-    const nome = cod ? nomeFantasiaPorCodigo(cod) : "";
-    if(nome){ hint.textContent = nome; hint.hidden = false; }
-    else { hint.hidden = true; hint.textContent = ""; }
-  });
+  // A dica embaixo do campo (nome, cidade, preposto) é do combo, não daqui.
   _rxLigado = true;
 }
 
@@ -16182,8 +16182,10 @@ loadCatalog({ cacheBust:false });
               </div>
               <div>
                 <label class="order-field-label" for="rxClientCode">Código Cliente <span class="text-[10px] font-bold" style="color:var(--muted)">(opcional)</span></label>
-                <input id="rxClientCode" class="order-field-control" list="rxClientList" placeholder="Código ou nome — pode ficar em branco" type="text" autocomplete="off" />
-                <datalist id="rxClientList"></datalist>
+                <div class="cli-combo">
+                  <input id="rxClientCode" class="order-field-control" placeholder="Código ou nome — pode ficar em branco" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="rxCliSug" />
+                  <div id="rxCliSug" class="cli-sug" role="listbox" aria-label="Clientes encontrados" hidden></div>
+                </div>
                 <div id="rxCliHint" class="cli-hint" hidden></div>
               </div>
 
