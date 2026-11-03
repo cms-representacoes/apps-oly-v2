@@ -2138,7 +2138,10 @@
     .mp-pedido-btn:disabled { opacity:.45; cursor:not-allowed; }
 
     /* ── Modal Exportação Pedido Excel ── */
-    #orderExportModal .order-sheet {
+    /* O modal de exportar rascunho usa a mesma folha: mesma caixa, mesmo
+       cabeçalho, mesmo rodapé. Só os campos mudam. */
+    #orderExportModal .order-sheet,
+    #rascExportModal .order-sheet {
       width:min(720px, calc(100vw - 24px));
       max-height: 92vh;
       max-height: 92dvh;
@@ -2153,19 +2156,23 @@
       display:flex;
       flex-direction:column;
     }
-    #orderExportModal.open .order-sheet {
+    #orderExportModal.open .order-sheet,
+    #rascExportModal.open .order-sheet {
       transform: translateY(0) scale(1);
       opacity:1;
     }
-    #orderExportModal .order-sheet > .order-sheet-header { flex:0 0 auto; }
-    #orderExportModal .order-sheet > .order-sheet-body {
+    #orderExportModal .order-sheet > .order-sheet-header,
+    #rascExportModal .order-sheet > .order-sheet-header { flex:0 0 auto; }
+    #orderExportModal .order-sheet > .order-sheet-body,
+    #rascExportModal .order-sheet > .order-sheet-body {
       flex:1 1 auto;
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
       overscroll-behavior:contain;
       min-height:0;
     }
-    #orderExportModal .order-sheet > .order-sheet-footer {
+    #orderExportModal .order-sheet > .order-sheet-footer,
+    #rascExportModal .order-sheet > .order-sheet-footer {
       flex:0 0 auto;
       padding-bottom:env(safe-area-inset-bottom);
     }
@@ -4021,9 +4028,9 @@ html.dark-mode body::before{
                         </div>
                       </div>
 
-                      <button id="btnWhatsCheckout" class="focus-ring inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-oly-border bg-white px-2 py-3 hover:bg-oly-bg" title="Enviar pedido via WhatsApp">
-                        <i class="fa-brands fa-whatsapp text-lg" style="color:#22c55e"></i>
-                        <span class="text-[11px] font-extrabold">WhatsApp</span>
+                      <button id="btnGerarXlsxSacola" class="focus-ring inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-oly-border bg-white px-2 py-3 hover:bg-oly-bg" title="Gerar a planilha do EBM sem finalizar o pedido">
+                        <i class="fa-solid fa-file-excel text-lg" style="color:#12A150"></i>
+                        <span class="text-[11px] font-extrabold">Gerar xlsx</span>
                       </button>
                     </div>
                   </div>
@@ -7016,7 +7023,27 @@ function addToCart(item, qty, { obs="" } = {}){
   const precoFmt = moneyBR(precoNum);
   const existing = state.cart.get(key);
   if(existing){
-    existing.qty = Math.min(9999, existing.qty + qty);
+    /* Item que JÁ tem grade: clicar em "adicionar" de novo quer dizer mais uma
+       caixa daquela grade, não mais um par solto. Somar em qty deixava os dois
+       números em desacordo — a tela mostrava o qty e a planilha do EBM soma a
+       grade, então o vendedor via 13 pares e a fábrica recebia 11. É o mesmo
+       cálculo do +/- de caixas da sacola. */
+    const temGrade = existing.grade && Object.keys(existing.grade).length;
+    const temBase = existing.gradeBase && Object.keys(existing.gradeBase).length;
+    if(temGrade && temBase){
+      const caixas = Math.min(99, (Number(existing.boxes) || 1) + 1);
+      const nova = {};
+      let total = 0;
+      for(const [tam, q] of Object.entries(existing.gradeBase)){
+        const v = (Number(q) || 0) * caixas;
+        nova[tam] = v; total += v;
+      }
+      existing.boxes = caixas;
+      existing.grade = nova;
+      existing.qty = total;
+    } else {
+      existing.qty = Math.min(9999, existing.qty + qty);
+    }
     if(obs) existing.obs = obs;
     // garante que tam e categoria estejam sempre preenchidos
     if(!existing.tam) existing.tam = item.tam || "";
@@ -8262,7 +8289,9 @@ function cartTotals(){
 
   for(const it of state.cart.values()){
     cartSize++;
-    const q = (Number(it.qty)||0);
+    // Pela grade, não pelo qty: é a mesma conta da planilha do EBM. Com os dois
+    // em desacordo, o Resumo mostrava mais pares do que o arquivo que sai.
+    const q = getItemTotalQty(it);
     items += q;
     totalCost += costFromPrice(it.precoNum||0)*(q||1);
     // Preço unitário: se temos prazo definido, usa coluna correspondente; senão fica em 0 (sacola pré-export)
@@ -8866,7 +8895,7 @@ function renderCartUI(){
                   <i class="fa-solid fa-plus text-oly-blue" style="font-size:12px"></i>
                 </button>
               </div>
-              <div class="text-xs font-bold text-oly-muted"><span class="font-extrabold text-oly-blue">${it.qty}</span> pares no total</div>
+              <div class="text-xs font-bold text-oly-muted"><span class="font-extrabold text-oly-blue">${getItemTotalQty(it)}</span> pares no total</div>
             </div>
           </div>` : needsGrade ? `
           <div class="cart-caixas mt-2 flex items-center gap-1.5">
@@ -9099,49 +9128,9 @@ function renderCartUI(){
   refreshVisibleCardAddButtons();
 }
 
-/** WhatsApp */
-function buildWhatsMessage(){
-  const lines = [];
-  lines.push("*🛍️ Pedido — Catálogo Olympikus*");
-  lines.push("");
-  lines.push("*Itens:*");
-  let i=1, grandPairs=0, grandCost=0;
-  for(const it of state.cart.values()){
-    lines.push(`${i}. *${it.produto}*`);
-    lines.push(`   Código: ${it.codigo}`);
-    lines.push(`   Cor: ${it.cor}${it.corCodigo?" ("+it.corCodigo+")":""}`);
-    if(it.gradeResume){
-      lines.push(`   Grade: ${it.gradeResume}`);
-      lines.push(`   Total: ${it.qty} pares`);
-    } else if(!it.qty){
-      lines.push(`   ⚠️ Grade pendente — a preencher`);
-    } else {
-      lines.push(`   Qtd: ${it.qty}`);
-    }
-    if(it.obs) lines.push(`   Obs: ${it.obs}`);
-    lines.push("");
-    i++;
-    const q=Number(it.qty)||0;
-    grandPairs+=q;
-    grandCost+=costFromPrice(it.precoNum||0)*(q||1);
-  }
-  lines.push("─────────────────────");
-  lines.push(`*Total de pares:* ${grandPairs}`);
-  lines.push(`*Valor total (custo):* ${moneyBR(grandCost)}`);
-  return lines.join("\n");
-}
-function openWhatsApp(){
-  if(state.cart.size===0){ toast("Adicione itens ✅"); return; }
-  const pending=[...state.cart.values()].filter(it=>(!it.qty||it.qty===0)&&tamNeedsGrade(it.categoria,it.tam));
-  if(pending.length>0){
-    const ok=confirm(`${pending.length} item(ns) com grade ainda não preenchida.\nDeseja enviar assim mesmo? A grade pode ser completada depois.`);
-    if(!ok) return;
-  }
-  saveCustomerToStorage();
-  const msg=buildWhatsMessage();
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank","noopener,noreferrer");
-}
-$("btnWhatsCheckout").addEventListener("click", openWhatsApp);
+/** Gerar xlsx da sacola, sem finalizar o pedido. Ficou no lugar do botão de
+    WhatsApp, que saiu junto com a mensagem que ele montava. */
+$("btnGerarXlsxSacola")?.addEventListener("click", ()=> exportarSacolaXlsx());
 
 /** Export XLSX */
 const ORDER_PAYMENT_OPTIONS = [
@@ -14914,6 +14903,7 @@ function _mpRenderRascunhos(){
         ${itens}
         <div class="mp-pedido-actions">
           <button class="mp-pedido-btn primary" onclick="mpEditarRascunho('${_mpEscape(r.id)}')"><i class="fa-solid fa-pen"></i> Editar</button>
+          <button class="mp-pedido-btn" onclick="mpExportarRascunhoXlsx('${_mpEscape(r.id)}')" title="Planilha do EBM a partir do rascunho, sem finalizar nem apagar o rascunho"><i class="fa-solid fa-file-excel"></i> Exportar xlsx</button>
           <button class="mp-pedido-btn" style="background:#16a34a;color:#fff;border-color:#16a34a" onclick="mpFinalizarRascunho('${_mpEscape(r.id)}')"><i class="fa-solid fa-circle-check"></i> Finalizar</button>
           <button class="mp-pedido-btn" style="color:#dc2626" onclick="mpExcluirRascunho('${_mpEscape(r.id)}')"><i class="fa-solid fa-trash"></i> Excluir</button>
         </div>
@@ -15479,6 +15469,262 @@ async function mpBaixarCaptacao(id){
   toast("Capta\u00e7\u00e3o gerada \u00b7 " + linhas.length + " produto" + (linhas.length !== 1 ? "s" : "") + " \u2705");
 }
 
+/* ── Exportar rascunho em xlsx ──────────────────────────────────────────
+   O mesmo layout do EBM que o pedido finalizado gera, só que a partir de um
+   rascunho e SEM finalizar: o rascunho fica onde está, nada vai para o
+   histórico e nada é apagado. Serve para mandar a planilha de conferência
+   antes de fechar o pedido.
+
+   Duas diferenças do modal de finalizar, as duas pedidas:
+   · o cliente pode ficar em branco — rascunho sem cliente é o caso comum, e
+     quem exporta às vezes só quer a grade na mão;
+   · os campos operacionais já vêm no padrão (Musical, Total Artigo/Cor, Data
+     Firme sim, Pedido Mãe não, Antecipação não), e o que o rascunho já tiver
+     guardado (comissionista, prazo, tabela, campanha) entra por cima.
+
+   Item sem grade não vira linha no EBM, então o aviso diz quantos ficam de
+   fora antes de gerar — rascunho é justamente onde isso acontece. */
+let _rxOrigem = null;      // { tipo:"sacola" } ou { tipo:"rascunho", id }
+
+/* Os dois caminhos chegam no mesmo modal. O que muda é de onde vêm os itens e
+   a configuração: da sacola em curso ou do rascunho salvo. */
+function _rxDados(origem){
+  if(origem && origem.tipo === "sacola"){
+    const items = [...state.cart.values()];
+    const cfgAtual = state.lastOrderCfg || {};
+    const semGrade = items.filter(it => !(it.grade && Object.keys(it.grade).length > 0)).length;
+    return {
+      ok: items.length > 0,
+      titulo: "a sacola",
+      items,
+      totalItens: items.length,
+      semGrade,
+      // Sem nada escolhido ainda, vale quem está logado no Portal — senão a
+      // planilha sai sem comissionista e o EBM recusa.
+      comissionista: cfgAtual.commission || ($("oxCommission")?.value || "") ||
+                     (getPortalSession()?.codigo || ""),
+      clientCode: cfgAtual.clientCode || ($("oxClientCode")?.value || ""),
+      // o prazo da sacola é o que a tela já usa para calcular preço
+      payment: (typeof prazoDaSacola === "function" ? prazoDaSacola() : "") || cfgAtual.payment || "",
+      priceTable: cfgAtual.priceTable || "",
+      campaign: cfgAtual.campaign || "",
+      pedidoCliente: cfgAtual.pedidoCliente || "",
+      dataDesejada: cfgAtual.dataDesejada || "",
+      quando: null,
+      // na sacola o item já está no formato que o gerador espera
+      paraExport: it => it
+    };
+  }
+  const r = _mpFindRascunhoById(origem && origem.id);
+  if(!r) return { ok:false };
+  return {
+    ok: (r.items || []).length > 0,
+    titulo: "o rascunho",
+    items: r.items || [],
+    totalItens: Number(r.totalItens) || (r.items || []).length,
+    semGrade: Number(r.semGrade) || 0,
+    comissionista: r.comissionista || "",
+    clientCode: r.clientCode || "",
+    payment: r.payment || "",
+    priceTable: r.priceTable || "",
+    campaign: r.campaign || "",
+    pedidoCliente: r.pedidoCliente || "",
+    dataDesejada: r.dataDesejada || "",
+    quando: r.updatedAt || r.createdAt,
+    // o item salvo precisa virar item de sacola antes de ir para o gerador
+    paraExport: it => {
+      const base = _mpPedidoItemToCartItem(it);
+      return { ...base, key: cartKeyFor(base), qty: it.qty || 0,
+               grade: it.grade ? { ...it.grade } : null };
+    }
+  };
+}
+
+function exportarSacolaXlsx(){
+  if(!state.cart.size){ toast("Adicione itens ✅"); return; }
+  _rxAbrir({ tipo:"sacola" });
+}
+
+function mpExportarRascunhoXlsx(id){
+  _rxAbrir({ tipo:"rascunho", id:String(id) });
+}
+
+function _rxAbrir(origem){
+  const d = _rxDados(origem);
+  if(!d.ok){ toast("Nada para exportar ⚠️"); return; }
+  _rxOrigem = origem;
+  const r = d;
+
+  const def = { ...ORDER_EXPORT_DEFAULTS };
+  const set = (campo, valor) => { const el = $(campo); if(el) el.value = valor || ""; };
+
+  // prazo: a mesma lista do modal de finalizar
+  const selPg = $("rxPayment");
+  if(selPg && selPg.dataset.ready !== "1"){
+    selPg.innerHTML = '<option value="">— Selecione —</option>' +
+      ORDER_PAYMENT_OPTIONS.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    selPg.dataset.ready = "1";
+  }
+
+  /* Clientes do comissionista, para o campo aceitar nome e não só código.
+     CLI.porCodigo só nasce quando alguém abre o modal de finalizar; aqui ele
+     pode estar vazio, então peço a base e repinto a lista quando chegar — o
+     campo funciona digitando o código enquanto isso. */
+  const pintarClientes = () => {
+    const dl = $("rxClientList");
+    if(!dl) return;
+    const porCod = (CLI && CLI.porCodigo) ? CLI.porCodigo : {};
+    dl.innerHTML = Object.keys(porCod).slice(0, 4000).map(cod =>
+      `<option value="${escapeHtml(cod)}">${escapeHtml(nomeFantasiaPorCodigo(cod) || "")}</option>`
+    ).join("");
+  };
+  pintarClientes();
+  if(r.comissionista && typeof cliCarregar === "function"){
+    Promise.resolve(cliCarregar(String(r.comissionista))).then(pintarClientes).catch(()=>{});
+  }
+  if(typeof fantCarregar === "function") Promise.resolve(fantCarregar()).then(pintarClientes).catch(()=>{});
+
+  set("rxCommission", r.comissionista || def.commission);
+  set("rxClientCode", r.clientCode || "");
+  set("rxPayment", r.payment || "");
+  set("rxPriceTable", r.priceTable || def.priceTable);
+  set("rxCampaign", r.campaign || "");
+  set("rxPacking", def.packing);
+  set("rxDeliveryType", def.deliveryType);
+  set("rxDataFirme", def.dataFirme);
+  set("rxPedidoMae", def.pedidoMae);
+  set("rxAntecipacao", def.antecipacao);
+  set("rxPedidoCliente", r.pedidoCliente || "");
+
+  const total = r.totalItens;
+  const semGrade = r.semGrade;
+  const sub = $("rxSub");
+  if(sub){
+    sub.textContent = `${total} ${total === 1 ? "item" : "itens"} · ` +
+      (r.quando ? `rascunho de ${_mpFormatBR(r.quando)}` : "sacola em aberto");
+  }
+  const titulo = $("rxTitulo");
+  if(titulo) titulo.textContent = r.quando ? "Exportar rascunho em" : "Gerar xlsx da sacola";
+  const rodape = $("rxRodape");
+  if(rodape) rodape.textContent = r.quando
+    ? "O rascunho continua salvo."
+    : "A sacola fica como está — o pedido não é finalizado.";
+  const aviso = $("rxAviso");
+  if(aviso){
+    aviso.innerHTML = semGrade > 0
+      ? `<b style="color:#d97706">${semGrade} ${semGrade === 1 ? "item está" : "itens estão"} sem grade</b> e ${semGrade === 1 ? "não vai" : "não vão"} para a planilha — o EBM precisa da grade para montar a linha. ${r.quando ? "O rascunho continua" : "A sacola continua"} com ${semGrade === 1 ? "ele" : "eles"}.`
+      : `Todos os itens têm grade.`;
+  }
+
+  const modal = $("rascExportModal");
+  if(!modal) return;
+  _rxLigar();
+  modal.classList.remove("hidden");
+  requestAnimationFrame(()=> modal.classList.add("open"));
+}
+
+function fecharRascExportModal(){
+  const modal = $("rascExportModal");
+  if(!modal) return;
+  modal.classList.remove("open");
+  setTimeout(()=> modal.classList.add("hidden"), 180);
+}
+
+function _rxGerarPlanilha(){
+  const r = _rxDados(_rxOrigem);
+  if(!r.ok){ toast("Nada para exportar ⚠️"); return; }
+  const val = id => ($(id)?.value || "").trim();
+
+  // Item sem grade não gera linha no layout do EBM; avisa em vez de sair com
+  // uma planilha a menos sem explicação.
+  const comGrade = (r.items || []).filter(it => it.grade && Object.keys(it.grade).length > 0);
+  if(!comGrade.length){
+    toast("Nenhum item com grade — preencha a grade antes de exportar ⚠️");
+    return;
+  }
+
+  const cfg = {
+    commission: val("rxCommission"),
+    clientCode: val("rxClientCode"),
+    payment: val("rxPayment"),
+    priceTable: val("rxPriceTable"),
+    campaign: val("rxCampaign"),
+    packing: val("rxPacking"),
+    deliveryType: val("rxDeliveryType"),
+    dataFirme: val("rxDataFirme"),
+    pedidoMae: val("rxPedidoMae"),
+    antecipacao: val("rxAntecipacao"),
+    dataDesejada: r.dataDesejada || "",
+    pedidoCliente: val("rxPedidoCliente")
+  };
+
+  const items = comGrade.map(r.paraExport);
+
+  let warnings = [];
+  try{
+    const r2 = buildOrderExportRows(cfg, items);
+    warnings = r2.warnings || [];
+    const ws = XLSX.utils.aoa_to_sheet(r2.aoa);
+    ws["!cols"] = ORDER_EXPORT_COLS;
+    ws["!autofilter"] = { ref: `A1:BG${r2.aoa.length}` };
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pedido");
+    /* nomeArquivoPedido devolve "Pedido <cliente> <cod> <data>.xlsx". Troco só
+       a primeira palavra: na pasta de downloads, isto não pode se parecer com
+       o pedido fechado do mesmo cliente, porque não é ele — é uma prévia, e
+       mandar o arquivo errado para a fábrica é o tipo de erro caro. Sem
+       cliente sobra "<Prévia|Rascunho> <data>". */
+    const prefixo = r.quando ? "Rascunho" : "Prévia";
+    const nome = nomeArquivoPedido(cfg.clientCode, ".xlsx", r.quando || new Date())
+      .replace(/^Pedido/, prefixo);
+    XLSX.writeFile(wb, nome);
+  }catch(e){
+    // Fechar no finally não serve: se a geração falhou, o modal some e o
+    // vendedor fica sem saber o que aconteceu. Aqui ele fica aberto, com o
+    // aviso, e pode tentar de novo.
+    console.error("Falha ao gerar o xlsx:", e);
+    toast("⚠️ Não foi possível gerar a planilha. Veja o console (F12).");
+    return;
+  }
+
+  // Fecha o modal e, quando veio da sacola, a sacola junto: o vendedor gerou a
+  // prévia para mandar, e o passo seguinte é sair daqui, não continuar olhando
+  // a lista por baixo de dois modais abertos.
+  fecharRascExportModal();
+  if(!r.quando && typeof closeCartModal === "function") setTimeout(closeCartModal, 200);
+  const fora = (r.items || []).length - comGrade.length;
+  if(warnings && warnings.length) console.warn("Avisos da exportação xlsx:", warnings);
+  toast(fora > 0
+    ? `Planilha gerada · ${fora} ${fora === 1 ? "item sem grade ficou" : "itens sem grade ficaram"} de fora ⚠️`
+    : (r.quando ? "Planilha do rascunho gerada ✅" : "Planilha da sacola gerada ✅"));
+}
+
+/* Os botões são ligados na PRIMEIRA abertura, não na carga do script: este
+   modal mora fora do #app, depois deste bloco no documento, então na hora em
+   que o script roda os elementos ainda não existem — ligar aqui em cima
+   registrava o clique em null e o botão não fazia nada. */
+let _rxLigado = false;
+function _rxLigar(){
+  if(_rxLigado) return;
+  const btnFechar = $("btnCloseRascExport");
+  if(!btnFechar) return;                      // DOM ainda não tem o modal
+  btnFechar.addEventListener("click", fecharRascExportModal);
+  $("btnCancelRascExport")?.addEventListener("click", fecharRascExportModal);
+  $("rascExportBackdrop")?.addEventListener("click", fecharRascExportModal);
+  $("btnConfirmRascExport")?.addEventListener("click", _rxGerarPlanilha);
+  // O nome do cliente aparece embaixo do campo, como confirmação de que o
+  // código digitado é mesmo quem ele pensa.
+  $("rxClientCode")?.addEventListener("input", ()=>{
+    const hint = $("rxCliHint");
+    if(!hint) return;
+    const cod = ($("rxClientCode").value || "").trim();
+    const nome = cod ? nomeFantasiaPorCodigo(cod) : "";
+    if(nome){ hint.textContent = nome; hint.hidden = false; }
+    else { hint.hidden = true; hint.textContent = ""; }
+  });
+  _rxLigado = true;
+}
+
 function mpBaixarExcel(id){
   const pedido = _mpFindPedidoById(id);
   if(!pedido) return;
@@ -15892,6 +16138,138 @@ setHeaderStatus("Carregando\u2026");
 loadCatalog({ cacheBust:false });
 </script>
 <!-- ═══════════ MODAL MEUS PEDIDOS ═══════════ -->
+<!-- Fora do #app de proposito: com "Meus pedidos" aberto o #app fica
+     display:none, e o modal ficaria com altura zero, invisivel ao clique.
+     Este modal nasce de um cartao de rascunho, entao vive aqui fora. -->
+<!-- Modal Exportar rascunho em xlsx
+         Separado do modal de finalizar de propósito: aquele valida grade,
+         grava no histórico e APAGA o rascunho. Aqui o rascunho continua
+         intacto — é só uma planilha para conferir, e por isso o cliente pode
+         ficar em branco. Os campos operacionais já vêm no padrão. -->
+    <!-- z acima do #meusPedidosModal (88): este modal abre POR CIMA da lista
+         de rascunhos, que e de onde ele e chamado. -->
+    <div id="rascExportModal" class="hidden fixed inset-0 z-[90]">
+      <div id="rascExportBackdrop" class="backdrop absolute inset-0"></div>
+      <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-5">
+        <div class="order-sheet">
+          <div class="order-sheet-header flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-oly-border">
+            <div class="min-w-0">
+              <div class="text-lg sm:text-xl font-black text-oly-text inline-flex items-center gap-2">
+                <span id="rxTitulo">Exportar rascunho em</span> <i class="fa-solid fa-file-excel text-xl sm:text-2xl" style="color:#12A150" aria-hidden="true"></i><span class="sr-only">xlsx</span>
+              </div>
+              <div class="text-xs font-bold mt-0.5" style="color:var(--muted)" id="rxSub"></div>
+            </div>
+            <button id="btnCloseRascExport" class="focus-ring h-11 w-11 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0" aria-label="Fechar">
+              <i class="fa-solid fa-xmark text-oly-blue"></i>
+            </button>
+          </div>
+
+          <div class="order-sheet-body px-5 sm:px-6 py-5">
+            <div class="order-modal-grid">
+              <div>
+                <label class="order-field-label" for="rxCommission">Comissionista</label>
+                <select id="rxCommission" class="order-field-control">
+                  <option value="">— Selecione —</option>
+                  <option value="114611">114611 – JORGE</option>
+                  <option value="109839">109839 – MARIANA</option>
+                  <option value="1333497">1333497 – RAFAEL</option>
+                  <option value="25471">25471 – WILLAME</option>
+                  <option value="25745">25745 – LEANDRO</option>
+                  <option value="4322318">4322318 – CHRISTIAN LUCAS</option>
+                  <option value="25846">25846 – CMS</option>
+                  <option value="3616654">3616654 – MARCOS (DEV)</option>
+                </select>
+              </div>
+              <div>
+                <label class="order-field-label" for="rxClientCode">Código Cliente <span class="text-[10px] font-bold" style="color:var(--muted)">(opcional)</span></label>
+                <input id="rxClientCode" class="order-field-control" list="rxClientList" placeholder="Código ou nome — pode ficar em branco" type="text" autocomplete="off" />
+                <datalist id="rxClientList"></datalist>
+                <div id="rxCliHint" class="cli-hint" hidden></div>
+              </div>
+
+              <div>
+                <label class="order-field-label" for="rxPayment">Cond. Pagamento (prazo)</label>
+                <select id="rxPayment" class="order-field-control">
+                  <option value="">— Selecione —</option>
+                </select>
+              </div>
+              <div>
+                <label class="order-field-label" for="rxPriceTable">Tab. de Preço</label>
+                <input id="rxPriceTable" class="order-field-control" list="oxPriceTableList" placeholder="Ex.: OL029" autocomplete="off" />
+              </div>
+
+              <div>
+                <label class="order-field-label" for="rxCampaign">Campanha</label>
+                <select id="rxCampaign" class="order-field-control">
+                  <option value="">— Sem campanha —</option>
+                  <option value="CO681 +28DD OLY">CO681 +28DD OLY</option>
+                  <option value="CO689 +56DD OLY">CO689 +56DD OLY</option>
+                  <option value="CO684 +28DD UA">CO684 +28DD UA</option>
+                  <option value="CO690 +56DD UA">CO690 +56DD UA</option>
+                </select>
+              </div>
+              <div>
+                <label class="order-field-label" for="rxPacking">Forma de Embalar</label>
+                <select id="rxPacking" class="order-field-control">
+                  <option value="M: Musical">M: Musical</option>
+                  <option value="P: Padrão">P: Padrão</option>
+                  <option value="S: Sólida">S: Sólida</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="order-field-label" for="rxDeliveryType">Tipo de Entrega</label>
+                <select id="rxDeliveryType" class="order-field-control">
+                  <option value="3: Total Artigo/Cor">3: Total Artigo/Cor</option>
+                  <option value="2: Total Artigo">2: Total Artigo</option>
+                  <option value="1: Total Encomenda">1: Total Encomenda</option>
+                </select>
+              </div>
+              <div>
+                <label class="order-field-label" for="rxDataFirme">Data Firme</label>
+                <select id="rxDataFirme" class="order-field-control">
+                  <option value="S: Sim">S: Sim</option>
+                  <option value="N: Não">N: Não</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="order-field-label" for="rxPedidoMae">Pedido Mãe</label>
+                <select id="rxPedidoMae" class="order-field-control">
+                  <option value="N: Não">N: Não</option>
+                  <option value="S: Sim">S: Sim</option>
+                </select>
+              </div>
+              <div>
+                <label class="order-field-label" for="rxAntecipacao">Aceita Antecipação?</label>
+                <select id="rxAntecipacao" class="order-field-control">
+                  <option value="N: Não">N: Não</option>
+                  <option value="S: Sim">S: Sim</option>
+                </select>
+              </div>
+
+              <div style="grid-column: 1 / -1;">
+                <label class="order-field-label" for="rxPedidoCliente">Pedido do Cliente</label>
+                <input id="rxPedidoCliente" type="text" class="order-field-control" placeholder="Número ou referência do pedido do cliente" />
+              </div>
+            </div>
+            <div id="rxAviso" class="order-modal-note mt-4"></div>
+          </div>
+
+          <div class="order-sheet-footer px-5 sm:px-6 py-4 border-t border-oly-border bg-oly-bg flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+            <div class="text-xs font-bold text-oly-muted" id="rxRodape">O rascunho continua salvo.</div>
+            <div class="grid grid-cols-1 sm:flex gap-2">
+              <button id="btnCancelRascExport" class="focus-ring inline-flex items-center justify-center rounded-2xl border border-oly-border bg-white px-4 py-3 text-sm font-extrabold hover:bg-white">Cancelar</button>
+              <button id="btnConfirmRascExport" class="focus-ring inline-flex items-center justify-center gap-2 rounded-2xl bg-oly-blue px-4 py-3 text-sm font-extrabold text-white hover:opacity-95">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Exportar xlsx</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
 <div id="meusPedidosModal" class="hidden fixed inset-0 z-[88]">
   <div class="absolute inset-0 bg-black/55 backdrop-blur-sm" id="mpBackdrop"></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
