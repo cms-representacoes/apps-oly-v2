@@ -10799,6 +10799,61 @@ document.addEventListener("DOMContentLoaded", () => {
   liga("btnSelPdf", () => { if(typeof gerarCatalogoPdf === "function") gerarCatalogoPdf(); });
 });
 
+/* Pedido vindo do Nexo: ?nexo=pdf&col=1S27&itens=CODIGO|COR,CODIGO|COR...
+   Marca esses produtos e chama o mesmo gerarCatalogoPdf do botão, para o
+   arquivo sair idêntico. Os marcados do vendedor voltam ao fim, e o pedido
+   sai do endereço para o F5 não gerar de novo. A coleção vai para o filtro
+   porque o mesmo código|cor existe em mais de uma e a tela manda no preço. */
+(function pedidoDoNexo(){
+  const p = new URLSearchParams(location.search);
+  if(p.get("nexo") !== "pdf") return;
+  const itens = (p.get("itens") || "").split(",").map(s => s.trim()).filter(Boolean);
+  if(!itens.length) return;
+  const col = (p.get("col") || "").toUpperCase();
+  /* Dentro do Nexo (iframe escondido) o PDF não baixa: volta por mensagem,
+     com o andamento, para o chat mostrar o arquivo. */
+  const id = p.get("nexoid") || "";
+  let entregue = false;
+  const avisar = m => { try{ window.parent.postMessage(Object.assign({ id }, m), "*"); }catch(_){} };
+  if(id && window.parent !== window){
+    window.__nexoPdf = {
+      andamento: (pct, pagina, total) => avisar({ cmsCat: "progresso", pct, pagina, total }),
+      pronto: (blob, nome) => { entregue = true; avisar({ cmsCat: "pronto", blob, nome }); },
+      erro: e => { entregue = true; avisar({ cmsCat: "erro", erro: "O catálogo falhou: " + (e && e.message || e) }); },
+    };
+  }
+  try{
+    const u = new URL(location.href);
+    ["nexo", "nexoid", "col", "itens"].forEach(k => u.searchParams.delete(k));
+    history.replaceState(null, "", u);
+  }catch(_){}
+  const inicio = Date.now();
+  const tentar = async () => {
+    const pronto = state && state.productsRaw && state.productsRaw.length && window.jspdf && typeof gerarCatalogoPdf === "function";
+    if(!pronto){
+      if(Date.now() - inicio < 90000) return void setTimeout(tentar, 400);
+      if(window.__nexoPdf) return void window.__nexoPdf.erro(new Error("não carregou a tempo"));
+      return void (toast && toast("O catálogo não carregou a tempo para gerar o PDF."));
+    }
+    const antes = [...MARCADOS];
+    MARCADOS.clear();
+    itens.forEach(k => MARCADOS.add(k));
+    if(col){ state.filters.colecao = col; try{ refreshView(true); }catch(_){} }
+    try{
+      await gerarCatalogoPdf();
+      // Saiu sem arquivo (nenhum produto achado): o Nexo não pode ficar esperando.
+      if(window.__nexoPdf && !entregue) window.__nexoPdf.erro(new Error("não achei esses produtos no catálogo"));
+    }
+    finally{
+      MARCADOS.clear();
+      antes.forEach(k => MARCADOS.add(k));
+      salvarMarcados();
+      try{ pintarBarraMarcados(); }catch(_){}
+    }
+  };
+  if(document.readyState === "complete") tentar(); else window.addEventListener("load", tentar);
+})();
+
 function pintarBarraMarcados(){
   const barra = document.getElementById("selBarra");
   if(!barra) return;
@@ -10921,7 +10976,7 @@ function pdfDesenhaFolha(doc, itens, fotos){
   doc.line(PDF_MARGEM, PDF_A - PDF_PE, PDF_L - PDF_MARGEM, PDF_A - PDF_PE);
   doc.setFont("helvetica", "normal"); doc.setFontSize(7);
   doc.text("CMS Representações", PDF_MARGEM, PDF_A - PDF_PE + 5);
-  doc.text("Catálogo" + (base.colecao ? " " + base.colecao : "") + " · Olympikus",
+  doc.text("Catálogo" + (base.colecao ? " " + base.colecao : "") + " · " + MARCA_ATUAL.nome,
     PDF_L - PDF_MARGEM, PDF_A - PDF_PE + 5, { align: "right" });
   doc.line(dir - 5, PDF_CAB + 4, dir - 5, PDF_A - PDF_PE - 4);   // divisória
 
@@ -11051,6 +11106,8 @@ function pdfDesenhaFolha(doc, itens, fotos){
 function pdfAndamento(fracao, pagina, total, texto){
   const pct = Math.max(0, Math.min(100, Math.round(fracao * 100)));
   PdfProg.passo(texto || "", pct, pagina ? "página " + pagina + " de " + total : "");
+  // Escondido no Nexo o navegador não pinta, e o requestAnimationFrame nunca volta.
+  if(window.__nexoPdf){ window.__nexoPdf.andamento(pct, pagina, total); return new Promise(r => setTimeout(r, 0)); }
   // uma volta no laço de pintura, senão a barra só anda no fim
   return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 }
@@ -11138,7 +11195,7 @@ async function gerarCatalogoPdf(){
   try{
     await pdfLogo();
     const doc = new motor({ orientation: "landscape", unit: "mm", format: "a4" });
-    doc.setProperties({ title: "Catálogo Olympikus", creator: "CMS Representações" });
+    doc.setProperties({ title: "Catálogo " + MARCA_ATUAL.nome, creator: "CMS Representações" });
 
     for(let i = 0; i < grupos.length; i++){
       const itens = grupos[i];
@@ -11164,12 +11221,16 @@ async function gerarCatalogoPdf(){
     const carimbo = hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, "0") +
       String(hoje.getDate()).padStart(2, "0");
     const col = (grupos[0][0]?.colecao || "").toLowerCase().replace(/[^\w]+/g, "");
-    doc.save(["catalogo-olympikus", col, carimbo].filter(Boolean).join("-") + ".pdf");
+    const nomeArq = ["catalogo-" + (MARCA_ATUAL.id === "ua" ? "under-armour" : "olympikus"), col, carimbo].filter(Boolean).join("-") + ".pdf";
+    // Gerado a pedido do Nexo: o arquivo volta para o chat em vez de baixar.
+    if(window.__nexoPdf){ window.__nexoPdf.pronto(doc.output("blob"), nomeArq); PdfProg.concluir(); return; }
+    doc.save(nomeArq);
     PdfProg.concluir();
     limparMarcados();
     toast && toast(total + (total > 1 ? " produtos salvos" : " produto salvo") + " em PDF.");
   }catch(e){
     PdfProg.falhar(e);
+    if(window.__nexoPdf) window.__nexoPdf.erro(e);
   }
 }
 
