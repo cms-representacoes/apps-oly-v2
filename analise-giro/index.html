@@ -859,9 +859,17 @@ footer{margin-top:8px;color:var(--mute);font-size:11.5px}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../../apps-oly/js/banco.js"></script>
 <script>
 (function(){
 "use strict";
+
+/* Piloto da migração: na própria máquina (ou com ?fonte=banco) os planos e a
+   carteira vêm do Supabase. A Análise de Giro é só do DEV — o banco recusa
+   os planos (giro/...) a qualquer outro login. */
+const USAR_BANCO = ['localhost', '127.0.0.1'].includes(location.hostname)
+  || new URLSearchParams(location.search).get('fonte') === 'banco';
 
 /* ── acesso: o mesmo login do Portal ────────────────────────────────── */
 const LOCAL = ['localhost', '127.0.0.1', ''].includes(location.hostname);
@@ -872,8 +880,23 @@ function sessao(){
     return s;
   }catch(_){ return null; }
 }
-const SESSAO = sessao() || (LOCAL ? { nome:'CMS' } : null);
+const SESSAO = USAR_BANCO ? CMSBanco.perfilGuardado() : (sessao() || (LOCAL ? { nome:'CMS' } : null));
+if(USAR_BANCO && !SESSAO){ CMSBanco.exigirLogin().then(() => location.reload()); return; }
+if(USAR_BANCO && SESSAO.papel !== 'dev'){
+  document.body.innerHTML = '<p style="font:16px system-ui;padding:40px;text-align:center">A Análise de Giro é só do DEV.</p>';
+  return;
+}
 if(!SESSAO){ location.replace('https://cms-representacoes.github.io/apps-oly/'); return; }
+
+/* Os arquivos de dados/ — no banco, os documentos giro/<nome>. Devolve algo
+   com a cara de uma resposta do fetch, para o resto da tela não mudar. */
+async function buscarDados(nome){
+  if(!USAR_BANCO) return fetch('dados/' + nome + '.json' + bust(), { cache:'no-cache' });
+  await CMSBanco.exigirLogin();
+  const r = await CMSBanco.db.schema('sistema').from('documentos').select('dados').eq('chave', 'giro/' + nome).maybeSingle();
+  const doc = r.data ? r.data.dados : null;
+  return { ok: !!doc, status: doc ? 200 : 404, json: async () => doc };
+}
 const NOME = String(SESSAO.nome || '').trim().toUpperCase();
 // A CMS, o Christian e quem desenvolve veem todos os clientes; cada
 // vendedor, os seus.
@@ -1712,7 +1735,7 @@ const FOTO_PASTA = '../imagens_olympikus/';
 const chaveFoto = (art, cor) => norm(art) + '|' + norm(cor).replace(/[^A-Z0-9]/g, '');
 async function carregarFotos(){
   try{
-    const r = await fetch('dados/fotos.json' + bust(), { cache:'no-cache' });
+    const r = await buscarDados('fotos');
     const idx = await r.json();
     E.fotos = new Map(Object.entries(idx || {}));
     E.fotoArtigo = new Map();
@@ -1764,7 +1787,7 @@ document.addEventListener('keydown', ev => {
 const bust = () => '?v=' + Math.floor(Date.now() / 60000);
 async function carregar(){
   try{
-    const r = await fetch('dados/clientes.json' + bust(), { cache:'no-cache' });
+    const r = await buscarDados('clientes');
     const todos = await r.json();
     E.todos = todos.filter(c => VE_TUDO || String(c.vendedor || '').toUpperCase() === NOME);
     E.clientes = E.todos.filter(c => marcaDoCliente(c) === MARCA);
@@ -1864,7 +1887,7 @@ async function abrirCliente(id){
   guardar('cliente', id);
   $('tabela').innerHTML = '<div class="empty">Carregando…</div>';
   try{
-    const r = await fetch(`dados/${encodeURIComponent(id)}.json` + bust(), { cache:'no-cache' });
+    const r = await buscarDados(id);
     E.base = await r.json();
   }catch(_){
     $('tabela').innerHTML = '<div class="empty">Não foi possível carregar os dados deste cliente.</div>';
@@ -1911,7 +1934,7 @@ async function abrirCliente(id){
 async function carregarLojas(c){
   E.lojasK = null; E.lojasFalta = {}; E.lojasNao = false;
   try{
-    const r = await fetch(`dados/lojas-${encodeURIComponent(c.id)}.json` + bust(), { cache:'no-cache' });
+    const r = await buscarDados('lojas-' + c.id);
     if(!r.ok) throw new Error('sem arquivo de lojas');
     const d = await r.json();
     if(!E.base || E.base.cliente.id !== c.id) return;
@@ -1940,6 +1963,14 @@ const chaveCor = c => norm(c).replace(/\s*[\/_]\s*/g, '/').trim();
 async function chamarWorker(acao, ms){
   // aceita 'getDetalhada' ou { action:'...', ...resto }
   const corpo = typeof acao === 'string' ? { action: acao } : acao;
+  // No banco, a Detalhada vem da base pronta (o DEV recebe a completa);
+  // o que grava (sacola, cortes) segue no Worker até a fase de gravação
+  if(USAR_BANCO && (corpo.action === 'getDetalhada' || corpo.action === 'getDetalhadaInfo')){
+    await CMSBanco.exigirLogin();
+    const r = await CMSBanco.db.schema('carteira').rpc(corpo.action === 'getDetalhada' ? 'base_detalhada' : 'base_detalhada_info');
+    if(r.error) throw r.error;
+    return r.data;
+  }
   for(let tentativa = 1; tentativa <= 2; tentativa++){
     const corta = new AbortController();
     const t = setTimeout(() => corta.abort(), ms);

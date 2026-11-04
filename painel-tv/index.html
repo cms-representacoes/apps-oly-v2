@@ -286,7 +286,23 @@ body.idle #dica-nav{opacity:0}
   <p>Abra o <b>tv-admin</b>, importe a DETALHADA do dia e publique.<br>Esta tela atualiza sozinha em seguida.</p>
 </div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../../apps-oly/js/banco.js"></script>
 <script>
+/* Piloto da migração: na própria máquina (ou com ?fonte=banco) a TV lê do
+   Supabase com a conta própria dela (papel tv), que só enxerga o painel, a
+   DISPO e o resumo do repasse — nunca os pedidos. */
+const USAR_BANCO = ['localhost','127.0.0.1'].includes(location.hostname)
+  || new URLSearchParams(location.search).get('fonte') === 'banco';
+let BANCO_PRONTO = null;
+const banco = () => BANCO_PRONTO || (BANCO_PRONTO = CMSBanco.exigirLogin());
+async function docDoBanco(chave){
+  await banco();
+  const r = await CMSBanco.db.schema('sistema').from('documentos').select('dados').eq('chave', chave).maybeSingle();
+  if(r.error || !r.data) throw r.error || new Error('sem ' + chave);
+  return r.data.dados;
+}
+
 /* CONFIG */
 const DATA_URL = '../data/tv_data.json';   // mesmo domínio (GitHub Pages)
 const POLL_MS  = 10*60*1000;               // re-consulta a cada 10 min
@@ -631,7 +647,37 @@ function statusCanon(s){
   if(['cancelado','cancelada'].includes(n)) return 'Cancelado';
   return 'Pendente';
 }
+/* No banco o ranking e o reservado já vêm somados (repasse.resumo_tv) */
+async function carregarRepasseDoBanco(){
+  await banco();
+  const [res, dispo] = await Promise.all([
+    CMSBanco.db.schema('repasse').rpc('resumo_tv'),
+    CMSBanco.db.schema('fabrica').from('dispo').select('artigo, descricao, cor, gci, saldo'),
+  ]);
+  if(res.error) throw res.error;
+  if(dispo.error) throw dispo.error;
+  VEND = (res.data.vend || []).map(v => ({ nome: v.nome, pedidos: Number(v.pedidos), pares: Number(v.pares) }));
+  const reservado = res.data.reservado || {};
+  const porProduto = new Map();
+  for(const r of dispo.data){
+    const produto = String(r.descricao||'').trim(); if(!produto) continue;
+    const key = String(r.gci||'').trim() || String(r.artigo||'').trim();
+    const saldoReal = Number(r.saldo||0) - Number(reservado[key]||0);
+    if(!porProduto.has(produto)) porProduto.set(produto, {saldo:0, cores:new Set()});
+    const g = porProduto.get(produto);
+    g.saldo += saldoReal;
+    g.cores.add(String(r.cor||'').trim());
+  }
+  ESTQ = [...porProduto.entries()].map(([produto,g])=>({produto, saldo:Math.round(g.saldo), cores:g.cores.size}))
+    .filter(p=>p.saldo>0).sort((a,b)=>b.saldo-a.saldo);
+  try{ localStorage.setItem('tv_cache_repasse', JSON.stringify({VEND,ESTQ})); }catch(_){}
+  return true;
+}
 async function carregarRepasse(){
+  if(USAR_BANCO){
+    try{ return await carregarRepasseDoBanco(); }
+    catch(e){ console.warn('repasse do banco', e); return false; }
+  }
   try{
     const [ordRes, dispoRes] = await Promise.all([
       fetch(REPASSE_URL+'?t='+Date.now(), {cache:'no-store'}),
@@ -695,9 +741,13 @@ async function carregarRepasse(){
 }
 async function carregarPerf(){
   try{
-    const r = await fetch(PERF_URL + '?v=' + Date.now(), {cache:'no-store'});
-    if(!r.ok) throw 0;
-    const p = await r.json();
+    let p;
+    if(USAR_BANCO) p = await docDoBanco('v2/widget_performance');
+    else {
+      const r = await fetch(PERF_URL + '?v=' + Date.now(), {cache:'no-store'});
+      if(!r.ok) throw 0;
+      p = await r.json();
+    }
     const mudou = !PERF || p.atualizado !== PERF.atualizado;
     PERF = p;
     try{ localStorage.setItem('tv_cache_perf', JSON.stringify(p)); }catch(_){}
@@ -712,9 +762,13 @@ async function carregar(primeira){
   const perfMudou = await carregarPerf();
   const repasseMudou = await carregarRepasse();
   try{
-    const res = await fetch(DATA_URL + '?v=' + Date.now(), {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const novo = await res.json();
+    let novo;
+    if(USAR_BANCO) novo = await docDoBanco('v2/tv_data');
+    else {
+      const res = await fetch(DATA_URL + '?v=' + Date.now(), {cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      novo = await res.json();
+    }
     const mudou = perfMudou || repasseMudou || !DATA || novo.generatedAt !== DATA.generatedAt;
     DATA = novo;
     if(DATA.config && DATA.config.cenaSeg) CENA_MS = DATA.config.cenaSeg*1000;

@@ -617,8 +617,14 @@
      nem segura o resto da página. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../../apps-oly/js/banco.js"></script>
 
 <script>
+/* Piloto da migração: na própria máquina (ou com ?fonte=banco) os períodos
+   vêm do Supabase — o vendedor recebe só a própria aba. */
+const USAR_BANCO=['localhost','127.0.0.1'].includes(location.hostname)
+  || new URLSearchParams(location.search).get('fonte')==='banco';
 // ── Tela cheia ───────────────────────────────────────────────────────────────
 // Usa a Fullscreen API. Em tela cheia esconde o que é navegação (.hide-fs),
 // porque o vendedor costuma deixar aberto numa TV ou monitor auxiliar.
@@ -663,9 +669,11 @@ function getPortalSession(){
     return s;
   }catch(_){ return null; }
 }
-const PORTAL_SESSION = getPortalSession();
+const PORTAL_SESSION = USAR_BANCO ? CMSBanco.perfilGuardado() : getPortalSession();
 if(!PORTAL_SESSION){
-  window.location.replace('https://cms-representacoes.github.io/apps-oly/');
+  // No banco, a primeira entrada pede o login e recarrega já com o perfil
+  if(USAR_BANCO) CMSBanco.exigirLogin().then(()=>location.reload());
+  else window.location.replace('https://cms-representacoes.github.io/apps-oly/');
 }
 // CMS, Christian Lucas e quem desenvolve têm acesso total (igual admin) — os
 // demais vendedores só veem a própria aba, sem poder trocar pra ver a de outra
@@ -1794,6 +1802,18 @@ window.addEventListener('scroll',()=>{ totop.classList.toggle('show', window.scr
 // carregamento inicial:
 // 1) Worker (todos os períodos)  2) cache local  3) planilha no repositório (período legado)  4) dropzone
 (async()=>{
+  if(USAR_BANCO){
+    if(!PORTAL_SESSION) return;          // o login acima recarrega a tela
+    try{
+      await CMSBanco.exigirLogin();
+      const itens=await CMSBanco.relatorio('performance');
+      const periods={};
+      for(const a of itens) periods[a.chave]={ ano:a.extra.ano, sem:a.extra.sem, name:a.nome, b64:a.b64, updatedAt:a.atualizadoEm };
+      const P=normalizePeriods({ periods });
+      if(Object.keys(P).length){ loadPeriods(P); return; }
+    }catch(e){ console.warn('Performance do banco', e); }
+    return;
+  }
   if(WORKER_URL){
     try{
       const res=await fetch(WORKER_URL,{ method:'PATCH',
