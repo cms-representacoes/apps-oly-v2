@@ -2804,11 +2804,22 @@ body{ background:var(--d-bg) !important; color:var(--d-ink); }
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../../apps-oly/js/banco.js"></script>
 <script>
 /* ============================================================
    CONFIG
    ============================================================ */
 const ARQUIVO_BASE = 'dados/detalhada.json';
+
+/* Piloto da migração: na própria máquina (ou com ?fonte=banco) a base vem
+   do Supabase, já recortada para quem entrou — o vendedor baixa só as
+   linhas dele. O endereço publicado segue no Worker até a virada.
+   O cache do aparelho fica numa chave por pessoa, para nunca abrir com a
+   base que outra pessoa deixou ali. */
+const USAR_BANCO = ['localhost', '127.0.0.1'].includes(location.hostname)
+  || new URLSearchParams(location.search).get('fonte') === 'banco';
+let CHAVE_CACHE_BASE = 'base';
 const IMG_PATH = '../imagens_olympikus/';
 const VERSAO_BASE = 1;
 
@@ -3336,9 +3347,36 @@ async function baseDoWorker(geradoAtual) {
   return (base && base.v === VERSAO_BASE && Array.isArray(base.l)) ? base : null;
 }
 
+async function baseDoBanco(geradoAtual) {
+  const t0 = performance.now();
+  const info = await CMSBanco.db.schema('carteira').rpc('base_detalhada_info');
+  if (info.error) throw info.error;
+  if (!info.data || !info.data.gerado) return null;
+  if (info.data.gerado === geradoAtual) return 'igual';
+  const r = await CMSBanco.db.schema('carteira').rpc('base_detalhada');
+  if (r.error) throw r.error;
+  console.info('[detalhada] base do banco em', Math.round(performance.now() - t0), 'ms,',
+               r.data && r.data.l ? r.data.l.length : 0, 'linhas');
+  return (r.data && r.data.v === VERSAO_BASE && Array.isArray(r.data.l)) ? r.data : null;
+}
+
 async function carregarBase({ silencioso = false } = {}) {
   if (!silencioso) syncShow('Carregando base…');
   const atual = APP.base?.gerado || '';
+
+  if (USAR_BANCO) {
+    try {
+      const r = await baseDoBanco(atual);
+      syncHide();
+      if (r === 'igual') return 'igual';
+      if (r) { instalarBase(r); cacheSalvar(r, CHAVE_CACHE_BASE); return 'nova'; }
+      return 'falhou';
+    } catch (e) {
+      console.warn('banco sem a base', e);
+      syncHide();
+      return 'falhou';
+    }
+  }
 
   // O worker às vezes devolve 503 ("Worker exceeded resource limits") ao
   // montar a base inteira. É passageiro: uma segunda tentativa costuma
@@ -4946,6 +4984,7 @@ function logout() {
   limparFiltros();
   show('screen-login');
   pintarLoginPortal(null);
+  if (USAR_BANCO) { CMSBanco.sair(); return; }
   if (tinhaPortal) location.href = URL_PORTAL;
 }
 
@@ -12627,8 +12666,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (document.querySelector('.filter-popover')) fecharTodosPopovers();
   });
 
+  // No banco, quem entra é o login do Supabase — antes de abrir o cache,
+  // porque o cache é de cada pessoa
+  let perfilBanco = null;
+  if (USAR_BANCO) {
+    try { perfilBanco = await CMSBanco.exigirLogin(); } catch (e) { return; }
+    CHAVE_CACHE_BASE = 'base-banco:' + perfilBanco.codigo;
+  }
+
   // 1) cache local pra abrir rápido  2) base publicada por cima
-  const cache = await cacheLer();
+  const cache = await cacheLer(CHAVE_CACHE_BASE);
   if (cache && cache.v === VERSAO_BASE) instalarBase(cache);
 
   // A grade entra do cache na hora e se atualiza depois, em segundo plano:
@@ -12642,7 +12689,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Quem manda é o Portal: se há sessão lá, ela vale aqui — inclusive
   // quando trocam de pessoa sem passar por esta tela.
-  const dono = sessaoDoPortal();
+  const dono = perfilBanco ? { nome: perfilBanco.nome } : sessaoDoPortal();
   const doPortal = dono ? prepostoDoPortal(dono) : null;
   if (doPortal) {
     APP.sessao = { nome: doPortal.nome, papel: doPortal.papel };
