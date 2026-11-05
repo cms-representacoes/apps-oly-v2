@@ -10745,14 +10745,18 @@ function chaveMarcado(it){
   return [String(it?.codigo || "").trim(), String(it?.cor || it?.corCodigo || "").trim()]
     .filter(Boolean).join("|");
 }
+/* Os marcados valem só enquanto a aba está aberta (sessionStorage): o F5 mantém, mas abrir o
+   catálogo de novo começa limpo. Guardados para sempre, os de um teste de dias atrás voltavam
+   marcados toda vez (05/11/2026). A chave antiga, permanente, é apagada na primeira abertura. */
 function carregarMarcados(){
+  try{ localStorage.removeItem(CH_MARCADOS); }catch(_){}
   try{
-    const a = JSON.parse(lsGet(CH_MARCADOS) || "[]");
+    const a = JSON.parse(sessionStorage.getItem(CH_MARCADOS) || "[]");
     if(Array.isArray(a)) a.forEach(k => typeof k === "string" && MARCADOS.add(k));
   }catch(_){}
 }
 function salvarMarcados(){
-  try{ lsSet(CH_MARCADOS, JSON.stringify([...MARCADOS])); }catch(_){}
+  try{ sessionStorage.setItem(CH_MARCADOS, JSON.stringify([...MARCADOS])); }catch(_){}
 }
 function alternarMarcado(k, bt){
   if(!k) return;
