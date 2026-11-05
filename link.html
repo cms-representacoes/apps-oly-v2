@@ -25,7 +25,7 @@ main{ max-width:1100px; margin:0 auto; padding:14px 12px 120px; }
 @media (min-width:700px){ .grade{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; } }
 @media (min-width:1000px){ .grade{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
 .card{ background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; border:2px solid transparent; transition:border-color .15s; }
-.card.on{ border-color:var(--marca); }
+.card.on{ border-color:#16a34a; }
 .foto{ position:relative; aspect-ratio:1; background:#fff; display:flex; align-items:center; justify-content:center; cursor:zoom-in; border:0; padding:0; width:100%; }
 .foto img{ width:100%; height:100%; object-fit:contain; }
 .selo{ position:absolute; left:8px; top:8px; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; border-radius:999px; padding:3px 8px; }
@@ -35,7 +35,8 @@ main{ max-width:1100px; margin:0 auto; padding:14px 12px 120px; }
 .info small{ font-size:11.5px; color:var(--tinta-2); }
 .info .pdv{ font-size:14px; font-weight:800; color:var(--marca); margin-top:2px; }
 .quero{ margin:0 10px 10px; border:1.5px solid var(--marca); color:var(--marca); background:#fff; border-radius:12px; padding:9px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
-.card.on .quero{ background:var(--marca); color:#fff; }
+/* Escolhido fica verde; o Enviar fica laranja quando há o que mandar. */
+.card.on .quero{ background:#16a34a; border-color:#16a34a; color:#fff; }
 .pares{ display:none; flex-direction:column; gap:4px; margin:0 10px 10px; font-size:12px; color:var(--tinta-2); }
 .card.on .pares{ display:flex; }
 .pares .cx{ font-size:11.5px; font-weight:700; color:var(--marca); text-align:center; }
@@ -49,7 +50,21 @@ main{ max-width:1100px; margin:0 auto; padding:14px 12px 120px; }
 .barra{ position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--linha); padding:10px 14px calc(10px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:12px; justify-content:space-between; box-shadow:0 -6px 20px rgba(0,0,0,.08); }
 .barra span{ font-size:14px; color:var(--tinta-2); } .barra span b{ color:var(--tinta); }
 .enviar{ border:0; background:var(--marca); color:#fff; font:inherit; font-weight:800; font-size:15px; border-radius:14px; padding:13px 20px; cursor:pointer; }
+.enviar:not(:disabled){ background:#f97316; box-shadow:0 6px 18px rgba(249,115,22,.35); }
 .enviar:disabled{ opacity:.45; cursor:default; }
+.ficha-bt{ position:absolute; right:8px; top:8px; width:30px; height:30px; border-radius:50%; border:0; background:rgba(255,255,255,.95); color:var(--marca); font:700 15px/30px Georgia,serif; font-style:italic; box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; }
+.ficha{ position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:60; display:flex; align-items:flex-end; justify-content:center; }
+.ficha[hidden]{ display:none; }
+.ficha .cx{ background:#fff; width:100%; max-width:560px; max-height:88vh; overflow:auto; border-radius:20px 20px 0 0; padding:18px 18px 24px; }
+@media (min-width:640px){ .ficha{ align-items:center; } .ficha .cx{ border-radius:20px; } }
+.ficha h3{ margin:0 30px 10px 0; font-size:17px; }
+.ficha .lin{ display:flex; justify-content:space-between; gap:12px; font-size:13.5px; padding:7px 0; border-bottom:1px solid var(--linha); }
+.ficha .lin span{ color:var(--tinta-2); }
+.ficha .tec{ margin-top:12px; }
+.ficha .tec b{ display:block; font-size:13.5px; color:var(--marca); }
+.ficha .tec p{ margin:2px 0 0; font-size:13px; color:var(--tinta-2); line-height:1.45; }
+.ficha .fx{ float:right; font-size:26px; line-height:1; border:0; background:none; color:#64748b; cursor:pointer; }
+.pdf-bt{ display:inline-block; margin-top:14px; background:#b91c1c; color:#fff; border:0; border-radius:12px; padding:11px 16px; font:inherit; font-weight:800; cursor:pointer; }
 .aviso{ max-width:520px; margin:40px auto; background:#fff; border-radius:18px; padding:24px; text-align:center; line-height:1.5; }
 .aviso h2{ margin:0 0 8px; font-size:19px; }
 .aviso p{ margin:0; color:var(--tinta-2); font-size:14.5px; }
@@ -68,13 +83,14 @@ main{ max-width:1100px; margin:0 auto; padding:14px 12px 120px; }
 <header id="topo"><div class="mc" id="mc">CMS Representações</div><h1 id="tit">Carregando a seleção…</h1><p id="sub"></p></header>
 <main id="main"></main>
 <div class="barra" id="barra" hidden><span id="conta"></span><button type="button" class="enviar" id="enviar" disabled>Enviar</button></div>
+<div class="ficha" id="ficha" hidden><div class="cx"><button type="button" class="fx" aria-label="Fechar">×</button><div id="fichaCorpo"></div></div></div>
 <div class="ver" id="ver" hidden><button type="button" class="fechar" aria-label="Fechar">×</button><img class="g" alt=""><div class="mini"></div><div class="nome"></div></div>
 <script>
 const WORKER_URL = "https://repasse-worker-cms.marcosrep-cms.workers.dev";
 const CODIGO = new URLSearchParams(location.search).get("link") || "";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const S = { link: null, quer: new Map() };   // k → pares (0 = quer, sem dizer quantos)
+const S = { link: null, quer: new Map(), fichas: {} };   // k → pares (0 = quer, sem dizer quantos)
 
 // O mesmo nome de arquivo do Catálogo: base, base__02.._04, e as extensões em sequência.
 function limpa(n){
@@ -120,6 +136,9 @@ async function iniciar(){
   $("tit").textContent = (L.clienteNome ? "Olá, " + L.clienteNome + "!" : "Olá!");
   $("sub").innerHTML = `${esc(vend)} separou <b>${prods.length} produto${prods.length !== 1 ? "s" : ""}</b> para você. Toque em <b>Quero</b> nos que interessam e envie. ` +
     (j.expirado ? "" : `Dá para mudar e reenviar até ${esc(dataBR(L.expiraEm))}.`);
+  if(L.marca !== "ua"){
+    try{ const r = await fetch("./data/fichas-oly.json", { cache: "no-cache" }); if(r.ok) S.fichas = (await r.json()).fichas || {}; }catch(_){}
+  }
   if(j.expirado) return aviso("Esse link expirou", `Ele valia até ${esc(dataBR(L.expiraEm))}. Fale com ${esc(vend)} para receber um novo.`);
   if(L.status === "concluido") return aviso("Pedido já encaminhado", `${esc(vend)} já transformou sua escolha em pedido. Para mudar alguma coisa, fale direto com ele.`);
   // Já respondeu antes: volta com a escolha marcada, para ajustar.
@@ -128,7 +147,7 @@ async function iniciar(){
   $("main").innerHTML = `<div class="grade">${prods.map((p, i) => {
     const b = limpa(p.imagem || (p.codigo + "_" + p.cor)), selo = p.lanc ? `<span class="selo lanc">Lançamento</span>` : p.novaCor ? `<span class="selo cor">Cor nova</span>` : "";
     return `<div class="card" data-k="${esc(p.k)}" data-i="${i}">
-      <button type="button" class="foto" data-ver="${i}" aria-label="Ampliar a foto">${selo}<img loading="lazy" alt="${esc(p.produto)}" data-b="${esc(b)}" src="${esc(fotoSrc(b))}" onerror="fotoErro(this)"></button>
+      <button type="button" class="foto" data-ver="${i}" aria-label="Ampliar a foto">${selo}${S.fichas[p.codigo] ? `<span class="ficha-bt" role="button" data-ficha="${i}" title="Ver a ficha do produto" aria-label="Ver a ficha do produto">i</span>` : ""}<img loading="lazy" alt="${esc(p.produto)}" data-b="${esc(b)}" src="${esc(fotoSrc(b))}" onerror="fotoErro(this)"></button>
       <div class="info"><b>${esc(p.produto)}</b><small>${esc(p.codigo)} · ${esc(p.corCodigo || p.cor)}</small>
         <small>${esc([p.genero, p.tam].filter(Boolean).join(" · "))}</small>${p.pdv ? `<span class="pdv">${esc(p.pdv)}</span>` : ""}</div>
       <div class="pares"><span>${emCaixa(p) ? "Pares (opcional · de 6 em 6)" : (emPares(p) ? "Pares" : "Peças") + " (opcional)"}</span><span class="st"><button type="button" data-p="${emCaixa(p) ? -CX : -1}" aria-label="Menos">−</button><input type="number" inputmode="numeric" min="0" step="${emCaixa(p) ? CX : 1}" placeholder="—" aria-label="Pares"><button type="button" data-p="${emCaixa(p) ? CX : 1}" aria-label="Mais">+</button></span>${emCaixa(p) ? '<small class="cx"></small>' : ""}</div>
@@ -162,6 +181,10 @@ document.addEventListener("click", e => {
     const v = Math.max(0, (S.quer.get(c.dataset.k) || 0) + Number(pb.dataset.p));
     S.quer.set(c.dataset.k, v); pintar(c); contar(); return;
   }
+  const fb = e.target.closest("[data-ficha]");
+  if(fb) return abrirFicha(Number(fb.dataset.ficha));
+  if(e.target.closest("#ficha .fx") || e.target === $("ficha")){ $("ficha").hidden = true; return; }
+  if(e.target.closest("[data-pdf]")) return gerarPdf();
   const vb = e.target.closest("[data-ver]");
   if(vb) return abrirFoto(Number(vb.dataset.ver));
   if(e.target.closest(".ver .fechar") || e.target === $("ver")) $("ver").hidden = true;
@@ -184,6 +207,68 @@ document.addEventListener("change", e => {
   S.quer.set(c.dataset.k, v > 0 ? Math.ceil(v / CX) * CX : 0); pintar(c); contar();
 });
 document.addEventListener("keydown", e => { if(e.key === "Escape") $("ver").hidden = true; });
+function abrirFicha(i){
+  const p = S.link.produtos[i], f = S.fichas[p.codigo];
+  if(!f) return;
+  const lin = (r, v) => v ? `<div class="lin"><span>${esc(r)}</span><b>${esc(v)}</b></div>` : "";
+  $("fichaCorpo").innerHTML = `<h3>${esc(f.nome || p.produto)}</h3>` +
+    lin("Referência", p.codigo) + lin("Linha", f.linha) + lin("Gênero", f.genero || p.genero) + lin("Numeração", f.tamanhos || p.tam) +
+    lin("Origem", f.origem) + lin("Composição", f.composicao) +
+    (Array.isArray(f.tecnologias) && f.tecnologias.length ? `<div class="tec">${f.tecnologias.map(t => `<div class="tec"><b>${esc(t.nome)}</b><p>${esc(t.texto || t.resumo || "")}</p></div>`).join("")}</div>` : "");
+  $("ficha").hidden = false;
+}
+
+/* O PDF do que o cliente mandou, para ele guardar: foto, produto, referência, cor e a quantidade. */
+async function carregarJsPdf(){
+  if(window.jspdf) return true;
+  await new Promise((ok, nao) => { const t = document.createElement("script"); t.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"; t.onload = ok; t.onerror = nao; document.head.appendChild(t); });
+  return !!window.jspdf;
+}
+function fotoJpeg(img){
+  try{
+    if(!img || !img.complete || !img.naturalWidth) return null;
+    const k = Math.min(1, 400 / Math.max(img.naturalWidth, img.naturalHeight)), cv = document.createElement("canvas");
+    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+    const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+    return { url: cv.toDataURL("image/jpeg", 0.85), w: cv.width, h: cv.height };
+  }catch(_){ return null; }
+}
+async function gerarPdf(){
+  const env = S.enviado;
+  if(!env) return;
+  try{ if(!await carregarJsPdf()) throw 0; }catch(_){ alert("Não consegui montar o PDF agora."); return; }
+  const L = S.link, marca = L.marca === "ua" ? "Under Armour" : "Olympikus", cor = L.marca === "ua" ? [229, 33, 37] : [44, 57, 226];
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" }), W = 210, M = 14;
+  const topo = () => {
+    doc.setFillColor(...cor); doc.rect(0, 0, W, 26, "F"); doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.text("Minha escolha · " + marca, M, 12);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+    doc.text(`${L.clienteNome || "Cliente"} · enviada a ${primeiroNome(L.vendedorNome) || "vendedor"} em ${new Date(env.quando).toLocaleString("pt-BR")}`, M, 20);
+  };
+  topo();
+  let y = 34;
+  for(const it of env.itens){
+    const p = (L.produtos || []).find(x => x.k === it.k) || it;
+    if(y + 30 > 285){ doc.addPage(); topo(); y = 34; }
+    const f = env.fotos.get(it.k);
+    if(f){ const k = Math.min(26 / f.w, 26 / f.h); doc.addImage(f.url, "JPEG", M + (26 - f.w * k) / 2, y + (26 - f.h * k) / 2, f.w * k, f.h * k); }
+    doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.text(String(p.produto || ""), M + 32, y + 7);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(71, 85, 105);
+    doc.text(`${p.codigo} · ${p.corCodigo || p.cor}${p.tam ? " · " + p.tam : ""}${p.pdv ? " · " + p.pdv : ""}`, M + 32, y + 13);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...cor);
+    doc.text(it.pares ? `${it.pares} ${emPares(p) ? "pares" : "peças"}${emCaixa(p) ? " (1 caixa de " + it.pares + ")" : ""}` : "Quero (quantidade a combinar)", M + 32, y + 20);
+    doc.setDrawColor(226, 232, 240); doc.line(M, y + 28, W - M, y + 28);
+    y += 31;
+  }
+  if(env.obs){
+    if(y + 20 > 285){ doc.addPage(); topo(); y = 34; }
+    doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.text("Recado:", M, y + 6);
+    doc.setFont("helvetica", "normal"); doc.text(doc.splitTextToSize(env.obs, W - 2 * M), M, y + 12);
+  }
+  const nome = `Minha escolha ${marca} ${(L.clienteNome || "").replace(/[\\/:*?"<>|]/g, "")} ${new Date(env.quando).toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`.replace(/\s+/g, " ");
+  doc.save(nome);
+}
+
 function abrirFoto(i){
   const p = S.link.produtos[i], b = limpa(p.imagem || (p.codigo + "_" + p.cor)), v = $("ver");
   const bases = [b, b + "__02", b + "__03", b + "__04"];
@@ -201,8 +286,14 @@ $("enviar").addEventListener("click", async () => {
     const j = await worker({ action: "salvarResposta", codigo: CODIGO, data: { resposta: { itens, obs: ($("obs").value || "").trim(), origem: "catalogo" } } });
     if(!j || !j.success) throw new Error(j && j.erro === "expirado" ? "expirado" : "falhou");
     S.link.resposta = { itens };
+    // As fotos saem dos cartões ANTES da tela de "enviado" trocar tudo.
+    S.enviado = { itens, obs: ($("obs").value || "").trim(), quando: Date.now(),
+      fotos: new Map([...document.querySelectorAll(".card")].filter(c => S.quer.has(c.dataset.k)).map(c => [c.dataset.k, fotoJpeg(c.querySelector(".foto img"))])) };
     const vend = primeiroNome(S.link.vendedorNome) || "Seu vendedor";
-    aviso("Pronto, enviado! 🎉", `${esc(vend)} já recebeu sua escolha${itens.length ? ` (${itens.length} produto${itens.length !== 1 ? "s" : ""})` : ""}. Se quiser mudar, é só abrir este link de novo até ${esc(dataBR(S.link.expiraEm))}.`);
+    aviso("Pronto, enviado! 🎉", `${esc(vend)} já recebeu sua escolha${itens.length ? ` (${itens.length} produto${itens.length !== 1 ? "s" : ""})` : ""}. Se quiser mudar, é só abrir este link de novo até ${esc(dataBR(S.link.expiraEm))}.` +
+      (itens.length ? `<br><button type="button" class="pdf-bt" data-pdf="1">Baixar o PDF da minha escolha</button>` : ""));
+    // Para o cliente guardar o que mandou: o PDF já baixa sozinho, e o botão fica para baixar de novo.
+    if(itens.length) gerarPdf();
     window.scrollTo(0, 0);
   }catch(e){
     bt.disabled = false; contar();

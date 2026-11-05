@@ -2136,6 +2136,10 @@
     .mp-pedido-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
     .mp-pedido-btn.primary:hover:not(:disabled) { opacity:.92; }
     .mp-pedido-btn:disabled { opacity:.45; cursor:not-allowed; }
+    /* As cores da barra dos marcados: planilha em verde, PDF em vermelho. */
+    .mp-pedido-btn.cap { background:#15803d; color:#fff; border-color:#15803d; }
+    .mp-pedido-btn.pdf { background:#b91c1c; color:#fff; border-color:#b91c1c; }
+    .mp-pedido-btn.cap:hover:not(:disabled), .mp-pedido-btn.pdf:hover:not(:disabled) { opacity:.92; }
 
     /* ── Modal Exportação Pedido Excel ── */
     /* O modal de exportar rascunho usa a mesma folha: mesma caixa, mesmo
@@ -14901,8 +14905,8 @@ function _mpRenderFinalizados(){
           <button class="mp-pedido-btn" onclick="mpRefazerPedido('${_mpEscape(p.id)}')" title="Trazer este pedido de volta para a sacola, alterar e gerar um novo"><i class="fa-solid fa-pen"></i> Refazer</button>
           <button class="mp-pedido-btn" onclick="mpReordenar('${_mpEscape(p.id)}')"><i class="fa-solid fa-rotate-left"></i> Reordenar</button>
           <button class="mp-pedido-btn primary" onclick="mpBaixarExcel('${_mpEscape(p.id)}')"><i class="fa-solid fa-file-excel"></i> Excel</button>
-          <button class="mp-pedido-btn" onclick="mpBaixarCaptacao('${_mpEscape(p.id)}')" title="Planilha com foto, grade e total de pares, para o cliente conferir"><i class="fa-solid fa-camera-retro"></i> Capta\u00e7\u00e3o</button>
-          <button class="mp-pedido-btn" onclick="mpBaixarPDF('${_mpEscape(p.id)}')"${sacolaVazia ? "" : ' title="Esvazie a sacola para gerar o PDF deste pedido"'}><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          <button class="mp-pedido-btn cap" onclick="mpBaixarCaptacao('${_mpEscape(p.id)}')" title="Planilha com foto, grade e total de pares, para o cliente conferir"><i class="fa-solid fa-camera-retro"></i> Capta\u00e7\u00e3o</button>
+          <button class="mp-pedido-btn pdf" onclick="mpBaixarPDF('${_mpEscape(p.id)}')"${sacolaVazia ? "" : ' title="Esvazie a sacola para gerar o PDF deste pedido"'}><i class="fa-solid fa-file-pdf"></i> PDF</button>
         </div>
       </div>
     </div>`;
@@ -17004,6 +17008,10 @@ loadCatalog({ cacheBust:false });
 .lkc-resp-l span{ display:flex; flex-direction:column; flex:1; min-width:0; font-size:13px; }
 .lkc-resp-l small{ color:#64748b; }
 .lkc-resp-l em{ font-style:normal; font-weight:800; font-size:13px; color:#15803d; flex:none; }
+.lkc-dir{ display:flex; align-items:center; gap:4px; flex:none; max-width:58%; }
+.lkc-dir .lkc-sit{ white-space:normal; text-align:center; line-height:1.25; }
+.lkc-lixo{ flex:none; width:30px; height:30px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:#94a3b8; cursor:pointer; }
+.lkc-lixo:hover{ background:#fee2e2; color:#b91c1c; }
 .lkc-sit.nova{ background:#dc2626; color:#fff; }
 .lkc-sacola{ margin-top:8px; font-size:13px; font-weight:600; color:#15803d; background:#f0fdf4; border-radius:10px; padding:8px 10px; }
 .lkc-obs{ margin-top:8px; font-size:13px; font-style:italic; color:#334155; background:#fefce8; border-radius:10px; padding:8px 10px; }
@@ -17282,7 +17290,7 @@ async function lkcGerar(bt){
 /* Os links do Catálogo deste vendedor: o servidor marca a origem (worker novo) e o aparelho anota os que
    gerou (vale também com o worker antigo). Resposta "nova" é a que chegou depois da última vez que ele
    abriu aquele link: é o número vermelho do botão. */
-const LKC_VISTO = "catalogo_links_vistos_v1", LKC_SACOLA = "catalogo_links_sacola_v1";
+const LKC_VISTO = "catalogo_links_vistos_v1", LKC_SACOLA = "catalogo_links_sacola_v1", LKC_APAGADOS = "catalogo_links_apagados_v1";
 const lkcMapa = ch => { try{ return JSON.parse(localStorage.getItem(ch) || "{}") || {}; }catch(_){ return {}; } };
 const lkcMarca = (ch, cod, v) => { const m = lkcMapa(ch); m[cod] = v; try{ localStorage.setItem(ch, JSON.stringify(m)); }catch(_){} };
 async function lkcSincronizar(){
@@ -17298,6 +17306,8 @@ async function lkcSincronizar(){
     const vivos = locais.filter(x => srv.some(l => l.codigo === x.codigo));
     if(vivos.length !== locais.length) lkcGuardar(vivos);
   } else lista = locais;
+  const apagados = lkcMapa(LKC_APAGADOS), agora = Date.now();
+  lista = lista.filter(l => !(apagados[l.codigo] && agora - apagados[l.codigo] < 600000));
   lista.sort((a, b) => Number(b.criadoEm || 0) - Number(a.criadoEm || 0));
   const visto = lkcMapa(LKC_VISTO);
   const novas = lista.filter(l => l.status === "respondido" && Number(l.respondidoEm || 0) > Number(visto[l.codigo] || 0)).length;
@@ -17311,7 +17321,9 @@ async function lkcSincronizar(){
 async function lkcListar(){
   const m = lkcModal(), box = m.querySelector("#lkcLista");
   box.innerHTML = `<div class="lkc-vazio">Carregando…</div>`;
-  const vivos = await lkcSincronizar(), visto = lkcMapa(LKC_VISTO);
+  // Confere os apagados de novo na hora de desenhar: uma atualização que já estava a caminho não traz de volta.
+  const todos = await lkcSincronizar(), apag = lkcMapa(LKC_APAGADOS), visto = lkcMapa(LKC_VISTO);
+  const vivos = todos.filter(l => !(apag[l.codigo] && Date.now() - apag[l.codigo] < 600000));
   if(!vivos.length){ box.innerHTML = `<div class="lkc-vazio">Os links que você gerar aparecem aqui, com a resposta do cliente. Para gerar, marque os produtos no coração e toque em Link.</div>`; return; }
   box.innerHTML = vivos.map(x => {
     const l = x;
@@ -17320,7 +17332,7 @@ async function lkcListar(){
       : l.expirado ? ["Expirou", "exp"] : ["Aguardando", "agu"];
     return `<button type="button" class="lkc-item" data-lkc="ver" data-cod="${lkcEsc(x.codigo)}">
       <span class="lkc-item-n"><b>${lkcEsc(x.clienteNome || x.cliente || "Sem cliente")}</b><small>${x.qtd || 0} produto${x.qtd !== 1 ? "s" : ""} · ${x.marca === "ua" ? "UA" : "Oly"} · ${lkcData(x.criadoEm)}</small></span>
-      <span class="lkc-sit ${sit[1]}">${sit[0]}</span></button>`;
+      <span class="lkc-dir"><span class="lkc-sit ${sit[1]}">${sit[0]}</span><span class="lkc-lixo" role="button" tabindex="0" data-lkc="apagar" data-cod="${lkcEsc(x.codigo)}" data-nome="${lkcEsc(x.clienteNome || x.cliente || "")}" title="Apagar este link" aria-label="Apagar este link"><i class="fa-solid fa-trash-can"></i></span></span></button>`;
   }).join("") || `<div class="lkc-vazio">Nenhum link ativo.</div>`;
 }
 
@@ -17399,6 +17411,25 @@ async function lkcClique(ev){
   }
   if(acao === "gerar") return lkcGerar(b);
   if(acao === "atualizar") return lkcListar();
+  if(acao === "apagar"){
+    ev.stopPropagation();
+    if(!confirm(`Apagar o link${b.dataset.nome ? " de " + b.dataset.nome : ""}? O cliente não vai mais conseguir abrir.`)) return;
+    // Some da tela na hora; apagar no servidor leva alguns segundos (e ele ainda devolve o link
+    // por um tempo depois). Se o servidor recusar, a linha volta.
+    const cod = b.dataset.cod, linha = b.closest(".lkc-item");
+    lkcMarca(LKC_APAGADOS, cod, Date.now());
+    if(linha) linha.remove();
+    try{
+      await lkcWorker({ action: "apagarLinks", codigos: [cod] });
+      lkcGuardar(lkcMeus().filter(x => x.codigo !== cod));
+      toast("Link apagado ✅");
+    }catch(e){
+      lkcMarca(LKC_APAGADOS, cod, 0);
+      toast("Não consegui apagar agora (" + (e.message || e) + ") ⚠️");
+      lkcListar();
+    }
+    return;
+  }
   if(acao === "ver") return lkcVer(b.dataset.cod);
   if(acao === "voltar"){ m.querySelector("#lkcPronto").hidden = true; m.querySelector("#lkcForm").hidden = !(LKC.itens || []).length; return lkcListar(); }
   if(acao === "copiar"){
