@@ -38,6 +38,7 @@ main{ max-width:1100px; margin:0 auto; padding:14px 12px 120px; }
 .card.on .quero{ background:var(--marca); color:#fff; }
 .pares{ display:none; flex-direction:column; gap:4px; margin:0 10px 10px; font-size:12px; color:var(--tinta-2); }
 .card.on .pares{ display:flex; }
+.pares .cx{ font-size:11.5px; font-weight:700; color:var(--marca); text-align:center; }
 .pares .st{ display:flex; align-items:center; border:1px solid var(--linha); border-radius:10px; overflow:hidden; width:100%; }
 .pares button{ flex:none; width:36px; height:32px; border:0; background:var(--marca-claro); color:var(--marca); font-size:18px; font-weight:800; cursor:pointer; }
 .pares input{ flex:1; min-width:0; width:44px; height:32px; border:0; text-align:center; font:inherit; font-size:15px; font-weight:700; -moz-appearance:textfield; }
@@ -90,6 +91,10 @@ function fotoErro(img){
 const dataBR = ms => { const d = new Date(Number(ms)); return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };
 // Calçado, chinelo e meia contam em pares; roupa e acessório, em peças.
 const emPares = p => /^(FTW|CHI|MEIA)/i.test(String(p.categoria || "")) || !p.categoria;
+// Calçado vai em caixa: 6, 12, 18… e cada número é UMA caixa daquele tamanho (12 = caixa de 12).
+// A grade o vendedor já sabe a do cliente; aqui ninguém precisa pensar nela.
+const emCaixa = p => /^FTW/i.test(String(p.categoria || ""));
+const CX = 6;
 const unidade = (lista, n) => { const a = lista.every(emPares), b = lista.every(x => !emPares(x)); return (a ? "par" : b ? "peça" : "unidade") + (n === 1 ? "" : a ? "es" : "s"); };
 const primeiroNome = n => String(n || "").replace(/\s*\(.*?\)\s*/g, " ").trim().split(/\s+/)[0].toLowerCase().replace(/^./, c => c.toUpperCase());
 
@@ -126,7 +131,7 @@ async function iniciar(){
       <button type="button" class="foto" data-ver="${i}" aria-label="Ampliar a foto">${selo}<img loading="lazy" alt="${esc(p.produto)}" data-b="${esc(b)}" src="${esc(fotoSrc(b))}" onerror="fotoErro(this)"></button>
       <div class="info"><b>${esc(p.produto)}</b><small>${esc(p.codigo)} · ${esc(p.corCodigo || p.cor)}</small>
         <small>${esc([p.genero, p.tam].filter(Boolean).join(" · "))}</small>${p.pdv ? `<span class="pdv">${esc(p.pdv)}</span>` : ""}</div>
-      <div class="pares"><span>${emPares(p) ? "Pares" : "Peças"} (opcional)</span><span class="st"><button type="button" data-p="-1" aria-label="Menos">−</button><input type="number" inputmode="numeric" min="0" step="1" placeholder="—" aria-label="Pares"><button type="button" data-p="1" aria-label="Mais">+</button></span></div>
+      <div class="pares"><span>${emCaixa(p) ? "Pares (opcional · de 6 em 6)" : (emPares(p) ? "Pares" : "Peças") + " (opcional)"}</span><span class="st"><button type="button" data-p="${emCaixa(p) ? -CX : -1}" aria-label="Menos">−</button><input type="number" inputmode="numeric" min="0" step="${emCaixa(p) ? CX : 1}" placeholder="—" aria-label="Pares"><button type="button" data-p="${emCaixa(p) ? CX : 1}" aria-label="Mais">+</button></span>${emCaixa(p) ? '<small class="cx"></small>' : ""}</div>
       <button type="button" class="quero">Quero</button></div>`; }).join("")}</div>
     <div class="obs"><label for="obs">Quer dizer algo para ${esc(vend)}?</label><textarea id="obs" placeholder="Grade, prazo, quantidade por loja…">${esc(r && r.obs || "")}</textarea></div>`;
   document.querySelectorAll(".card").forEach(c => pintar(c));
@@ -137,6 +142,7 @@ function pintar(c){
   c.classList.toggle("on", on);
   c.querySelector(".quero").textContent = on ? "✓ Quero" : "Quero";
   const v = S.quer.get(k); c.querySelector(".pares input").value = v > 0 ? v : "";
+  const cx = c.querySelector(".cx"); if(cx) cx.textContent = v > 0 ? `1 caixa de ${v} pares` : "";
 }
 function contar(){
   const n = S.quer.size, pares = [...S.quer.values()].reduce((s, v) => s + (v || 0), 0);
@@ -167,6 +173,15 @@ document.addEventListener("input", e => {
     const c = e.target.closest(".card"); S.quer.set(c.dataset.k, Math.max(0, parseInt(e.target.value, 10) || 0)); contar();
   }
   if(e.target.id === "obs") contar();
+});
+// Digitou um número que não fecha caixa (ex.: 10): ao sair do campo, sobe para a caixa seguinte (12).
+document.addEventListener("change", e => {
+  const inp = e.target.closest(".pares input"), c = inp && inp.closest(".card");
+  if(!c) return;
+  const p = S.link.produtos[Number(c.dataset.i)];
+  if(!emCaixa(p)) return;
+  const v = parseInt(inp.value, 10) || 0;
+  S.quer.set(c.dataset.k, v > 0 ? Math.ceil(v / CX) * CX : 0); pintar(c); contar();
 });
 document.addEventListener("keydown", e => { if(e.key === "Escape") $("ver").hidden = true; });
 function abrirFoto(i){

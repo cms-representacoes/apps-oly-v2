@@ -81,7 +81,7 @@
     #btnMeusPedidos         { order: 3; }
     #btnRefresh             { order: 4; }
     #btnBackToHome          { order: 5; }
-    #btnLayout              { order: 6; }
+    #btnLinks               { order: 6; }
     #btnClear               { order: 7; }
     #btnOpenDrawerFilters   { order: 8; }
     #btnDark                { order: 9; }
@@ -3104,6 +3104,10 @@ html.dark-mode body::before{
         </div>
         <div class="home-acoes ml-auto flex items-center gap-1.5 sm:gap-2">
           <a class="portal-btn" href="https://cms-representacoes.github.io/apps-oly/" title="Voltar ao Portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg><span>Portal</span></a>
+          <button id="btnLinksHome" class="focus-ring relative flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Links enviados aos clientes e as respostas" aria-label="Links para o cliente">
+            <i class="fa-solid fa-link text-oly-muted text-base"></i>
+            <span id="linksBadgeHome" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] text-center rounded-full bg-red-600 px-1 text-[11px] font-bold leading-[18px] text-white">0</span>
+          </button>
           <button id="btnPreferences" class="focus-ring flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-oly-border bg-white hover:bg-oly-bg transition" title="Minhas preferências" aria-label="Preferências do vendedor">
             <i class="fa-solid fa-sliders text-oly-muted text-base"></i>
           </button>
@@ -3324,6 +3328,12 @@ html.dark-mode body::before{
               <span class="action-btn-wrap"><i class="fa-solid fa-clipboard-list text-oly-blue"></i><span class="action-btn-mobile-label">Pedidos</span></span>
               <span class="hidden sm:inline">Pedidos</span>
             </button>
+            <!-- 2.6 Links para o cliente: o número é de respostas que ainda não foram vistas -->
+            <button id="btnLinks" class="focus-ring inline-flex items-center justify-center gap-2 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-4 text-sm font-semibold hover:bg-oly-bg" title="Links enviados aos clientes e as respostas">
+              <span class="action-btn-wrap"><i class="fa-solid fa-link text-oly-blue"></i><span class="action-btn-mobile-label">Links</span></span>
+              <span class="hidden sm:inline">Links</span>
+              <span id="linksBadge" class="hidden rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">0</span>
+            </button>
             <!-- Limpar (agora vem antes de Layout) -->
             <button id="btnClear" class="focus-ring inline-flex items-center justify-center gap-2 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-4 text-sm font-semibold hover:bg-oly-bg" title="Limpar filtros ativos">
               <span class="action-btn-wrap"><i class="fa-solid fa-filter-circle-xmark text-oly-blue"></i><span class="action-btn-mobile-label">Limpar</span></span>
@@ -3341,19 +3351,8 @@ html.dark-mode body::before{
               <span class="action-btn-wrap"><i class="fa-solid fa-house text-oly-blue"></i><span class="action-btn-mobile-label">Início</span></span>
               <span class="hidden sm:inline">Início</span>
             </button>
-            <!-- Layout (agora vem depois de Limpar e Atualizar) -->
-            <!-- As duas densidades ficam à vista, com a ativa destacada.
-                 Antes era um botão só que mostrava o PRÓXIMO estado: vendo 3
-                 colunas ele dizia "2 Col", e não dava para saber se aquilo
-                 era onde você estava ou para onde iria. -->
-            <div id="btnLayout" class="grp-layout inline-flex items-center rounded-full border border-oly-border bg-white shrink-0" role="group" aria-label="Colunas do catálogo">
-              <button type="button" class="lay-opt focus-ring" data-layout="duo" title="Ver em 2 colunas" aria-label="Ver em 2 colunas">
-                <i class="fa-solid fa-table-cells-large"></i>
-              </button>
-              <button type="button" class="lay-opt focus-ring" data-layout="trio" title="Ver em 3 colunas" aria-label="Ver em 3 colunas">
-                <i class="fa-solid fa-table-cells"></i>
-              </button>
-            </div>
+            <!-- O seletor de 2 ou 3 colunas saiu (05/11/2026): o computador fica em 3, celular e tablet em 2.
+                 O lugar dele na barra é do botão Links. -->
             <!-- 5 Favoritos -->
             <button id="btnFavs" class="focus-ring inline-flex items-center justify-center gap-2 rounded-full border border-oly-border bg-white px-2.5 py-2 sm:px-4 text-sm font-semibold hover:bg-oly-bg" title="Ver produtos favoritos">
               <span class="action-btn-wrap"><i id="btnFavsIcon" class="fa-regular fa-heart text-oly-blue"></i><span class="action-btn-mobile-label">Favoritos</span></span>
@@ -17001,6 +17000,8 @@ loadCatalog({ cacheBust:false });
 .lkc-resp-l span{ display:flex; flex-direction:column; flex:1; min-width:0; font-size:13px; }
 .lkc-resp-l small{ color:#64748b; }
 .lkc-resp-l em{ font-style:normal; font-weight:800; font-size:13px; color:#15803d; flex:none; }
+.lkc-sit.nova{ background:#dc2626; color:#fff; }
+.lkc-sacola{ margin-top:8px; font-size:13px; font-weight:600; color:#15803d; background:#f0fdf4; border-radius:10px; padding:8px 10px; }
 .lkc-obs{ margin-top:8px; font-size:13px; font-style:italic; color:#334155; background:#fefce8; border-radius:10px; padding:8px 10px; }
 </style>
 <script>
@@ -17055,6 +17056,28 @@ function _mkFaixaTam(tams){
 const _MK_CAT = { FTW: "Calçados", CHI: "Chinelos", "V&A": "Vestuário", ACC: "Acessórios", MEIA: "Meias" };
 const _mkStatus = p => p.lanc ? "Lançamento" : p.novaCor ? "Nova cor" : p.cont ? "Continuidade" : "";
 
+/* Os tamanhos de um produto a partir da coluna TAM da planilha do catálogo:
+     calçado "34/44" → 34, 35 … 44 · chinelo "33/34 a 43/44" → 33/34, 35/36 … 43/44
+     roupa "P-M-G-GG" → P, M, G, GG · meia "33/38" e acessório "U" → um tamanho só. */
+const _MK_LETRAS = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "XG", "XGG", "EG", "EGG"];
+function _mkTamanhos(p){
+  const t = String(p.tam || "").trim().toUpperCase();
+  if(!t) return [];
+  let m = /^(\d{2})\/(\d{2})\s*A\s*(\d{2})\/(\d{2})$/.exec(t);
+  if(m){ const out = []; for(let a = +m[1]; a <= +m[3]; a += 2) out.push(a + "/" + (a + 1)); return out; }
+  m = /^(\d{2})\/(\d{2})$/.exec(t);
+  if(m && /^FTW/i.test(String(p.categoria || ""))){ const out = []; for(let a = +m[1]; a <= +m[2]; a++) out.push(String(a)); return out; }
+  if(/[-,]/.test(t)) return t.split(/\s*[-,]\s*/).filter(Boolean);
+  return [t === "ÚNICO" || t === "UNICO" ? "U" : t];
+}
+// Ordem das colunas: números, depois as duplas do chinelo e as faixas de meia, depois as letras e o U.
+function _mkOrdemTam(a, b){
+  const k = x => /^\d+$/.test(x) ? [0, +x] : /^\d+\/\d+$/.test(x) ? [1, parseInt(x, 10), +x.split("/")[1]] : _MK_LETRAS.includes(x) ? [2, _MK_LETRAS.indexOf(x)] : [3, 0, x];
+  const x = k(a), y = k(b);
+  for(let i = 0; i < 3; i++){ if(x[i] === y[i]) continue; return x[i] < y[i] ? -1 : 1; }
+  return String(a).localeCompare(String(b));
+}
+
 /* A planilha. `opt.pares` (Map k → pares) acrescenta a coluna de pares: é a
    mesma função que baixa a resposta do cliente. */
 async function planilhaProdutos(itens, opt = {}){
@@ -17081,7 +17104,13 @@ async function planilhaProdutos(itens, opt = {}){
     [itens.length + " produto" + (itens.length !== 1 ? "s" : "") + (totalPares ? " · " + totalPares + " na quantidade pedida" : ""), { name: "Calibri", size: 10, color: { argb: "FF6B7280" } }],
   ];
   topo.forEach(([t, f], i) => { const c = ws.getCell(i + 1, 1); c.value = t; c.font = f; });
-  const titulos = ["Foto", "Referência", "Produto", "Cor", "Gênero", "Categoria", "Segmento", "Coleção", "Status", "Numeração", "PDV", ...(comPares ? ["Quantidade"] : [])];
+  // A grade: uma coluna por tamanho dos produtos marcados, em branco para o cliente preencher (cinza onde
+  // aquele produto não tem o tamanho), e o Total no fim, que soma a linha sozinho.
+  const tamsDe = new Map(itens.map(p => [p.k, new Set(_mkTamanhos(p))]));
+  const colTam = [...new Set(itens.flatMap(p => [...tamsDe.get(p.k)]))].sort(_mkOrdemTam);
+  const fixos = ["Foto", "Referência", "Produto", "Cor", "Gênero", "Categoria", "Segmento", "Coleção", "Status", "Numeração", "PDV", ...(comPares ? ["Quantidade"] : [])];
+  const titulos = [...fixos, ...colTam, ...(colTam.length ? ["Total"] : [])];
+  const letra = n => { let s = ""; for(; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
   const cab = ws.getRow(5);
   cab.values = titulos; cab.height = 21.95;
   cab.eachCell(c => {
@@ -17096,6 +17125,17 @@ async function planilhaProdutos(itens, opt = {}){
       ...(comPares ? [Number(opt.pares.get(p.k)) || ""] : [])];
     row.height = 57.95;
     for(let c = 1; c <= titulos.length; c++) row.getCell(c).alignment = { ...MEIO, wrapText: c === 3 };
+    const tem = tamsDe.get(p.k);
+    colTam.forEach((t, j) => {
+      const cel = row.getCell(fixos.length + 1 + j);
+      cel.border = { top: { style: "thin", color: { argb: "FFD1D5DB" } }, bottom: { style: "thin", color: { argb: "FFD1D5DB" } }, left: { style: "thin", color: { argb: "FFD1D5DB" } }, right: { style: "thin", color: { argb: "FFD1D5DB" } } };
+      if(!tem.has(t)) cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } };
+    });
+    if(colTam.length){
+      const tot = row.getCell(titulos.length);
+      tot.value = { formula: `SUM(${letra(fixos.length + 1)}${n}:${letra(fixos.length + colTam.length)}${n})`, result: 0 };
+      tot.font = { name: "Calibri", size: 11, bold: true };
+    }
     const f = src ? fotos.get(src) : null;
     if(f){
       if(!ids.has(src)) ids.set(src, wb.addImage({ base64: f.url, extension: "jpeg" }));
@@ -17109,7 +17149,9 @@ async function planilhaProdutos(itens, opt = {}){
         br: { nativeCol: 0, nativeColOff: x0 + wE, nativeRow: n - 1, nativeRowOff: y0 + hE }, editAs: "twoCell" });
     }
   });
-  [12, 12, 30, 12, 11, 12, 14, 9, 13, 12, 11, 11].slice(0, titulos.length).forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  [12, 12, 30, 12, 11, 12, 14, 9, 13, 12, 11, 11].slice(0, fixos.length).forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  colTam.forEach((t, j) => { ws.getColumn(fixos.length + 1 + j).width = t.length > 3 ? 7.5 : 5.7109375; });
+  ws.getColumn(titulos.length).width = 9;
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + itens.length, column: titulos.length } };
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
@@ -17120,10 +17162,13 @@ async function planilhaProdutos(itens, opt = {}){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   toast("Planilha gerada · " + itens.length + " produto" + (itens.length !== 1 ? "s" : "") + " ✅");
+  return true;
 }
-function gerarPlanilhaMarcados(){
+// Como no PDF: saiu a planilha, desmarca tudo e a barra some.
+async function gerarPlanilhaMarcados(){
   if(!MARCADOS.size){ toast("Marque pelo menos um produto."); return; }
-  return planilhaProdutos(marcadosItens());
+  const ok = await planilhaProdutos(marcadosItens());
+  if(ok) limparMarcados();
 }
 
 /* ── o link ── */
@@ -17171,6 +17216,7 @@ async function abrirLinkMarcados(){
   const itens = MARCADOS.size ? marcadosItens() : [];
   LKC.itens = itens; LKC.cliente = "";
   m.querySelector("#lkcForm").hidden = !itens.length;
+  m.querySelector("#lkcTit").textContent = itens.length ? "Link para o cliente" : "Links para o cliente";
   m.querySelector("#lkcPronto").hidden = true;
   m.querySelector("#lkcQtd").textContent = itens.length + " produto" + (itens.length !== 1 ? "s" : "") + " marcado" + (itens.length !== 1 ? "s" : "") + ". O cliente toca em \"Quero\" nos que gostar e devolve para você.";
   m.querySelector("#lkcCli").value = "";
@@ -17221,28 +17267,55 @@ async function lkcGerar(bt){
       <div class="lkc-acoes"><button type="button" class="lkc-bt" data-lkc="copiar" data-url="${lkcEsc(url)}">Copiar</button>
       <a class="lkc-bt zap" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">Enviar no WhatsApp</a></div>`;
     m.querySelector("#lkcForm").hidden = true; pr.hidden = false;
+    // Como no PDF: o link saiu, desmarca tudo e a barra some (a janela continua com o link pronto).
+    LKC.itens = []; limparMarcados();
     lkcListar();
   }catch(e){
     toast("Não consegui gerar o link agora (" + (e.message || e) + ") ⚠️");
   }finally{ bt.disabled = false; bt.textContent = "Gerar link"; }
 }
 
+/* Os links do Catálogo deste vendedor: o servidor marca a origem (worker novo) e o aparelho anota os que
+   gerou (vale também com o worker antigo). Resposta "nova" é a que chegou depois da última vez que ele
+   abriu aquele link: é o número vermelho do botão. */
+const LKC_VISTO = "catalogo_links_vistos_v1", LKC_SACOLA = "catalogo_links_sacola_v1";
+const lkcMapa = ch => { try{ return JSON.parse(localStorage.getItem(ch) || "{}") || {}; }catch(_){ return {}; } };
+const lkcMarca = (ch, cod, v) => { const m = lkcMapa(ch); m[cod] = v; try{ localStorage.setItem(ch, JSON.stringify(m)); }catch(_){} };
+async function lkcSincronizar(){
+  const s = getPortalSession(), locais = lkcMeus();
+  let srv = null;
+  try{ if(s){ const j = await lkcWorker({ action: "getLinksVendedor", vendedor: String(s.codigo || "") }); srv = j.links || []; } }catch(_){}
+  const loc = new Map(locais.map(x => [x.codigo, x]));
+  let lista;
+  if(srv){
+    lista = srv.filter(l => l.origem === "catalogo" || loc.has(l.codigo)).map(l => ({ ...(loc.get(l.codigo) || {}), ...l,
+      clienteNome: l.clienteNome || (loc.get(l.codigo) || {}).clienteNome || "", qtd: l.qtdProdutos, srv: true }));
+    // o que o aparelho anotou e o servidor apagou sai da lista
+    const vivos = locais.filter(x => srv.some(l => l.codigo === x.codigo));
+    if(vivos.length !== locais.length) lkcGuardar(vivos);
+  } else lista = locais;
+  lista.sort((a, b) => Number(b.criadoEm || 0) - Number(a.criadoEm || 0));
+  const visto = lkcMapa(LKC_VISTO);
+  const novas = lista.filter(l => l.status === "respondido" && Number(l.respondidoEm || 0) > Number(visto[l.codigo] || 0)).length;
+  for(const id of ["linksBadge", "linksBadgeHome"]){
+    const b = document.getElementById(id);
+    if(b){ b.textContent = String(novas); b.classList.toggle("hidden", !novas); }
+  }
+  LKC.lista = lista;
+  return lista;
+}
 async function lkcListar(){
-  const m = lkcModal(), box = m.querySelector("#lkcLista"), meus = lkcMeus(), s = getPortalSession();
-  if(!meus.length){ box.innerHTML = `<div class="lkc-vazio">Os links que você gerar aqui aparecem nesta lista, com a resposta do cliente.</div>`; return; }
+  const m = lkcModal(), box = m.querySelector("#lkcLista");
   box.innerHTML = `<div class="lkc-vazio">Carregando…</div>`;
-  let st = new Map();
-  try{
-    if(s){ const j = await lkcWorker({ action: "getLinksVendedor", vendedor: String(s.codigo || "") }); (j.links || []).forEach(l => st.set(l.codigo, l)); }
-  }catch(_){}
-  const vivos = meus.filter(x => !s || !st.size || st.has(x.codigo));
-  if(vivos.length !== meus.length) lkcGuardar(vivos);   // apagado no servidor: sai da lista
+  const vivos = await lkcSincronizar(), visto = lkcMapa(LKC_VISTO);
+  if(!vivos.length){ box.innerHTML = `<div class="lkc-vazio">Os links que você gerar aparecem aqui, com a resposta do cliente. Para gerar, marque os produtos no coração e toque em Link.</div>`; return; }
   box.innerHTML = vivos.map(x => {
-    const l = st.get(x.codigo) || {};
-    const sit = l.status === "concluido" ? ["Concluído", "fim"] : l.status === "respondido" ? [`Respondeu · ${l.qtdResposta || 0} escolhido${l.qtdResposta === 1 ? "" : "s"}`, "resp"]
+    const l = x;
+    const nova = l.status === "respondido" && Number(l.respondidoEm || 0) > Number(visto[l.codigo] || 0);
+    const sit = l.status === "concluido" ? ["Concluído", "fim"] : l.status === "respondido" ? [`${nova ? "Nova · " : ""}Respondeu · ${l.qtdResposta || 0} escolhido${l.qtdResposta === 1 ? "" : "s"}`, nova ? "resp nova" : "resp"]
       : l.expirado ? ["Expirou", "exp"] : ["Aguardando", "agu"];
     return `<button type="button" class="lkc-item" data-lkc="ver" data-cod="${lkcEsc(x.codigo)}">
-      <span class="lkc-item-n"><b>${lkcEsc(x.clienteNome || x.cliente || "Sem cliente")}</b><small>${x.qtd} produto${x.qtd !== 1 ? "s" : ""} · ${x.marca === "ua" ? "UA" : "Oly"} · ${lkcData(x.criadoEm)}</small></span>
+      <span class="lkc-item-n"><b>${lkcEsc(x.clienteNome || x.cliente || "Sem cliente")}</b><small>${x.qtd || 0} produto${x.qtd !== 1 ? "s" : ""} · ${x.marca === "ua" ? "UA" : "Oly"} · ${lkcData(x.criadoEm)}</small></span>
       <span class="lkc-sit ${sit[1]}">${sit[0]}</span></button>`;
   }).join("") || `<div class="lkc-vazio">Nenhum link ativo.</div>`;
 }
@@ -17254,6 +17327,9 @@ async function lkcVer(codigo){
   try{
     const { link } = await lkcWorker({ action: "getLinkCompleto", codigo });
     LKC.aberto = { codigo, link };
+    if(link.status === "respondido" || link.respondidoEm) lkcMarca(LKC_VISTO, codigo, Number(link.respondidoEm || Date.now()));
+    const naSacola = await lkcParaSacola(codigo, link);
+    lkcSincronizar();
     const r = link.resposta || null, esc = lkcEsc, url = lkcUrl(codigo);
     const escolhidos = r && Array.isArray(r.itens) ? r.itens : [];
     const porK = new Map((link.produtos || []).map(p => [p.k, p]));
@@ -17263,8 +17339,9 @@ async function lkcVer(codigo){
       ${escolhidos.length ? `<div class="lkc-resp">${escolhidos.map(it => { const p = porK.get(it.k) || it;
         return `<div class="lkc-resp-l"><img src="${esc(resolveImageSrc(p.imagem))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span><b>${esc(p.produto)}</b><small>${esc(p.codigo)} · ${esc(p.corCodigo || p.cor)}</small></span><em>${Number(it.pares) > 0 ? it.pares + (/^(FTW|CHI|MEIA)/i.test(String(p.categoria || "")) || !p.categoria ? " pares" : " peças") : "quer"}</em></div>`; }).join("")}</div>` : ""}
       ${r && r.obs ? `<div class="lkc-obs">“${esc(r.obs)}”</div>` : ""}
+      ${naSacola ? `<div class="lkc-sacola">${esc(naSacola)}</div>` : ""}
       <div class="lkc-acoes">
-        ${escolhidos.length ? `<button type="button" class="lkc-bt forte" data-lkc="planilhaResp">Planilha da resposta</button><button type="button" class="lkc-bt" data-lkc="marcarResp">Marcar os escolhidos</button>` : ""}
+        ${escolhidos.length ? `<button type="button" class="lkc-bt forte" data-lkc="sacola">Abrir a sacola</button><button type="button" class="lkc-bt" data-lkc="planilhaResp">Planilha da resposta</button><button type="button" class="lkc-bt" data-lkc="marcarResp">Marcar os escolhidos</button>` : ""}
         <button type="button" class="lkc-bt" data-lkc="copiar" data-url="${esc(url)}">Copiar link</button>
         ${link.status !== "concluido" && escolhidos.length ? `<button type="button" class="lkc-bt" data-lkc="concluir">Já virou pedido</button>` : ""}
         ${exp ? `<button type="button" class="lkc-bt" data-lkc="reativar">Reativar por 7 dias</button>` : ""}
@@ -17275,6 +17352,34 @@ async function lkcVer(codigo){
   }
 }
 
+/* A escolha do cliente vai para a sacola uma vez por resposta (se ele reenviar, vai de novo). Cada
+   produto entra com os pares que ele pediu; sem quantidade, uma caixa de 6 no calçado e 1 no resto.
+   A grade fica para o vendedor, que conhece a do cliente. */
+async function lkcParaSacola(codigo, link){
+  const r = link.resposta, escolhidos = r && Array.isArray(r.itens) ? r.itens : [];
+  if(!escolhidos.length) return "";
+  const quando = String(link.respondidoEm || "");
+  if(lkcMapa(LKC_SACOLA)[codigo] === quando) return "Esta escolha já foi para a sacola.";
+  if(link.marca && link.marca !== MARCA_ATUAL.id)
+    return `A escolha é da ${link.marca === "ua" ? "Under Armour" : "Olympikus"}: abra o catálogo dessa marca e toque no link de novo para ela ir para a sacola.`;
+  const raw = state.productsRaw || [], porK = new Map((link.produtos || []).map(p => [p.k, p]));
+  let foram = 0, pares = 0;
+  const faltou = [];
+  for(const it of escolhidos){
+    const p = porK.get(it.k) || it;
+    const cands = raw.filter(x => chaveMarcado(x) === it.k);
+    const item = cands.find(x => String(x.colecao || "") === String(p.colecao || "")) || cands[0];
+    if(!item){ faltou.push(p.produto || it.k); continue; }
+    const calcado = /^FTW/i.test(String(p.categoria || item.categoria || ""));
+    const q = Number(it.pares) > 0 ? Number(it.pares) : (calcado ? 6 : 1);
+    addToCart(item, q);
+    foram++; pares += q;
+  }
+  lkcMarca(LKC_SACOLA, codigo, quando);
+  if(typeof updateCartBadge === "function") updateCartBadge();
+  return `${foram} produto${foram !== 1 ? "s" : ""} (${pares} unidades) ${foram !== 1 ? "foram" : "foi"} para a sacola. Falta só a grade.` +
+    (faltou.length ? ` Não achei no catálogo: ${faltou.join(", ")}.` : "");
+}
 async function lkcClique(ev){
   const m = lkcModal();
   if(ev.target === m) return lkcFechar();
@@ -17300,6 +17405,7 @@ async function lkcClique(ev){
   if(!ab) return;
   const r = ab.link.resposta || {}, escolhidos = Array.isArray(r.itens) ? r.itens : [];
   const porK = new Map((ab.link.produtos || []).map(p => [p.k, p]));
+  if(acao === "sacola"){ lkcFechar(); const bc = document.getElementById("btnOpenCart"); if(bc) bc.click(); return; }
   if(acao === "planilhaResp"){
     const nome = ab.link.clienteNome || ab.link.cliente || "cliente";
     return planilhaProdutos(escolhidos.map(it => porK.get(it.k)).filter(Boolean), {
@@ -17323,6 +17429,13 @@ async function lkcClique(ev){
   }
 }
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ const m = document.getElementById("lkcModal"); if(m && !m.hidden) lkcFechar(); } });
+document.addEventListener("DOMContentLoaded", () => {
+  for(const id of ["btnLinks", "btnLinksHome"]){ const b = document.getElementById(id); if(b) b.onclick = () => abrirLinkMarcados(); }
+  setTimeout(lkcSincronizar, 2500);
+  // A cada 3 minutos, com a tela à vista: o número aparece sem precisar recarregar.
+  setInterval(() => { if(document.visibilityState === "visible") lkcSincronizar(); }, 180000);
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") lkcSincronizar(); });
+});
 </script>
 </body>
 </html>
