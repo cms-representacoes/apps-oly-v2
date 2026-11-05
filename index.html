@@ -4199,8 +4199,7 @@ html.dark-mode body::before{
     </div>
 
     <!-- Fullscreen Image Viewer -->
-    <!-- O que fazer com os produtos marcados. Link e planilha ainda são só o
-         botão: a função vem depois. O PDF é o catálogo. -->
+    <!-- O que fazer com os produtos marcados: link para o cliente, planilha e o PDF do catálogo. -->
     <div id="selBarra" hidden>
       <span class="cont">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 21.4l8.8-8.4a5.2 5.2 0 0 0 0-7.4z"/></svg>
@@ -10793,9 +10792,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const liga = (id, fn) => { const b = document.getElementById(id); if(b) b.onclick = fn; };
   liga("btnSelTodos", marcarTodosDaTela);
   liga("btnSelLimpar", limparMarcados);
-  // Link e planilha: só o botão por enquanto, a função vem depois.
-  liga("btnSelLink", () => toast && toast("O link dos marcados vem em seguida."));
-  liga("btnSelXlsx", () => toast && toast("A planilha dos marcados vem em seguida."));
+  liga("btnSelLink", () => abrirLinkMarcados());
+  liga("btnSelXlsx", () => gerarPlanilhaMarcados());
   liga("btnSelPdf", () => { if(typeof gerarCatalogoPdf === "function") gerarCatalogoPdf(); });
 });
 
@@ -16960,5 +16958,371 @@ loadCatalog({ cacheBust:false });
 
 </script>
 
+<style>
+/* Link e planilha dos marcados: a janela do link para o cliente. */
+.lkc-fundo{ position:fixed; inset:0; z-index:9000; background:rgba(15,23,42,.45); display:flex; align-items:flex-end; justify-content:center; }
+.lkc-fundo[hidden]{ display:none; }
+.lkc-caixa{ background:#fff; width:100%; max-width:520px; max-height:92vh; border-radius:20px 20px 0 0; display:flex; flex-direction:column; box-shadow:0 -10px 40px rgba(0,0,0,.2); font-family:inherit; }
+@media (min-width:640px){ .lkc-fundo{ align-items:center; } .lkc-caixa{ border-radius:20px; } }
+.lkc-topo{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #e5e7eb; font-size:16px; color:#0f172a; }
+.lkc-x{ font-size:26px; line-height:1; background:none; border:0; color:#64748b; cursor:pointer; padding:0 4px; }
+.lkc-corpo{ padding:14px 18px 20px; overflow:auto; }
+.lkc-dica{ font-size:13px; color:#475569; margin:0 0 10px; }
+.lkc-rot{ display:block; font-size:12px; font-weight:700; color:#334155; margin:10px 0 4px; }
+.lkc-campo{ width:100%; border:1px solid #cbd5e1; border-radius:12px; padding:11px 12px; font-size:16px; background:#fff; }
+.lkc-sug{ border:1px solid #e2e8f0; border-radius:12px; margin-top:4px; overflow:hidden; }
+.lkc-sug-it{ display:flex; flex-direction:column; align-items:flex-start; width:100%; text-align:left; padding:9px 12px; background:#fff; border:0; border-bottom:1px solid #f1f5f9; cursor:pointer; font-size:14px; }
+.lkc-sug-it span{ font-size:12px; color:#64748b; }
+.lkc-sug-it:hover{ background:#f8fafc; }
+.lkc-sug-nada{ padding:9px 12px; font-size:13px; color:#64748b; }
+.lkc-bt{ display:inline-flex; align-items:center; justify-content:center; gap:6px; border:1px solid #cbd5e1; background:#fff; color:#0f172a; border-radius:12px; padding:10px 14px; font-size:14px; font-weight:700; cursor:pointer; text-decoration:none; }
+.lkc-bt.forte{ background:var(--oly-blue, #2c39e2); border-color:transparent; color:#fff; }
+.lkc-bt.zap{ background:#25d366; border-color:transparent; color:#fff; }
+.lkc-bt:disabled{ opacity:.6; cursor:default; }
+#lkcForm .lkc-bt.forte{ width:100%; margin-top:14px; padding:13px; font-size:15px; }
+.lkc-acoes{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.lkc-ok{ font-size:15px; color:#0f172a; margin-bottom:6px; }
+.lkc-url{ font-size:13px; background:#f1f5f9; border-radius:10px; padding:9px 10px; word-break:break-all; color:#334155; }
+.lkc-sec{ margin-top:18px; border-top:1px solid #e5e7eb; padding-top:12px; }
+.lkc-sec-tit{ display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:14px; color:#0f172a; margin-bottom:8px; }
+.lkc-mini{ font-size:12px; font-weight:700; color:var(--oly-blue, #2c39e2); background:none; border:0; cursor:pointer; }
+.lkc-vazio{ font-size:13px; color:#64748b; padding:6px 0; }
+.lkc-item{ display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; text-align:left; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; margin-bottom:6px; cursor:pointer; }
+.lkc-item-n{ display:flex; flex-direction:column; min-width:0; font-size:14px; }
+.lkc-item-n b{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lkc-item-n small{ color:#64748b; font-size:12px; }
+.lkc-sit{ flex:none; font-size:11.5px; font-weight:800; border-radius:999px; padding:4px 9px; }
+.lkc-sit.agu{ background:#f1f5f9; color:#475569; } .lkc-sit.resp{ background:#dcfce7; color:#15803d; }
+.lkc-sit.exp{ background:#fee2e2; color:#b91c1c; } .lkc-sit.fim{ background:#e0e7ff; color:#3730a3; }
+.lkc-resp{ border:1px solid #e2e8f0; border-radius:12px; margin-top:8px; }
+.lkc-resp-l{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid #f1f5f9; }
+.lkc-resp-l:last-child{ border-bottom:0; }
+.lkc-resp-l img{ width:46px; height:46px; object-fit:contain; flex:none; }
+.lkc-resp-l span{ display:flex; flex-direction:column; flex:1; min-width:0; font-size:13px; }
+.lkc-resp-l small{ color:#64748b; }
+.lkc-resp-l em{ font-style:normal; font-weight:800; font-size:13px; color:#15803d; flex:none; }
+.lkc-obs{ margin-top:8px; font-size:13px; font-style:italic; color:#334155; background:#fefce8; border-radius:10px; padding:8px 10px; }
+</style>
+<script>
+/* ══ PLANILHA E LINK DOS MARCADOS ═════════════════════════════════════
+   Os dois botões da barra dos marcados que eram só aviso.
+   · Planilha: uma linha por cor marcada, com foto, no mesmo molde da Captação
+     (ExcelJS, foto presa na célula), para quem recebe reconhecer na hora.
+   · Link: o cliente abre link.html, vê os marcados, toca em "Quero" nos que
+     interessam (com pares, se quiser) e devolve. Usa os links do Worker que o
+     Showroom já usa (criarLink/getLink/salvarResposta): nada muda no Worker.
+     O Worker não guarda de que app veio o link, então os links do Catálogo
+     ficam anotados no aparelho para a lista "Links enviados". */
+
+// Os marcados, um por código|cor, na ordem do catálogo. A tela vem primeiro e a
+// planilha inteira depois (a mesma regra do PDF: a cor da coleção da tela manda).
+function marcadosItens(){
+  const vistos = new Set(), porArtigo = new Map();
+  for(const lista of [state.productsView, state.productsFiltered, state.productsRaw]){
+    for(const it of (lista || [])){
+      const k = chaveMarcado(it);
+      if(!k || !MARCADOS.has(k) || vistos.has(k)) continue;
+      vistos.add(k);
+      const art = String(it.codigo || "").trim() || k;
+      if(!porArtigo.has(art)) porArtigo.set(art, []);
+      porArtigo.get(art).push(it);
+    }
+  }
+  // O selo vem agregado das variantes (uma linha por tamanho, só uma marcada).
+  const raw = state.productsRaw || [];
+  return ordenarParaOCatalogo([...porArtigo.values()]).flat().map(it => {
+    const k = chaveMarcado(it);
+    const iguais = raw.filter(p => chaveMarcado(p) === k && String(p.colecao || "") === String(it.colecao || ""));
+    const tams = [...new Set(iguais.map(p => p.tam).filter(Boolean))];
+    return {
+      k, codigo: String(it.codigo || ""), cor: String(it.cor || ""), corCodigo: String(it.corCodigo || ""),
+      produto: it.produto || "", imagem: it.imagem || "", genero: it.genero || "", categoria: it.categoria || "",
+      segmento: it.segmento || "", colecao: it.colecao || "",
+      lanc: iguais.some(p => p.isLanc) || !!it.isLanc, novaCor: iguais.some(p => p.isNewColor) || !!it.isNewColor,
+      cont: iguais.some(p => p.isCont) || !!it.isCont,
+      pdv: pdfPreco(it.precoRaw), tam: it.tam && tams.length <= 1 ? it.tam : _mkFaixaTam(tams),
+    };
+  });
+}
+// "34, 35, ... 44" vira "34 a 44"; letras ficam na ordem de vestir.
+function _mkFaixaTam(tams){
+  if(!tams.length) return "";
+  const nums = tams.map(t => parseInt(t, 10)).filter(n => !isNaN(n));
+  if(nums.length === tams.length && nums.length > 1) return Math.min(...nums) + " a " + Math.max(...nums);
+  const ORD = ["PP", "P", "M", "G", "GG", "XG", "XGG", "EG", "EGG"];
+  return [...tams].sort((a, b) => ORD.indexOf(String(a).toUpperCase()) - ORD.indexOf(String(b).toUpperCase())).join(", ");
+}
+const _MK_CAT = { FTW: "Calçados", CHI: "Chinelos", "V&A": "Vestuário", ACC: "Acessórios", MEIA: "Meias" };
+const _mkStatus = p => p.lanc ? "Lançamento" : p.novaCor ? "Nova cor" : p.cont ? "Continuidade" : "";
+
+/* A planilha. `opt.pares` (Map k → pares) acrescenta a coluna de pares: é a
+   mesma função que baixa a resposta do cliente. */
+async function planilhaProdutos(itens, opt = {}){
+  if(!itens.length){ toast("Marque pelo menos um produto."); return; }
+  toast("Montando a planilha…");
+  if(!await _capGarantirExcelJs()){ toast("Não consegui carregar o gerador de planilha ⚠️"); return; }
+  const fotos = new Map();
+  const caminhos = [...new Set(itens.map(p => resolveImageSrc(p.imagem)).filter(Boolean))];
+  for(let i = 0; i < caminhos.length; i += 8){
+    if(caminhos.length > 8) toast("Buscando as fotos · " + Math.min(i + 8, caminhos.length) + " de " + caminhos.length);
+    const lote = await Promise.all(caminhos.slice(i, i + 8).map(c => _capFoto(c)));
+    lote.forEach((f, j) => { if(f) fotos.set(caminhos[i + j], f); });
+  }
+  const MEIO = { horizontal: "center", vertical: "middle" };
+  const COR = MARCA_ATUAL.id === "ua" ? "FFE52125" : "FF2C39E2";
+  const wb = new window.ExcelJS.Workbook();
+  wb.creator = "CMS Representações · Catálogo Digital";
+  const ws = wb.addWorksheet("Produtos", { views: [{ state: "frozen", ySplit: 5, xSplit: 1 }] });
+  const comPares = !!opt.pares;
+  const totalPares = comPares ? itens.reduce((s, p) => s + (Number(opt.pares.get(p.k)) || 0), 0) : 0;
+  const topo = [
+    [opt.titulo || ("Catálogo " + MARCA_ATUAL.nome), { name: "Calibri", bold: true, size: 14, color: { argb: COR } }],
+    [(opt.sub ? opt.sub + " · " : "") + "Gerado em " + new Date().toLocaleString("pt-BR"), { name: "Calibri", size: 10, color: { argb: "FF6B7280" } }],
+    [itens.length + " produto" + (itens.length !== 1 ? "s" : "") + (totalPares ? " · " + totalPares + " na quantidade pedida" : ""), { name: "Calibri", size: 10, color: { argb: "FF6B7280" } }],
+  ];
+  topo.forEach(([t, f], i) => { const c = ws.getCell(i + 1, 1); c.value = t; c.font = f; });
+  const titulos = ["Foto", "Referência", "Produto", "Cor", "Gênero", "Categoria", "Segmento", "Coleção", "Status", "Numeração", "PDV", ...(comPares ? ["Quantidade"] : [])];
+  const cab = ws.getRow(5);
+  cab.values = titulos; cab.height = 21.95;
+  cab.eachCell(c => {
+    c.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR } };
+    c.alignment = { ...MEIO, wrapText: true };
+  });
+  const ids = new Map();
+  itens.forEach((p, i) => {
+    const n = 6 + i, row = ws.getRow(n), src = resolveImageSrc(p.imagem);
+    row.values = ["", p.codigo, p.produto, p.corCodigo || p.cor, p.genero, _MK_CAT[String(p.categoria).toUpperCase()] || p.categoria, p.segmento, p.colecao, _mkStatus(p), p.tam, p.pdv,
+      ...(comPares ? [Number(opt.pares.get(p.k)) || ""] : [])];
+    row.height = 57.95;
+    for(let c = 1; c <= titulos.length; c++) row.getCell(c).alignment = { ...MEIO, wrapText: c === 3 };
+    const f = src ? fotos.get(src) : null;
+    if(f){
+      if(!ids.has(src)) ids.set(src, wb.addImage({ base64: f.url, extension: "jpeg" }));
+      // Presa entre dois cantos da própria célula, em EMU (ver a Captação).
+      const lado = 72, k = Math.min(lado / f.w, lado / f.h);
+      const EMU_PX = 9525, COL_EMU = 89 * EMU_PX, LIN_EMU = Math.round(57.95 * 12700);
+      const wE = Math.round(f.w * k * EMU_PX), hE = Math.round(f.h * k * EMU_PX);
+      const x0 = Math.round((COL_EMU - wE) / 2), y0 = Math.round((LIN_EMU - hE) / 2);
+      ws.addImage(ids.get(src), {
+        tl: { nativeCol: 0, nativeColOff: x0, nativeRow: n - 1, nativeRowOff: y0 },
+        br: { nativeCol: 0, nativeColOff: x0 + wE, nativeRow: n - 1, nativeRowOff: y0 + hE }, editAs: "twoCell" });
+    }
+  });
+  [12, 12, 30, 12, 11, 12, 14, 9, 13, 12, 11, 11].slice(0, titulos.length).forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + itens.length, column: titulos.length } };
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const a = document.createElement("a");
+  const d = new Date(), p2 = x => String(x).padStart(2, "0");
+  a.href = url;
+  a.download = (opt.arquivo || ("Catalogo " + MARCA_ATUAL.nome)).replace(/[\\/:*?"<>|]/g, "").trim() + " " + p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear() + ".xlsx";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("Planilha gerada · " + itens.length + " produto" + (itens.length !== 1 ? "s" : "") + " ✅");
+}
+function gerarPlanilhaMarcados(){
+  if(!MARCADOS.size){ toast("Marque pelo menos um produto."); return; }
+  return planilhaProdutos(marcadosItens());
+}
+
+/* ── o link ── */
+const LKC_CHAVE = "catalogo_links_v1";
+const lkcEsc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lkcMeus = () => { try{ const a = JSON.parse(localStorage.getItem(LKC_CHAVE) || "[]"); return Array.isArray(a) ? a : []; }catch(_){ return []; } };
+const lkcGuardar = a => { try{ localStorage.setItem(LKC_CHAVE, JSON.stringify(a.slice(0, 200))); }catch(_){} };
+const lkcUrl = codigo => location.origin + location.pathname.replace(/\/[^\/]*$/, "/") + "link.html?link=" + codigo;
+async function lkcWorker(corpo){
+  const r = await fetch(WORKER_URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+  const j = await r.json().catch(() => null);
+  if(!r.ok || !j || j.success === false) throw new Error((j && j.erro) || "Worker " + r.status);
+  return j;
+}
+const lkcData = ms => { const d = new Date(Number(ms)); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };
+
+function lkcModal(){
+  let m = document.getElementById("lkcModal");
+  if(m) return m;
+  m = document.createElement("div");
+  m.id = "lkcModal"; m.className = "lkc-fundo"; m.hidden = true;
+  m.innerHTML = `<div class="lkc-caixa" role="dialog" aria-modal="true" aria-labelledby="lkcTit">
+    <div class="lkc-topo"><b id="lkcTit">Link para o cliente</b><button type="button" class="lkc-x" data-lkc="fechar" aria-label="Fechar">×</button></div>
+    <div class="lkc-corpo">
+      <div id="lkcForm">
+        <p class="lkc-dica" id="lkcQtd"></p>
+        <label class="lkc-rot" for="lkcCli">Cliente</label>
+        <input id="lkcCli" class="lkc-campo" autocomplete="off" placeholder="Código ou nome da loja">
+        <div id="lkcSug" class="lkc-sug" hidden></div>
+        <label class="lkc-rot" for="lkcVal">O link vale por</label>
+        <select id="lkcVal" class="lkc-campo"><option value="48">2 dias</option><option value="168" selected>7 dias</option><option value="360">15 dias</option></select>
+        <button type="button" class="lkc-bt forte" data-lkc="gerar">Gerar link</button>
+      </div>
+      <div id="lkcPronto" hidden></div>
+      <div class="lkc-sec"><div class="lkc-sec-tit">Links enviados <button type="button" class="lkc-mini" data-lkc="atualizar">Atualizar</button></div><div id="lkcLista"></div></div>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click", lkcClique);
+  m.querySelector("#lkcCli").addEventListener("input", lkcSugerir);
+  return m;
+}
+const LKC = { cliente: "", lista: [] };
+async function abrirLinkMarcados(){
+  const m = lkcModal();
+  const itens = MARCADOS.size ? marcadosItens() : [];
+  LKC.itens = itens; LKC.cliente = "";
+  m.querySelector("#lkcForm").hidden = !itens.length;
+  m.querySelector("#lkcPronto").hidden = true;
+  m.querySelector("#lkcQtd").textContent = itens.length + " produto" + (itens.length !== 1 ? "s" : "") + " marcado" + (itens.length !== 1 ? "s" : "") + ". O cliente toca em \"Quero\" nos que gostar e devolve para você.";
+  m.querySelector("#lkcCli").value = "";
+  m.querySelector("#lkcSug").hidden = true;
+  m.hidden = false; document.body.style.overflow = "hidden";
+  try{ fantCarregar(); }catch(_){}
+  try{ await cliCarregar(); }catch(_){}
+  lkcListar();
+}
+function lkcFechar(){ const m = document.getElementById("lkcModal"); if(m) m.hidden = true; document.body.style.overflow = ""; }
+
+function lkcSugerir(){
+  const m = lkcModal(), v = m.querySelector("#lkcCli").value.trim(), box = m.querySelector("#lkcSug");
+  LKC.cliente = "";
+  const q = v.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+  if(q.length < 2){ box.hidden = true; return; }
+  const nomeDe = c => (FANT.porCodigo && FANT.porCodigo[String(c.codigo)]) || c.fantasia || c.nome || c.razao || "";
+  const achados = (CLI.lista || []).filter(c => {
+    const t = (String(c.codigo) + " " + nomeDe(c) + " " + (c.nome || "") + " " + (c.cidade || "")).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+    return q.split(/\s+/).every(w => t.includes(w));
+  }).slice(0, 8);
+  box.innerHTML = achados.length
+    ? achados.map(c => `<button type="button" class="lkc-sug-it" data-lkc="cli" data-cod="${lkcEsc(c.codigo)}"><b>${lkcEsc(nomeDe(c))}</b><span>${lkcEsc(c.codigo)}${c.cidade ? " · " + lkcEsc(c.cidade) : ""}</span></button>`).join("")
+    : `<div class="lkc-sug-nada">Nenhum cliente seu com "${lkcEsc(v)}". Pode gerar assim mesmo: o nome digitado vai no link.</div>`;
+  box.hidden = false;
+}
+
+async function lkcGerar(bt){
+  const m = lkcModal(), s = getPortalSession();
+  if(!s){ toast("Entre pelo Portal para gerar o link."); return; }
+  const digitado = m.querySelector("#lkcCli").value.trim();
+  if(!LKC.cliente && !digitado){ toast("Escolha o cliente."); m.querySelector("#lkcCli").focus(); return; }
+  const cod = LKC.cliente || "", nome = cod ? (nomeFantasiaPorCodigo(cod) || digitado) : digitado;
+  bt.disabled = true; bt.textContent = "Gerando…";
+  try{
+    const horas = Number(m.querySelector("#lkcVal").value) || 168;
+    const j = await lkcWorker({ action: "criarLink", data: {
+      vendedor: String(s.codigo || ""), vendedorNome: String(s.nome || ""), cliente: cod, clienteNome: nome,
+      marca: MARCA_ATUAL.id, origem: "catalogo", validadeHoras: horas, produtos: LKC.itens } });
+    const meus = lkcMeus();
+    meus.unshift({ codigo: j.codigo, cliente: cod, clienteNome: nome, marca: MARCA_ATUAL.id, qtd: LKC.itens.length, criadoEm: Date.now() });
+    lkcGuardar(meus);
+    const url = lkcUrl(j.codigo);
+    const msg = `Olá! Separei ${LKC.itens.length} produto${LKC.itens.length !== 1 ? "s" : ""} da ${MARCA_ATUAL.nome} para você. Toque em "Quero" nos que gostar e me devolva por aqui:\n${url}`;
+    const pr = m.querySelector("#lkcPronto");
+    pr.innerHTML = `<div class="lkc-ok">Link pronto para <b>${lkcEsc(nome)}</b></div>
+      <div class="lkc-url">${lkcEsc(url)}</div>
+      <div class="lkc-acoes"><button type="button" class="lkc-bt" data-lkc="copiar" data-url="${lkcEsc(url)}">Copiar</button>
+      <a class="lkc-bt zap" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">Enviar no WhatsApp</a></div>`;
+    m.querySelector("#lkcForm").hidden = true; pr.hidden = false;
+    lkcListar();
+  }catch(e){
+    toast("Não consegui gerar o link agora (" + (e.message || e) + ") ⚠️");
+  }finally{ bt.disabled = false; bt.textContent = "Gerar link"; }
+}
+
+async function lkcListar(){
+  const m = lkcModal(), box = m.querySelector("#lkcLista"), meus = lkcMeus(), s = getPortalSession();
+  if(!meus.length){ box.innerHTML = `<div class="lkc-vazio">Os links que você gerar aqui aparecem nesta lista, com a resposta do cliente.</div>`; return; }
+  box.innerHTML = `<div class="lkc-vazio">Carregando…</div>`;
+  let st = new Map();
+  try{
+    if(s){ const j = await lkcWorker({ action: "getLinksVendedor", vendedor: String(s.codigo || "") }); (j.links || []).forEach(l => st.set(l.codigo, l)); }
+  }catch(_){}
+  const vivos = meus.filter(x => !s || !st.size || st.has(x.codigo));
+  if(vivos.length !== meus.length) lkcGuardar(vivos);   // apagado no servidor: sai da lista
+  box.innerHTML = vivos.map(x => {
+    const l = st.get(x.codigo) || {};
+    const sit = l.status === "concluido" ? ["Concluído", "fim"] : l.status === "respondido" ? [`Respondeu · ${l.qtdResposta || 0} escolhido${l.qtdResposta === 1 ? "" : "s"}`, "resp"]
+      : l.expirado ? ["Expirou", "exp"] : ["Aguardando", "agu"];
+    return `<button type="button" class="lkc-item" data-lkc="ver" data-cod="${lkcEsc(x.codigo)}">
+      <span class="lkc-item-n"><b>${lkcEsc(x.clienteNome || x.cliente || "Sem cliente")}</b><small>${x.qtd} produto${x.qtd !== 1 ? "s" : ""} · ${x.marca === "ua" ? "UA" : "Oly"} · ${lkcData(x.criadoEm)}</small></span>
+      <span class="lkc-sit ${sit[1]}">${sit[0]}</span></button>`;
+  }).join("") || `<div class="lkc-vazio">Nenhum link ativo.</div>`;
+}
+
+async function lkcVer(codigo){
+  const m = lkcModal(), pr = m.querySelector("#lkcPronto");
+  m.querySelector("#lkcForm").hidden = true; pr.hidden = false;
+  pr.innerHTML = `<div class="lkc-vazio">Abrindo…</div>`;
+  try{
+    const { link } = await lkcWorker({ action: "getLinkCompleto", codigo });
+    LKC.aberto = { codigo, link };
+    const r = link.resposta || null, esc = lkcEsc, url = lkcUrl(codigo);
+    const escolhidos = r && Array.isArray(r.itens) ? r.itens : [];
+    const porK = new Map((link.produtos || []).map(p => [p.k, p]));
+    const exp = Date.now() > Number(link.expiraEm || 0);
+    pr.innerHTML = `<div class="lkc-ok"><b>${esc(link.clienteNome || link.cliente || "Sem cliente")}</b> · ${(link.produtos || []).length} produtos</div>
+      <div class="lkc-dica">${r ? "Respondeu em " + lkcData(link.respondidoEm) : exp ? "Expirou em " + lkcData(link.expiraEm) + " sem resposta." : "Ainda não respondeu. O link vale até " + lkcData(link.expiraEm) + "."}</div>
+      ${escolhidos.length ? `<div class="lkc-resp">${escolhidos.map(it => { const p = porK.get(it.k) || it;
+        return `<div class="lkc-resp-l"><img src="${esc(resolveImageSrc(p.imagem))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span><b>${esc(p.produto)}</b><small>${esc(p.codigo)} · ${esc(p.corCodigo || p.cor)}</small></span><em>${Number(it.pares) > 0 ? it.pares + (/^(FTW|CHI|MEIA)/i.test(String(p.categoria || "")) || !p.categoria ? " pares" : " peças") : "quer"}</em></div>`; }).join("")}</div>` : ""}
+      ${r && r.obs ? `<div class="lkc-obs">“${esc(r.obs)}”</div>` : ""}
+      <div class="lkc-acoes">
+        ${escolhidos.length ? `<button type="button" class="lkc-bt forte" data-lkc="planilhaResp">Planilha da resposta</button><button type="button" class="lkc-bt" data-lkc="marcarResp">Marcar os escolhidos</button>` : ""}
+        <button type="button" class="lkc-bt" data-lkc="copiar" data-url="${esc(url)}">Copiar link</button>
+        ${link.status !== "concluido" && escolhidos.length ? `<button type="button" class="lkc-bt" data-lkc="concluir">Já virou pedido</button>` : ""}
+        ${exp ? `<button type="button" class="lkc-bt" data-lkc="reativar">Reativar por 7 dias</button>` : ""}
+        <button type="button" class="lkc-bt" data-lkc="voltar">Voltar</button>
+      </div>`;
+  }catch(e){
+    pr.innerHTML = `<div class="lkc-vazio">Não consegui abrir o link (${lkcEsc(e.message || e)}).</div><div class="lkc-acoes"><button type="button" class="lkc-bt" data-lkc="voltar">Voltar</button></div>`;
+  }
+}
+
+async function lkcClique(ev){
+  const m = lkcModal();
+  if(ev.target === m) return lkcFechar();
+  const b = ev.target.closest("[data-lkc]");
+  if(!b) return;
+  const acao = b.dataset.lkc, ab = LKC.aberto;
+  if(acao === "fechar") return lkcFechar();
+  if(acao === "cli"){
+    LKC.cliente = b.dataset.cod;
+    m.querySelector("#lkcCli").value = (nomeFantasiaPorCodigo(b.dataset.cod) || "") + " · " + b.dataset.cod;
+    m.querySelector("#lkcSug").hidden = true;
+    return;
+  }
+  if(acao === "gerar") return lkcGerar(b);
+  if(acao === "atualizar") return lkcListar();
+  if(acao === "ver") return lkcVer(b.dataset.cod);
+  if(acao === "voltar"){ m.querySelector("#lkcPronto").hidden = true; m.querySelector("#lkcForm").hidden = !(LKC.itens || []).length; return lkcListar(); }
+  if(acao === "copiar"){
+    try{ await navigator.clipboard.writeText(b.dataset.url); toast("Link copiado ✅"); }
+    catch(_){ prompt("Copie o link:", b.dataset.url); }
+    return;
+  }
+  if(!ab) return;
+  const r = ab.link.resposta || {}, escolhidos = Array.isArray(r.itens) ? r.itens : [];
+  const porK = new Map((ab.link.produtos || []).map(p => [p.k, p]));
+  if(acao === "planilhaResp"){
+    const nome = ab.link.clienteNome || ab.link.cliente || "cliente";
+    return planilhaProdutos(escolhidos.map(it => porK.get(it.k)).filter(Boolean), {
+      pares: new Map(escolhidos.map(it => [it.k, it.pares])), titulo: "Escolha de " + nome,
+      sub: "Resposta pelo link do catálogo" + (r.obs ? " · Obs.: " + r.obs : ""), arquivo: "Escolha " + nome });
+  }
+  if(acao === "marcarResp"){
+    escolhidos.forEach(it => it.k && MARCADOS.add(it.k));
+    salvarMarcados(); pintarBarraMarcados();
+    document.querySelectorAll(".btnMarcarCard").forEach(x => { const on = MARCADOS.has(x.dataset.mk); x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); });
+    toast(escolhidos.length + " marcado" + (escolhidos.length !== 1 ? "s" : "") + ": dá para gerar o PDF ou a planilha.");
+    return;
+  }
+  if(acao === "concluir" || acao === "reativar"){
+    b.disabled = true;
+    try{
+      await lkcWorker(acao === "concluir" ? { action: "marcarLinkConcluido", codigo: ab.codigo } : { action: "reativarLink", codigo: ab.codigo, validadeHoras: 168 });
+      toast(acao === "concluir" ? "Marcado como pedido ✅" : "Link reativado por 7 dias ✅");
+      lkcVer(ab.codigo);
+    }catch(e){ b.disabled = false; toast("Não consegui agora (" + (e.message || e) + ") ⚠️"); }
+  }
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ const m = document.getElementById("lkcModal"); if(m && !m.hidden) lkcFechar(); } });
+</script>
 </body>
 </html>

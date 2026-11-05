@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Seleção de produtos · CMS Representações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* A página que o cliente abre pelo link do Catálogo Digital: vê os produtos
+   que o vendedor marcou, toca em "Quero" (com pares, se quiser) e devolve.
+   Os dados vêm do Worker (getLink/salvarResposta), os mesmos links do Showroom. */
+:root{ --marca:#2c39e2; --marca-claro:#eef0ff; --tinta:#0f172a; --tinta-2:#475569; --linha:#e2e8f0; --papel:#e8ebf1; }
+body.ua{ --marca:#e52125; --marca-claro:#fdecec; }
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:"Plus Jakarta Sans",system-ui,sans-serif; background:var(--papel); color:var(--tinta); -webkit-font-smoothing:antialiased; }
+header{ background:var(--marca); color:#fff; padding:18px 18px 22px; }
+header .mc{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; opacity:.85; font-weight:700; }
+header h1{ margin:6px 0 4px; font-size:21px; line-height:1.25; }
+header p{ margin:0; font-size:14px; opacity:.92; line-height:1.45; }
+main{ max-width:1100px; margin:0 auto; padding:14px 12px 120px; }
+.grade{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+@media (min-width:700px){ .grade{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; } }
+@media (min-width:1000px){ .grade{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+.card{ background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; border:2px solid transparent; transition:border-color .15s; }
+.card.on{ border-color:var(--marca); }
+.foto{ position:relative; aspect-ratio:1; background:#fff; display:flex; align-items:center; justify-content:center; cursor:zoom-in; border:0; padding:0; width:100%; }
+.foto img{ width:100%; height:100%; object-fit:contain; }
+.selo{ position:absolute; left:8px; top:8px; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; border-radius:999px; padding:3px 8px; }
+.selo.lanc{ background:#dcfce7; color:#15803d; } .selo.cor{ background:#ede9fe; color:#6d28d9; }
+.info{ padding:8px 10px 10px; display:flex; flex-direction:column; gap:2px; flex:1; }
+.info b{ font-size:13.5px; line-height:1.25; }
+.info small{ font-size:11.5px; color:var(--tinta-2); }
+.info .pdv{ font-size:14px; font-weight:800; color:var(--marca); margin-top:2px; }
+.quero{ margin:0 10px 10px; border:1.5px solid var(--marca); color:var(--marca); background:#fff; border-radius:12px; padding:9px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+.card.on .quero{ background:var(--marca); color:#fff; }
+.pares{ display:none; flex-direction:column; gap:4px; margin:0 10px 10px; font-size:12px; color:var(--tinta-2); }
+.card.on .pares{ display:flex; }
+.pares .st{ display:flex; align-items:center; border:1px solid var(--linha); border-radius:10px; overflow:hidden; width:100%; }
+.pares button{ flex:none; width:36px; height:32px; border:0; background:var(--marca-claro); color:var(--marca); font-size:18px; font-weight:800; cursor:pointer; }
+.pares input{ flex:1; min-width:0; width:44px; height:32px; border:0; text-align:center; font:inherit; font-size:15px; font-weight:700; -moz-appearance:textfield; }
+.pares input::-webkit-outer-spin-button,.pares input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.obs{ background:#fff; border-radius:16px; padding:14px; margin-top:14px; }
+.obs label{ font-weight:800; font-size:14px; display:block; margin-bottom:6px; }
+.obs textarea{ width:100%; min-height:80px; border:1px solid var(--linha); border-radius:12px; padding:10px; font:inherit; font-size:16px; resize:vertical; }
+.barra{ position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--linha); padding:10px 14px calc(10px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:12px; justify-content:space-between; box-shadow:0 -6px 20px rgba(0,0,0,.08); }
+.barra span{ font-size:14px; color:var(--tinta-2); } .barra span b{ color:var(--tinta); }
+.enviar{ border:0; background:var(--marca); color:#fff; font:inherit; font-weight:800; font-size:15px; border-radius:14px; padding:13px 20px; cursor:pointer; }
+.enviar:disabled{ opacity:.45; cursor:default; }
+.aviso{ max-width:520px; margin:40px auto; background:#fff; border-radius:18px; padding:24px; text-align:center; line-height:1.5; }
+.aviso h2{ margin:0 0 8px; font-size:19px; }
+.aviso p{ margin:0; color:var(--tinta-2); font-size:14.5px; }
+.aviso .bt{ margin-top:16px; }
+.ver{ position:fixed; inset:0; background:rgba(15,23,42,.92); z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+.ver[hidden]{ display:none; }
+.ver img.g{ max-width:100%; max-height:72vh; background:#fff; border-radius:14px; object-fit:contain; }
+.ver .mini{ display:flex; gap:8px; margin-top:12px; }
+.ver .mini img{ width:58px; height:58px; object-fit:contain; background:#fff; border-radius:10px; cursor:pointer; opacity:.6; border:2px solid transparent; }
+.ver .mini img.on{ opacity:1; border-color:#fff; }
+.ver .fechar{ position:absolute; top:12px; right:16px; color:#fff; font-size:32px; background:none; border:0; cursor:pointer; }
+.ver .nome{ color:#fff; margin-top:10px; font-size:14px; text-align:center; }
+</style>
+</head>
+<body>
+<header id="topo"><div class="mc" id="mc">CMS Representações</div><h1 id="tit">Carregando a seleção…</h1><p id="sub"></p></header>
+<main id="main"></main>
+<div class="barra" id="barra" hidden><span id="conta"></span><button type="button" class="enviar" id="enviar" disabled>Enviar</button></div>
+<div class="ver" id="ver" hidden><button type="button" class="fechar" aria-label="Fechar">×</button><img class="g" alt=""><div class="mini"></div><div class="nome"></div></div>
+<script>
+const WORKER_URL = "https://repasse-worker-cms.marcosrep-cms.workers.dev";
+const CODIGO = new URLSearchParams(location.search).get("link") || "";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const S = { link: null, quer: new Map() };   // k → pares (0 = quer, sem dizer quantos)
+
+// O mesmo nome de arquivo do Catálogo: base, base__02.._04, e as extensões em sequência.
+function limpa(n){
+  return String(n || "").trim().replace(/\.(png|jpg|jpeg|webp)$/i, "").replace(/[\/\\]+/g, "_").replace(/\s+/g, "_")
+    .replace(/[^A-Za-z0-9_\-]+/g, "_").replace(/_{3,}/g, "__").replace(/^_+|_+$/g, "");
+}
+const EXT = ["jpg", "jpeg", "png", "webp", "JPG", "PNG"];
+const fotoSrc = (base, i = 0) => "./imagens_olympikus/" + base + "." + EXT[i];
+function fotoErro(img){
+  const i = Number(img.dataset.e || 0) + 1;
+  if(i >= EXT.length){ img.style.visibility = "hidden"; if(img.closest(".mini")) img.remove(); return; }
+  img.dataset.e = i; img.src = fotoSrc(img.dataset.b, i);
+}
+const dataBR = ms => { const d = new Date(Number(ms)); return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };
+// Calçado, chinelo e meia contam em pares; roupa e acessório, em peças.
+const emPares = p => /^(FTW|CHI|MEIA)/i.test(String(p.categoria || "")) || !p.categoria;
+const unidade = (lista, n) => { const a = lista.every(emPares), b = lista.every(x => !emPares(x)); return (a ? "par" : b ? "peça" : "unidade") + (n === 1 ? "" : a ? "es" : "s"); };
+const primeiroNome = n => String(n || "").replace(/\s*\(.*?\)\s*/g, " ").trim().split(/\s+/)[0].toLowerCase().replace(/^./, c => c.toUpperCase());
+
+async function worker(corpo){
+  const r = await fetch(WORKER_URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+  return r.json();
+}
+function aviso(titulo, texto){
+  $("barra").hidden = true;
+  $("main").innerHTML = `<div class="aviso"><h2>${esc(titulo)}</h2><p>${texto}</p></div>`;
+}
+
+async function iniciar(){
+  if(!CODIGO){ $("tit").textContent = "Link incompleto"; return aviso("Link incompleto", "Peça ao seu vendedor para mandar o link de novo."); }
+  let j;
+  try{ j = await worker({ action: "getLink", codigo: CODIGO }); }
+  catch(_){ $("tit").textContent = "Sem conexão"; return aviso("Não consegui abrir agora", "Confira a internet e toque para tentar de novo.<br><button class='enviar bt' onclick='location.reload()'>Tentar de novo</button>"); }
+  if(!j || !j.success || !j.link){ $("tit").textContent = "Link não encontrado"; return aviso("Esse link não existe mais", "Peça ao seu vendedor para gerar um novo."); }
+  const L = S.link = j.link, vend = primeiroNome(L.vendedorNome) || "Seu vendedor";
+  document.body.classList.toggle("ua", L.marca === "ua");
+  $("mc").textContent = (L.marca === "ua" ? "Under Armour" : "Olympikus") + " · CMS Representações";
+  const prods = Array.isArray(L.produtos) ? L.produtos : [];
+  $("tit").textContent = (L.clienteNome ? "Olá, " + L.clienteNome + "!" : "Olá!");
+  $("sub").innerHTML = `${esc(vend)} separou <b>${prods.length} produto${prods.length !== 1 ? "s" : ""}</b> para você. Toque em <b>Quero</b> nos que interessam e envie. ` +
+    (j.expirado ? "" : `Dá para mudar e reenviar até ${esc(dataBR(L.expiraEm))}.`);
+  if(j.expirado) return aviso("Esse link expirou", `Ele valia até ${esc(dataBR(L.expiraEm))}. Fale com ${esc(vend)} para receber um novo.`);
+  if(L.status === "concluido") return aviso("Pedido já encaminhado", `${esc(vend)} já transformou sua escolha em pedido. Para mudar alguma coisa, fale direto com ele.`);
+  // Já respondeu antes: volta com a escolha marcada, para ajustar.
+  const r = L.resposta;
+  if(r && Array.isArray(r.itens)) r.itens.forEach(it => S.quer.set(it.k, Number(it.pares) || 0));
+  $("main").innerHTML = `<div class="grade">${prods.map((p, i) => {
+    const b = limpa(p.imagem || (p.codigo + "_" + p.cor)), selo = p.lanc ? `<span class="selo lanc">Lançamento</span>` : p.novaCor ? `<span class="selo cor">Cor nova</span>` : "";
+    return `<div class="card" data-k="${esc(p.k)}" data-i="${i}">
+      <button type="button" class="foto" data-ver="${i}" aria-label="Ampliar a foto">${selo}<img loading="lazy" alt="${esc(p.produto)}" data-b="${esc(b)}" src="${esc(fotoSrc(b))}" onerror="fotoErro(this)"></button>
+      <div class="info"><b>${esc(p.produto)}</b><small>${esc(p.codigo)} · ${esc(p.corCodigo || p.cor)}</small>
+        <small>${esc([p.genero, p.tam].filter(Boolean).join(" · "))}</small>${p.pdv ? `<span class="pdv">${esc(p.pdv)}</span>` : ""}</div>
+      <div class="pares"><span>${emPares(p) ? "Pares" : "Peças"} (opcional)</span><span class="st"><button type="button" data-p="-1" aria-label="Menos">−</button><input type="number" inputmode="numeric" min="0" step="1" placeholder="—" aria-label="Pares"><button type="button" data-p="1" aria-label="Mais">+</button></span></div>
+      <button type="button" class="quero">Quero</button></div>`; }).join("")}</div>
+    <div class="obs"><label for="obs">Quer dizer algo para ${esc(vend)}?</label><textarea id="obs" placeholder="Grade, prazo, quantidade por loja…">${esc(r && r.obs || "")}</textarea></div>`;
+  document.querySelectorAll(".card").forEach(c => pintar(c));
+  $("barra").hidden = false; contar();
+}
+function pintar(c){
+  const k = c.dataset.k, on = S.quer.has(k);
+  c.classList.toggle("on", on);
+  c.querySelector(".quero").textContent = on ? "✓ Quero" : "Quero";
+  const v = S.quer.get(k); c.querySelector(".pares input").value = v > 0 ? v : "";
+}
+function contar(){
+  const n = S.quer.size, pares = [...S.quer.values()].reduce((s, v) => s + (v || 0), 0);
+  const com = (S.link.produtos || []).filter(p => (S.quer.get(p.k) || 0) > 0);
+  $("conta").innerHTML = n ? `<b>${n}</b> escolhido${n !== 1 ? "s" : ""}${pares ? ` · <b>${pares}</b> ${unidade(com, pares)}` : ""}` : "Nenhum escolhido";
+  $("enviar").disabled = !n && !($("obs") && $("obs").value.trim());
+  $("enviar").textContent = S.link && S.link.resposta ? "Reenviar" : "Enviar";
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest(".card");
+  if(e.target.closest(".quero") && c){
+    if(S.quer.has(c.dataset.k)) S.quer.delete(c.dataset.k); else S.quer.set(c.dataset.k, 0);
+    pintar(c); contar(); return;
+  }
+  const pb = e.target.closest("[data-p]");
+  if(pb && c){
+    const v = Math.max(0, (S.quer.get(c.dataset.k) || 0) + Number(pb.dataset.p));
+    S.quer.set(c.dataset.k, v); pintar(c); contar(); return;
+  }
+  const vb = e.target.closest("[data-ver]");
+  if(vb) return abrirFoto(Number(vb.dataset.ver));
+  if(e.target.closest(".ver .fechar") || e.target === $("ver")) $("ver").hidden = true;
+  const mi = e.target.closest(".ver .mini img");
+  if(mi){ $("ver").querySelector("img.g").src = mi.src; $("ver").querySelectorAll(".mini img").forEach(x => x.classList.toggle("on", x === mi)); }
+});
+document.addEventListener("input", e => {
+  if(e.target.closest(".pares input")){
+    const c = e.target.closest(".card"); S.quer.set(c.dataset.k, Math.max(0, parseInt(e.target.value, 10) || 0)); contar();
+  }
+  if(e.target.id === "obs") contar();
+});
+document.addEventListener("keydown", e => { if(e.key === "Escape") $("ver").hidden = true; });
+function abrirFoto(i){
+  const p = S.link.produtos[i], b = limpa(p.imagem || (p.codigo + "_" + p.cor)), v = $("ver");
+  const bases = [b, b + "__02", b + "__03", b + "__04"];
+  v.querySelector("img.g").dataset.b = b; v.querySelector("img.g").dataset.e = 0; v.querySelector("img.g").src = fotoSrc(b);
+  v.querySelector("img.g").onerror = function(){ fotoErro(this); };
+  v.querySelector(".mini").innerHTML = bases.map((x, j) => `<img alt="" data-b="${esc(x)}" src="${esc(fotoSrc(x))}" onerror="fotoErro(this)"${j ? "" : ' class="on"'}>`).join("");
+  v.querySelector(".nome").textContent = p.produto + " · " + (p.corCodigo || p.cor);
+  v.hidden = false;
+}
+$("enviar").addEventListener("click", async () => {
+  const bt = $("enviar"), prods = S.link.produtos || [];
+  const itens = prods.filter(p => S.quer.has(p.k)).map(p => ({ k: p.k, codigo: p.codigo, cor: p.cor, produto: p.produto, pares: S.quer.get(p.k) || 0 }));
+  bt.disabled = true; bt.textContent = "Enviando…";
+  try{
+    const j = await worker({ action: "salvarResposta", codigo: CODIGO, data: { resposta: { itens, obs: ($("obs").value || "").trim(), origem: "catalogo" } } });
+    if(!j || !j.success) throw new Error(j && j.erro === "expirado" ? "expirado" : "falhou");
+    S.link.resposta = { itens };
+    const vend = primeiroNome(S.link.vendedorNome) || "Seu vendedor";
+    aviso("Pronto, enviado! 🎉", `${esc(vend)} já recebeu sua escolha${itens.length ? ` (${itens.length} produto${itens.length !== 1 ? "s" : ""})` : ""}. Se quiser mudar, é só abrir este link de novo até ${esc(dataBR(S.link.expiraEm))}.`);
+    window.scrollTo(0, 0);
+  }catch(e){
+    bt.disabled = false; contar();
+    alert(e.message === "expirado" ? "Esse link expirou. Peça um novo ao seu vendedor." : "Não consegui enviar agora. Confira a internet e tente de novo.");
+  }
+});
+iniciar();
+</script>
+</body>
+</html>
