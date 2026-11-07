@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-11-06T09:33:06.074661-03:00",
+  "generatedAt": "2026-11-07T14:16:24.873699-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 353047,
+    "total": 354551,
     "meses": [
       {
         "label": "NOV",
-        "v": 139940
+        "v": 138014
       },
       {
         "label": "DEZ",
-        "v": 72781
+        "v": 72787
       },
       {
         "label": "JAN",
@@ -25,7 +25,7 @@
       },
       {
         "label": "MAR",
-        "v": 25452
+        "v": 28908
       },
       {
         "label": "ABR",
@@ -36,24 +36,24 @@
   },
   "mes": {
     "label": "NOVEMBRO",
-    "dia": 5,
-    "faturado": 5245,
+    "dia": 6,
+    "faturado": 7316,
     "anterior": 162622,
     "anteriorLabel": "outubro",
-    "falta": 139940,
-    "diasUteis": 17,
-    "paresDia": 8232,
-    "projecao": 27536,
-    "barW": 3,
+    "falta": 138014,
+    "diasUteis": 16,
+    "paresDia": 8626,
+    "projecao": 30727,
+    "barW": 4,
     "markW": 100
   },
   "novHoje": {
-    "total": 139473,
+    "total": 4735,
     "linhas": [
       [
         "Jorge",
         [
-          870,
+          1416,
           0,
           0,
           0,
@@ -63,17 +63,17 @@
       [
         "Willame",
         [
-          17865,
-          66,
+          1350,
           0,
           0,
-          0
+          0,
+          24
         ]
       ],
       [
         "Leandro",
         [
-          20208,
+          624,
           0,
           0,
           0,
@@ -83,19 +83,19 @@
       [
         "Rafael",
         [
-          17664,
-          60,
+          300,
           0,
           0,
-          1380
+          0,
+          0
         ]
       ],
       [
         "Mariana",
         [
-          156,
-          288,
+          516,
           0,
+          37,
           0,
           0
         ]
@@ -103,7 +103,7 @@
       [
         "Cms",
         [
-          80916,
+          468,
           0,
           0,
           0,
@@ -113,12 +113,12 @@
     ]
   },
   "novMes": {
-    "total": 143181,
+    "total": 147916,
     "linhas": [
       [
         "Jorge",
         [
-          1302,
+          2718,
           80,
           0,
           0,
@@ -128,17 +128,17 @@
       [
         "Willame",
         [
-          18105,
+          19455,
           66,
           0,
           0,
-          0
+          24
         ]
       ],
       [
         "Leandro",
         [
-          20244,
+          20868,
           0,
           0,
           0,
@@ -148,7 +148,7 @@
       [
         "Rafael",
         [
-          18348,
+          18648,
           174,
           0,
           0,
@@ -158,9 +158,9 @@
       [
         "Mariana",
         [
-          1044,
+          1560,
           328,
-          18,
+          55,
           0,
           48
         ]
@@ -168,7 +168,7 @@
       [
         "Cms",
         [
-          81996,
+          82464,
           0,
           0,
           0,
@@ -180,29 +180,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 139.940 pares para zerar a carteira de novembro"
+      "t": "faltam 138.014 pares para zerar a carteira de novembro"
     },
     {
       "c": "#2BC48A",
-      "t": "+139.473 pares novos entraram na carteira hoje"
+      "t": "+4.735 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "novembro acumula 143.181 pares novos na carteira"
+      "t": "novembro acumula 147.916 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 353.047 pares"
+      "t": "carteira aberta do periodo: 354.551 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 139.940 pares"
+      "t": "NOV e o maior mes da carteira: 138.014 pares"
     },
     {
       "c": "#9B6BF0",
       "t": "proximo grande faturamento: 01/12 - CASA PIO (18.940 pares)"
     }
   ],
-  "publicadoEm": "2026-11-06T12:33:06.912Z",
+  "publicadoEm": "2026-11-07T17:16:26.374Z",
   "por": "script diario"
 }
