@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T14:16:24.873699-03:00",
+  "generatedAt": "2026-11-09T09:03:59.494509-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
@@ -203,6 +203,6 @@
       "t": "proximo grande faturamento: 01/12 - CASA PIO (18.940 pares)"
     }
   ],
-  "publicadoEm": "2026-11-07T17:16:26.374Z",
+  "publicadoEm": "2026-11-09T12:04:00.572Z",
   "por": "script diario"
 }
