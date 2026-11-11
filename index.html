@@ -2161,6 +2161,28 @@
     .mp-pedido-btn.cap { background:#15803d; color:#fff; border-color:#15803d; }
     .mp-pedido-btn.pdf { background:#b91c1c; color:#fff; border-color:#b91c1c; }
     .mp-pedido-btn.cap:hover:not(:disabled), .mp-pedido-btn.pdf:hover:not(:disabled) { opacity:.92; }
+    /* No celular os cinco botões não cabem na linha: Captação e PDF ficavam
+       metade para fora, encostados na borda do card, e não havia como chegar
+       neles. A fila passa a rolar para os dois lados, como a dos chips da
+       vitrine — a barra fica escondida e as pontas desbotam do lado em que
+       ainda há botão. Espremer os cinco não resolvia: com 11px de fonte,
+       "Captação" já não cabe em menos de 70px. */
+    @media (max-width:760px){
+      .mp-pedido-actions{
+        flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+        -webkit-overflow-scrolling:touch; scrollbar-width:none;
+        padding-bottom:2px;
+        mask-image:linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+        -webkit-mask-image:linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+        scroll-snap-type:x proximity;
+      }
+      .mp-pedido-actions::-webkit-scrollbar{ display:none; }
+      .mp-pedido-actions > .mp-pedido-btn{
+        flex:none; white-space:nowrap; scroll-snap-align:start; padding:7px 12px; }
+      /* cabendo tudo, as pontas não precisam desbotar — desbotar sem motivo
+         parece defeito, a mesma regra da fila de chips */
+      .mp-pedido-actions.cabe{ mask-image:none; -webkit-mask-image:none; }
+    }
 
     /* ── Modal Exportação Pedido Excel ── */
     /* O modal de exportar rascunho usa a mesma folha: mesma caixa, mesmo
@@ -14990,7 +15012,7 @@ function _mpRenderFinalizados(){
         `<i class="fa-solid fa-rotate-left"></i> Refaz ${origem ? "o pedido de " + _mpEscape(String(_mpFormatBR(origem.createdAt)).split(" · ")[0]) : "um pedido anterior"}</span>` : "");
 
     return `<div class="mp-pedido-item" data-pedido-id="${_mpEscape(p.id)}">
-      <div class="mp-pedido-head" onclick="this.parentElement.classList.toggle('open')">
+      <div class="mp-pedido-head" onclick="abrirCardPedido(this)">
         <div class="mp-pedido-left">
           <div class="mp-pedido-cliente">${cliente}</div>
           <div class="mp-pedido-meta">
@@ -15077,7 +15099,7 @@ function _mpRenderRascunhos(){
     }).join("");
 
     return `<div class="mp-pedido-item" data-rascunho-id="${_mpEscape(r.id)}">
-      <div class="mp-pedido-head" onclick="this.parentElement.classList.toggle('open')">
+      <div class="mp-pedido-head" onclick="abrirCardPedido(this)">
         <div class="mp-pedido-left">
           <div class="mp-pedido-cliente">${cliente}</div>
           <div class="mp-pedido-meta">
@@ -15316,6 +15338,26 @@ function marcaDoPedido(p){
   }
   return "oly";
 }
+
+/* A fila de ações rola de lado no celular, e as pontas só desbotam quando há
+   mesmo o que rolar. A medida precisa do card ABERTO: fechado, a fila está em
+   display:none e mede zero — sempre diria que cabe. */
+function medirAcoesPedido(item){
+  const fila = item && item.querySelector && item.querySelector(".mp-pedido-actions");
+  if(!fila) return;
+  requestAnimationFrame(() => {
+    fila.classList.toggle("cabe", fila.scrollWidth <= fila.clientWidth + 2);
+  });
+}
+function abrirCardPedido(cab){
+  const item = cab.parentElement;
+  item.classList.toggle("open");
+  if(item.classList.contains("open")) medirAcoesPedido(item);
+}
+// girar o aparelho muda o que cabe
+addEventListener("resize", () => {
+  document.querySelectorAll(".mp-pedido-item.open").forEach(medirAcoesPedido);
+});
 
 function _mpMarcaTag(p){
   const id = marcaDoPedido(p);
