@@ -1961,6 +1961,27 @@
     #meusPedidosModal .mp-tarja-refaz {
       background:#EDE9FE; color:#5B21B6; border-color:#C4B5FD;
     }
+
+    /* ── de qual marca e o pedido ──────────────────────────────────────────
+       As duas marcas convivem na mesma lista. Sem a etiqueta, dois pedidos
+       do mesmo cliente ficam identicos na tela e so abrindo da para saber
+       qual e de qual catalogo. A bolinha carrega a cor da marca; o fundo
+       fica tenue para nao competir com as tarjas de "refeito".            */
+    #meusPedidosModal .mp-marca{
+      display:inline-flex; align-items:center; gap:5px;
+      padding:1px 8px 1px 6px; border-radius:999px;
+      font-size:10px; font-weight:800; letter-spacing:.01em;
+      border:1px solid; white-space:nowrap;
+    }
+    #meusPedidosModal .mp-marca::before{
+      content:""; width:6px; height:6px; border-radius:50%; background:currentColor;
+    }
+    #meusPedidosModal .mp-marca-oly{ background:#F5F3FF; color:#6D28D9; border-color:#DDD6FE; }
+    #meusPedidosModal .mp-marca-ua { background:#FEF2F2; color:#B91C1C; border-color:#FECACA; }
+    .dark-mode #meusPedidosModal .mp-marca-oly{
+      background:rgba(167,139,250,.14); color:#C4B5FD; border-color:rgba(167,139,250,.38); }
+    .dark-mode #meusPedidosModal .mp-marca-ua{
+      background:rgba(242,106,111,.14); color:#FCA5A5; border-color:rgba(242,106,111,.38); }
     #meusPedidosModal .mp-sheet-header { flex:0 0 auto; }
     #meusPedidosModal .mp-sheet-filters { flex:0 0 auto; }
     #meusPedidosModal .mp-sheet-stats { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; background:var(--card-bg); }
@@ -2859,6 +2880,19 @@ html.dark-mode{ background:#0E1016; }
 html.dark-mode body{ background:transparent !important; }
 html.dark-mode body::before{
   background-color:color-mix(in srgb, var(--primary) 19%, transparent); }
+
+/* ── a tela inicial deixa o fundo passar ───────────────────────────────────
+   As figurinhas ja existiam na vitrine, mas nunca apareciam na home: o
+   #homeScreen pintava --bg por cima de tudo e tapava o ::before. Aqui ele
+   fica transparente e so o que tem cor propria - o cabecalho, os cards de
+   categoria, as pilulas - continua opaco por cima do papel.
+
+   O cabecalho perde o translucido de proposito: as figurinhas atravessam
+   qualquer rgba e passam por dentro do nome da marca. No escuro ele ja e
+   quase opaco (regra la de cima, com !important), entao nada muda la.      */
+#homeScreen{ background:transparent; }
+html.dark-mode #homeScreen{ background:transparent; }
+#homeScreen > header{ background:#fff; }
 
 /* O Limpar acende quando ha categoria ou genero filtrando a vitrine: de
    relance se ve que a lista esta recortada, sem precisar conferir a trilha. */
@@ -4619,7 +4653,7 @@ html.dark-mode body::before{
 // ===== Marca ativa (lida da URL ?marca=oly|ua) =====
 const MARCAS = {
   oly: {
-    id:"oly", nome:"Olympikus", xlsx:"./Produtos.xlsx", logo:"./logo-olympikus.png",
+    id:"oly", nome:"Olympikus", sigla:"OLY", xlsx:"./Produtos.xlsx", logo:"./logo-olympikus.png",
     hero:["./hero1.webp","./hero2.webp","./hero3.webp"],
     tema: {
       light: { primary:"#7c3aed", rgb:"124,58,237" },
@@ -4627,7 +4661,7 @@ const MARCAS = {
     }
   },
   ua: {
-    id:"ua", nome:"Under Armour", xlsx:"./produtos_ua.xlsx", logo:"./logo-ua-header.png",
+    id:"ua", nome:"Under Armour", sigla:"UA", xlsx:"./produtos_ua.xlsx", logo:"./logo-ua-header.png",
     hero:["./hero1-ua.webp","./hero2-ua.webp","./hero3-ua.webp"],
     tema: {
       light: { primary:"#E21D26", rgb:"226,29,38" },
@@ -6245,7 +6279,21 @@ function getTitle(v){ return v.produto; }
 // O que amarra tudo é o nome começar pela palavra — CORRE 5, CORRE FOCO,
 // CORRE MAX. A borda da palavra evita pegar nome que só comece parecido.
 const RE_CORRE = /\bCORRE\b/i;
+
+/* O chinelo e a meia ficam FORA do recorte, de propósito. O POS CORRE e a
+   MEIA CORRE levam o nome da linha, mas não são produto segmentado como o
+   tênis: quem abre Chinelos ou Meias espera encontrá-los ali, no meio dos
+   outros.
+
+   Sem esta exceção os dois sumiam de todos os lados. O card da categoria
+   pede "sem a CORRE" e os tirava; e os dois cards da linha são o de tênis
+   (FTW) e o de roupa (V&A + ACC), que não pegam CHI nem MEIA. Resultado: o
+   POS CORRE 2 e as três MEIA CORRE da 1S27 só apareciam em "Ver todos". */
+const CORRE_FORA_DO_RECORTE = new Set(["CHI", "MEIA"]);
+
 function ehDaCorre(p){
+  const cat = String(p?.categoria || "").toUpperCase();
+  if(CORRE_FORA_DO_RECORTE.has(cat)) return false;
   return RE_CORRE.test(String(p?.produto || ""));
 }
 
@@ -9649,22 +9697,36 @@ function exportOrderXlsxFromModal(){
   );
 }
 
-function _doExportXlsx(salvarHist){
+async function _doExportXlsx(salvarHist){
   const cfg = getOrderExportFormData();
   saveOrderExportConfig(cfg);
   // Guarda a Cond. de Pagamento (e dados do cliente) em memória — vale até limpar a sacola.
   // Isso permite que o PDF e o resumo da sacola calculem preços conforme o prazo médio.
-  state.lastOrderCfg = { ...cfg, _generatedAt: Date.now() };
-  const { aoa, warnings } = buildOrderExportRows(cfg);
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = ORDER_EXPORT_COLS;
-  ws["!autofilter"] = { ref: `A1:BG${aoa.length}` };
+  state.lastOrderCfg = { ...cfg, marca: MARCA_ATUAL.id, _generatedAt: Date.now() };
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Pedido");
+  let warnings = [];
+  ArqProg.abrir(PROG_EBM);
+  try{
+    await respiroDaTela();
+    ArqProg.passo("montando as linhas do pedido", 40);
+    const r = buildOrderExportRows(cfg);
+    warnings = r.warnings || [];
+    const ws = XLSX.utils.aoa_to_sheet(r.aoa);
+    ws["!cols"] = ORDER_EXPORT_COLS;
+    ws["!autofilter"] = { ref: `A1:BG${r.aoa.length}` };
 
-  const fileName = nomeArquivoPedido(cfg?.clientCode, ".xlsx");
-  XLSX.writeFile(wb, fileName);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pedido");
+
+    const fileName = nomeArquivoPedido(cfg?.clientCode, ".xlsx");
+    ArqProg.passo("gerando o arquivo", 85);
+    await respiroDaTela();
+    XLSX.writeFile(wb, fileName);
+    ArqProg.concluir();
+  }catch(e){
+    ArqProg.falhar(e);
+    return;
+  }
   closeOrderExportModal();
 
   // Re-renderiza a sacola pra mostrar valor total (se toggle ON)
@@ -9832,14 +9894,37 @@ function fitRect(imgW, imgH, boxW, boxH){
   return { x, y, w, h };
 }
 
-// ── Modal de progresso do PDF ────────────────────────────────────────────
-// Só desenha o estado; quem decide os passos é o exportOrderPdf.
-const PdfProg = {
-  abrir(){
+/* ── Modal de andamento, de qualquer arquivo ──────────────────────────────
+   Era só do PDF. Agora a planilha do EBM, a captação e a prévia do rascunho
+   passam pelo mesmo painel: no celular, um toque que fica alguns segundos
+   sem mostrar nada parece que não funcionou, e o vendedor toca de novo.
+   Só desenha o estado; quem decide os passos é quem gera o arquivo.
+
+   Os textos entram pelo abrir(); sem eles, continua falando de PDF.       */
+const PROG_EBM = { icone:"📊", titulo:"Gerando a planilha do EBM…",
+                   pronto:"Planilha pronta", erro:"Não consegui gerar a planilha" };
+const PROG_CAPTACAO = { icone:"📸", titulo:"Montando a captação…",
+                   pronto:"Captação pronta", erro:"Não consegui gerar a captação" };
+const PROG_PLANILHA = { icone:"📊", titulo:"Montando a planilha…",
+                   pronto:"Planilha pronta", erro:"Não consegui gerar a planilha" };
+
+/* Um quadro de respiro antes do trabalho pesado. XLSX.writeFile segura a
+   thread do começo ao fim: sem esta pausa o navegador só pinta o modal
+   DEPOIS de terminar, e ele apareceria no instante em que já não serve. */
+const respiroDaTela = () =>
+  new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+const ArqProg = {
+  _pronto: "PDF pronto",
+  _erro: "Não consegui gerar o PDF",
+  abrir(o){
+    o = o || {};
     const m = $("pdfProgModal"); if(!m) return;
-    $("pdfProgIcone").textContent = "📄";
-    $("pdfProgTitulo").textContent = "Gerando o PDF…";
-    $("pdfProgPasso").textContent = "preparando";
+    this._pronto = o.pronto || "PDF pronto";
+    this._erro   = o.erro   || "Não consegui gerar o PDF";
+    $("pdfProgIcone").textContent = o.icone || "📄";
+    $("pdfProgTitulo").textContent = o.titulo || "Gerando o PDF…";
+    $("pdfProgPasso").textContent = o.passo || "preparando";
     $("pdfProgBarra").style.width = "0%";
     $("pdfProgBarra").style.background = "var(--primary)";
     $("pdfProgContagem").textContent = "";
@@ -9855,13 +9940,18 @@ const PdfProg = {
     $("pdfProgContagem").textContent = contagem || "";
   },
   // Fecha sozinho no sucesso: mais um clique não ajuda ninguém.
-  concluir(){
+  concluir(texto){
     const m = $("pdfProgModal"); if(!m) return;
     $("pdfProgIcone").textContent = "✅";
-    $("pdfProgTitulo").textContent = "PDF pronto";
-    $("pdfProgPasso").textContent = "baixando o arquivo";
+    $("pdfProgTitulo").textContent = this._pronto;
+    $("pdfProgPasso").textContent = texto || "baixando o arquivo";
     $("pdfProgBarra").style.width = "100%";
     setTimeout(()=> m.classList.add("hidden"), 900);
+  },
+  /* Sai de cena sem alarde: o caminho parou por uma escolha ou por uma
+     condição que já foi avisada em outro lugar, não por um erro. */
+  fechar(){
+    const m = $("pdfProgModal"); if(m) m.classList.add("hidden");
   },
   // No erro NÃO fecha: a mensagem é a única pista que o usuário terá.
   falhar(erro){
@@ -9872,6 +9962,7 @@ const PdfProg = {
     $("pdfProgPasso").textContent = "a geração foi interrompida";
     $("pdfProgBarra").style.background = "#DC2626";
     $("pdfProgErroBox").classList.remove("hidden");
+    const et = $("pdfProgErroTitulo"); if(et) et.textContent = this._erro;
     $("pdfProgErroMsg").textContent =
       (erro && (erro.message || erro.toString())) || "erro desconhecido";
     $("pdfProgFechar").classList.remove("hidden");
@@ -9902,12 +9993,12 @@ async function exportOrderPdf(showGrade = true){
   }catch(e){
     // Sem isto, uma exceção no meio da geração só aparecia no console e o
     // usuário ficava olhando para uma tela que não fazia nada.
-    PdfProg.falhar(e);
+    ArqProg.falhar(e);
   }
 }
 
 async function _exportOrderPdf(showGrade = true, showDatas = true){
-  PdfProg.abrir();
+  ArqProg.abrir();
   saveCustomerToStorage();
 
   // Estado/decisões
@@ -10367,7 +10458,7 @@ async function _exportOrderPdf(showGrade = true, showDatas = true){
       yPos = drawSectionTitle(yPos, "Produtos do pedido (continuação)");
       yPos += 2;
     }
-    PdfProg.passo("montando os produtos", 10 + Math.round((i / items.length) * 75),
+    ArqProg.passo("montando os produtos", 10 + Math.round((i / items.length) * 75),
                   (i + 1) + " de " + items.length);
     yPos = await drawProductCard(items[i], yPos);
   }
@@ -10384,10 +10475,10 @@ async function _exportOrderPdf(showGrade = true, showDatas = true){
   yPos = drawSignature(yPos);
   drawFooter();
 
-  PdfProg.passo("finalizando o documento", 92);
-  const nomePdf = nomeArquivoPedido(cfg?.clientCode, ".pdf");
+  ArqProg.passo("finalizando o documento", 92);
+  const nomePdf = nomeArquivoPedido(cfg?.clientCode, ".pdf", null, cfg?.marca);
   doc.save(nomePdf);
-  PdfProg.concluir();
+  ArqProg.concluir();
   toast("PDF gerado ✅");
   // Oferece compartilhar (menu do sistema — anexa o PDF de verdade)
   try{
@@ -11104,13 +11195,13 @@ function pdfDesenhaFolha(doc, itens, fotos){
   }
 }
 
-/* O andamento usa o PdfProg, o mesmo painel do PDF do pedido: um modal só
+/* O andamento usa o ArqProg, o mesmo painel do PDF do pedido: um modal só
    para as duas coisas, e sem dois elementos disputando os mesmos ids.
    Conta foto, não página — carregar as imagens é o que leva tempo, e com três
    produtos a barra saltaria de 0 a 33 e ficaria parada. */
 function pdfAndamento(fracao, pagina, total, texto){
   const pct = Math.max(0, Math.min(100, Math.round(fracao * 100)));
-  PdfProg.passo(texto || "", pct, pagina ? "página " + pagina + " de " + total : "");
+  ArqProg.passo(texto || "", pct, pagina ? "página " + pagina + " de " + total : "");
   // Escondido no Nexo o navegador não pinta, e o requestAnimationFrame nunca volta.
   if(window.__nexoPdf){ window.__nexoPdf.andamento(pct, pagina, total); return new Promise(r => setTimeout(r, 0)); }
   // uma volta no laço de pintura, senão a barra só anda no fim
@@ -11192,7 +11283,7 @@ async function gerarCatalogoPdf(){
   const total = grupos.length;
   const totalFotos = grupos.reduce((s, g) => s + g.length, 0);
   let feitas = 0;
-  PdfProg.abrir();
+  ArqProg.abrir();
   const tit = document.getElementById("pdfProgTitulo");
   if(tit) tit.textContent = "Montando o catálogo";
   await pdfAndamento(0, 0, total, "preparando as páginas");
@@ -11228,13 +11319,13 @@ async function gerarCatalogoPdf(){
     const col = (grupos[0][0]?.colecao || "").toLowerCase().replace(/[^\w]+/g, "");
     const nomeArq = ["catalogo-" + (MARCA_ATUAL.id === "ua" ? "under-armour" : "olympikus"), col, carimbo].filter(Boolean).join("-") + ".pdf";
     // Gerado a pedido do Nexo: o arquivo volta para o chat em vez de baixar.
-    if(window.__nexoPdf){ window.__nexoPdf.pronto(doc.output("blob"), nomeArq); PdfProg.concluir(); return; }
+    if(window.__nexoPdf){ window.__nexoPdf.pronto(doc.output("blob"), nomeArq); ArqProg.concluir(); return; }
     doc.save(nomeArq);
-    PdfProg.concluir();
+    ArqProg.concluir();
     limparMarcados();
     toast && toast(total + (total > 1 ? " produtos salvos" : " produto salvo") + " em PDF.");
   }catch(e){
-    PdfProg.falhar(e);
+    ArqProg.falhar(e);
     if(window.__nexoPdf) window.__nexoPdf.erro(e);
   }
 }
@@ -14324,14 +14415,24 @@ function nomeClienteParaArquivo(codigo){
   if(!n){ try{ n = (FANT.porCodigo && FANT.porCodigo[cod]) || ""; }catch(_){} }
   return n;
 }
-function nomeArquivoPedido(codigo, extensao, quando){
+/* A sigla da marca logo depois de "Pedido": na pasta de downloads, dois
+   pedidos do mesmo cliente nas duas marcas saiam com o nome identico, e o
+   unico jeito de saber qual era qual era abrindo os dois. Vindo do historico,
+   a marca e a do pedido; na sacola, a do catalogo aberto. */
+function siglaDaMarca(marca){
+  const m = MARCAS[marca] || MARCAS[MARCA_ATUAL.id] || MARCAS.oly;
+  return m.sigla || "";
+}
+
+function nomeArquivoPedido(codigo, extensao, quando, marca){
   const d = quando ? new Date(quando) : new Date();
   const p2 = n => String(n).padStart(2, "0");
   const data = p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear();
   const cod = String(codigo ?? "").trim();
   // os proibidos em nome de arquivo no Windows, e espaco repetido
   const limpo = t => String(t).replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim();
-  return limpo(["Pedido", nomeClienteParaArquivo(cod), cod, data].filter(Boolean).join(" ")) + extensao;
+  return limpo(["Pedido", siglaDaMarca(marca), nomeClienteParaArquivo(cod), cod, data]
+    .filter(Boolean).join(" ")) + extensao;
 }
 
 function cliBuscar(termo){
@@ -14537,6 +14638,9 @@ function buildPedidoSnapshot(cfg){
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
     createdAt: new Date().toISOString(),
+    // de qual catalogo saiu este pedido. Antes nao era gravado, e a lista de
+    // Meus pedidos nao tinha como saber de quem era cada linha.
+    marca: MARCA_ATUAL.id,
     comissionista: String(cfg.commission || ""),
     comissionistaNome: getComissionistaNome(cfg.commission),
     clientCode: String(cfg.clientCode || ""),
@@ -14594,6 +14698,7 @@ function buildRascunhoSnapshot({ id=null, cfg=null } = {}){
   return {
     id: id || `rasc-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
     tipo: "rascunho",
+    marca: MARCA_ATUAL.id,
     createdAt: agora,
     updatedAt: agora,
     comissionista: String(cfg?.commission || (state.lastOrderCfg?.commission) || ""),
@@ -14889,6 +14994,7 @@ function _mpRenderFinalizados(){
         <div class="mp-pedido-left">
           <div class="mp-pedido-cliente">${cliente}</div>
           <div class="mp-pedido-meta">
+            ${_mpMarcaTag(p)}
             <span>${data}</span>
             <span class="mp-pedido-meta-tag">${ped}</span>
           </div>
@@ -14975,6 +15081,7 @@ function _mpRenderRascunhos(){
         <div class="mp-pedido-left">
           <div class="mp-pedido-cliente">${cliente}</div>
           <div class="mp-pedido-meta">
+            ${_mpMarcaTag(r)}
             <span>${data}</span>
             <span class="mp-pedido-meta-tag" style="background:#FEF3C7;color:#92400E">Rascunho</span>
           </div>
@@ -15173,6 +15280,49 @@ function _atualizarLabelRascunho(){
 }
 
 // Converte item do histórico de volta pra item da sacola
+/* ── De qual marca e este pedido ────────────────────────────────────────────
+   Os pedidos novos ja nascem com a marca gravada. Os antigos nao tem o campo,
+   e ai ela sai de quatro sinais, do mais firme para o mais frouxo:
+
+   1. a tabela de preco - OL029, OL025 sao Olympikus; UA040 e Under Armour.
+      E campo obrigatorio do pedido, entao quase sempre resolve sozinha;
+   2. a campanha, que termina em OLY ou em UA;
+   3. o artigo estar no catalogo aberto agora - se esta, o pedido e desta marca;
+   4. o prefixo do artigo. As duas planilhas nao tem NENHUM codigo em comum
+      (conferido: 349 da Olympikus, 225 da Under Armour, zero repetidos), e a
+      Under Armour usa 60/13/12/30 onde a Olympikus usa 43/54/OI/OB/OF.
+
+   Nenhum dos quatro acertando, fica Olympikus: foi o unico catalogo que
+   existiu por muito tempo, entao e o palpite certo para o historico antigo. */
+function marcaDoPedido(p){
+  if(!p) return "oly";
+  if(p.marca && MARCAS[p.marca]) return p.marca;
+
+  const tab = String(p.priceTable || "").trim().toUpperCase();
+  if(tab.startsWith("UA")) return "ua";
+  if(tab.startsWith("OL")) return "oly";
+
+  const camp = String(p.campaign || "").toUpperCase();
+  if(/\bUA\b/.test(camp)) return "ua";
+  if(/\bOLY\b/.test(camp)) return "oly";
+
+  const cod = String(((p.items || [])[0] || {}).codigo || "").trim().toUpperCase();
+  if(cod){
+    try{
+      if((state.productsRaw || []).some(x =>
+        String(x.codigo || "").trim().toUpperCase() === cod)) return MARCA_ATUAL.id;
+    }catch(_){}
+    if(/^(60|13|12|30)\d/.test(cod)) return "ua";
+  }
+  return "oly";
+}
+
+function _mpMarcaTag(p){
+  const id = marcaDoPedido(p);
+  const m = MARCAS[id] || MARCAS.oly;
+  return `<span class="mp-marca mp-marca-${id}" title="Pedido do catalogo ${_mpEscape(m.nome)}">${_mpEscape(m.nome)}</span>`;
+}
+
 function _mpPedidoItemToCartItem(it){
   // Tenta achar o produto original no catálogo pra recuperar imagem/preço corretos
   let original = null;
@@ -15394,17 +15544,30 @@ function _capNomeArquivo(pedido){
   const p2 = n => String(n).padStart(2, "0");
   const data = p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear();
   const limpo = t => String(t).replace(/[\\/:*?"<>|]/g, "").trim();
-  return limpo(["Captacao", nome, cod, data].filter(Boolean).join(" ")) + ".xlsx";
+  return limpo(["Captacao", siglaDaMarca(marcaDoPedido(pedido)), nome, cod, data]
+    .filter(Boolean).join(" ")) + ".xlsx";
 }
 
 async function mpBaixarCaptacao(id){
-  const pedido = _mpFindPedidoById(id);
-  if(!pedido){ toast("Pedido n\u00e3o encontrado \u26a0\ufe0f"); return; }
-  const brutos = pedido.items || [];
-  if(!brutos.length){ toast("Este pedido n\u00e3o tem itens"); return; }
+  ArqProg.abrir(PROG_CAPTACAO);
+  try{
+    await _mpCaptacaoGerar(id);
+  }catch(e){
+    // o que já foi avisado em toast some sem repetir o aviso em vermelho
+    if(e && e.__avisado) ArqProg.fechar();
+    else ArqProg.falhar(e);
+  }
+}
 
-  toast("Montando a planilha\u2026");
-  if(!await _capGarantirExcelJs()){ toast("N\u00e3o consegui carregar o gerador de planilha \u26a0\ufe0f"); return; }
+async function _mpCaptacaoGerar(id){
+  const parar = msg => { toast(msg); const e = new Error(msg); e.__avisado = true; throw e; };
+  const pedido = _mpFindPedidoById(id);
+  if(!pedido) parar("Pedido n\u00e3o encontrado \u26a0\ufe0f");
+  const brutos = pedido.items || [];
+  if(!brutos.length) parar("Este pedido n\u00e3o tem itens");
+
+  ArqProg.passo("preparando os itens", 8);
+  if(!await _capGarantirExcelJs()) parar("N\u00e3o consegui carregar o gerador de planilha \u26a0\ufe0f");
   // a filial vem da circular da cole\u00e7\u00e3o, n\u00e3o da planilha de produtos
   try{ if(typeof carregarCircular === "function") await carregarCircular(); }catch(_){}
 
@@ -15465,7 +15628,9 @@ async function mpBaixarCaptacao(id){
   const caminhos = [...new Set(linhas.map(l => l.img).filter(Boolean))];
   for(let i = 0; i < caminhos.length; i += 8){
     // num pedido grande isto leva alguns segundos: sem o aviso, parece travado
-    if(caminhos.length > 8) toast("Buscando as fotos · " + Math.min(i + 8, caminhos.length) + " de " + caminhos.length);
+    ArqProg.passo("buscando as fotos",
+      15 + Math.round((i / Math.max(1, caminhos.length)) * 65),
+      Math.min(i + 8, caminhos.length) + " de " + caminhos.length);
     const lote = await Promise.all(caminhos.slice(i, i + 8).map(c => _capFoto(c)));
     lote.forEach((f, j) => { if(f) fotos.set(caminhos[i + j], f); });
   }
@@ -15544,6 +15709,7 @@ async function mpBaixarCaptacao(id){
   larguras.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + linhas.length, column: titulos.length } };
 
+  ArqProg.passo("montando o arquivo", 88);
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
@@ -15551,6 +15717,7 @@ async function mpBaixarCaptacao(id){
   a.href = url; a.download = _capNomeArquivo(pedido);
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+  ArqProg.concluir();
   toast("Capta\u00e7\u00e3o gerada \u00b7 " + linhas.length + " produto" + (linhas.length !== 1 ? "s" : "") + " \u2705");
 }
 
@@ -15705,7 +15872,7 @@ function fecharRascExportModal(){
   setTimeout(()=> modal.classList.add("hidden"), 180);
 }
 
-function _rxGerarPlanilha(){
+async function _rxGerarPlanilha(){
   const r = _rxDados(_rxOrigem);
   if(!r.ok){ toast("Nada para exportar ⚠️"); return; }
   const val = id => ($(id)?.value || "").trim();
@@ -15736,7 +15903,10 @@ function _rxGerarPlanilha(){
   const items = comGrade.map(r.paraExport);
 
   let warnings = [];
+  ArqProg.abrir(PROG_EBM);
   try{
+    await respiroDaTela();
+    ArqProg.passo("montando as linhas do pedido", 40);
     const r2 = buildOrderExportRows(cfg, items);
     warnings = r2.warnings || [];
     const ws = XLSX.utils.aoa_to_sheet(r2.aoa);
@@ -15750,15 +15920,19 @@ function _rxGerarPlanilha(){
        mandar o arquivo errado para a fábrica é o tipo de erro caro. Sem
        cliente sobra "<Prévia|Rascunho> <data>". */
     const prefixo = r.quando ? "Rascunho" : "Prévia";
-    const nome = nomeArquivoPedido(cfg.clientCode, ".xlsx", r.quando || new Date())
+    const nome = nomeArquivoPedido(cfg.clientCode, ".xlsx", r.quando || new Date(),
+      marcaDoPedido({ marca:r.marca, priceTable:cfg.priceTable, campaign:cfg.campaign, items:r.items }))
       .replace(/^Pedido/, prefixo);
+    ArqProg.passo("gerando o arquivo", 85);
+    await respiroDaTela();
     XLSX.writeFile(wb, nome);
+    ArqProg.concluir();
   }catch(e){
     // Fechar no finally não serve: se a geração falhou, o modal some e o
     // vendedor fica sem saber o que aconteceu. Aqui ele fica aberto, com o
     // aviso, e pode tentar de novo.
     console.error("Falha ao gerar o xlsx:", e);
-    toast("⚠️ Não foi possível gerar a planilha. Veja o console (F12).");
+    ArqProg.falhar(e);
     return;
   }
 
@@ -15791,43 +15965,51 @@ function _rxLigar(){
   _rxLigado = true;
 }
 
-function mpBaixarExcel(id){
+async function mpBaixarExcel(id){
   const pedido = _mpFindPedidoById(id);
   if(!pedido) return;
-  // Reconstrói cfg a partir do pedido salvo
-  const cfg = {
-    commission: pedido.comissionista,
-    clientCode: pedido.clientCode,
-    payment: pedido.payment,
-    priceTable: pedido.priceTable,
-    campaign: pedido.campaign,
-    packing: "M: Musical",
-    deliveryType: "3: Total Artigo/Cor",
-    dataFirme: "S: Sim",
-    pedidoMae: "N: Não",
-    antecipacao: "N: Não",
-    dataDesejada: pedido.dataDesejada,
-    pedidoCliente: pedido.pedidoCliente
-  };
-  const items = (pedido.items||[]).map(it => ({
-    ..._mpPedidoItemToCartItem(it),
-    key: cartKeyFor(_mpPedidoItemToCartItem(it)),
-    qty: it.qty || 0,
-    grade: it.grade ? { ...it.grade } : null
-  }));
-  const { aoa, warnings } = buildOrderExportRows(cfg, items);
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = ORDER_EXPORT_COLS;
-  ws["!autofilter"] = { ref: `A1:BG${aoa.length}` };
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Pedido");
-  const d = new Date(pedido.createdAt);
-  const pad = n => String(n).padStart(2,"0");
-  // mesmo nome do pedido recem-finalizado, mas com a data em que ELE foi
-  // feito — nao a de hoje: e o mesmo arquivo, baixado de novo
-  const fileName = nomeArquivoPedido(pedido.clientCode, ".xlsx", pedido.createdAt);
-  XLSX.writeFile(wb, fileName);
-  toast("Excel gerado do histórico ✅");
+  ArqProg.abrir(PROG_EBM);
+  try{
+    await respiroDaTela();
+    ArqProg.passo("montando as linhas do pedido", 40);
+    // Reconstrói cfg a partir do pedido salvo
+    const cfg = {
+      commission: pedido.comissionista,
+      clientCode: pedido.clientCode,
+      payment: pedido.payment,
+      priceTable: pedido.priceTable,
+      campaign: pedido.campaign,
+      packing: "M: Musical",
+      deliveryType: "3: Total Artigo/Cor",
+      dataFirme: "S: Sim",
+      pedidoMae: "N: Não",
+      antecipacao: "N: Não",
+      dataDesejada: pedido.dataDesejada,
+      pedidoCliente: pedido.pedidoCliente
+    };
+    const items = (pedido.items||[]).map(it => ({
+      ..._mpPedidoItemToCartItem(it),
+      key: cartKeyFor(_mpPedidoItemToCartItem(it)),
+      qty: it.qty || 0,
+      grade: it.grade ? { ...it.grade } : null
+    }));
+    const { aoa, warnings } = buildOrderExportRows(cfg, items);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = ORDER_EXPORT_COLS;
+    ws["!autofilter"] = { ref: `A1:BG${aoa.length}` };
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pedido");
+    const d = new Date(pedido.createdAt);
+    const pad = n => String(n).padStart(2,"0");
+    // mesmo nome do pedido recem-finalizado, mas com a data em que ELE foi
+    // feito — nao a de hoje: e o mesmo arquivo, baixado de novo
+    const fileName = nomeArquivoPedido(pedido.clientCode, ".xlsx", pedido.createdAt, marcaDoPedido(pedido));
+    ArqProg.passo("gerando o arquivo", 85);
+    await respiroDaTela();
+    XLSX.writeFile(wb, fileName);
+    ArqProg.concluir();
+    toast("Excel gerado do histórico ✅");
+  }catch(e){ ArqProg.falhar(e); }
 }
 
 // Limpa TODOS os pedidos finalizados do comissionista atual (com backup automático no Worker)
@@ -15919,6 +16101,7 @@ function mpBaixarPDF(id){
     priceTable: pedido.priceTable || "",
     campaign: pedido.campaign || "",
     pedidoCliente: pedido.pedidoCliente || "",
+    marca: marcaDoPedido(pedido),
     _generatedAt: pedido.createdAt ? Date.parse(pedido.createdAt) : Date.now(),
     _restauradoDoHistorico: true
   };
@@ -16473,7 +16656,7 @@ loadCatalog({ cacheBust:false });
 
       <!-- só aparece quando algo dá errado -->
       <div id="pdfProgErroBox" class="hidden rounded-xl p-3 mb-3" style="background:#FEF2F2;border:1px solid #FECACA">
-        <div class="text-sm font-bold mb-1" style="color:#991B1B">Não consegui gerar o PDF</div>
+        <div id="pdfProgErroTitulo" class="text-sm font-bold mb-1" style="color:#991B1B">Não consegui gerar o PDF</div>
         <div id="pdfProgErroMsg" class="text-xs" style="color:#7F1D1D;word-break:break-word"></div>
         <div class="text-xs mt-2" style="color:#7F1D1D;opacity:.8">
           Se acontecer de novo, tire um print desta mensagem e mande para o suporte.
@@ -17105,13 +17288,26 @@ function _mkOrdemTam(a, b){
 /* A planilha. `opt.pares` (Map k → pares) acrescenta a coluna de pares: é a
    mesma função que baixa a resposta do cliente. */
 async function planilhaProdutos(itens, opt = {}){
-  if(!itens.length){ toast("Marque pelo menos um produto."); return; }
-  toast("Montando a planilha…");
-  if(!await _capGarantirExcelJs()){ toast("Não consegui carregar o gerador de planilha ⚠️"); return; }
+  ArqProg.abrir(PROG_PLANILHA);
+  try{
+    return await _planilhaProdutosGerar(itens, opt);
+  }catch(e){
+    if(e && e.__avisado) ArqProg.fechar();
+    else ArqProg.falhar(e);
+  }
+}
+
+async function _planilhaProdutosGerar(itens, opt = {}){
+  const parar = msg => { toast(msg); const e = new Error(msg); e.__avisado = true; throw e; };
+  if(!itens.length) parar("Marque pelo menos um produto.");
+  ArqProg.passo("preparando os produtos", 8);
+  if(!await _capGarantirExcelJs()) parar("Não consegui carregar o gerador de planilha ⚠️");
   const fotos = new Map();
   const caminhos = [...new Set(itens.map(p => resolveImageSrc(p.imagem)).filter(Boolean))];
   for(let i = 0; i < caminhos.length; i += 8){
-    if(caminhos.length > 8) toast("Buscando as fotos · " + Math.min(i + 8, caminhos.length) + " de " + caminhos.length);
+    ArqProg.passo("buscando as fotos",
+      15 + Math.round((i / Math.max(1, caminhos.length)) * 65),
+      Math.min(i + 8, caminhos.length) + " de " + caminhos.length);
     const lote = await Promise.all(caminhos.slice(i, i + 8).map(c => _capFoto(c)));
     lote.forEach((f, j) => { if(f) fotos.set(caminhos[i + j], f); });
   }
@@ -17177,6 +17373,7 @@ async function planilhaProdutos(itens, opt = {}){
   colTam.forEach((t, j) => { ws.getColumn(fixos.length + 1 + j).width = t.length > 3 ? 7.5 : 5.7109375; });
   ws.getColumn(titulos.length).width = 9;
   ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + itens.length, column: titulos.length } };
+  ArqProg.passo("montando o arquivo", 88);
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   const a = document.createElement("a");
@@ -17185,6 +17382,7 @@ async function planilhaProdutos(itens, opt = {}){
   a.download = (opt.arquivo || ("Catalogo " + MARCA_ATUAL.nome)).replace(/[\\/:*?"<>|]/g, "").trim() + " " + p2(d.getDate()) + "-" + p2(d.getMonth() + 1) + "-" + d.getFullYear() + ".xlsx";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+  ArqProg.concluir();
   toast("Planilha gerada · " + itens.length + " produto" + (itens.length !== 1 ? "s" : "") + " ✅");
   return true;
 }
