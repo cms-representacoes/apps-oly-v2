@@ -833,6 +833,35 @@ function findHeader(rows){
 }
 // Mapeia as colunas PELO NOME, não por posição fixa: o relatório por produto
 // traz uma coluna "STATUS" a mais, que desloca tudo a partir da 4.
+/* ── De que ano é cada coluna de mês ────────────────────────────────
+   Depois de "Corrente" o relatório lista um mês por coluna, pelo nome e sem
+   o ano: December, January, February… Enquanto só havia carteira do próprio
+   ano isso não fazia diferença. Com o 1S27 sendo digitado desde nov/2026, de
+   January em diante é 2027 — e tudo caía dentro do 2S26. Medido no arquivo
+   de 12/11/2026: 259.746 pares de 2027 dentro de um semestre de 218.896, ou
+   seja o semestre aparecia com mais que o dobro do seu tamanho.
+
+   O ano sai da própria sequência: vira para o seguinte quando o número do mês
+   "volta" (December → January). E o mês da Corrente é o anterior ao da
+   primeira coluna, então a conta não depende do dia em que se importa.    */
+const MESES_RFV = {
+  january:1, february:2, march:3, april:4, may:5, june:6,
+  july:7, august:8, september:9, october:10, november:11, december:12,
+  janeiro:1, fevereiro:2, marco:3, abril:4, maio:5, junho:6,
+  julho:7, agosto:8, setembro:9, outubro:10, novembro:11, dezembro:12
+};
+function colunasDeMes(h, corr, req, anoBase){
+  const out=[]; let ano=anoBase, ant=0;
+  for(let k=corr+1; k<req; k++){
+    const m = MESES_RFV[h[k]];
+    if(!m) continue;                         // coluna que não é mês fica fora
+    if(!ant) ant = (m===1 ? 12 : m-1);       // a Corrente é o mês anterior a este
+    if(m < ant) ano++;
+    ant = m;
+    out.push({i:k, mes:m, ano});
+  }
+  return out;
+}
 function mapCols(head){
   const h=head.map(norm);
   const at=nome=>h.indexOf(nome);
@@ -845,8 +874,11 @@ function mapCols(head){
     cli:razoes.length>2?razoes[2]:-1,           // 3ª "Razão Social" = nome do cliente
     cod:at('lider')                             // código do cliente
   };
-  // meses: tudo entre "Corrente" e "Req"
-  c.mesIni = c.corr+1; c.mesFim = c.req-1;
+  /* O ano corrente vem do próprio arquivo, da coluna "2026 (M-1)": é mais
+     confiável que o relógio de quem abre a tela. */
+  c.ano = Number(String(h[c.m1]||'').slice(0,4)) || new Date().getFullYear();
+  // meses: tudo entre "Corrente" e "Req", cada um com o seu ano
+  c.meses = colunasDeMes(h, c.corr, c.req, c.ano);
   return c;
 }
 function validate(rows){
@@ -1035,7 +1067,13 @@ function parseRows(rows,hi,cat,cols){
     const h24=num(r,c.y24), h25=num(r,c.y25);
     const s1base=num(r,c.m1);                        // 2026 (M-1) = 1º semestre
     const corr=num(r,c.corr);                        // mês corrente
-    let mes=0; for(let k=c.mesIni;k<=c.mesFim;k++) mes+=num(r,k);
+    /* `prox` é a carteira do ano que vem (hoje, o 1S27). Fica guardada e fora
+       dos semestres: o 2S26 mede 2026, como ele pediu, até o ano virar. */
+    let mes=0, prox=0;
+    for(const col of c.meses){
+      const v=num(r,col.i);
+      if(col.ano===c.ano) mes+=v; else prox+=v;
+    }
     let s1,s2;
     if(CORR_SEM===1){ s1=s1base+corr; s2=mes; }      // importou no 1º sem → corrente entra no 1S
     else            { s1=s1base;      s2=corr+mes; } // importou no 2º sem → corrente entra no 2S
@@ -1045,7 +1083,7 @@ function parseRows(rows,hi,cat,cols){
       ...unificarCliente(txt(r,c.cod), String(cli).trim()),
       canal:txt(r,c.canal), abc:txt(r,c.abc),
       cidade:txt(r,c.cidade), uf:txt(r,c.uf),
-      h24,h25,s1,s2,cur,
+      h24,h25,s1,s2,cur,prox,
       req:c.req>=0?r[c.req]:null, freq:c.freq>=0?r[c.freq]:null, valor:c.valor>=0?r[c.valor]:null,
       size:h24+h25+s1+s2
     });
