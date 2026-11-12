@@ -2184,6 +2184,16 @@
       .mp-pedido-actions.cabe{ mask-image:none; -webkit-mask-image:none; }
     }
 
+    /* ── A prévia do PDF ──────────────────────────────────────────────────
+       O palco é grafite nos dois temas, como em todo visualizador de PDF: a
+       folha branca precisa de um fundo que não se confunda com ela. */
+    #pdfPreviaPalco{ background:#1f2430; overscroll-behavior:contain; }
+    .pdf-previa-pagina{
+      display:block; width:100%; height:auto; margin:0 auto 12px;
+      background:#fff; border-radius:8px;
+      box-shadow:0 6px 18px rgba(0,0,0,.35); }
+    .pdf-previa-pagina:last-child{ margin-bottom:0; }
+
     /* ── Modal Exportação Pedido Excel ── */
     /* O modal de exportar rascunho usa a mesma folha: mesma caixa, mesmo
        cabeçalho, mesmo rodapé. Só os campos mudam. */
@@ -9929,6 +9939,8 @@ const PROG_CAPTACAO = { icone:"📸", titulo:"Montando a captação…",
                    pronto:"Captação pronta", erro:"Não consegui gerar a captação" };
 const PROG_PLANILHA = { icone:"📊", titulo:"Montando a planilha…",
                    pronto:"Planilha pronta", erro:"Não consegui gerar a planilha" };
+const PROG_BAIXAR = { icone:"📥", titulo:"Baixando o PDF…", passo:"salvando no aparelho",
+                   pronto:"PDF baixado", erro:"Não consegui baixar o PDF" };
 
 /* Um quadro de respiro antes do trabalho pesado. XLSX.writeFile segura a
    thread do começo ao fim: sem esta pausa o navegador só pinta o modal
@@ -9992,14 +10004,23 @@ const ArqProg = {
   }
 };
 
-async function exportOrderPdf(showGrade = true){
-  if(state.cart.size === 0){ toast("Sacola vazia ✅"); return; }
+/* O PDF sai da sacola ou de um pedido já salvo, e quem chama diz de onde:
+   `fonte = { items, cfg }`. Sem o segundo argumento nada muda — é a sacola,
+   como sempre foi. Com ele, "Meus pedidos" gera o PDF sem despejar o pedido
+   na sacola do vendedor, e por isso sem exigir que ela esteja vazia.      */
+async function exportOrderPdf(showGrade = true, fonte = null){
+  const doHistorico = !!(fonte && fonte.items);
+  const itens = doHistorico ? fonte.items : Array.from(state.cart.values());
+  if(!itens.length){
+    toast(doHistorico ? "Este pedido não tem itens" : "Sacola vazia ✅");
+    return;
+  }
 
   /* Nem todo PDF vai para a mesma pessoa, e o que vai ao cliente nem sempre
      deve carregar a data combinada. A pergunta só aparece quando há data
      para esconder — sem isso ela seria um clique a mais por nada. */
   let showDatas = true;
-  if([...state.cart.values()].some(it => it.dataDesejada)){
+  if(itens.some(it => it.dataDesejada)){
     showDatas = await appConfirm({
       title: "Exibir a data de faturamento?",
       message: "As datas aparecem em cada item e no resumo do pedido.<br>" +
@@ -10011,7 +10032,7 @@ async function exportOrderPdf(showGrade = true){
   }
 
   try{
-    return await _exportOrderPdf(showGrade, showDatas);
+    return await _exportOrderPdf(showGrade, showDatas, fonte);
   }catch(e){
     // Sem isto, uma exceção no meio da geração só aparecia no console e o
     // usuário ficava olhando para uma tela que não fazia nada.
@@ -10019,12 +10040,14 @@ async function exportOrderPdf(showGrade = true){
   }
 }
 
-async function _exportOrderPdf(showGrade = true, showDatas = true){
+async function _exportOrderPdf(showGrade = true, showDatas = true, fonte = null){
   ArqProg.abrir();
-  saveCustomerToStorage();
+  const doHistorico = !!(fonte && fonte.items);
+  // pedido antigo não é a sacola de agora: não mexe no cliente da tela
+  if(!doHistorico) saveCustomerToStorage();
 
   // Estado/decisões
-  const cfg = state.lastOrderCfg || null;
+  const cfg = (doHistorico ? fonte.cfg : state.lastOrderCfg) || null;
   const dias = (cfg && typeof getPrazoMedio === "function") ? getPrazoMedio(cfg.payment) : null;
   const showPrices = !!(prefs && prefs.showPrices && cfg && dias !== null);
   // Aviso quando PDF é gerado SEM Z (cliente ainda não tem valores)
@@ -10045,7 +10068,7 @@ async function _exportOrderPdf(showGrade = true, showDatas = true){
   const pad = (n)=>String(n).padStart(2,"0");
   const dateStr = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-  const items = Array.from(state.cart.values());
+  const items = doHistorico ? fonte.items : Array.from(state.cart.values());
 
   // Cores
   const C = {
@@ -10498,42 +10521,222 @@ async function _exportOrderPdf(showGrade = true, showDatas = true){
   drawFooter();
 
   ArqProg.passo("finalizando o documento", 92);
-  const nomePdf = nomeArquivoPedido(cfg?.clientCode, ".pdf", null, cfg?.marca);
-  doc.save(nomePdf);
-  ArqProg.concluir();
-  toast("PDF gerado ✅");
-  // Oferece compartilhar (menu do sistema — anexa o PDF de verdade)
-  try{
-    const blob = doc.output("blob");
-    _oferecerCompartilharPDF(blob, nomePdf);
-  }catch(e){ console.warn("Compartilhar PDF indisponível:", e); }
+  /* A data do nome é a do pedido, não a de hoje: o PDF do histórico é o
+     mesmo documento baixado de novo, como o Excel já fazia. Na sacola ainda
+     não existe _generatedAt, e aí cai em hoje, que é o certo.            */
+  const nomePdf = nomeArquivoPedido(cfg?.clientCode, ".pdf", cfg?._generatedAt || null, cfg?.marca);
+  /* Nada é baixado aqui. O pedido aparece na tela primeiro e o vendedor
+     decide o que fazer com ele — baixar, compartilhar ou fechar. Antes era
+     fácil gerar o documento errado e só descobrir na pasta de Downloads. */
+  ArqProg.passo("abrindo a prévia", 96);
+  await PreviaPDF.abrir(doc, nomePdf);
 }
 
-// Pergunta se deseja compartilhar o PDF via menu nativo do sistema
-function _oferecerCompartilharPDF(blob, nomePdf){
-  // Web Share API com arquivos — disponível em tablets/celulares modernos
-  const file = new File([blob], nomePdf, { type:"application/pdf" });
-  const podeCompartilhar = navigator.canShare && navigator.canShare({ files:[file] });
-  if(!podeCompartilhar) return; // desktop sem suporte: PDF já foi baixado, nada a fazer
+/* ── A prévia do PDF ──────────────────────────────────────────────────────
+   O documento é desenhado na tela antes de virar arquivo, e só vai para o
+   Downloads se o vendedor mandar. O botão de compartilhar mora aqui também
+   — era um modal "quer compartilhar?" que só aparecia depois de o arquivo
+   já estar baixado.
 
-  const modal = $("sharePdfModal");
-  if(!modal) return;
-  modal.classList.remove("hidden");
-  $("sharePdfCancel").onclick = () => modal.classList.add("hidden");
-  $("sharePdfOk").onclick = async () => {
-    modal.classList.add("hidden");
+   Quem desenha é o pdf.js. Iframe de PDF não serve: o Chrome do Android não
+   desenha PDF dentro de iframe e no iPhone sai só a primeira página. A
+   biblioteca é buscada na primeira prévia, como o ExcelJS da captação.
+   Página por página, sob demanda: um pedido grande passa de dez páginas e
+   desenhar todas de uma vez trava o celular.                             */
+const PDFJS_VER = "3.11.174";   // a 4.x só vem como módulo, não serve em <script>
+async function _garantirPdfJs(){
+  if(window.pdfjsLib) return true;
+  try{
+    await new Promise((ok, nao) => {
+      const t = document.createElement("script");
+      t.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VER + "/pdf.min.js";
+      t.onload = ok; t.onerror = nao;
+      document.head.appendChild(t);
+    });
+    if(window.pdfjsLib){
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VER + "/pdf.worker.min.js";
+    }
+  }catch(_){ return false; }
+  return !!window.pdfjsLib;
+}
+
+const PreviaPDF = {
+  url:"", nome:"", blob:null, pdf:null, io:null, _ligado:false,
+
+  async abrir(doc, nome){
+    this._limpar();
+    this.nome = nome;
     try{
+      this.blob = doc.output("blob");
+      this.url  = URL.createObjectURL(this.blob);
+    }catch(e){
+      // sem o blob não há prévia nem download: o jsPDF salva por conta dele
+      ArqProg.concluir("baixando o arquivo");
+      try{ doc.save(nome); toast("PDF baixado ✅"); }catch(_){ ArqProg.falhar(e); }
+      return;
+    }
+    /* Sem a biblioteca (CDN fora do ar, internet da loja caindo) o vendedor
+       não fica sem o pedido: baixa como era antes e segue a vida. */
+    if(!await _garantirPdfJs()) return this._semPrevia();
+    const modal = $("pdfPreviaModal");
+    if(!modal) return this._semPrevia();
+    this._ligar();
+    try{
+      this.pdf = await window.pdfjsLib.getDocument({ url:this.url }).promise;
+    }catch(e){
+      console.warn("[prévia]", e);
+      return this._semPrevia();
+    }
+    const n = this.pdf.numPages;
+    $("pdfPreviaNome").textContent = nome;
+    $("pdfPreviaPaginas").textContent = n + (n === 1 ? " página" : " páginas");
+    // o compartilhar só existe onde o sistema sabe anexar arquivo
+    const bs = $("pdfPreviaCompartilhar");
+    if(bs) bs.classList.toggle("hidden", !this._podeCompartilhar());
+    ArqProg.fechar();
+    modal.classList.remove("hidden");
+    await this._montarPaginas();
+  },
+
+  // a prévia falhou, mas o PDF está pronto: entrega do jeito antigo.
+  // O painel segue aberto — quem troca o cartaz para "baixando" é o baixar().
+  _semPrevia(){
+    toast("Não consegui abrir a prévia — baixei o PDF", "info");
+    return this.baixar();
+  },
+
+  _podeCompartilhar(){
+    try{
+      const f = new File([this.blob], this.nome, { type:"application/pdf" });
+      return !!(navigator.canShare && navigator.canShare({ files:[f] }));
+    }catch(_){ return false; }
+  },
+
+  /* Uma folha por página, já na altura certa — o canvas guarda a proporção
+     nos atributos — para a rolagem não pular enquanto desenha. O desenho
+     mesmo vem quando a folha chega perto da tela. */
+  async _montarPaginas(){
+    const palco = $("pdfPreviaPalco");
+    if(!palco || !this.pdf) return;
+    if(this.io){ try{ this.io.disconnect(); }catch(_){} this.io = null; }
+    palco.innerHTML = "";
+    palco.scrollTop = 0;
+    const largura = Math.max(240, palco.clientWidth - 24);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.io = new IntersectionObserver(entradas => {
+      entradas.forEach(e => {
+        if(e.isIntersecting){ this._pintar(e.target); this.io.unobserve(e.target); }
+      });
+    }, { root:palco, rootMargin:"400px 0px" });
+    for(let n = 1; n <= this.pdf.numPages; n++){
+      const pag = await this.pdf.getPage(n);
+      const vp = pag.getViewport({ scale:1 });
+      const escala = largura / vp.width;
+      const cv = document.createElement("canvas");
+      cv.className = "pdf-previa-pagina";
+      cv.width  = Math.round(vp.width  * escala * dpr);
+      cv.height = Math.round(vp.height * escala * dpr);
+      cv.setAttribute("aria-label", "Página " + n + " do pedido");
+      cv._pag = pag;
+      cv._escala = escala * dpr;
+      palco.appendChild(cv);
+      this.io.observe(cv);
+    }
+  },
+
+  async _pintar(cv){
+    if(!cv || cv._pintado) return;
+    cv._pintado = true;
+    try{
+      await cv._pag.render({
+        canvasContext: cv.getContext("2d"),
+        viewport: cv._pag.getViewport({ scale: cv._escala })
+      }).promise;
+    }catch(e){ console.warn("[prévia]", e); }
+  },
+
+  /* O mesmo painel de andamento dos outros arquivos, agora no download. O
+     clique no link não segura a thread, mas sem o quadro de respiro o
+     painel apareceria junto do "pronto" — e ninguém o veria. A prévia sai
+     de cena antes do ✅: ela já cumpriu o papel, e o aviso de pronto fica
+     por cima da lista de pedidos.                                        */
+  async baixar(){
+    if(!this.url) return;
+    ArqProg.abrir(PROG_BAIXAR);
+    await respiroDaTela();
+    ArqProg.passo("salvando no aparelho", 60);
+    const a = document.createElement("a");
+    a.href = this.url;
+    a.download = this.nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // meio segundo de "baixando": menos que isto só pisca na tela
+    await new Promise(r => setTimeout(r, 500));
+    this.fechar();
+    ArqProg.concluir("o arquivo está na pasta Downloads");
+    toast("PDF baixado ✅");
+  },
+
+  async compartilhar(){
+    if(!this.blob) return;
+    try{
+      const file = new File([this.blob], this.nome, { type:"application/pdf" });
+      if(!(navigator.canShare && navigator.canShare({ files:[file] }))){
+        toast("Este aparelho não sabe compartilhar arquivo"); return;
+      }
+      // o título sai do nome do arquivo, que já traz a marca e o cliente
       await navigator.share({
         files:[file],
-        title:"Pedido — Catálogo Olympikus",
+        title: this.nome.replace(/\.pdf$/i, ""),
         text:"Segue o pedido em anexo."
       });
     }catch(e){
-      // usuário cancelou o compartilhamento — silencioso
+      // cancelar o menu do sistema não é erro
       if(e && e.name !== "AbortError") console.warn("share:", e);
     }
-  };
-}
+  },
+
+  fechar(){
+    const m = $("pdfPreviaModal");
+    if(m) m.classList.add("hidden");
+    this._limpar();
+  },
+
+  /* A URL do blob não é revogada na hora: num download que o navegador
+     ainda está começando, revogar agora salva um arquivo vazio. */
+  _limpar(){
+    if(this.io){ try{ this.io.disconnect(); }catch(_){} this.io = null; }
+    const palco = $("pdfPreviaPalco"); if(palco) palco.innerHTML = "";
+    if(this.pdf){ try{ this.pdf.destroy(); }catch(_){} this.pdf = null; }
+    if(this.url){
+      const u = this.url;
+      setTimeout(() => { try{ URL.revokeObjectURL(u); }catch(_){} }, 60000);
+      this.url = "";
+    }
+    this.blob = null;
+  },
+
+  _ligar(){
+    if(this._ligado) return;
+    this._ligado = true;
+    $("pdfPreviaFechar")?.addEventListener("click", () => this.fechar());
+    $("pdfPreviaBackdrop")?.addEventListener("click", () => this.fechar());
+    $("pdfPreviaBaixar")?.addEventListener("click", () => this.baixar());
+    $("pdfPreviaCompartilhar")?.addEventListener("click", () => this.compartilhar());
+    document.addEventListener("keydown", e => {
+      if(e.key === "Escape" && !$("pdfPreviaModal")?.classList.contains("hidden")) this.fechar();
+    });
+    // girar o aparelho muda a largura da folha: redesenha na medida nova
+    let t = null;
+    addEventListener("resize", () => {
+      if(!this.pdf || $("pdfPreviaModal")?.classList.contains("hidden")) return;
+      clearTimeout(t);
+      t = setTimeout(() => this._montarPaginas(), 250);
+    });
+  }
+};
 
 // ── Dropdown do botão Baixar PDF ─────────────────────────────
 (function setupPdfDropdown(){
@@ -14976,9 +15179,6 @@ function _mpRenderFinalizados(){
   $("mpStatsTxt").textContent = `${filtrados.length} pedido${filtrados.length!==1?"s":""} · ${totItens} iten${totItens!==1?"s":""}`;
   $("mpStatsTotal").textContent = "";
 
-  // Sacola vazia? (controla disponibilidade do PDF)
-  const sacolaVazia = state.cart.size === 0;
-
   ul.innerHTML = filtrados.map(p => {
     const _nomeCli = nomeFantasiaPorCodigo(p.clientCode);
     const cliente = p.clientCode
@@ -15034,7 +15234,7 @@ function _mpRenderFinalizados(){
           <button class="mp-pedido-btn" onclick="mpReordenar('${_mpEscape(p.id)}')"><i class="fa-solid fa-rotate-left"></i> Reordenar</button>
           <button class="mp-pedido-btn primary" onclick="mpBaixarExcel('${_mpEscape(p.id)}')"><i class="fa-solid fa-file-excel"></i> Excel</button>
           <button class="mp-pedido-btn cap" onclick="mpBaixarCaptacao('${_mpEscape(p.id)}')" title="Planilha com foto, grade e total de pares, para o cliente conferir"><i class="fa-solid fa-camera-retro"></i> Capta\u00e7\u00e3o</button>
-          <button class="mp-pedido-btn pdf" onclick="mpBaixarPDF('${_mpEscape(p.id)}')"${sacolaVazia ? "" : ' title="Esvazie a sacola para gerar o PDF deste pedido"'}><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          <button class="mp-pedido-btn pdf" onclick="mpBaixarPDF('${_mpEscape(p.id)}')" title="Ver o pedido e baixar o PDF"><i class="fa-solid fa-file-pdf"></i> PDF</button>
         </div>
       </div>
     </div>`;
@@ -16111,32 +16311,28 @@ document.addEventListener("click", (e)=>{
   if(e.target.closest("#mpBtnClearHistorico")) mpLimparHistorico();
 });
 
-// Baixar PDF: usa "Reordenar silencioso" + chama o PDF da sacola
-function mpBaixarPDF(id){
-  // O PDF é montado a partir da sacola, então ela precisa estar livre. Antes
-  // o botão vinha "disabled": no celular não há hover para ler o title, e o
-  // toque simplesmente não fazia nada — que é como o usuário descreveu o
-  // problema. Agora o botão responde e explica.
-  if(state.cart.size !== 0){
-    toast("Sua sacola tem " + state.cart.size + " item(ns). Esvazie ou finalize antes de gerar o PDF deste pedido.", "info");
-    return;
-  }
+/* O PDF do histórico não passa mais pela sacola. Antes o pedido era
+   despejado em state.cart, o PDF saía de lá e a sacola era limpa no fim —
+   por isso o botão exigia a sacola vazia: era a única forma de não apagar o
+   que o vendedor estava montando, e uma falha no meio levava tudo embora.
+   Agora os itens vão direto para o gerador, como já era no Excel e na
+   captação. O modal de Meus pedidos fica aberto atrás da prévia.       */
+async function mpBaixarPDF(id){
   const pedido = _mpFindPedidoById(id);
-  if(!pedido) return;
-  // Carrega itens na sacola temporariamente
-  for(const it of (pedido.items||[])){
+  if(!pedido){ toast("Pedido não encontrado ⚠️"); return; }
+  const items = (pedido.items || []).map(it => {
     const base = _mpPedidoItemToCartItem(it);
-    const key = cartKeyFor(base);
-    state.cart.set(key, {
-      ...base, key,
+    return {
+      ...base,
+      key: cartKeyFor(base),
       qty: it.qty || 0,
       grade: it.grade ? { ...it.grade } : null
-    });
-  }
-  // 🔧 Restaura o cfg histórico do pedido (payment, priceTable, campaign, etc)
-  // Sem isso, o PDF cai no fallback do PDV. Guarda o cfg anterior pra restaurar depois.
-  const cfgAnterior = state.lastOrderCfg;
-  state.lastOrderCfg = {
+    };
+  });
+  if(!items.length){ toast("Este pedido não tem itens"); return; }
+  /* O cfg histórico do pedido (prazo, tabela, campanha). Sem ele o PDF cai
+     no fallback do PDV e sai sem preço. */
+  const cfg = {
     commission: pedido.comissionista || "",
     clientCode: pedido.clientCode || "",
     payment: pedido.payment || "",
@@ -16144,30 +16340,13 @@ function mpBaixarPDF(id){
     campaign: pedido.campaign || "",
     pedidoCliente: pedido.pedidoCliente || "",
     marca: marcaDoPedido(pedido),
-    _generatedAt: pedido.createdAt ? Date.parse(pedido.createdAt) : Date.now(),
-    _restauradoDoHistorico: true
+    _generatedAt: pedido.createdAt ? Date.parse(pedido.createdAt) : Date.now()
   };
-  closeMeusPedidosModal();
-  // 🔧 Chama exportOrderPdf DIRETAMENTE (não clica no btnExportPdf, que só abre um menu dropdown).
-  setTimeout(async () => {
-    try {
-      if(typeof exportOrderPdf === "function"){
-        await exportOrderPdf(true); // true = com grade
-      } else {
-        toast("Função de PDF não encontrada");
-      }
-    } catch(e){
-      toast("Erro ao gerar PDF: " + (e.message || ""));
-    } finally {
-      // Restaura o cfg anterior (não polui a sessão do vendedor)
-      state.lastOrderCfg = cfgAnterior;
-      // Limpa a sacola (pedido histórico não deve virar sacola ativa)
-      state.cart.clear();
-      if(typeof saveCartToStorage === "function") saveCartToStorage();
-      if(typeof renderCartUI === "function") renderCartUI();
-      if(typeof updateCartBadge === "function") updateCartBadge();
-    }
-  }, 300);
+  try{
+    await exportOrderPdf(true, { items, cfg });
+  }catch(e){
+    toast("Erro ao gerar PDF: " + (e.message || ""));
+  }
 }
 
 // Abre/fecha modal
@@ -16712,17 +16891,44 @@ loadCatalog({ cacheBust:false });
   </div>
 </div>
 
-<div id="sharePdfModal" class="hidden fixed inset-0 z-[93]">
-  <div class="absolute inset-0 bg-black/60"></div>
-  <div class="absolute inset-0 flex items-center justify-center p-4">
-    <div class="rounded-2xl p-5 max-w-sm w-full" style="background:var(--card-bg, #fff)">
-      <div class="text-3xl mb-2">📤</div>
-      <div class="text-lg font-black mb-2" style="color:var(--text)">PDF gerado!</div>
-      <div class="text-sm mb-4" style="color:var(--muted)">Deseja compartilhar o pedido agora? Você poderá escolher o WhatsApp ou outro app.</div>
-      <div class="flex gap-2">
-        <button id="sharePdfCancel" class="flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg" style="color:var(--text)">Agora não</button>
-        <button id="sharePdfOk" class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white inline-flex items-center justify-center gap-2" style="background:var(--primary)">
+<!-- ═══════════ MODAL: A PRÉVIA DO PDF ═══════════ -->
+<!-- O pedido aparece aqui antes de virar arquivo. Era baixado direto, e um
+     documento errado só se descobria abrindo a pasta de Downloads.
+     No celular ocupa a tela toda; no computador, uma folha centralizada. -->
+<div id="pdfPreviaModal" class="hidden fixed inset-0 z-[93]">
+  <div id="pdfPreviaBackdrop" class="absolute inset-0 bg-black/70"></div>
+  <div class="absolute inset-0 flex items-stretch sm:items-center justify-center sm:p-4">
+    <div class="relative w-full h-full sm:h-auto sm:max-w-3xl flex flex-col overflow-hidden sm:rounded-3xl shadow-lift"
+         style="background:var(--card-bg,#fff);max-height:100%">
+
+      <div class="flex items-center gap-3 px-4 py-3 border-b border-oly-border shrink-0">
+        <div class="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+             style="background:rgba(var(--primary-rgb),.10);color:var(--primary)">
+          <i class="fa-solid fa-file-pdf"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider" style="color:var(--primary)">Antes de baixar</div>
+          <div id="pdfPreviaNome" class="text-sm font-extrabold truncate" style="color:var(--text)">Pedido</div>
+          <div id="pdfPreviaPaginas" class="text-xs" style="color:var(--muted)"></div>
+        </div>
+        <button id="pdfPreviaFechar" class="focus-ring h-9 w-9 rounded-full border border-oly-border bg-white hover:bg-oly-bg shrink-0"
+                type="button" title="Fechar sem baixar" aria-label="Fechar sem baixar">
+          <i class="fa-solid fa-xmark text-oly-blue"></i>
+        </button>
+      </div>
+
+      <div id="pdfPreviaPalco" class="flex-1 min-h-0 overflow-y-auto px-3 py-4"></div>
+
+      <div class="shrink-0 border-t border-oly-border px-3 py-3 flex gap-2" style="background:var(--card-bg,#fff)">
+        <button id="pdfPreviaCompartilhar" type="button"
+                class="hidden flex-1 rounded-xl border border-oly-border px-4 py-2.5 font-bold text-sm hover:bg-oly-bg inline-flex items-center justify-center gap-2"
+                style="color:var(--text)" title="Mandar o PDF pelo WhatsApp ou outro app">
           <i class="fa-solid fa-share-nodes"></i> Compartilhar
+        </button>
+        <button id="pdfPreviaBaixar" type="button"
+                class="flex-1 rounded-xl px-4 py-2.5 font-extrabold text-sm text-white inline-flex items-center justify-center gap-2"
+                style="background:var(--primary)" title="Salvar o PDF no aparelho">
+          <i class="fa-solid fa-download"></i> Baixar
         </button>
       </div>
     </div>
