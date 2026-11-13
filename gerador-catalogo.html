@@ -212,6 +212,8 @@
     margin-bottom:14px; padding:12px 14px;
     background:#faf5ff; border:1px solid #e9d5ff; border-radius:12px;
   }
+  /* sem isto o display:flex vence o atributo hidden e a linha aparece sempre */
+  .toggle-row[hidden]{ display:none; }
   .toggle-row .tg-txt{ flex:1; }
   .tg-title{ font-size:13px; font-weight:800; }
   .tg-desc{ font-size:11.5px; color:var(--muted); margin-top:2px; }
@@ -297,8 +299,8 @@
   @media(max-width:520px){ .cad-grid{ grid-template-columns:1fr; } }
 
   /* ── escolha do método de importação ───────────────────────────── */
-  .modos{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:2px 0 14px; }
-  @media(max-width:560px){ .modos{ grid-template-columns:1fr; } }
+  .modos{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:2px 0 14px; }
+  @media(max-width:760px){ .modos{ grid-template-columns:1fr; } }
   .modo{
     display:flex; align-items:center; gap:11px; text-align:left; cursor:pointer;
     border:1.5px solid #e4e4e7; background:#fff; border-radius:14px; padding:12px 14px;
@@ -319,6 +321,28 @@
   .prev-promo b{ color:#18181b; font-weight:800; }
   .prev-promo .promo{ color:#15803d; }
   .prev-de{ font-size:11px; color:#a1a1aa; text-decoration:line-through; font-weight:600; }
+
+  /* preços da lista: NF e PDV, cada um na sua coluna */
+  .prev-precos{ display:flex; gap:14px; text-align:right; }
+  .prev-precos small{ display:block; font-size:9px; font-weight:800; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.04em; }
+  .prev-precos b{ font-size:13px; font-weight:900; color:#18181b; white-space:nowrap; }
+  .prev-precos .pdv b{ color:var(--primary); }
+  .tag-ts{ display:inline-block; font-size:9.5px; font-weight:800; color:#0f766e;
+    background:#f0fdfa; border:1px solid #99f6e4; border-radius:99px; padding:0 7px; margin-left:4px; }
+  .pend-acoes{ display:flex; gap:6px; flex-shrink:0; }
+  @media(max-width:560px){
+    .preview-list.lista .prev-item{ flex-wrap:wrap; }
+    .preview-list.lista .prev-right{ width:100%; display:flex; justify-content:flex-end; }
+    .pend-item{ flex-wrap:wrap; }
+    .pend-acoes{ width:100%; justify-content:flex-end; }
+  }
+
+  /* A janela de foto da CMS STORE usa classes fa-* que o Font Awesome desta
+     página também conhece (fa-x vira a letra X, fa-cab um táxi, fa-link um
+     elo). Aqui elas voltam a ser só a janela. */
+  .fa-fundo .fa{ line-height:normal; font-weight:400; text-rendering:auto; }
+  .fa-fundo .fa-cab::before, .fa-fundo .fa-x::before, .fa-fundo .fa-link::before{ content:none; }
 
   .aviso-pages{ display:block; margin-top:6px; font-size:11px; font-weight:600;
     color:#92400e; line-height:1.45; }
@@ -382,6 +406,10 @@
         <i class="fa-solid fa-tags"></i>
         <span><b>Oportunidade</b><small>estoque com preço promocional</small></span>
       </button>
+      <button type="button" class="modo" data-modo="lista">
+        <i class="fa-solid fa-list-ul"></i>
+        <span><b>Lista de preços</b><small>artigo e preço NF, todas as cores</small></span>
+      </button>
     </div>
 
     <div class="card-desc" id="desc2">Selecione o arquivo .xlsx exportado da carteira. Colunas esperadas: REFERENCIA, DESCRICAO, COR, PREV FAT, CART.</div>
@@ -421,7 +449,7 @@
   <div id="genCard" class="card hidden">
     <div class="card-title"><span class="step-num">4</span> Gerar catálogo</div>
     <div class="card-desc">O PDF será gerado com os produtos acima, agrupados por referência e cor.</div>
-    <div class="toggle-row">
+    <div class="toggle-row" id="rowGrade">
       <div class="tg-txt">
         <div class="tg-title">Incluir grade de tamanhos</div>
         <div class="tg-desc">Mostra a distribuição de pares por tamanho na conferência e no PDF.</div>
@@ -463,6 +491,7 @@
           <div class="cad-prev" id="cadPrev"><i class="fa-solid fa-image"></i></div>
           <div class="cad-img-lado">
             <button class="btn-mini" id="cadEscolher"><i class="fa-solid fa-upload"></i> Escolher foto</button>
+            <button class="btn-mini" id="cadTS"><i class="fa-solid fa-magnifying-glass"></i> Trade Squash</button>
             <input type="file" id="cadFile" accept="image/*" class="hidden">
             <div class="cad-hint" id="cadHint">A foto vai para <code>imagens_olympikus</code> com o nome abaixo.</div>
           </div>
@@ -503,6 +532,17 @@
   <div class="foot">CMS Representações · Catálogo de Encomendas</div>
 </div>
 
+<script>
+// A janela "Foto" (Trade Squash, Google, arquivo, colar) é a mesma da CMS STORE
+// e mora no apps-oly. No ambiente local vem da 5500, para valer a versão em teste.
+(function(){
+  const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const s = document.createElement("script");
+  s.src = local ? `http://${location.hostname}:5500/amostras/foto.js`
+                : "https://cms-representacoes.github.io/apps-oly/amostras/foto.js";
+  document.head.appendChild(s);
+})();
+</script>
 <script>
 "use strict";
 
@@ -634,6 +674,7 @@ async function carregarBase(){
    só é consultado para achar a imagem. */
 let MODO = "carteira";
 const ehPromo = () => MODO === "promocao";
+const ehLista = () => MODO === "lista";
 
 const TEXTOS_MODO = {
   carteira: {
@@ -645,6 +686,11 @@ const TEXTOS_MODO = {
     titulo: "Importar planilha de oportunidade",
     desc: "Selecione o .xlsx da oportunidade. Colunas esperadas: ARTIGO, DESCRIÇÃO, COR, PDV, MKP PROM, PDC PROM, STK TOTAL e os tamanhos. O cabeçalho pode estar em qualquer linha das primeiras — ele é achado sozinho.",
     sub: "Formato .xlsx · o preço vem da planilha",
+  },
+  lista: {
+    titulo: "Importar lista de preços",
+    desc: "Selecione o .xlsx com ARTIGO, DESCRIÇÃO, PREÇO NF e PDV (os blocos podem vir lado a lado). A lista não traz cor: cada artigo abre em todas as cores da base e, se não estiver nela, nas cores do Trade Squash.",
+    sub: "Formato .xlsx · sem quantidade, só preço",
   },
 };
 
@@ -659,6 +705,7 @@ document.querySelectorAll("#modos .modo").forEach(bt=>{
     $("desc2").textContent = t.desc;
     $("dropSub").textContent = t.sub;
     $("rowTotal").hidden = !ehPromo();
+    $("rowGrade").hidden = ehLista();   // a lista não tem quantidade por tamanho
     // trocar de método zera o que estava importado: as duas planilhas não
     // falam a mesma língua, e misturar as duas daria um PDF sem sentido
     linhasBrutas = []; carteira = []; selecionados = new Set();
@@ -742,11 +789,14 @@ async function processarPromocao(file){
     categoria:ondeEsta(["CATEGORIA"]),
     pdv:      ondeEsta(["PDV"]),
     mkp:      ondeEsta(["MKP PROM", "MKP"]),
-    custo:    ondeEsta(["PDC PROM", "CUSTO PROM"]),
+    // sem preço promocional, um custo comum (CUSTO ou PREÇO NF) também serve;
+    // o PDF muda o rótulo para não chamar de promoção o que não é
+    custo:    ondeEsta(["PDC PROM", "CUSTO PROM", "CUSTO", "PREÇO NF", "PRECO NF"]),
     custoOrig:ondeEsta(["PDC ORIG", "CUSTO"]),
     total:    ondeEsta(["STK TOTAL", "T. GER", "TOTAL"]),
   };
   if(col.artigo < 0) throw new Error("A planilha não tem a coluna ARTIGO");
+  const custoPromo = col.custo >= 0 && /PROM/.test(cab[col.custo]);
 
   // tamanho é toda coluna cujo título é só número (26, 28, 34...)
   const colsTam = [];
@@ -777,6 +827,7 @@ async function processarPromocao(file){
       pdv:   col.pdv   >= 0 ? soNum(row[col.pdv]) : 0,
       mkp:   col.mkp   >= 0 ? soNum(row[col.mkp]) : 0,
       custo: col.custo >= 0 ? soNum(row[col.custo]) : 0,
+      custoPromo,
       custoOrig: col.custoOrig >= 0 ? soNum(row[col.custoOrig]) : 0,
       grade, somaGrade,
       cart: total || somaGrade,
@@ -787,11 +838,166 @@ async function processarPromocao(file){
   return linhas;
 }
 
+/* Lista de preços: ARTIGO · DESCRIÇÃO · PREÇO NF · PDV, às vezes em dois blocos
+   lado a lado na mesma linha (como a lista impressa). Cada coluna ARTIGO abre um
+   bloco que vai até o próximo ARTIGO; dentro dele, as outras colunas são achadas
+   pelo nome. Não há cor nem quantidade — as cores saem da base ou do Trade Squash. */
+async function processarLista(file){
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, { type:"array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const matriz = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
+  const iCab = acharCabecalho(matriz);
+  if(iCab < 0) throw new Error("Não achei o cabeçalho com ARTIGO e DESCRIÇÃO");
+
+  const cab = matriz[iCab].map(chaveCab);
+  const inicios = [];
+  cab.forEach((n, i)=>{ if(n === "ARTIGO" || n === "REFERENCIA" || n === "REFERÊNCIA") inicios.push(i); });
+  const blocos = inicios.map((ini, k)=>{
+    const fim = k + 1 < inicios.length ? inicios[k + 1] : cab.length;
+    const acha = teste => { for(let i = ini + 1; i < fim; i++) if(teste(cab[i])) return i; return -1; };
+    return {
+      artigo: ini,
+      desc: acha(n => n.startsWith("DESCRI")),
+      nf:   acha(n => /\bNF\b/.test(n)),
+      pdv:  acha(n => /\bPDV\b/.test(n)),
+    };
+  });
+
+  const porArtigo = new Map();
+  for(let r = iCab + 1; r < matriz.length; r++){
+    const row = matriz[r] || [];
+    for(const b of blocos){
+      const artigo = String(row[b.artigo] ?? "").trim().replace(/\.0+$/, "");
+      if(!/^\d{6,9}$/.test(artigo)) continue;   // linha em branco, título, total
+      porArtigo.set(artigo, {
+        ref: artigo,
+        desc: b.desc >= 0 ? String(row[b.desc] ?? "").trim() : "",
+        nf:   b.nf  >= 0 ? soNum(row[b.nf])  : 0,
+        pdv:  b.pdv >= 0 ? soNum(row[b.pdv]) : 0,
+      });
+    }
+  }
+  if(!porArtigo.size) throw new Error("Nenhum artigo encontrado na lista");
+  return Array.from(porArtigo.values());
+}
+
+// ── Cores do Trade Squash, para o artigo que não está na base ──
+// O Worker, quando a cor pedida não existe lá, devolve as cores que o artigo tem.
+// A cor abaixo nunca casa com nada de propósito: é o jeito de pedir só a lista.
+const COR_SO_LISTA = "QQLISTARCORESQQ";
+const tsCoresCache = new Map();   // artigo → Promise<[{ cor, nome }]>
+
+// "43321122-PTO/CH" → "PTO/CH"; na UA "3027001_001_10" → "001" (sem o tamanho)
+function corDoSku(sku, artigo){
+  let resto = String(sku || "").trim();
+  const i = resto.toUpperCase().indexOf(String(artigo).toUpperCase());
+  if(i >= 0) resto = resto.slice(i + String(artigo).length);
+  resto = resto.replace(/^[-_\s]+/, "");
+  const partes = resto.split("_");
+  if(partes.length > 1 && /^(\d{1,3}|P|PP|M|G|GG|EG|XS|S|L|XL|XXL)$/i.test(partes[partes.length - 1])) partes.pop();
+  return partes.join("_").trim();
+}
+
+function tsCoresDoArtigo(artigo){
+  if(tsCoresCache.has(artigo)) return tsCoresCache.get(artigo);
+  const p = (async ()=>{
+    // 7 dígitos é Under Armour; tenta a marca do artigo e depois a outra
+    const ua = /^\d{7}$/.test(artigo);
+    for(const marca of ua ? ["ua","oly"] : ["oly","ua"]){
+      try{
+        const d = await pedirWorker("tsPreviaImagem", { marca, artigo, cor:COR_SO_LISTA });
+        if(d && Array.isArray(d.cores) && d.cores.length){
+          const vistas = new Set(), cores = [];
+          for(const c of d.cores){
+            const cor = corDoSku(c.sku, artigo) || c.cor;
+            const k = chaveCor(cor);
+            if(!cor || vistas.has(k)) continue;
+            vistas.add(k);
+            cores.push({ cor, nome:c.nome || "" });
+          }
+          return cores;
+        }
+      }catch(e){ console.warn("Trade Squash", artigo, marca, e); }
+    }
+    return [];
+  })();
+  tsCoresCache.set(artigo, p);
+  // falha não fica guardada: a próxima importação tenta de novo
+  p.then(l => { if(!l.length) tsCoresCache.delete(artigo); });
+  return p;
+}
+
+async function recalcularLista(reset){
+  await basePronta;   // sem a base, todo artigo pareceria novo e iria ao Trade Squash
+  const q = filtros.desc.toLowerCase();
+  const linhas = linhasBrutas.filter(l => !q || String(l.desc || "").toLowerCase().includes(q));
+
+  // quem não está na base pergunta ao Trade Squash, de 4 em 4
+  const foraDaBase = linhas.filter(l => !baseProdutos.some(p => norm(p.codigo) === norm(l.ref)));
+  const corTS = new Map();
+  for(let i = 0; i < foraDaBase.length; i += 4){
+    setStatus($("cartStatus"), "info",
+      `<i class="fa-solid fa-circle-notch spin"></i> Buscando as cores no Trade Squash… ${Math.min(i + 4, foraDaBase.length)} de ${foraDaBase.length} artigos`);
+    await Promise.all(foraDaBase.slice(i, i + 4).map(async l => corTS.set(l.ref, await tsCoresDoArtigo(l.ref))));
+  }
+
+  carteira = [];
+  for(const l of linhas){
+    const daBase = baseProdutos.filter(p => norm(p.codigo) === norm(l.ref));
+    const comum = { ref:l.ref, nf:l.nf, meses:[], total:0, somaGrade:0, temGrade:false, temBase:true };
+    if(daBase.length){
+      const vistas = new Set();
+      for(const p of daBase){
+        const k = chaveCor(p.cor);
+        if(vistas.has(k)) continue;
+        vistas.add(k);
+        carteira.push({ ...comum,
+          chave:`${norm(l.ref)}|${norm(p.cor)}`, cor:p.cor,
+          produto: l.desc || p.produto, genero:p.genero, tam:p.tam,
+          preco: l.pdv || p.preco,
+          imagem: p.imagem || nomeArquivoPadrao(l.ref, p.corCodigo || p.cor),
+          origem:"base",
+        });
+      }
+    } else {
+      const cores = corTS.get(l.ref) || [];
+      if(!cores.length){
+        carteira.push({ ...comum, chave:`${norm(l.ref)}|`, cor:"", produto:l.desc || l.ref,
+          genero:"", tam:"", preco:l.pdv, imagem:"", origem:"nenhuma" });
+      }
+      for(const c of cores){
+        carteira.push({ ...comum,
+          chave:`${norm(l.ref)}|${norm(c.cor)}`, cor:c.cor,
+          produto: l.desc || c.nome || l.ref, genero:"", tam:"",
+          preco: l.pdv, imagem: nomeArquivoPadrao(l.ref, c.cor),
+          origem:"ts",
+        });
+      }
+    }
+  }
+  // a ordem da lista é a do papel: artigo a artigo, cores em ordem alfabética
+  const ordem = new Map(linhasBrutas.map((l, i) => [norm(l.ref), i]));
+  carteira.sort((a, b) =>
+    (ordem.get(norm(a.ref)) - ordem.get(norm(b.ref))) ||
+    String(a.cor).localeCompare(String(b.cor), "pt-BR"));
+
+  for(const c of carteira){
+    c.estado = c.origem === "nenhuma" ? "semArtigo" : "checando";
+    c.imagemUrl = "";
+  }
+  renderFiltros();
+  await conferirImagens();
+  if(reset) selecionados = new Set(carteira.filter(c => c.estado === "ok").map(c => c.chave));
+  else for(const c of carteira) if(c.estado !== "ok") selecionados.delete(c.chave);
+  renderPreview();
+}
+
 async function processarArquivo(file){
   setStatus($("cartStatus"), "info", `<i class="fa-solid fa-circle-notch spin"></i> Lendo "${file.name}"…`);
-  if(ehPromo()){
+  if(ehPromo() || ehLista()){
     try{
-      linhasBrutas = await processarPromocao(file);
+      linhasBrutas = await (ehLista() ? processarLista(file) : processarPromocao(file));
       temColuna.marca = false; temColuna.porta = false; temColuna.cliente = false;
       nomesClientes.clear();
       filtros = { marca:new Set(), porta:new Set(), cliente:new Set(), desc:"", mes:new Set() };
@@ -917,7 +1123,7 @@ async function recalcularPromo(reset){
       linhaProd: g.linha, categoria: g.categoria,
       tam: "",
       preco: g.pdv || (prod ? prod.preco : 0),
-      mkp: g.mkp, custo: g.custo, custoOrig: g.custoOrig,
+      mkp: g.mkp, custo: g.custo, custoPromo: g.custoPromo, custoOrig: g.custoOrig,
       // a foto está no cadastro ou, na falta dele, no nome ARTIGO_COR
       imagem: (prod && prod.imagem) ? prod.imagem : `${g.ref}_${String(g.cor).trim().replace(/[\/\s]+/g, "_")}`,
       temBase: true,          // a planilha basta: o que falta é a foto
@@ -961,6 +1167,7 @@ function passaFiltros(l){
 // reset=true: também reseta seleção (marca todos os grupos resultantes)
 async function recalcular(reset){
   if(ehPromo()) return recalcularPromo(reset);
+  if(ehLista()) return recalcularLista(reset);
   const linhasFil = linhasBrutas.filter(passaFiltros);
   const grupos = new Map(); // "ref|cor" → grupo
   for(const l of linhasFil){
@@ -1121,7 +1328,12 @@ function renderPreview(){
         `${plural(itens.length,"com cadastro e imagem","todos com cadastro e imagem")}.`
   );
 
-  $("resumo").innerHTML = `
+  $("previewList").classList.toggle("lista", ehLista());
+  $("resumo").innerHTML = ehLista() ? `
+    <div class="resumo-item"><div class="resumo-num">${numBR(new Set(itens.map(c=> c.ref)).size)}</div><div class="resumo-lbl">Artigos</div></div>
+    <div class="resumo-item"><div class="resumo-num">${numBR(itens.length)}</div><div class="resumo-lbl">Cores</div></div>
+    <div class="resumo-item"><div class="resumo-num">${numBR(pend.length)}</div><div class="resumo-lbl">Pendências</div></div>
+  ` : `
     <div class="resumo-item"><div class="resumo-num">${numBR(itens.length)}</div><div class="resumo-lbl">Produtos</div></div>
     <div class="resumo-item"><div class="resumo-num">${numBR(totalPares)}</div><div class="resumo-lbl">Pares</div></div>
     <div class="resumo-item"><div class="resumo-num">${numBR(pend.length)}</div><div class="resumo-lbl">Pendências</div></div>
@@ -1135,7 +1347,9 @@ function renderPreview(){
     const meta = [c.cor, c.genero].filter(Boolean).join(" · ");
 
     let blocoMeses;
-    if(mostrarGrade && c.temGrade){
+    if(ehLista()){
+      blocoMeses = "";   // a lista não tem quantidade
+    } else if(mostrarGrade && c.temGrade){
       blocoMeses = c.meses.map(m=>{
         const cels = m.grade.map(cel=>
           `<div class="grade-cel"><div class="gt">${cel.tam}</div><div class="gq">${numBR(cel.qtd)}</div></div>`
@@ -1157,7 +1371,9 @@ function renderPreview(){
     // no modo oportunidade os números de venda vêm da planilha
     const promo = ehPromo() ? `<div class="prev-promo">
         ${c.mkp ? `<span>MKP</span> <b>${c.mkp.toLocaleString("pt-BR",{minimumFractionDigits:1, maximumFractionDigits:2})}</b>` : ""}
-        ${c.custo ? `<span>Custo prom.</span> <b class="promo">${moneyBR(c.custo)}</b>` : ""}
+        ${c.custo ? (c.custoPromo
+          ? `<span>Custo prom.</span> <b class="promo">${moneyBR(c.custo)}</b>`
+          : `<span>Custo</span> <b>${moneyBR(c.custo)}</b>`) : ""}
         ${c.custoOrig && c.custoOrig !== c.custo ? `<span class="prev-de">${moneyBR(c.custoOrig)}</span>` : ""}
       </div>` : "";
 
@@ -1167,14 +1383,18 @@ function renderPreview(){
       <img class="prev-img" src="${escAttr(c.imagemUrl)}" alt="">
       <div class="prev-info">
         <div class="prev-name">${escHtml(c.produto)} · ${escHtml(c.ref)}</div>
-        <div class="prev-meta">${escHtml(meta) || "—"}${c.tam?` · Tam ${escHtml(c.tam)}`:""}</div>
+        <div class="prev-meta">${escHtml(meta) || "—"}${c.tam?` · Tam ${escHtml(c.tam)}`:""}${c.origem === "ts" ? `<span class="tag-ts" title="Artigo fora da base: a cor veio do Trade Squash">Trade Squash</span>` : ""}</div>
         ${blocoMeses}
         ${promo}
         ${aviso}
       </div>
-      <div class="prev-right">
+      <div class="prev-right">${ehLista() ? `
+        <div class="prev-precos">
+          <div><small>Preço NF</small><b>${c.nf ? moneyBR(c.nf) : "—"}</b></div>
+          <div class="pdv"><small>PDV</small><b>${c.preco ? moneyBR(c.preco) : "—"}</b></div>
+        </div>` : `
         <div class="prev-pdv">${c.preco ? moneyBR(c.preco) : "—"}</div>
-        <div class="prev-total"><small>Total</small>${numBR(c.total)}</div>
+        <div class="prev-total"><small>Total</small>${numBR(c.total)}</div>`}
       </div>
     </div>`;
   }).join("");
@@ -1198,6 +1418,12 @@ function renderPreview(){
 
 // Explica, numa frase, por que o item nao entra no catalogo.
 function motivoPendencia(c){
+  if(c.estado === "semArtigo"){
+    return `Não está na base de produtos e o Trade Squash não devolveu nenhuma cor para <code>${escHtml(c.ref)}</code>. Confira o código na lista.`;
+  }
+  if(ehLista()){
+    return `Sem foto. Ela vai entrar como <code>${escHtml(c.imagem)}</code>.`;
+  }
   if(c.estado === "semCadastro"){
     return `Sem cadastro na base — não existe produto com o código <code>${escHtml(c.ref)}</code> na cor <code>${escHtml(c.cor)}</code>.`;
   }
@@ -1213,14 +1439,23 @@ function renderPendencias(pend){
 
   $("pendCount").textContent = `${numBR(pend.length)} produto${pend.length>1?"s":""}`;
 
-  const grupos = [
+  const grupos = ehLista() ? [
+    { titulo:"Sem foto", ico:"fa-image", botao:"Buscar foto",
+      itens: pend.filter(c=> c.estado === "semImagem") },
+    { titulo:"Artigo não encontrado", ico:"fa-circle-question", botao:"",
+      itens: pend.filter(c=> c.estado === "semArtigo") }
+  ] : [
     { titulo:"Sem cadastro na base", ico:"fa-user-slash", botao:"Cadastrar produto",
       itens: pend.filter(c=> c.estado === "semCadastro") },
     { titulo:"Cadastrado, mas sem imagem", ico:"fa-image", botao:"Resolver imagem",
       itens: pend.filter(c=> c.estado === "semImagem") }
-  ].filter(g=> g.itens.length);
+  ];
 
-  $("pendBody").innerHTML = grupos.map(g=> `
+  const metaPend = c => ehLista()
+    ? [c.cor || "sem cor", c.nf ? `NF ${moneyBR(c.nf)}` : "", c.origem === "ts" ? "cor do Trade Squash" : ""].filter(Boolean).map(escHtml).join(" · ")
+    : `${escHtml(c.cor)} · ${numBR(c.total)} pares · ${c.meses.map(m=> escHtml(m.nome)).join(", ")}`;
+
+  $("pendBody").innerHTML = grupos.filter(g=> g.itens.length).map(g=> `
     <div class="pend-grupo">
       <div class="pend-grupo-tit">${g.titulo} (${numBR(g.itens.length)})</div>
       ${g.itens.map(c=> `
@@ -1228,16 +1463,70 @@ function renderPendencias(pend){
           <div class="pend-ico"><i class="fa-solid ${g.ico}"></i></div>
           <div class="pend-info">
             <div class="pend-name">${escHtml(c.produto)} · ${escHtml(c.ref)}</div>
-            <div class="pend-meta">${escHtml(c.cor)} · ${numBR(c.total)} pares · ${c.meses.map(m=> escHtml(m.nome)).join(", ")}</div>
+            <div class="pend-meta">${metaPend(c)}</div>
             <div class="pend-motivo">${motivoPendencia(c)}</div>
           </div>
-          <button class="btn-mini" data-chave="${escAttr(c.chave)}">${g.botao}</button>
+          ${g.botao ? `<div class="pend-acoes"><button class="btn-mini" data-chave="${escAttr(c.chave)}">${g.botao}</button></div>` : ""}
         </div>`).join("")}
     </div>`).join("");
 
   $("pendBody").querySelectorAll(".btn-mini").forEach(b=>{
-    b.addEventListener("click", ()=> abrirCadastro(b.dataset.chave));
+    b.addEventListener("click", ()=> ehLista() ? buscarFotoLista(b.dataset.chave, b) : abrirCadastro(b.dataset.chave));
   });
+}
+
+/* Foto que falta na lista: a janela da CMS STORE (Trade Squash primeiro, Google,
+   arquivo ou colar). A foto aprovada sobe para imagens_olympikus com o nome
+   ARTIGO_COR — a pasta que este gerador lê — e o item entra na lista na hora.
+   A base de produtos não é tocada: a lista de preços não cadastra produto. */
+async function workerFoto(body){
+  const d = await pedirWorker(body.action, body);
+  if(d && d.success === false) throw new Error(d.error || "falhou");
+  return d;
+}
+
+async function buscarFotoLista(chave, botao){
+  const c = carteira.find(x=> x.chave === chave);
+  if(!c) return;
+  if(!window.FotoAmostra){
+    setStatus($("cartStatus"), "err", `<i class="fa-solid fa-triangle-exclamation"></i> A janela de foto ainda não carregou. Recarregue a página e tente de novo.`);
+    return;
+  }
+  const r = await FotoAmostra.escolher({
+    artigo:c.ref, cor:c.cor, nome:c.produto, worker:workerFoto,
+    titulo:"Foto do produto", pergunta:"É esse produto?"
+  });
+  if(!r) return;
+  if(!r.b64){
+    setStatus($("cartStatus"), "err", `<i class="fa-solid fa-triangle-exclamation"></i> Esse link não deixa copiar a imagem. Salve a foto no computador e use Escolher arquivo.`);
+    return;
+  }
+  const original = botao ? botao.innerHTML : "";
+  if(botao){ botao.disabled = true; botao.innerHTML = '<i class="fa-solid fa-circle-notch spin"></i> Enviando…'; }
+  try{
+    const j = await FotoAmostra.paraJpeg(r.b64);   // o banco é todo .jpg, até 1200 px
+    await pedirWorker("uploadMatrizImagem", { nomeArquivo:`${c.imagem}.jpg`, base64:j.b64.split(",")[1] });
+    imagensLocais.set(c.imagem, j.b64);
+    imgCheck.delete(c.imagem);
+    enviadasAgora.add(c.imagem);
+    selecionados.add(c.chave);   // já entra marcado para o PDF
+    await recalcular(false);
+    avisarPublicacao();
+  }catch(err){
+    console.error(err);
+    if(botao){ botao.disabled = false; botao.innerHTML = original; }
+    setStatus($("cartStatus"), "err", `<i class="fa-solid fa-triangle-exclamation"></i> Não deu para enviar a foto: ${escHtml(err.message)}`);
+  }
+}
+
+function avisarPublicacao(){
+  if(!enviadasAgora.size) return;
+  const atual = $("cartStatus").innerHTML;
+  setStatus($("cartStatus"), "warn",
+    `${atual}<div class="aviso-pages"><i class="fa-solid fa-clock"></i> ` +
+    `${enviadasAgora.size === 1 ? "A foto enviada agora está" : "As fotos enviadas agora estão"} ` +
+    `sendo publicada no GitHub Pages — leva cerca de um minuto. Até lá o catálogo usa a imagem ` +
+    `deste navegador, então pode gerar o PDF normalmente.</div>`);
 }
 
 // Mostrar/ocultar o bloco de pendencias
@@ -1316,7 +1605,7 @@ function renderFiltros(){
     drops.push(dropdownHTML("cliente", "Cliente", ops, filtros.cliente));
   }
   // na oportunidade não há data de faturamento: o filtro de mês sairia vazio
-  if(!ehPromo()) drops.push(dropdownHTML("mes", "Prev fat", opcoesMeses(), filtros.mes));
+  if(!ehPromo() && !ehLista()) drops.push(dropdownHTML("mes", "Prev fat", opcoesMeses(), filtros.mes));
   drops.push(`<input type="text" id="fltDesc" class="flt-busca" placeholder="Buscar descrição…" value="${escAttr(filtros.desc)}">`);
 
   const hasAny = filtros.marca.size || filtros.porta.size || filtros.cliente.size || filtros.mes.size || filtros.desc;
@@ -1463,6 +1752,38 @@ $("cadFile").addEventListener("change", e=>{
   $("cadTesteRes").className = "cad-res";
 });
 
+// Foto do Trade Squash: mostra e pergunta (janela da CMS STORE). A aprovada vira
+// o mesmo "arquivo escolhido" do botão ao lado, e o Salvar segue igual.
+$("cadTS").addEventListener("click", async ()=>{
+  const res = $("cadTesteRes");
+  if(!window.FotoAmostra){ res.textContent = "A busca ainda não carregou. Recarregue a página."; res.className = "cad-res nao"; return; }
+  const btn = $("cadTS");
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch spin"></i> Buscando…';
+  try{
+    const r = await FotoAmostra.trazerTS({
+      worker:workerFoto, artigo:$("cadCodigo").value.trim(),
+      cor:$("cadCorCod").value.trim() || $("cadCor").value.trim(),
+      nome:$("cadProduto").value.trim(), pergunta:"É esse produto?"
+    });
+    if(r.foto){
+      const j = await FotoAmostra.paraJpeg(r.foto);
+      const blob = await (await fetch(j.b64)).blob();
+      cadastroFile = new File([blob], "trade-squash.jpg", { type:"image/jpeg" });
+      $("cadPrev").innerHTML = `<img src="${j.b64}" alt="">`;
+      if(!$("cadArquivo").value.trim()){
+        $("cadArquivo").value = nomeArquivoPadrao($("cadCodigo").value, $("cadCorCod").value);
+      }
+      res.textContent = "Foto do Trade Squash escolhida. Clique em Salvar na base."; res.className = "cad-res ok";
+    } else if(r.erro){ res.textContent = "Não deu para buscar: " + r.erro; res.className = "cad-res nao"; }
+    else if(r.nao){ res.textContent = "Não achei no Trade Squash. Use Escolher foto."; res.className = "cad-res nao"; }
+    else { res.textContent = ""; res.className = "cad-res"; }
+  }catch(err){
+    res.textContent = "Não deu para buscar: " + err.message; res.className = "cad-res nao";
+  }finally{
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Trade Squash';
+  }
+});
+
 // Testa um nome de arquivo sem gravar nada — resolve o caso de a imagem existir
 // com um nome diferente do que está no cadastro (PTOCH x PTO_CH).
 $("cadTestar").addEventListener("click", async ()=>{
@@ -1558,14 +1879,7 @@ $("cadSalvar").addEventListener("click", async ()=>{
     fecharCadastro();
     await recalcular(false);
 
-    if(enviadasAgora.size){
-      const atual = $("cartStatus").innerHTML;
-      setStatus($("cartStatus"), "warn",
-        `${atual}<div class="aviso-pages"><i class="fa-solid fa-clock"></i> ` +
-        `${enviadasAgora.size === 1 ? "A foto enviada agora está" : "As fotos enviadas agora estão"} ` +
-        `sendo publicada no GitHub Pages — leva cerca de um minuto. Até lá o catálogo usa a imagem ` +
-        `deste navegador, então pode gerar o PDF normalmente.</div>`);
-    }
+    avisarPublicacao();
   }catch(err){
     console.error(err);
     setStatus(st, "err", `<i class="fa-solid fa-triangle-exclamation"></i> Não deu para salvar: ${escHtml(err.message)}`);
@@ -1737,6 +2051,7 @@ async function gerarPDF(){
     // Calcula a altura necessária do card conforme o conteúdo
     function calcCardH(c){
       if(ehPromo()) return calcCardPromoH(c);
+      if(ehLista()) return IMG_SZ + CARD_PAD_Y * 2;
       // nome(13) + ref(14) + atributos(14)
       let texto = 13 + 13 + 14 + 14;
       if(!c.temBase) texto += 13;
@@ -1851,8 +2166,8 @@ async function gerarPDF(){
       if(c.custo){
         doc.setTextColor(161,161,170);
         doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
-        doc.text("CUSTO PROM.", rx - 62, ry, { align:"right" });
-        doc.setTextColor(21,128,61);
+        doc.text(c.custoPromo ? "CUSTO PROM." : "CUSTO", rx - 62, ry, { align:"right" });
+        if(c.custoPromo) doc.setTextColor(21,128,61); else doc.setTextColor(24,24,27);
         doc.setFont("helvetica","bold"); doc.setFontSize(12);
         doc.text(moneyBR(c.custo), rx, ry, { align:"right" });
         ry += 15;
@@ -1887,8 +2202,58 @@ async function gerarPDF(){
       return y + cardH;
     }
 
+    /* ─── Card da lista de preços ───
+       Imagem e textos como nos outros; à direita, Preço NF e PDV lado a lado,
+       cada um na sua coluna. Sem grade e sem total: a lista não tem quantidade. */
+    function drawCardLista(c, y){
+      const cardH = IMG_SZ + CARD_PAD_Y * 2;
+      doc.setDrawColor(241,245,249); doc.setLineWidth(0.5);
+      doc.line(margin, y, margin+contentW, y);
+      const cy = y + CARD_PAD_Y;
+
+      const im = imgCache[c.imagem];
+      doc.setFillColor(243,244,246);
+      doc.roundedRect(margin, cy, IMG_SZ, IMG_SZ, 8, 8, "F");
+      if(im && im.data){
+        let w = IMG_SZ, h = IMG_SZ;
+        if(im.w && im.h){ const r = im.w/im.h; if(r>1) h = IMG_SZ/r; else w = IMG_SZ*r; }
+        doc.addImage(im.data, "PNG", margin+(IMG_SZ-w)/2, cy+(IMG_SZ-h)/2, w, h);
+      }
+
+      // as duas colunas de preço ocupam 190 pt à direita; o nome não invade
+      const colPDV = margin + contentW, colNF = colPDV - 100;
+      const tx = margin + IMG_SZ + 16;
+      const larguraTexto = colNF - 80 - tx;
+      let ty = cy + 13;
+      doc.setTextColor(24,24,27);
+      doc.setFont("helvetica","bold"); doc.setFontSize(14);
+      doc.text(doc.splitTextToSize(String(c.produto || "—"), larguraTexto)[0], tx, ty);
+      ty += 13;
+      doc.setTextColor(161,161,170);
+      doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text(`Art. ${c.ref}`, tx, ty);
+      ty += 14;
+      doc.setTextColor(24,24,27);
+      doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+      const attrs = [c.cor, c.genero, c.tam ? `Tam ${c.tam}` : ""].filter(Boolean).join("   ·   ") || "—";
+      doc.text(doc.splitTextToSize(attrs, larguraTexto)[0], tx, ty);
+
+      const coluna = (x, rotulo, valor, cor) => {
+        doc.setTextColor(161,161,170);
+        doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+        doc.text(rotulo, x, cy + 13, { align:"right" });
+        doc.setTextColor(...cor);
+        doc.setFont("helvetica","bold"); doc.setFontSize(15);
+        doc.text(valor ? moneyBR(valor) : "—", x, cy + 30, { align:"right" });
+      };
+      coluna(colNF,  "PREÇO NF", c.nf,    [24,24,27]);
+      coluna(colPDV, "PDV",      c.preco, [124,58,237]);
+      return y + cardH;
+    }
+
     function drawCard(c, y){
       if(ehPromo()) return drawCardPromo(c, y);
+      if(ehLista()) return drawCardLista(c, y);
       const cardH = calcCardH(c);
       // divisória
       doc.setDrawColor(241,245,249); doc.setLineWidth(0.5);
@@ -2100,9 +2465,10 @@ async function gerarPDF(){
       y = drawCard(c, y);
     }
 
-    // resumo — tenta caber no fim da página; senão, página nova
+    // resumo — tenta caber no fim da página; senão, página nova.
+    // A lista de preços não tem pares para somar: fica sem resumo.
     y += 14;
-    {
+    if(!ehLista()){
       const generosDistintos = new Set(
         itensPDF.map(c=> c.genero && c.genero.trim() ? c.genero.trim() : "Sem classificação")
       );
@@ -2134,7 +2500,8 @@ async function gerarPDF(){
     const hoje = new Date();
     const dd = String(hoje.getDate()).padStart(2,"0");
     const mm = String(hoje.getMonth()+1).padStart(2,"0");
-    const partes = [ehPromo() ? `OPORTUNIDADE ${dd}-${mm}-${String(hoje.getFullYear()).slice(2)}` : "CARTEIRA 2S26"];
+    const dataNome = `${dd}-${mm}-${String(hoje.getFullYear()).slice(2)}`;
+    const partes = [ehPromo() ? `OPORTUNIDADE ${dataNome}` : ehLista() ? `LISTA DE PREÇOS ${dataNome}` : "CARTEIRA 2S26"];
     const pCli  = parteNome(filtros.cliente, "clientes");
     const pPort = parteNome(filtros.porta,   "portas");
     if(pCli)  partes.push(pCli);
