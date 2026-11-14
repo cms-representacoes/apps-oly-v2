@@ -8339,21 +8339,29 @@ $("btnClearCart").addEventListener("click", ()=>{
   $("clearCartCancel").onclick = () => modal.classList.add("hidden");
   $("clearCartOk").onclick = () => {
     modal.classList.add("hidden");
-    state.cart.clear();
-    state.lastOrderCfg = null;
-    MP.editandoRascunhoId = null;
-    // Esvaziar a sacola desfaz tambem o "refazendo": sem isto, o proximo
-    // pedido montado do zero sairia marcado como se refizesse aquele.
-    MP.refazendoPedidoId = null;
-    _atualizarLabelRascunho();
-    saveCartToStorage();
-    _marcarSacolaSalva(); // sacola vazia = nada a perder
-    for(const k of state.cardAddStatus.keys()) state.cardAddStatus.set(k,"idle");
-    renderCartUI();
-    refreshView(false);
+    esvaziarSacola();
     toast("Sacola limpa ✅");
   };
 });
+
+/* Esvaziar a sacola é mais do que um clear() no Map: há três marcas de
+   contexto que ficariam penduradas e contaminariam o PRÓXIMO pedido — o
+   rascunho em edição, o "refazendo" (o pedido novo sairia marcado como se
+   refizesse aquele) e a configuração do pedido anterior. Virou função porque
+   agora há dois caminhos até aqui: o botão da lixeira e a pergunta que vem
+   depois de finalizar. */
+function esvaziarSacola(){
+  state.cart.clear();
+  state.lastOrderCfg = null;
+  MP.editandoRascunhoId = null;
+  MP.refazendoPedidoId = null;
+  _atualizarLabelRascunho();
+  saveCartToStorage();
+  _marcarSacolaSalva();            // sacola vazia = nada a perder
+  for(const k of state.cardAddStatus.keys()) state.cardAddStatus.set(k, "idle");
+  renderCartUI();
+  refreshView(false);
+}
 
 /** A condição de pagamento que vale para o valor mostrado na sacola.
  *
@@ -9818,30 +9826,35 @@ async function _doExportXlsx(salvarHist){
   // Pedido finalizado conta como "salvo" — não avisa ao limpar
   _marcarSacolaSalva();
 
-  // Salva no histórico se o usuário confirmou
+  /* O await aqui é de propósito. Antes isto era .then() solto, e a pergunta
+     sobre limpar a sacola chegaria antes de o histórico terminar — se a
+     gravação falhasse e a sacola já tivesse sido limpa, o pedido sumiria dos
+     dois lados. Agora espera-se a resposta, e só uma gravação BEM-SUCEDIDA
+     libera a pergunta. */
+  let histOk = true;
   if(salvarHist && typeof salvarPedidoNoHistorico === "function"){
-    salvarPedidoNoHistorico(cfg)
-      .then(async () => {
-        toast(MP.refazendoPedidoId
-          ? "Pedido refeito e salvo no histórico 📋"
-          : "Pedido salvo no histórico 📋");
-        MP.refazendoPedidoId = null;
-        // Se este pedido veio de um RASCUNHO, remove o rascunho (virou finalizado)
-        if(MP.editandoRascunhoId){
-          const rascId = MP.editandoRascunhoId;
-          MP.editandoRascunhoId = null;
-          _atualizarLabelRascunho();
-          const com = String(cfg.commission || "").trim();
-          if(com){
-            const del = await deletarRascunhoNoWorker(com, rascId);
-            if(del.success) console.log("Rascunho finalizado e removido:", rascId);
-          }
+    try{
+      await salvarPedidoNoHistorico(cfg);
+      toast(MP.refazendoPedidoId
+        ? "Pedido refeito e salvo no histórico 📋"
+        : "Pedido salvo no histórico 📋");
+      MP.refazendoPedidoId = null;
+      // Se este pedido veio de um RASCUNHO, remove o rascunho (virou finalizado)
+      if(MP.editandoRascunhoId){
+        const rascId = MP.editandoRascunhoId;
+        MP.editandoRascunhoId = null;
+        _atualizarLabelRascunho();
+        const com = String(cfg.commission || "").trim();
+        if(com){
+          const del = await deletarRascunhoNoWorker(com, rascId);
+          if(del.success) console.log("Rascunho finalizado e removido:", rascId);
         }
-      })
-      .catch(err => {
-        console.warn("Histórico:", err);
-        toast("Excel gerado, mas falha ao salvar histórico ⚠️");
-      });
+      }
+    }catch(err){
+      histOk = false;
+      console.warn("Histórico:", err);
+      toast("Excel gerado, mas falha ao salvar histórico ⚠️");
+    }
   }
 
   if(warnings.length){
@@ -9850,6 +9863,36 @@ async function _doExportXlsx(salvarHist){
   } else if(!salvarHist){
     toast("Excel gerado ✅");
   }
+
+  await _perguntarLimparSacola(histOk);
+}
+
+/* Depois de finalizar, a sacola fica como estava. Isso serve a quem vai fazer
+   outro pedido parecido — e atrapalha quem vai começar do zero e não percebe
+   que os itens continuam lá. Em vez de decidir por ele, pergunta-se.
+
+   Não pergunta quando a sacola já está vazia, nem quando o histórico falhou:
+   ali o Excel é a única cópia do pedido, e oferecer "limpar" seria oferecer
+   perder o trabalho. */
+async function _perguntarLimparSacola(histOk){
+  if(state.cart.size === 0) return;
+  if(histOk === false){
+    toast("A sacola foi mantida — o pedido não chegou ao histórico ⚠️", { duration: 6000 });
+    return;
+  }
+  const n = state.cart.size;
+  const limpar = await appConfirm({
+    title: "Limpar a sacola?",
+    message: `O pedido foi finalizado e o Excel já está no seu computador.`
+           + `<br><br>A sacola ainda tem <strong>${n} ${n === 1 ? "produto" : "produtos"}</strong>.`
+           + ` Limpe para começar outro do zero, ou mantenha para montar um pedido parecido.`,
+    okText: "Limpar sacola",
+    cancelText: "Manter"
+  });
+  if(!limpar){ toast("Sacola mantida ✅"); return; }
+  esvaziarSacola();
+  toast("Sacola limpa ✅");
+  if(typeof closeCartModal === "function") closeCartModal();
 }
 
 // Modal de confirmação de salvamento no histórico
