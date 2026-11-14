@@ -2089,6 +2089,25 @@
       transition:all .15s;
     }
     .mp-pedido-item:hover { border-color:var(--primary); }
+    /* Marcado: a borda e o fundo dizem o estado sem depender da caixinha,
+       que é pequena demais para ser lida de relance numa lista longa. */
+    .mp-pedido-item.mp-sel {
+      border-color:#dc2626;
+      background:color-mix(in srgb, #dc2626 5%, var(--card-bg, #fff));
+    }
+    /* Alvo de toque de 36px no celular, com a caixa de 18px no meio: o dedo
+       acerta sem abrir o pedido por engano. */
+    .mp-sel-cx {
+      flex:none; display:flex; align-items:center; justify-content:center;
+      width:36px; height:36px; margin:-9px -6px -9px -4px; cursor:pointer;
+      border-radius:10px;
+    }
+    .mp-sel-cx:hover { background:color-mix(in srgb, var(--primary) 10%, transparent); }
+    .mp-sel-cx input {
+      width:18px; height:18px; cursor:pointer; accent-color:#dc2626; margin:0;
+    }
+    /* A barra só existe quando há algo marcado — por isso o display vem do JS. */
+    #mpSelBarra:not(.hidden) { display:flex; }
     .mp-pedido-head {
       padding:12px 14px;
       cursor:pointer;
@@ -4673,6 +4692,11 @@ html.dark-mode #homeScreen{ background:transparent; }
         <span id="toastMsg">Ok</span>
         <button id="toastAction" type="button" class="hidden ml-2 rounded-full bg-white/15 hover:bg-white/25 px-3 py-1 text-xs font-extrabold transition" style="color:#fff"></button>
       </div>
+      <!-- O tempo que falta para a ação virar definitiva. Sem ela, "Desfazer"
+           aparece e some sem avisar quanto ainda dá para voltar atrás. -->
+      <div id="toastBarra" class="hidden" style="height:3px;margin:4px 14px 0;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden">
+        <div id="toastBarraFill" style="height:100%;width:100%;background:#fff;border-radius:999px"></div>
+      </div>
     </div>
   </div>
 
@@ -5297,11 +5321,16 @@ function toast(msg, opts){
       action.textContent = opts.actionLabel;
       action.classList.remove("hidden");
       toast._actionHandler = ()=>{
-        try{ opts.onAction(); } finally {
-          clearTimeout(toast._t);
-          t.classList.add("hidden");
-          action.classList.add("hidden");
-        }
+        /* Fecha ANTES de executar. Era o contrário, e aí a ação de desfazer
+           abria o seu próprio aviso ("Nada foi apagado") que este mesmo bloco
+           escondia logo em seguida, junto com o timeout dele — o vendedor
+           clicava em Desfazer e não via confirmação nenhuma. */
+        clearTimeout(toast._t);
+        t.classList.add("hidden");
+        action.classList.add("hidden");
+        const b = document.getElementById("toastBarra");
+        if(b) b.classList.add("hidden");
+        opts.onAction();
       };
       action.addEventListener("click", toast._actionHandler);
     } else {
@@ -5309,9 +5338,29 @@ function toast(msg, opts){
     }
   }
   const dur = (opts && opts.duration) || 1500;
+  // A barra corre do cheio ao vazio durante a janela. Só aparece quando quem
+  // chamou pede: num aviso de 1,5s ela seria um piscar sem sentido.
+  const barra = document.getElementById("toastBarra");
+  const fill  = document.getElementById("toastBarraFill");
+  if(barra && fill){
+    if(opts && opts.barra){
+      barra.classList.remove("hidden");
+      fill.style.transition = "none";
+      fill.style.width = "100%";
+      // Dois quadros de respiro: sem isso o navegador junta as duas mudanças
+      // e a barra salta direto para zero, sem animar.
+      requestAnimationFrame(()=> requestAnimationFrame(()=>{
+        fill.style.transition = `width ${dur}ms linear`;
+        fill.style.width = "0%";
+      }));
+    } else {
+      barra.classList.add("hidden");
+    }
+  }
   toast._t = setTimeout(()=>{
     t.classList.add("hidden");
     if(action) action.classList.add("hidden");
+    if(barra) barra.classList.add("hidden");
   }, dur);
 }
 
@@ -14376,6 +14425,10 @@ const MP = {
   customAte: "",
   editandoRascunhoId: null, // id do rascunho sendo editado na sacola (null = sacola normal)
   refazendoPedidoId: null,  // id do pedido finalizado que a sacola esta refazendo
+  // Ids marcados para apagar. Vive só enquanto o modal está aberto: trocar de
+  // comissionista, de aba ou de filtro limpa, senão o vendedor apagaria um
+  // pedido que não está mais à vista.
+  selecionados: new Set(),
 };
 
 const COMISSIONISTAS = [
@@ -15211,8 +15264,15 @@ function _mpRenderFinalizados(){
       (p.refazDe ? `<span class="mp-tarja mp-tarja-refaz" title="Este pedido substitui um anterior">` +
         `<i class="fa-solid fa-rotate-left"></i> Refaz ${origem ? "o pedido de " + _mpEscape(String(_mpFormatBR(origem.createdAt)).split(" · ")[0]) : "um pedido anterior"}</span>` : "");
 
-    return `<div class="mp-pedido-item" data-pedido-id="${_mpEscape(p.id)}">
+    const marcado = MP.selecionados.has(String(p.id));
+    return `<div class="mp-pedido-item${marcado ? " mp-sel" : ""}" data-pedido-id="${_mpEscape(p.id)}">
       <div class="mp-pedido-head" onclick="abrirCardPedido(this)">
+        <!-- O clique na caixa não pode abrir o pedido: o head inteiro é o
+             gatilho de abrir, então a caixa interrompe o clique ali mesmo. -->
+        <label class="mp-sel-cx" onclick="event.stopPropagation()" title="Marcar este pedido">
+          <input type="checkbox" ${marcado ? "checked" : ""}
+                 onchange="mpAlternarSelecao('${_mpEscape(p.id)}', this.checked)">
+        </label>
         <div class="mp-pedido-left">
           <div class="mp-pedido-cliente">${cliente}</div>
           <div class="mp-pedido-meta">
@@ -15347,6 +15407,7 @@ function _mpFindRascunhoById(id){
 // Troca de aba (rascunhos / finalizados)
 function _mpTrocarAba(aba){
   MP.abaAtiva = aba;
+  MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
   document.querySelectorAll(".mp-aba").forEach(b => {
     b.classList.toggle("mp-aba-active", b.dataset.aba === aba);
   });
@@ -15363,14 +15424,124 @@ function _mpTrocarAba(aba){
   // Botão "Limpar tudo" só na aba Finalizados (e só quando há pedidos — controlado no render)
   _mpAtualizarBotaoLimpar();
 }
-// Atualiza visibilidade do botão Limpar tudo
+/* A barra de apagar: aparece quando há pelo menos um pedido marcado e some
+   quando não há. O nome antigo (_mpAtualizarBotaoLimpar) continua, porque é
+   chamado de quatro lugares e todos querem a mesma coisa — manter a barra
+   coerente com o que está marcado. */
 function _mpAtualizarBotaoLimpar(){
-  const btn = document.getElementById("mpBtnClearHistorico");
-  if(!btn) return;
-  const naAbaFin = MP.abaAtiva === "finalizados";
-  const temPedidos = naAbaFin && ((MP.pedidosCache[MP.filtroComissionista] || []).length > 0);
-  btn.classList.toggle("hidden", !temPedidos);
+  const barra = document.getElementById("mpSelBarra");
+  if(!barra) return;
+  // Fora da aba de finalizados não há o que marcar.
+  if(MP.abaAtiva !== "finalizados" && MP.selecionados.size) MP.selecionados.clear();
+  const n = MP.selecionados.size;
+  barra.classList.toggle("hidden", n === 0);
+  const conta = document.getElementById("mpSelConta");
+  if(conta) conta.textContent = `${n} marcado${n !== 1 ? "s" : ""}`;
 }
+
+/* Marcar e desmarcar. Repinta só a linha tocada: refazer a lista inteira a
+   cada clique faria o modal piscar e perderia o pedido que estava aberto. */
+function mpAlternarSelecao(id, marcado){
+  const k = String(id);
+  if(marcado) MP.selecionados.add(k); else MP.selecionados.delete(k);
+  const card = document.querySelector(`.mp-pedido-item[data-pedido-id="${CSS.escape(k)}"]`);
+  if(card) card.classList.toggle("mp-sel", marcado);
+  _mpAtualizarBotaoLimpar();
+}
+
+function mpDesmarcarTodos(){
+  MP.selecionados.clear();
+  document.querySelectorAll(".mp-pedido-item.mp-sel").forEach(el => el.classList.remove("mp-sel"));
+  document.querySelectorAll(".mp-sel-cx input:checked").forEach(el => { el.checked = false; });
+  _mpAtualizarBotaoLimpar();
+}
+
+/* Apagar os marcados.
+   São três redes, nesta ordem: o modal pergunta antes; o pedido some da tela
+   mas NADA é enviado durante a janela de desfazer; e só depois dela o Worker
+   é chamado — que ainda guarda um backup do que saiu antes de gravar.
+   O desfazer é de verdade porque nada saiu do servidor ainda: cancelar é só
+   não mandar. */
+const MP_JANELA_DESFAZER = 6000;
+
+async function mpApagarSelecionados(){
+  const com = MP.filtroComissionista;
+  if(!com){ toast("Selecione um comissionista antes"); return; }
+  const ids = [...MP.selecionados];
+  if(!ids.length) return;
+
+  const lista = MP.pedidosCache[com] || [];
+  const alvos = lista.filter(p => MP.selecionados.has(String(p.id)));
+  const quais = alvos.slice(0, 4).map(p => {
+    const nome = nomeFantasiaPorCodigo(p.clientCode) || p.clientCode || "—";
+    return `<li><strong>${_mpEscape(String(nome))}</strong> · ${_mpEscape(String(_mpFormatBR(p.createdAt)).split(" · ")[0])} · ${p.totalItens || 0} itens</li>`;
+  }).join("");
+  const resto = alvos.length > 4 ? `<li>e mais ${alvos.length - 4}…</li>` : "";
+
+  const ok = await appConfirm({
+    title: ids.length === 1 ? "Apagar este pedido?" : `Apagar ${ids.length} pedidos?`,
+    message: `<ul style="margin:0 0 10px 18px;padding:0;list-style:disc">${quais}${resto}</ul>`
+           + `Você ainda poderá desfazer por alguns segundos.`,
+    okText: ids.length === 1 ? "Apagar" : `Apagar ${ids.length}`,
+    cancelText: "Cancelar",
+    tone: "danger"
+  });
+  if(!ok) return;
+
+  // Some da tela na hora, mas o servidor ainda não soube de nada.
+  const guardados = alvos.map(p => ({ ...p }));
+  MP.pedidosCache[com] = lista.filter(p => !MP.selecionados.has(String(p.id)));
+  MP.selecionados.clear();
+  renderListaPedidos();
+
+  let desfeito = false;
+  toast(ids.length === 1 ? "Pedido apagado" : `${ids.length} pedidos apagados`, {
+    duration: MP_JANELA_DESFAZER,
+    barra: true,
+    actionLabel: "Desfazer",
+    onAction: ()=>{
+      desfeito = true;
+      // Repõe na ordem original: a lista é ordenada por data na hora de
+      // mostrar, então basta devolver os objetos ao cache.
+      MP.pedidosCache[com] = [...(MP.pedidosCache[com] || []), ...guardados];
+      renderListaPedidos();
+      toast("Nada foi apagado ✅");
+    }
+  });
+
+  await new Promise(r => setTimeout(r, MP_JANELA_DESFAZER));
+  if(desfeito) return;
+
+  try{
+    let data = null, deuCerto = false;
+    for(const method of ["POST", "PATCH"]){
+      try{
+        const res = await fetch(WORKER_URL, {
+          method,
+          headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN_TOKEN },
+          body: JSON.stringify({ action: "deletePedidosHistorico", comissionista: com, ids })
+        });
+        data = await res.json().catch(()=> null);
+        if(res.ok && data && data.success){ deuCerto = true; break; }
+      }catch(_){}
+    }
+    if(!deuCerto) throw new Error((data && data.error) || "Erro no servidor");
+    const cf = $("mpCountFinalizados");
+    if(cf) cf.textContent = String((MP.pedidosCache[com] || []).length);
+  }catch(e){
+    // Falhou no servidor: os pedidos voltam para a tela. Sumir aqui e
+    // continuar lá seria a pior das saídas — na próxima abertura eles
+    // reapareceriam sem explicação.
+    MP.pedidosCache[com] = [...(MP.pedidosCache[com] || []), ...guardados];
+    renderListaPedidos();
+    toast("Não deu para apagar: " + (e.message || "verifique a conexão"));
+  }
+}
+
+document.addEventListener("click", (e)=>{
+  if(e.target.closest("#mpBtnApagarSel")) mpApagarSelecionados();
+  else if(e.target.closest("#mpSelLimpar")) mpDesmarcarTodos();
+});
 
 // Carrega item de rascunho de volta pra sacola (reaproveita conversor de pedido)
 function _mpRascunhoItemToCartItem(it){
@@ -16119,13 +16290,21 @@ async function _rxGerarPlanilha(){
   if(!r.ok){ toast("Nada para exportar ⚠️"); return; }
   const val = id => ($(id)?.value || "").trim();
 
-  // Item sem grade não gera linha no layout do EBM; avisa em vez de sair com
-  // uma planilha a menos sem explicação.
-  const comGrade = (r.items || []).filter(it => it.grade && Object.keys(it.grade).length > 0);
-  if(!comGrade.length){
-    toast("Nenhum item com grade — preencha a grade antes de exportar ⚠️");
+  /* Item sem grade ENTRA na planilha (pedido dos vendedores, 14/11/2026).
+     O comentário antigo aqui dizia que ele não gerava linha — não é verdade:
+     buildOrderExportRows monta a linha com artigo, cor, caixas e Total, e só
+     deixa as colunas de tamanho em branco. Quem precisa da prévia para mostrar
+     ao cliente quer exatamente isso, antes de ter fechado as grades.
+     O que a planilha assim NÃO serve é para subir no EBM — por isso o aviso
+     adiante, e não uma trava. Acessório e meia continuam resolvidos sozinhos
+     (coluna U e faixa), então só calçado sai realmente sem distribuição. */
+  const todos = r.items || [];
+  const semGrade = todos.filter(it => !(it.grade && Object.keys(it.grade).length > 0));
+  if(!todos.length){
+    toast("Nada para exportar ⚠️");
     return;
   }
+  const comGrade = todos;
 
   const cfg = {
     commission: val("rxCommission"),
@@ -16183,11 +16362,16 @@ async function _rxGerarPlanilha(){
   // a lista por baixo de dois modais abertos.
   fecharRascExportModal();
   if(!r.quando && typeof closeCartModal === "function") setTimeout(closeCartModal, 200);
-  const fora = (r.items || []).length - comGrade.length;
   if(warnings && warnings.length) console.warn("Avisos da exportação xlsx:", warnings);
-  toast(fora > 0
-    ? `Planilha gerada · ${fora} ${fora === 1 ? "item sem grade ficou" : "itens sem grade ficaram"} de fora ⚠️`
-    : (r.quando ? "Planilha do rascunho gerada ✅" : "Planilha da sacola gerada ✅"));
+  /* O aviso conta quantos saíram sem grade e por quanto tempo for preciso ler:
+     é a diferença entre uma prévia para o cliente ver e um arquivo pronto para
+     o EBM. Dizer só "gerada" deixaria o vendedor subir uma planilha em que o
+     calçado não tem tamanho nenhum. */
+  const n = semGrade.length;
+  toast(n > 0
+    ? `Planilha gerada · ${n} ${n === 1 ? "item saiu sem grade" : "itens saíram sem grade"} — serve de prévia, não para o EBM`
+    : (r.quando ? "Planilha do rascunho gerada ✅" : "Planilha da sacola gerada ✅"),
+    n > 0 ? { duration: 7000 } : undefined);
 }
 
 /* Os botões são ligados na PRIMEIRA abertura, não na carga do script: este
@@ -16254,62 +16438,11 @@ async function mpBaixarExcel(id){
   }catch(e){ ArqProg.falhar(e); }
 }
 
-// Limpa TODOS os pedidos finalizados do comissionista atual (com backup automático no Worker)
-async function mpLimparHistorico(){
-  const com = MP.filtroComissionista;
-  if(!com){ toast("Selecione um comissionista antes"); return; }
-  const lista = MP.pedidosCache[com] || [];
-  const totalAtual = lista.length;
-  if(totalAtual === 0){ toast("Nada para limpar ✅"); return; }
-  const nomeCom = getComissionistaNome(com) || com;
-  const ok = await appConfirm({
-    title: "Limpar histórico",
-    message: `Vai apagar <strong>TODOS os ${totalAtual} pedidos finalizados</strong> de <strong>${_mpEscape(nomeCom)}</strong>.<br><br>Um backup é criado automaticamente antes da limpeza. Esta ação é permanente na lista, mas os pedidos podem ser recuperados do backup em caso de erro.`,
-    okText: "Apagar tudo",
-    cancelText: "Cancelar",
-    tone: "danger"
-  });
-  if(!ok) return;
-  const btn = document.getElementById("mpBtnClearHistorico");
-  if(btn){ btn.disabled = true; const sp = btn.querySelector("span"); if(sp) sp.textContent = "Limpando..."; }
-  try {
-    // Tenta POST primeiro. Se falhar, tenta PATCH (algumas versões antigas do Worker).
-    let data = null;
-    let ok2 = false;
-    for(const method of ["POST", "PATCH"]){
-      try {
-        const res = await fetch(WORKER_URL, {
-          method,
-          headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN_TOKEN },
-          body: JSON.stringify({ action: "clearPedidosHistorico", comissionista: com })
-        });
-        data = await res.json().catch(()=> null);
-        if(res.ok && data && data.success){ ok2 = true; break; }
-      } catch(_){}
-    }
-    if(!ok2) throw new Error((data && data.error) || "Erro no servidor");
-    // Sucesso: limpa cache local e re-renderiza
-    MP.pedidosCache[com] = [];
-    _mpAtualizarBotaoLimpar();
-    renderListaPedidos();
-    const cf = $("mpCountFinalizados");
-    if(cf) cf.textContent = "0";
-    await appSuccess({
-      title: "Histórico limpo",
-      message: `<strong>${data.cleared || totalAtual} pedidos</strong> foram apagados.<br><br>Um backup foi criado em <code>data/backups/catalogo-historico/</code> caso precise recuperar.`,
-      okText: "OK",
-      autoClose: 3500
-    });
-  } catch(e){
-    toast("Erro ao limpar: " + (e.message || "verifique a conexão"));
-  } finally {
-    if(btn){ btn.disabled = false; const sp = btn.querySelector("span"); if(sp) sp.textContent = "Limpar tudo"; }
-  }
-}
-// Listener do botão via delegação (o botão está dentro de modal, o script executa antes do HTML)
-document.addEventListener("click", (e)=>{
-  if(e.target.closest("#mpBtnClearHistorico")) mpLimparHistorico();
-});
+/* O "Limpar tudo" saiu daqui em 14/11/2026: um clique apagava o
+   histórico inteiro do comissionista, e quem queria apagar UM pedido
+   não tinha como. No lugar ficou a seleção por pedido, com modal de
+   confirmação e janela de desfazer — ver mpApagarSelecionados().
+   A ação "clearPedidosHistorico" continua no Worker, sem quem a chame. */
 
 /* O PDF do histórico não passa mais pela sacola. Antes o pedido era
    despejado em state.cart, o PDF saía de lá e a sacola era limpa no fim —
@@ -16359,6 +16492,7 @@ function openMeusPedidosModal(){
     // Vendedor comum logado pelo Portal: só vê os próprios pedidos, sem escolha.
     sel.style.display = "none";
     MP.filtroComissionista = session.codigo;
+    MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
   }else{
     sel.style.display = "";
     // Popula select de comissionistas
@@ -16377,8 +16511,10 @@ function openMeusPedidosModal(){
     if(lastCom && COMISSIONISTAS.some(c => c.codigo === lastCom)){
       sel.value = lastCom;
       MP.filtroComissionista = lastCom;
+      MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
     } else {
       MP.filtroComissionista = "";
+      MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
     }
   }
 
@@ -16399,6 +16535,7 @@ function openMeusPedidosModal(){
   // Garante que se o select está preenchido, MP.filtroComissionista reflita isso
   if(sel.value && !MP.filtroComissionista){
     MP.filtroComissionista = sel.value;
+    MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
   }
 
   if(MP.filtroComissionista){
@@ -16456,6 +16593,7 @@ document.addEventListener("click", (e) => {
     document.querySelectorAll(".mp-periodo-pill").forEach(x => x.classList.remove("active"));
     p.classList.add("active");
     MP.filtroPeriodo = p.dataset.periodo;
+    MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
     $("mpCustomDates")?.classList.toggle("hidden", MP.filtroPeriodo !== "custom");
     if(MP.filtroComissionista) renderListaPedidos();
   }
@@ -16498,6 +16636,7 @@ async function _onSalvarRascunho(){
 document.addEventListener("change", (e) => {
   if(e.target.id === "mpComissionista"){
     MP.filtroComissionista = e.target.value;
+    MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
     // Memoriza escolha pra próxima abertura de "Meus Pedidos"
     try{
       if(MP.filtroComissionista) localStorage.setItem("mpLastComissionista", MP.filtroComissionista);
@@ -16515,6 +16654,7 @@ document.addEventListener("change", (e) => {
 document.addEventListener("input", (e) => {
   if(e.target.id === "mpBusca"){
     MP.filtroBusca = e.target.value;
+    MP.selecionados.clear();  // trocou o que a lista mostra: o que estava marcado nao vale mais
     renderListaPedidos();
   }
 });
@@ -16798,10 +16938,19 @@ loadCatalog({ cacheBust:false });
           <span class="text-xs font-bold" id="mpStatsTxt" style="color:var(--muted)">— pedidos</span>
           <span class="text-xs font-black" id="mpStatsTotal" style="color:var(--primary)"></span>
         </div>
-        <button id="mpBtnClearHistorico" type="button" class="hidden focus-ring inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-2.5 py-1 hover:bg-oly-bg" style="color:var(--muted);border:1px solid var(--border);" title="Apagar todos os pedidos finalizados">
-          <i class="fa-solid fa-trash-can" style="font-size:10px"></i>
-          <span>Limpar tudo</span>
-        </button>
+        <!-- Saiu o "Limpar tudo": um clique levava o histórico inteiro, e quem
+             queria apagar um pedido não tinha como. Agora o vendedor marca o
+             que quer, e a lixeira só existe enquanto houver algo marcado. -->
+        <div id="mpSelBarra" class="hidden items-center gap-2">
+          <button id="mpSelLimpar" type="button" class="focus-ring text-xs font-bold rounded-full px-2.5 py-1 hover:bg-oly-bg"
+                  style="color:var(--muted);border:1px solid var(--border)">Desmarcar</button>
+          <span id="mpSelConta" class="text-xs font-black" style="color:var(--primary)"></span>
+          <button id="mpBtnApagarSel" type="button" class="focus-ring inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1"
+                  style="color:#fff;background:#dc2626;border:1px solid #b91c1c" title="Apagar os pedidos marcados">
+            <i class="fa-solid fa-trash-can" style="font-size:10px"></i>
+            <span>Apagar</span>
+          </button>
+        </div>
       </div>
 
       <!-- Lista -->
