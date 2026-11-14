@@ -4686,7 +4686,10 @@ html.dark-mode #homeScreen{ background:transparent; }
     </button>
 
     <!-- Toast -->
-    <div id="toast" class="pointer-events-none fixed z-[80] hidden" style="position:fixed;right:20px;bottom:24px;max-width:calc(100vw - 40px);z-index:80">
+    <!-- Acima de tudo (o mais alto em uso é 95, e Meus pedidos está em 88).
+         O toast ficava em 80 e sumia atrás do modal — o "Desfazer" existia,
+         mas ninguém via. Um aviso que não aparece não é aviso. -->
+    <div id="toast" class="pointer-events-none fixed z-[120] hidden" style="position:fixed;right:20px;bottom:24px;max-width:calc(100vw - 40px);z-index:120">
       <div class="pointer-events-auto rounded-full bg-oly-text text-white px-4 py-2 text-sm font-bold shadow-lift flex items-center gap-2">
         <i class="fa-solid fa-circle-check" id="toastIcon"></i>
         <span id="toastMsg">Ok</span>
