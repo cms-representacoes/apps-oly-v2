@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-11-17T09:28:02.967175-03:00",
+  "generatedAt": "2026-11-18T09:27:45.812265-03:00",
   "config": {
     "cenaSeg": 10,
     "tema": "claro"
   },
   "carteira": {
-    "total": 449245,
+    "total": 433439,
     "meses": [
       {
         "label": "NOV",
-        "v": 85312
+        "v": 70083
       },
       {
         "label": "DEZ",
-        "v": 73245
+        "v": 73277
       },
       {
         "label": "JAN",
@@ -21,59 +21,59 @@
       },
       {
         "label": "FEV",
-        "v": 43032
+        "v": 43020
       },
       {
         "label": "MAR",
-        "v": 53580
+        "v": 53544
       },
       {
         "label": "ABR",
-        "v": 57064
+        "v": 57028
       }
     ],
     "horizonte": "ate abr/26"
   },
   "mes": {
     "label": "NOVEMBRO",
-    "dia": 16,
-    "faturado": 65696,
+    "dia": 17,
+    "faturado": 74859,
     "anterior": 162622,
     "anteriorLabel": "outubro",
-    "falta": 85312,
-    "diasUteis": 10,
-    "paresDia": 8531,
-    "projecao": 125420,
-    "barW": 40,
+    "falta": 70083,
+    "diasUteis": 9,
+    "paresDia": 7787,
+    "projecao": 131003,
+    "barW": 46,
     "markW": 100
   },
   "novHoje": {
-    "total": 4273,
+    "total": 3404,
     "linhas": [
       [
         "Jorge",
         [
-          660,
+          216,
           0,
           0,
-          25,
-          12
+          0,
+          0
         ]
       ],
       [
         "Willame",
         [
-          600,
+          432,
+          42,
+          60,
           0,
-          0,
-          0,
-          36
+          72
         ]
       ],
       [
         "Leandro",
         [
-          636,
+          0,
           0,
           0,
           0,
@@ -83,27 +83,27 @@
       [
         "Rafael",
         [
-          936,
+          2232,
           0,
+          38,
           0,
-          0,
-          12
+          0
         ]
       ],
       [
         "Mariana",
         [
-          852,
+          96,
           0,
           0,
           0,
-          36
+          0
         ]
       ],
       [
         "Cms",
         [
-          468,
+          216,
           0,
           0,
           0,
@@ -113,12 +113,12 @@
     ]
   },
   "novMes": {
-    "total": 323544,
+    "total": 326948,
     "linhas": [
       [
         "Jorge",
         [
-          23514,
+          23730,
           8000,
           417,
           25,
@@ -128,11 +128,11 @@
       [
         "Willame",
         [
-          32124,
-          66,
-          502,
+          32556,
+          108,
+          562,
           0,
-          324
+          396
         ]
       ],
       [
@@ -148,9 +148,9 @@
       [
         "Rafael",
         [
-          33792,
+          36024,
           421,
-          110,
+          148,
           0,
           1956
         ]
@@ -158,7 +158,7 @@
       [
         "Mariana",
         [
-          9036,
+          9132,
           520,
           55,
           0,
@@ -168,7 +168,7 @@
       [
         "Cms",
         [
-          95526,
+          95742,
           0,
           0,
           0,
@@ -180,29 +180,29 @@
   "ticker": [
     {
       "c": "#F0A030",
-      "t": "faltam 85.312 pares para zerar a carteira de novembro"
+      "t": "faltam 70.083 pares para zerar a carteira de novembro"
     },
     {
       "c": "#2BC48A",
-      "t": "+4.273 pares novos entraram na carteira hoje"
+      "t": "+3.404 pares novos entraram na carteira hoje"
     },
     {
       "c": "#2BC48A",
-      "t": "novembro acumula 323.544 pares novos na carteira"
+      "t": "novembro acumula 326.948 pares novos na carteira"
     },
     {
       "c": "#9B6BF0",
-      "t": "carteira aberta do periodo: 449.245 pares"
+      "t": "carteira aberta do periodo: 433.439 pares"
     },
     {
       "c": "#9B6BF0",
-      "t": "NOV e o maior mes da carteira: 85.312 pares"
+      "t": "DEZ e o maior mes da carteira: 73.277 pares"
     },
     {
       "c": "#9B6BF0",
       "t": "proximo grande faturamento: 01/12 - CASA PIO (18.940 pares)"
     }
   ],
-  "publicadoEm": "2026-11-17T12:28:03.879Z",
+  "publicadoEm": "2026-11-18T12:27:46.755Z",
   "por": "script diario"
 }
