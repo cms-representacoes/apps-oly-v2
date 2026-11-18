@@ -568,11 +568,14 @@ async function abaDoEbm() {
 }
 
 async function desmIniciar(pacote, tabOrigem, piloto, modo) {
-  const aba = await abaDoEbm();
+  /* Antes a aba tinha de estar aberta e na tela certa. Agora, se não
+     houver nenhuma, a extensão abre o EBM sozinha — e dali em diante o
+     roteiro resolve login, menu e consulta. */
+  let aba = await abaDoEbm();
+  let abriu = false;
   if (!aba) {
-    return { ok: false, codigo: 'sem-ebm',
-             erro: 'Abra o EBM numa aba, entre em Desmembrar Pedido Mae e '
-                 + 'deixe a lista dos pedidos na tela.' };
+    aba = await chrome.tabs.create({ url: URL_LOGIN, active: false });
+    abriu = true;
   }
   /* O piloto trabalha UM cliente de UM pedido: é o primeiro contato da
      extensão com a parte que escreve no EBM, e ninguém quer descobrir um
@@ -587,6 +590,8 @@ async function desmIniciar(pacote, tabOrigem, piloto, modo) {
     lidos: {}, log: [], tabOrigem, tabEbm: aba.id,
     prazo: Date.now() + DESM_PRAZO,
   };
+  jobDesm.abriuAba = abriu;
+  jobDesm.login = await lerLogin();
   chrome.alarms.create(DESM_VIGIA, { periodInMinutes: 0.5 });
   desmAnotar(piloto
     ? `piloto: pedido mae ${ebms[0]}, cliente ${piloto.cod} (${piloto.pedidoCliente})`
@@ -596,22 +601,24 @@ async function desmIniciar(pacote, tabOrigem, piloto, modo) {
      recarregar a extensão mata os scripts já injetados: a aba do EBM
      fica com uma versão órfã, que não responde nem avisa. Por isso o
      silêncio aqui vira instrução, e não espera. */
-  let acordou = false;
-  try {
-    const r = await chrome.tabs.sendMessage(aba.id, { de: 'cms-desm', tipo: 'acorda' });
-    if (r && r.tela) { acordou = true; desmAnotar(`tela do EBM: ${r.tela}`, 'info'); }
-  } catch (e) { /* ninguém do outro lado */ }
-
-  if (!acordou) {
-    desmAnotar('a aba do EBM nao reagiu. De F5 nela e tente de novo - '
-               + 'recarregar a extensao desliga o braco dela nas paginas '
-               + 'que ja estavam abertas.', 'erro');
+  let acordou = abriu;
+  if (abriu) {
+    desmAnotar('abri o EBM numa aba nova; vou entrar e consultar sozinho.', 'acao');
+  } else {
+    try {
+      const r = await chrome.tabs.sendMessage(aba.id, { de: 'cms-desm', tipo: 'acorda' });
+      if (r && r.tela) { acordou = true; desmAnotar(`tela do EBM: ${r.tela}`, 'info'); }
+    } catch (e) { /* ninguém do outro lado */ }
+    if (!acordou) {
+      desmAnotar('a aba do EBM nao reagiu - vou recarrega-la.', 'warn');
+      try { await chrome.tabs.reload(aba.id); acordou = true; } catch (e) { /* segue */ }
+    }
   }
 
   /* Rede de segurança: se em 12 segundos a página do EBM não falou nada,
      não adianta esperar o prazo de 10 minutos para dizer o óbvio. */
   setTimeout(() => {
-    if (jobDesm && jobDesm.id === id && jobDesm.etapa === 'inicio') {
+    if (jobDesm && jobDesm.id === id && jobDesm.etapa === 'inicio' && !jobDesm.abriuAba) {
       desmEncerrar(false, 'A aba do EBM nao respondeu. Confira se ela esta na '
         + 'tela "Desmembrar Pedido Mae" com a LISTA dos pedidos e de F5 nela.',
         { codigo: 'ebm-mudo' });
@@ -629,9 +636,41 @@ function desmComando(msg, sender) {
   jobDesm.prazo = Date.now() + DESM_PRAZO;
 
   if (msg.tela === 'LOGIN') {
-    desmEncerrar(false, 'A sessao do EBM caiu. Entre de novo e repita.',
-                 { codigo: 'precisa-login' });
-    return { acao: 'nada' };
+    if (!jobDesm.login) {
+      desmEncerrar(false, 'O EBM pediu login e a extensao nao tem um guardado. '
+        + 'Entre no EBM uma vez (ou salve o login pela Detalhada) e repita.',
+        { codigo: 'precisa-login' });
+      return { acao: 'nada' };
+    }
+    if (jobDesm.tentouLogin) {
+      desmEncerrar(false, 'O EBM recusou o login guardado.', { codigo: 'precisa-login' });
+      return { acao: 'nada' };
+    }
+    jobDesm.tentouLogin = true;
+    desmAnotar('entrando no EBM...', 'acao');
+    return { acao: 'login', usuario: jobDesm.login.usuario, senha: jobDesm.login.senha };
+  }
+
+  if (msg.tela === 'MENU') {
+    desmAnotar('abrindo Desmembrar Pedido Mae...', 'acao');
+    return { acao: 'irParaConsulta' };
+  }
+
+  if (msg.tela === 'CONSULTA') {
+    /* Voltar para os critérios depois de consultar significa que a lista
+       não abriu. Uma segunda tentativa resolve tropeço de ajax; a
+       terceira seria teimosia. */
+    jobDesm.consultou = (jobDesm.consultou || 0) + 1;
+    if (jobDesm.consultou > 2) {
+      desmEncerrar(false, 'A consulta nao trouxe a lista de pedidos. '
+        + 'Confira os numeros e o status das encomendas no EBM.');
+      return { acao: 'nada' };
+    }
+    if (jobDesm.consultou > 1) {
+      desmAnotar('voltei para os criterios; refazendo a consulta...', 'warn');
+    }
+    desmAnotar(`consultando ${jobDesm.ebms.length} pedido(s): ${jobDesm.ebms.join(', ')}`, 'acao');
+    return { acao: 'montarConsulta', ebms: jobDesm.ebms };
   }
 
   if (msg.tela === 'RESULTADO') {
@@ -678,9 +717,40 @@ function desmComando(msg, sender) {
       return { acao: 'raioX', ebm: jobDesm.atual };
     }
     if (jobDesm.atual && jobDesm.modo === 'piloto') {
+      /* ESCREVER NA TELA DO EBM FAZ POSTBACK. O content script morre, a
+         página nova se apresenta e, se o roteiro recomeçasse do zero,
+         criaria outra linha de cliente a cada volta - foi o que encheu a
+         Cliente Carteira de linhas vazias no primeiro teste. Por isso o
+         preparo é dividido em etapas, e cada fala da página leva a
+         PRÓXIMA, nunca a mesma. */
       if (jobDesm.etapa === 'preparado' || jobDesm.etapa === 'fim') return { acao: 'nada' };
-      jobDesm.etapa = 'preparando';
-      return { acao: 'prepararCliente', ebm: jobDesm.atual, cliente: jobDesm.piloto };
+
+      /* 'clicar' é a etapa em que a manutenção acaba de abrir (o RESULTADO
+         a deixa assim ao clicar em manutenção). Esquecer dela fazia o
+         roteiro chegar na tela certa e não começar nada. */
+      if (jobDesm.etapa === 'clicar' || jobDesm.etapa === 'ler'
+          || jobDesm.etapa === 'inicio') {
+        jobDesm.etapa = 'cliente';
+        jobDesm.voltas = 0;
+        return { acao: 'informarCliente', ebm: jobDesm.atual, cliente: jobDesm.piloto };
+      }
+      if (jobDesm.etapa === 'cliente') {
+        // voltou do postback de escrever o código: conferir e marcar
+        jobDesm.voltas = (jobDesm.voltas || 0) + 1;
+        if (jobDesm.voltas > 4) {
+          desmEncerrar(false, 'O EBM ficou recarregando sem fixar o cliente. '
+            + 'Cancele o desmembramento na tela e tente de novo.');
+          return { acao: 'nada' };
+        }
+        return { acao: 'marcarCliente', ebm: jobDesm.atual, cliente: jobDesm.piloto };
+      }
+      if (jobDesm.etapa === 'artigos') {
+        return { acao: 'adicionarArtigos', ebm: jobDesm.atual, cliente: jobDesm.piloto };
+      }
+      if (jobDesm.etapa === 'preencher') {
+        return { acao: 'preencherLinhas', ebm: jobDesm.atual, cliente: jobDesm.piloto };
+      }
+      return { acao: 'nada' };
     }
     if (jobDesm.atual) {
       jobDesm.etapa = 'lendo';
@@ -729,6 +799,19 @@ function desmRelato(msg) {
     desmCutucar(2500);
     return;
   }
+  if (msg.resultado === 'cliente-ok') {
+    jobDesm.etapa = 'artigos';
+    desmAnotar(`   cliente ${msg.cod} marcado na Cliente Carteira`
+      + (msg.razao ? ` (${msg.razao})` : ''), 'ok');
+    desmCutucar();
+    return;
+  }
+  if (msg.resultado === 'artigos-ok') {
+    jobDesm.etapa = 'preencher';
+    desmAnotar(`   ${msg.quantas} linha(s) criada(s) em "Artigos desmembramento"`, 'ok');
+    desmCutucar();
+    return;
+  }
   if (msg.resultado === 'preparado') {
     const d = msg.dados || {};
     jobDesm.etapa = 'preparado';
@@ -763,6 +846,10 @@ function desmRelato(msg) {
   if (msg.resultado === 'cancelou') {
     jobDesm.etapa = 'fim';
     desmEncerrar(true, 'Cancelado na tela do EBM. Nada foi salvo.');
+    return;
+  }
+  if (msg.resultado === 'consultando') {
+    desmAnotar('   ' + msg.texto, 'info');
     return;
   }
   if (msg.resultado === 'raiox') {

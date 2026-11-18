@@ -30,6 +30,7 @@
     grdGrupo:    'form1:grdGrupoComercial',
     grdCarteira: 'form1:grdClienteCarteira',
     filtroCod:   'form1:txtFiltroCodigo',
+    filtroGrid:  'form1:webFilterGrid',
     voltar:      ['form1:btnVoltar1', 'form1:btnVoltar2'],
   };
 
@@ -46,7 +47,32 @@
     if ($(ID.btnSalvarDesm)) return 'MANUTENCAO';
     if ($(ID.btnSalvarItem) && $(ID.grdItens)) return 'ITEM';
     if ($(ID.btnManter)) return 'RESULTADO';
+    if ($(ID.filtroGrid) && botaoConsultar()) return 'CONSULTA';
+    if (linkDesmembrar() || $('form1:txtFuncionalidade')) return 'MENU';
     return null;
+  }
+
+  const botaoConsultar = () =>
+    porXPath("//input[@value='consultar'] | //button[contains(.,'consultar')]"
+           + " | //a[contains(.,'consultar')]")[0] || null;
+
+  const linkDesmembrar = () =>
+    porXPath("//a[contains(normalize-space(.),'Desmembrar Pedido')]")[0] || null;
+
+  /** Célula da grade de critérios (linha 0, coluna 0..3). */
+  const criterio = (col) => $(`${ID.filtroGrid}:webGrid:txtInput:row0:${col}`);
+
+  /** Escolhe a opção de um select pelo texto e avisa a página.
+   *  O EBM monta o próximo campo por ajax ao receber o change. */
+  function escolher(sel, texto, contendo) {
+    const alvo = [...sel.options].find(o => contendo
+      ? o.text.toUpperCase().includes(texto.toUpperCase())
+      : o.text.trim().toUpperCase() === texto.toUpperCase());
+    if (!alvo) return false;
+    if (sel.value === alvo.value) return true;
+    sel.value = alvo.value;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
   }
 
   /* ---------- leitura das grades ---------- */
@@ -188,43 +214,136 @@
       relatar({ tela: 'MANUTENCAO', erro: 'não achei o botão de voltar' });
     },
 
-    /* ---- PILOTO: prepara UM cliente e para antes de salvar ----
-       Mesma sequência do robô, na mesma ordem, porque cada passo depende
-       do anterior ter registrado no servidor:
-         1. tela limpa (sobra de uma digitação pela metade)
-         2. marcar os artigos do cliente
-         3. desmarcar o Grupo Financeiro (modo cliente final)
-         4. Cliente Carteira: informar o código e deixar só ele marcado
-         5. adicionar artigo
-         6. preencher caixas e o Pedido do Cliente
-       Nada é salvo: o salvar é um comando à parte, depois de alguém
-       olhar a tela. */
-    async prepararCliente(cmd) {
+    /** A sessão caiu (ou nunca existiu): entra com o que a extensão
+     *  guarda. É o mesmo login que o PDF já usa; a senha não aparece no
+     *  log em lugar nenhum. */
+    async login(cmd) {
+      const u = $('j_username')
+        || [...document.querySelectorAll('input[type=text], input:not([type])')].find(i => i.offsetParent);
+      const p = $('j_password')
+        || [...document.querySelectorAll('input[type=password]')].find(i => i.offsetParent);
+      if (!u || !p) { relatar({ tela: 'LOGIN', erro: 'não achei os campos de login' }); return; }
+      try { sessionStorage.setItem('cmsSilenciar', '1'); } catch (e) { /* segue */ }
+      escrever(u, cmd.usuario);
+      escrever(p, cmd.senha);
+      await espera(300);
+      const b = document.getElementsByName('form1:btnOK')[0] || $('form1:btnOK')
+        || document.querySelector('input[type=submit], button[type=submit]');
+      if (b) b.click();
+    },
+
+    /** Do menu até a tela de critérios do Desmembrar Pedido Mãe. */
+    async irParaConsulta() {
+      const link = linkDesmembrar();
+      if (link) { link.click(); return; }
+      const f = $('form1:txtFuncionalidade');
+      if (f) {
+        escrever(f, 'FUC1515');
+        const ok = $('form1:btnFuncionalidadeOK');
+        if (ok) { ok.click(); return; }
+      }
+      relatar({ tela: 'MENU', erro: 'não achei como abrir o Desmembrar Pedido Mãe' });
+    },
+
+    /** Monta o critério e consulta — a mesma receita do robô:
+     *  Encomenda | Número Encomenda EBM | INFORMADOS | os EBMs. Cada
+     *  escolha traz o campo seguinte por ajax, então é tudo numa ação
+     *  só, esperando campo a campo. */
+    async montarConsulta(cmd) {
+      const passos = [
+        { col: 0, txt: 'Encomenda', proximo: 1, rot: 'Tipo' },
+        { col: 1, txt: 'Número Encomenda EBM', proximo: 2, rot: 'Campo' },
+        { col: 2, txt: 'INFORMADO', proximo: 3, rot: 'Operador', contendo: true },
+      ];
+      for (const p of passos) {
+        let sel = criterio(p.col);
+        for (let t = 0; t < 6 && !sel; t++) { await espera(700); sel = criterio(p.col); }
+        if (!sel) { relatar({ tela: 'CONSULTA', erro: `o campo ${p.rot} não apareceu` }); return; }
+        if (!escolher(sel, p.txt, p.contendo)) {
+          relatar({ tela: 'CONSULTA', erro: `não achei "${p.txt}" em ${p.rot}` });
+          return;
+        }
+        let ok = false;
+        for (let t = 0; t < 12 && !ok; t++) { await espera(700); ok = !!criterio(p.proximo); }
+        if (!ok) { relatar({ tela: 'CONSULTA', erro: `${p.rot}: a tela não trouxe o campo seguinte` }); return; }
+      }
+      const valor = criterio(3);
+      if (!valor) { relatar({ tela: 'CONSULTA', erro: 'o campo de valor não apareceu' }); return; }
+      escrever(valor, (cmd.ebms || []).join(','));
+      await espera(600);
+      const btn = botaoConsultar();
+      if (!btn) { relatar({ tela: 'CONSULTA', erro: 'não achei o botão consultar' }); return; }
+      relatar({ tela: 'CONSULTA', resultado: 'consultando',
+                texto: `Encomenda | Número Encomenda EBM | INFORMADOS | ${(cmd.ebms || []).join(',')}` });
+      btn.click();
+    },
+
+    /* ---- PILOTO, em três etapas ----
+       Escrever na tela do EBM dispara postback: o script morre e a
+       página volta nova. Por isso cada etapa termina onde o EBM
+       recarrega, e a próxima fala da página retoma dali. Tentar fazer
+       tudo de uma vez criou oito linhas de cliente no primeiro teste. */
+
+    /** 1ª etapa: tela limpa, aba aberta, linha criada e código escrito.
+     *  Termina no postback que o EBM dá ao receber o código. */
+    async informarCliente(cmd) {
       const C = cmd.cliente || {};
       await naPaginaDesm('ligar');
 
-      // 1. tela limpa
       if (linhasDe(ID.grdDesm).length) {
         const canc = $('form1:btnCancelarDesmembramento');
         if (canc) {
           relatar({ tela: 'MANUTENCAO', resultado: 'limpou', ebm: cmd.ebm,
                     texto: 'havia uma digitação pela metade; cancelei para começar limpo' });
           canc.click();
-          return;                       // postback: o roteiro recomeça
+          return;
         }
       }
 
-      // 2. marcar os artigos do cliente
+      const r = await informarClienteFinal(C.cod);
+      if (!r.ok) { await falhou(cmd, r.erro, r.diag); return; }
+      // se não houve postback, a própria conferência segue na etapa 2
+      relatar({ tela: 'MANUTENCAO', resultado: 'cliente-ok', ebm: cmd.ebm,
+                cod: C.cod, razao: r.razao });
+    },
+
+    /** 2ª etapa: a página voltou do postback — conferir que o cliente
+     *  está lá e deixar só ele marcado. */
+    async marcarCliente(cmd) {
+      const C = cmd.cliente || {};
+      const trs = linhasDe(ID.grdCarteira);
+      let alvo = -1, razao = '';
+      for (let i = 0; i < trs.length; i++) {
+        const c = celulas(trs[i]);
+        const valores = [...trs[i].querySelectorAll('input')].map(e => String(e.value || '').trim());
+        const temCod = valores.includes(String(C.cod)) || c.some(x => x.trim() === String(C.cod));
+        if (temCod && trs[i].innerText.replace(/\s+/g, ' ').trim().length > 6) {
+          alvo = i;
+          razao = c.find(x => x.length > 4 && !/^[\d.\/-]+$/.test(x.trim())) || '';
+          break;
+        }
+      }
+      if (alvo < 0) {
+        // ainda não fixou: a próxima volta tenta de novo (o orquestrador conta)
+        relatar({ tela: 'MANUTENCAO', erro: `o cliente ${C.cod} ainda não apareceu na carteira` });
+        return;
+      }
+      await deixarSoMarcada(ID.grdCarteira, alvo);
+      relatar({ tela: 'MANUTENCAO', resultado: 'cliente-ok', ebm: cmd.ebm,
+                cod: C.cod, razao });
+    },
+
+    /** 3ª etapa: marcar os artigos, tirar o Grupo Financeiro do caminho
+     *  e clicar em "adicionar artigo". */
+    async adicionarArtigos(cmd) {
+      const C = cmd.cliente || {};
       const artigos = artigosDaTela();
       const usados = [];
       for (const L of (C.linhas || [])) {
         const a = artigos.find(x => _nm(x.codigo) === _nm(L.codigo)
                                  && _nm(x.cor) === _nm(L.cor)
                                  && !usados.includes(x.linha));
-        if (!a) {
-          await falhou(cmd, `não achei ${L.codigo} ${L.cor} na grade de artigos`);
-          return;
-        }
+        if (!a) { await falhou(cmd, `não achei ${L.codigo} ${L.cor} na grade de artigos`); return; }
         usados.push(a.linha);
       }
       for (const row of usados) {
@@ -235,19 +354,13 @@
         }
         await espera(500);
       }
-
-      // 3. Grupo Financeiro desmarcado — senão o EBM cria também a
-      //    digitação do cliente de origem
+      // modo cliente final: o Grupo Financeiro não pode ficar marcado,
+      // senão o EBM cria também a digitação do cliente de origem
       for (let i = 0; i < linhasDe(ID.grdGrupo).length; i++) {
         const el = campoDe(ID.grdGrupo, i, 0);
         if (el && el.checked) { el.click(); await espera(400); }
       }
 
-      // 4. Cliente Carteira
-      const r4 = await informarClienteFinal(C.cod);
-      if (!r4.ok) { await falhou(cmd, r4.erro, r4.diag); return; }
-
-      // 5. adicionar artigo
       const antes = linhasDe(ID.grdDesm).length;
       const add = $(ID.btnAdd);
       if (!add) { await falhou(cmd, 'botão "adicionar artigo" indisponível'); return; }
@@ -263,20 +376,23 @@
           + `${usados.length} linha(s)` + msgsOuVazio());
         return;
       }
+      relatar({ tela: 'MANUTENCAO', resultado: 'artigos-ok', ebm: cmd.ebm,
+                quantas: trs.length - antes, base: antes });
+    },
 
-      // 6. preencher caixas e Pedido do Cliente, linha a linha
-      const novas = [];
-      for (let idx = antes; idx < trs.length; idx++) novas.push(idx);
+    /** 4ª etapa: caixas e Pedido do Cliente em cada linha criada. */
+    async preencherLinhas(cmd) {
+      const C = cmd.cliente || {};
+      const trs = linhasDe(ID.grdDesm);
       const preenchidas = [];
-      for (let k = 0; k < novas.length; k++) {
-        const idx = novas[k];
+      for (let k = 0; k < trs.length; k++) {
         const L = (C.linhas || [])[k] || {};
-        await clicarLinha(ID.grdDesm, idx);
+        await clicarLinha(ID.grdDesm, k);
         await espera(700);
-        let campos = inputsDaLinha(ID.grdDesm, idx);
+        let campos = inputsDaLinha(ID.grdDesm, k);
         for (let t = 0; t < 4 && !campos.length; t++) {
           await espera(600);
-          campos = inputsDaLinha(ID.grdDesm, idx);
+          campos = inputsDaLinha(ID.grdDesm, k);
         }
         const texto = campos.filter(c => c.tipo === 'text' || c.tipo === 'select-one');
         if (!texto.length) { await falhou(cmd, 'os campos da linha não apareceram'); return; }
@@ -289,11 +405,9 @@
             escrever(c.el, L.caixas); okCx = true;
           }
         });
-        preenchidas.push({ linha: idx, caixas: L.caixas, pedido: C.pedidoCliente,
-                           okCx, okPed, total: totalDaLinha(idx) });
+        preenchidas.push({ linha: k, caixas: L.caixas, okCx, okPed, total: totalDaLinha(k) });
         await espera(400);
       }
-
       relatar({ tela: 'MANUTENCAO', resultado: 'preparado', ebm: cmd.ebm,
                 dados: { cliente: C.cod, pedidoCliente: C.pedidoCliente,
                          linhas: preenchidas, mensagens: mensagensDaTela(),
@@ -453,107 +567,144 @@
 
   /** Informa o cliente final na aba Cliente Carteira.
    *
-   *  O QUE EU TINHA ERRADO (e o robô também): essa grade não é uma lista
-   *  vazia onde se inclui uma linha. Ela já vem cheia com a carteira
-   *  daquele pedido mãe — dezesseis lojas, no 13390926 — e embaixo dela
-   *  há "Filtrar resultado de clientes: Código / Razão Social". O
-   *  caminho é FILTRAR pelo código e MARCAR o checkbox do cliente.
-   *  Procurar um ícone de "incluir" era caçar algo que nunca existiu, e
-   *  é o que faz o robô pular clientes no log de 17/11.
+   *  A sequência abaixo foi PROVADA na tela do EBM em 18/11/2026, com o
+   *  pedido 13390926 e o cliente 10096:
    *
-   *  Consequência que vale saber: só dá para desmembrar para quem está
-   *  na carteira daquele pedido mãe. Se o cliente não aparece no filtro,
-   *  não é defeito nosso — é o EBM dizendo que ele não pode receber. */
+   *    1. clicar em form1:lblClienteCarteira        (a aba é um <span>)
+   *       -> o bloco groupClienteCarteira sai de display:none
+   *    2. clicar em form1:grdClienteCarteira:btnNew ("inserir nova linha
+   *       no grid") -> a grade vai de 0 para 1 linha
+   *    3. escrever o código na célula ...:webGrid:txtInput:row{n}:1 e
+   *       disparar change -> o EBM traz a razão social sozinho
+   *    4. deixar só essa linha marcada
+   *
+   *  O QUE ME CUSTOU HORAS: eu só considerava ícones VISÍVEIS, e com a
+   *  aba fechada nada daquela grade é visível — então o btnNew "não
+   *  existia". Ele está lá o tempo todo. O robô erra do mesmo jeito, e é
+   *  por isso que pula clientes quando a carteira está vazia.
+   *
+   *  O campo "Filtrar resultado de clientes" é outra coisa: tem
+   *  onchange="this.form.submit()" e serve para filtrar as listas da
+   *  tela, não para incluir um cliente. */
   async function informarClienteFinal(cod) {
-    clicarAba('Cliente Carteira');
+    // 1. abrir a aba e conferir que abriu
+    const aba = $('form1:lblClienteCarteira') || porXPath("//*[contains(@id,'lblClienteCarteira')]")[0];
+    if (aba) { try { aba.click(); } catch (e) { /* segue */ } }
+    else clicarAba('Cliente Carteira');
     await espera(1200);
 
-    const jaMarcado = () => {
+    const bloco = $('form1:groupClienteCarteira')
+      || porXPath("//*[contains(@id,'groupClienteCarteira')]")[0];
+    if (bloco && getComputedStyle(bloco).display === 'none') {
+      await espera(1200);
+      if (getComputedStyle(bloco).display === 'none') {
+        return { ok: false, erro: 'a aba Cliente Carteira não abriu',
+                 diag: radiografiaCarteira() };
+      }
+    }
+
+    /* O código do cliente fica no VALUE de um input da linha — o texto
+       da linha mostra só a razão social e o CNPJ. Procurar "10096" no
+       texto nunca acha nada, e foi isso que me fez concluir, errado, que
+       o cliente não tinha carregado. */
+    const procurar = () => {
       const trs = linhasDe(ID.grdCarteira);
       for (let i = 0; i < trs.length; i++) {
         const c = celulas(trs[i]);
-        if (c.some(x => x.trim() === String(cod))) return { i, c };
+        const valores = [...trs[i].querySelectorAll('input')].map(e => String(e.value || '').trim());
+        const temCod = valores.includes(String(cod)) || c.some(x => x.trim() === String(cod));
+        const temRazao = trs[i].innerText.replace(/\s+/g, ' ').trim().length > 6;
+        if (temCod && temRazao) return { i, c };
       }
       return null;
     };
 
-    // 1. o cliente já está à vista? (carteira curta, ou filtro anterior)
-    let achou = jaMarcado();
-
-    // 2. senão, filtrar pelo código — é o que a tela oferece
-    if (!achou) {
-      /* O filtro TEM de ser o da Cliente Carteira. As duas abas dividem a
-         mesma área e cada uma tem o seu campo "Código"; pegar o primeiro
-         do documento escreve no Grupo Financeiro — foi o que aconteceu.
-         Por isso o campo é procurado a partir da GRADE da carteira: o
-         primeiro input de código que vem depois dela. */
-      const filtro = porXPath("//*[contains(@id,'grdClienteCarteira')]"
-                            + "/following::input[contains(@id,'Codigo')][1]")[0]
-        || porXPath("//*[contains(@id,'grdClienteCarteira')]"
-                  + "/following::input[contains(@id,'odigo')][1]")[0]
-        || porXPath("//input[contains(@id,'txtFiltroCodigo')]").filter(e => e.offsetParent).pop()
-        || $(ID.filtroCod);
-      if (!filtro) {
-        return { ok: false, erro: 'não achei o campo "Código" do filtro de clientes',
-                 diag: radiografiaCarteira() };
-      }
-      filtro.focus();
-      filtro.value = '';
-      escrever(filtro, String(cod));
-      /* Escrever o código não basta: quem manda o EBM buscar é o Enter
-         ou a LUPA do filtro ("clique para realizar uma busca"). O Enter
-         sintético nem sempre chega ao handler da página, então os dois
-         são tentados — primeiro o teclado, depois o clique, que é o que
-         uma pessoa faria. */
-      for (const tipo of ['keydown', 'keypress', 'keyup']) {
-        filtro.dispatchEvent(new KeyboardEvent(tipo, { key: 'Enter', code: 'Enter',
-          keyCode: 13, which: 13, bubbles: true, cancelable: true }));
-      }
-      await espera(900);
-      if (!jaMarcado()) {
-        const lupa = lupaDoFiltro();
-        if (lupa) {
-          try { lupa.click(); } catch (e) { /* segue com o Enter que já foi */ }
+    // 2. já está na grade? senão, criar a linha
+    let achou = procurar();
+    let n;
+    if (achou) {
+      n = achou.i;
+    } else {
+      /* Linha vazia que sobrou de uma tentativa anterior é reaproveitada:
+         criar outra só empilha lixo na carteira. */
+      const vazias = linhasDe(ID.grdCarteira)
+        .map((tr, i) => ({ i, txt: celulas(tr).join('').trim() }))
+        .filter(x => !x.txt);
+      if (vazias.length) {
+        n = vazias[0].i;
+        const inp0 = campoDe(ID.grdCarteira, n, 1);
+        if (inp0) {
+          inp0.focus();
+          escrever(inp0, String(cod));
+          for (let i = 0; i < 14 && !achou; i++) { await espera(800); achou = procurar(); }
+          if (achou) {
+            await deixarSoMarcada(ID.grdCarteira, achou.i);
+            return { ok: true,
+                     razao: achou.c.find(x => x.length > 4 && !/^[\d.\/-]+$/.test(x.trim())) || '' };
+          }
         }
       }
 
-      for (let i = 0; i < 14 && !achou; i++) {
+      const trsAntes = linhasDe(ID.grdCarteira).length;
+      const btnNew = $(ID.grdCarteira + ':btnNew')
+        || porXPath("//*[contains(@id,'grdClienteCarteira:btnNew')]")[0];
+      if (!btnNew) {
+        return { ok: false, erro: 'não achei "inserir nova linha no grid" na Cliente Carteira',
+                 diag: radiografiaCarteira() };
+      }
+      const alvo = btnNew.querySelector ? (btnNew.querySelector('img') || btnNew) : btnNew;
+      try { alvo.click(); } catch (e) { btnNew.click(); }
+
+      let trs = [];
+      for (let i = 0; i < 12; i++) {
+        await espera(500);
+        trs = linhasDe(ID.grdCarteira);
+        if (trs.length > trsAntes) break;
+      }
+      if (trs.length <= trsAntes) {
+        return { ok: false, erro: 'a linha nova não apareceu na Cliente Carteira',
+                 diag: radiografiaCarteira() };
+      }
+      n = trs.length - 1;
+    }
+
+    // 3. escrever o código e esperar a razão social
+    if (!achou) {
+      let inp = campoDe(ID.grdCarteira, n, 1);
+      for (let t = 0; t < 3 && !inp; t++) {
+        await clicarLinha(ID.grdCarteira, n);
         await espera(700);
+        inp = campoDe(ID.grdCarteira, n, 1);
+      }
+      if (!inp) return { ok: false, erro: 'a célula do código não apareceu na linha nova',
+                         diag: radiografiaCarteira() };
+      inp.focus();
+      escrever(inp, String(cod));
+
+      for (let i = 0; i < 14 && !achou; i++) {
+        await espera(800);
         const avisos = await naPaginaDesm('fila') || [];
         const inativo = avisos.find(a => /inativ/i.test(a));
         if (inativo) return { ok: false, erro: 'CLIENTE INATIVO — ' + inativo };
-        achou = jaMarcado();
+        const msg = mensagensDaTela().find(m => /inativ/i.test(m));
+        if (msg) return { ok: false, erro: 'CLIENTE INATIVO — ' + msg };
+        achou = procurar();
+      }
+      if (!achou) {
+        const trs = linhasDe(ID.grdCarteira);
+        const linha = n < trs.length ? celulas(trs[n]).join(' ').trim() : '';
+        return { ok: false,
+                 erro: `o EBM não reconheceu o cliente ${cod}`
+                     + (linha ? ` (a linha ficou "${linha.slice(0, 60)}")` : '')
+                     + msgsOuVazio(),
+                 diag: radiografiaCarteira() };
       }
     }
 
-    if (!achou) {
-      const trs = linhasDe(ID.grdCarteira);
-      const amostra = trs.slice(0, 5).map(tr => celulas(tr).slice(0, 2).join(' ')).join(' | ');
-      return { ok: false,
-               erro: `o cliente ${cod} não está na Cliente Carteira deste pedido mãe`
-                   + (trs.length ? ` (a carteira tem ${trs.length}: ${amostra}…)` : ' (carteira vazia)'),
-               diag: radiografiaCarteira() };
-    }
-
+    // 4. deixar só ele marcado
     await deixarSoMarcada(ID.grdCarteira, achou.i);
-    const razao = achou.c.find(x => x.length > 4 && !/^\d+$/.test(x.trim())) || '';
+    const razao = achou.c.find(x => x.length > 4 && !/^[\d.\/-]+$/.test(x.trim())) || '';
     return { ok: true, razao };
-  }
-
-  /** A lupa do filtro de clientes. Há várias iguais na tela (cada grade
-   *  tem a sua), então ela é procurada a partir do próprio campo do
-   *  filtro e, só depois, dentro da tabela da Cliente Carteira. */
-  function lupaDoFiltro() {
-    const pista = i => [(i.getAttribute('src') || ''), (i.getAttribute('title') || ''),
-                        (i.getAttribute('alt') || ''), (i.getAttribute('id') || '')]
-                        .join(' ').toLowerCase();
-    const ehLupa = i => /search|lupa|busca|filtr/.test(pista(i)) && i.offsetParent;
-    const perto = porXPath("//*[contains(@id,'grdClienteCarteira')]"
-                         + "/following::img[position()<=12]");
-    for (const i of perto) if (ehLupa(i)) return i;
-    const cont = porXPath("//*[contains(@id,'grdClienteCarteira')]/ancestor::table[1]")[0];
-    if (cont) for (const i of cont.querySelectorAll('img')) if (ehLupa(i)) return i;
-    return null;
   }
 
   async function deixarSoMarcada(grid, alvo) {
@@ -578,8 +729,9 @@
       temGradeGrupo: !!$(ID.grdGrupo),
       temGradeDesm: !!$(ID.grdDesm),
       abas: [...new Set(abas)].slice(0, 14),
-      imagens: [...document.querySelectorAll('img')]
-        .filter(i => i.offsetParent).map(img).slice(0, 30),
+      // sem filtrar por visibilidade: com a aba fechada, nada daquela
+      // grade é visível — e foi assim que o btnNew sumiu do meu mapa
+      imagens: [...document.querySelectorAll('img')].map(img).slice(0, 40),
       gradesNaTela: [...document.querySelectorAll('table[id^="form1:"]')]
         .map(t => t.id).slice(0, 20),
       camposFiltro: [...document.querySelectorAll('input')]
