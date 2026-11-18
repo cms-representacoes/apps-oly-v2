@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CMS · EBM",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Traz o pedido do EBM4Web — PDF para a Detalhada, planilha para o Controle de Estoque — e confere no EBM os pedidos mãe que a DISPO vai desmembrar.",
 
   "permissions": ["tabs", "downloads", "storage", "alarms"],

@@ -16,7 +16,9 @@
    ============================================================ */
 
 // Marca a página para o app saber que a extensão está instalada.
-document.documentElement.dataset.cmsEbm = '0.4.1';
+document.documentElement.dataset.cmsEbm = '0.5.2';
+// Esta versão sabe pedir a planilha (formato: 'xls') e devolver o conteúdo.
+document.documentElement.dataset.cmsEbmXls = '1';
 // Esta versão sabe guardar o login do EBM e entrar sozinha.
 document.documentElement.dataset.cmsEbmLogin = '1';
 
@@ -63,6 +65,17 @@ window.addEventListener('cms-ebm-login', (ev) => {
     responder({ tipo: 'login-erro', texto: String(e.message || e) });
   }
 });
+// Desistir do trabalho em curso: sem isto, um que empacou tranca a extensão
+// pelos oito minutos do prazo e ninguém consegue pedir outro.
+window.addEventListener('cms-ebm-cancelar', () => {
+  if (!extensaoViva()) return responder({ tipo: 'erro', texto: ATUALIZOU });
+  try {
+    chrome.runtime.sendMessage({ de: 'cms-detalhada', tipo: 'cancelar' })
+      .then(r => responder({ tipo: 'cancelado', tinha: !!(r && r.tinha) }))
+      .catch(() => responder({ tipo: 'cancelado', tinha: false }));
+  } catch (e) { responder({ tipo: 'cancelado', tinha: false }); }
+});
+
 window.addEventListener('cms-ebm-esquecer', () => {
   if (!extensaoViva()) return;
   try { chrome.runtime.sendMessage({ de: 'cms-detalhada', tipo: 'esquecerLogin' }).catch(() => {}); }

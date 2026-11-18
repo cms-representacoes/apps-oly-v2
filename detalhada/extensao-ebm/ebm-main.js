@@ -343,12 +343,49 @@
     return confirmOriginal.apply(this, arguments);
   };
 
+  /** Escolhe a opção de um <select> do EBM e avisa a PÁGINA do jeito
+   *  que ela espera.
+   *
+   *  Os selects da grade de critérios trazem
+   *      onchange="buttonClick(this.parentNode,'change')"
+   *  e um `change` sintético NÃO dispara isso de forma confiável — foi o
+   *  que travou a consulta no campo "Número Encomenda EBM". Aqui, do
+   *  mundo da página, dá para chamar a própria função do EBM. */
+  function selecionar(args) {
+    const sel = document.getElementById(args.id);
+    if (!sel || sel.tagName !== 'SELECT') return { erro: 'select não encontrado: ' + args.id };
+    const texto = String(args.texto || '');
+    const i = [...sel.options].findIndex(o => args.contendo
+      ? o.text.toUpperCase().includes(texto.toUpperCase())
+      : o.text.trim().toUpperCase() === texto.toUpperCase());
+    if (i < 0) {
+      return { erro: 'sem a opção "' + texto + '"',
+               opcoes: [...sel.options].map(o => o.text).slice(0, 10) };
+    }
+    sel.focus();
+    sel.selectedIndex = i;
+    sel.value = sel.options[i].value;
+    try {
+      if (typeof window.buttonClick === 'function') {
+        window.buttonClick(sel.parentNode, 'change');
+      } else {
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof sel.onchange === 'function') sel.onchange();
+      }
+    } catch (e) {
+      return { erro: 'o EBM recusou a escolha: ' + (e && e.message || e) };
+    }
+    return { escolhido: sel.options[i].text };
+  }
+
   window.addEventListener('cms-desm-main-req', (ev) => {
     let p;
     try { p = JSON.parse(ev.detail); } catch (e) { return; }
     let valor = null;
     if (p.op === 'ligar') { ligado = true; fila.length = 0; valor = true; }
     else if (p.op === 'desligar') { ligado = false; valor = true; }
+    else if (p.op === 'selecionar') { valor = selecionar(p.args || {}); }
     else if (p.op === 'fila') { valor = fila.splice(0, fila.length); }
     window.dispatchEvent(new CustomEvent('cms-desm-main-res', {
       detail: JSON.stringify({ id: p.id, ok: true, valor }),

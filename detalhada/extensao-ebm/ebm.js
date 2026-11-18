@@ -54,6 +54,9 @@
   const CAMPO_GCI = '.EncomendaGCI.encomendaGCI';
   const OPERADOR_IN = 'IN';      // INFORMADOS — para vários GCIs
   const OPERADOR_IGUAL = '=';    // para um GCI só
+  // Os formatos que o combo do EBM oferece: 'pdf' (Adobe PDF), 'xls' (MS
+  // Excel) e 'csv'. O PDF é o que a Detalhada sempre pediu; o Controle de
+  // Estoque pede a planilha, que traz grade e saldo por tamanho.
   const FORMATO_PDF = 'pdf';
 
   /* O que procurar no combo de status da consulta. O `value` vem primeiro,
@@ -696,8 +699,9 @@
       alvo.click();
     },
 
-    /** Janela de opções: Adobe PDF, todas as páginas, e OK. */
-    async confirmar() {
+    /** Janela de opções: o formato pedido, todas as páginas, e OK. */
+    async confirmar(cmd) {
+      const formato = (cmd && cmd.formato === 'xls') ? 'xls' : FORMATO_PDF;
       // A janela abre com o combo VAZIO e as opções chegam depois. Chegar
       // antes disso faz escolher nada, e o EBM responde "Tipo de
       // exportação selecionado é inválido" num alerta que trava tudo.
@@ -713,7 +717,7 @@
       relatar({ aviso: `opções: ${Array.from(combo.options).map(o => o.text).join(' / ')}` });
 
       const f = await naPagina('formato', {
-        idCombo: ID.formato, idTodas: ID.todasPags, valor: FORMATO_PDF });
+        idCombo: ID.formato, idTodas: ID.todasPags, valor: formato });
       // sem formato não se manda imprimir: o alerta de erro tranca a janela
       if (!f.ok) throw new Error(`formato: ${f.erro}`);
       relatar({ aviso: `formato: ${f.valor}` });

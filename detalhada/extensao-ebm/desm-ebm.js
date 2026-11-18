@@ -62,17 +62,16 @@
   /** Célula da grade de critérios (linha 0, coluna 0..3). */
   const criterio = (col) => $(`${ID.filtroGrid}:webGrid:txtInput:row0:${col}`);
 
-  /** Escolhe a opção de um select pelo texto e avisa a página.
-   *  O EBM monta o próximo campo por ajax ao receber o change. */
-  function escolher(sel, texto, contendo) {
-    const alvo = [...sel.options].find(o => contendo
-      ? o.text.toUpperCase().includes(texto.toUpperCase())
-      : o.text.trim().toUpperCase() === texto.toUpperCase());
-    if (!alvo) return false;
-    if (sel.value === alvo.value) return true;
-    sel.value = alvo.value;
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+  /** Escolhe a opção de um select pelo texto.
+   *  Vai pelo braço no mundo da página porque esses selects chamam
+   *  buttonClick(this.parentNode,'change') — um change sintético do
+   *  mundo isolado não aciona isso, e a consulta morria no campo
+   *  "Número Encomenda EBM". */
+  async function escolher(id, texto, contendo) {
+    const r = await naPaginaDesm('selecionar', { id, texto, contendo: !!contendo }, 8000);
+    if (!r) return { ok: false, erro: 'o braço na página não respondeu' };
+    if (r.erro) return { ok: false, erro: r.erro + (r.opcoes ? ' (tinha: ' + r.opcoes.join(' / ') + ')' : '') };
+    return { ok: true, escolhido: r.escolhido };
   }
 
   /* ---------- leitura das grades ---------- */
@@ -232,17 +231,27 @@
       if (b) b.click();
     },
 
-    /** Do menu até a tela de critérios do Desmembrar Pedido Mãe. */
+    /** Do menu até a tela de critérios do Desmembrar Pedido Mãe.
+     *
+     *  O campo "Funcionalidade" vem primeiro de propósito: ele existe em
+     *  toda tela do EBM e leva direto. O link do menu existe no DOM mas
+     *  é item de menu suspenso — clicar nele recarrega a mesma página, e
+     *  o roteiro ficava clicando em círculo. */
     async irParaConsulta() {
+      const f = $('form1:txtFuncionalidade')
+        || porXPath("//input[contains(@id,'Funcionalidade')]")[0];
+      const ok = $('form1:btnFuncionalidadeOK')
+        || porXPath("//*[contains(@id,'FuncionalidadeOK')]")[0];
+      if (f && ok) {
+        f.focus();
+        escrever(f, 'FUC1515');
+        await espera(300);
+        ok.click();
+        return;
+      }
       const link = linkDesmembrar();
       if (link) { link.click(); return; }
-      const f = $('form1:txtFuncionalidade');
-      if (f) {
-        escrever(f, 'FUC1515');
-        const ok = $('form1:btnFuncionalidadeOK');
-        if (ok) { ok.click(); return; }
-      }
-      relatar({ tela: 'MENU', erro: 'não achei como abrir o Desmembrar Pedido Mãe' });
+      relatar({ tela: 'MENU', erro: 'não achei o campo Funcionalidade nem o menu' });
     },
 
     /** Monta o critério e consulta — a mesma receita do robô:
@@ -250,6 +259,32 @@
      *  escolha traz o campo seguinte por ajax, então é tudo numa ação
      *  só, esperando campo a campo. */
     async montarConsulta(cmd) {
+      /* A grade de critérios pode vir VAZIA (0-0/0): aí não há linha
+         para preencher e o "campo Tipo" nunca aparece. O robô cria a
+         linha pelo ícone de nova linha do cabeçalho da grade — mesmo
+         ícone (new.png) da Cliente Carteira. */
+      if (!criterio(0)) {
+        const novaLinha = $(ID.filtroGrid + ':btnNew')
+          || porXPath("//*[contains(@id,'webFilterGrid:btnNew')]//img")[0]
+          || porXPath("//*[contains(@id,'webFilterGrid:btnNew')]")[0]
+          || [...document.querySelectorAll('img')].find(i =>
+               /new|novo|nova|incluir|add/i.test(
+                 [i.getAttribute('src') || '', i.getAttribute('title') || '',
+                  i.getAttribute('alt') || ''].join(' ')));
+        if (novaLinha) {
+          const alvo = novaLinha.querySelector ? (novaLinha.querySelector('img') || novaLinha) : novaLinha;
+          try { alvo.click(); } catch (e) { novaLinha.click(); }
+          for (let t = 0; t < 10 && !criterio(0); t++) await espera(600);
+        }
+        if (!criterio(0)) {
+          relatar({ tela: 'CONSULTA', erro: 'a grade de critérios está vazia e não '
+            + 'consegui criar a linha' });
+          return;
+        }
+        relatar({ tela: 'CONSULTA', resultado: 'consultando',
+                  texto: 'criei a linha de critério' });
+      }
+
       const passos = [
         { col: 0, txt: 'Encomenda', proximo: 1, rot: 'Tipo' },
         { col: 1, txt: 'Número Encomenda EBM', proximo: 2, rot: 'Campo' },
@@ -259,8 +294,10 @@
         let sel = criterio(p.col);
         for (let t = 0; t < 6 && !sel; t++) { await espera(700); sel = criterio(p.col); }
         if (!sel) { relatar({ tela: 'CONSULTA', erro: `o campo ${p.rot} não apareceu` }); return; }
-        if (!escolher(sel, p.txt, p.contendo)) {
-          relatar({ tela: 'CONSULTA', erro: `não achei "${p.txt}" em ${p.rot}` });
+        const esc = await escolher(`${ID.filtroGrid}:webGrid:txtInput:row0:${p.col}`,
+                                   p.txt, p.contendo);
+        if (!esc.ok) {
+          relatar({ tela: 'CONSULTA', erro: `${p.rot}: ${esc.erro}` });
           return;
         }
         let ok = false;
@@ -785,7 +822,7 @@
 
   /* ---------- a voz do EBM (alertas), via mundo da página ---------- */
   let seqMain = 0;
-  function naPaginaDesm(op, ms = 4000) {
+  function naPaginaDesm(op, args, ms = 4000) {
     return new Promise(resolve => {
       const id = 'd' + (++seqMain);
       const prazo = setTimeout(() => {
@@ -802,7 +839,7 @@
       }
       window.addEventListener('cms-desm-main-res', ouvir);
       window.dispatchEvent(new CustomEvent('cms-desm-main-req', {
-        detail: JSON.stringify({ id, op }),
+        detail: JSON.stringify({ id, op, args: args || {} }),
       }));
     });
   }

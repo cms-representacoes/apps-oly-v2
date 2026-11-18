@@ -24,7 +24,7 @@
 
 // Marca a página: é assim que a DISPO sabe que a extensão está instalada
 // e em que versão — sem isso ela não teria como oferecer o botão.
-document.documentElement.dataset.cmsDesm = '0.10.0';
+document.documentElement.dataset.cmsDesm = '0.11.0';
 
 const DESM_ATUALIZOU =
   'A extensão foi atualizada. Recarregue esta página (F5) e tente de novo.';

@@ -652,8 +652,29 @@ function desmComando(msg, sender) {
   }
 
   if (msg.tela === 'MENU') {
-    desmAnotar('abrindo Desmembrar Pedido Mae...', 'acao');
+    /* O CABEÇALHO DO EBM É OUTRO FRAME, e tem o campo Funcionalidade:
+       ele se apresenta como "MENU" em qualquer tela. Depois que algum
+       frame mostrou tela de dentro (critérios, lista, manutenção), o
+       menu não manda mais nada - senão ele navega por cima do trabalho
+       que o outro frame está fazendo, que foi o que derrubou a consulta
+       no meio. */
+    if (jobDesm.viuDentro) return { acao: 'nada' };
+    /* Chegar ao menu três vezes quer dizer que a navegação não está
+       saindo do lugar — repetir vira laço, e foi o que aconteceu. */
+    jobDesm.noMenu = (jobDesm.noMenu || 0) + 1;
+    if (jobDesm.noMenu > 3) {
+      desmEncerrar(false, 'Nao consegui abrir o Desmembrar Pedido Mae sozinho. '
+        + 'Abra a tela no EBM (Funcionalidade FUC1515), consulte os pedidos e '
+        + 'tente de novo.', { codigo: 'sem-navegacao' });
+      return { acao: 'nada' };
+    }
+    desmAnotar(`abrindo Desmembrar Pedido Mae (${jobDesm.noMenu}/3)...`, 'acao');
     return { acao: 'irParaConsulta' };
+  }
+
+  if (msg.tela === 'CONSULTA' || msg.tela === 'RESULTADO'
+      || msg.tela === 'MANUTENCAO' || msg.tela === 'ITEM') {
+    jobDesm.viuDentro = true;
   }
 
   if (msg.tela === 'CONSULTA') {
