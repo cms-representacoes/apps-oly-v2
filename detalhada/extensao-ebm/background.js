@@ -54,6 +54,11 @@ function novoJob(dados, tabOrigem) {
     gcis: dados.gcis,
     status: dados.status || 'A',
     nomeArquivo: dados.nomeArquivo || 'pedido',
+    // 'pdf' e o que a Detalhada sempre pediu e segue sendo o padrao. O
+    // Controle de Estoque pede 'xls': o mesmo relatorio em planilha, com
+    // grade, saldo por tamanho e EBM — o que o lote precisa e o PDF nao
+    // entrega de forma legivel.
+    formato: dados.formato === 'xls' ? 'xls' : 'pdf',
     debug: !!dados.debug,
     tabOrigem,
     tabEbm: null,
@@ -134,6 +139,14 @@ chrome.runtime.onMessage.addListener((msg, sender, responder) => {
   }
   if (msg.tipo === 'temLogin') {
     lerLogin().then((l) => responder({ ok: true, tem: !!l }));
+    return true;
+  }
+
+  // Um trabalho que empacou segura todos os outros por oito minutos — o
+  // prazo do vigia. Quem pediu pode desistir e liberar a vez.
+  if (msg.tipo === 'cancelar') {
+    if (job) { encerrar(false, 'Cancelado por quem pediu.'); responder({ ok: true, tinha: true }); }
+    else responder({ ok: true, tinha: false });
     return true;
   }
 
@@ -343,7 +356,7 @@ function comandoPara(msg, sender) {
     case 'VISUALIZADOR':
       if (job.passo === 'RESULTADO' || job.passo === 'VISUALIZADOR') {
         job.passo = 'FORMATO';
-        avisar('progresso', 'Gerando o PDF…');
+        avisar('progresso', job.formato === 'xls' ? 'Gerando a planilha…' : 'Gerando o PDF…');
         anotar('passo VISUALIZADOR: clicando no disquete');
         return marcar({ acao: 'exportar' });
       }
@@ -352,8 +365,8 @@ function comandoPara(msg, sender) {
     case 'FORMATO':
       if (job.passo === 'FORMATO') {
         job.passo = 'BAIXANDO';
-        anotar('passo FORMATO: Adobe PDF + OK');
-        return marcar({ acao: 'confirmar' });
+        anotar(`passo FORMATO: ${job.formato} + OK`);
+        return marcar({ acao: 'confirmar', formato: job.formato });
       }
       return { acao: 'nada' };
   }
@@ -392,14 +405,15 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 chrome.downloads.onDeterminingFilename.addListener((item, sugerir) => {
   if (!job || job.passo !== 'BAIXANDO') return;          // não é nosso
-  if (!/ClienteEncomenda.*\.pdf$/i.test(item.filename)) return;
+  const ext = job.formato === 'xls' ? 'xls' : 'pdf';
+  if (!new RegExp(`ClienteEncomenda.*\.${ext}$`, 'i').test(item.filename)) return;
 
-  const nome = limparNome(job.nomeArquivo) + '.pdf';
+  const nome = limparNome(job.nomeArquivo) + '.' + ext;
   anotar(`baixando ${item.filename} → ${nome}`);
   job.downloadId = item.id;
   job.nomeFinal = nome;
   sugerir({ filename: nome, conflictAction: 'uniquify' });
-  avisar('progresso', 'Salvando o PDF…');
+  avisar('progresso', job.formato === 'xls' ? 'Salvando a planilha…' : 'Salvando o PDF…');
   // NÃO encerra aqui. Este é só o momento em que o Chrome dá nome ao
   // arquivo — ele ainda está chegando. Encerrar agora fechava a janela do
   // EBM no meio do download: o aviso dizia "salvo" e o arquivo não
@@ -419,12 +433,52 @@ chrome.downloads.onChanged.addListener(async (delta) => {
       caminho = (it && it.filename) || '';
     } catch (e) { /* sem o caminho, fica o nome */ }
     anotar(`download concluído: ${caminho || job.nomeFinal}`);
-    encerrar(true, caminho ? `PDF salvo em ${caminho}` : `PDF salvo como ${job.nomeFinal}`, { caminho });
+    // A planilha é para ser lida por outra tela, não para ficar numa pasta:
+    // vai junto, em base64, para quem pediu. Se o EBM não servir o arquivo
+    // uma segunda vez, segue só o caminho e quem pediu resolve pedindo o
+    // arquivo ao usuário.
+    let conteudo = null;
+    if (job.formato === 'xls') {
+      try {
+        const [it] = await chrome.downloads.search({ id: delta.id });
+        const url = (it && (it.finalUrl || it.url)) || '';
+        if (url) {
+          const r = await fetch(url, { credentials: 'include' });
+          if (r.ok) conteudo = await paraBase64(r);
+          else anotar(`o EBM não serviu a planilha de novo: HTTP ${r.status}`);
+        }
+      } catch (e) { anotar(`o EBM não serviu a planilha de novo: ${e && e.message || e}`); }
+
+      // O relatório do EBM é de uso único: a mesma URL não entrega duas vezes.
+      // Então vale ler o arquivo que acabou de ser salvo — o que só funciona
+      // com "Permitir acesso a URLs de arquivo" ligado nesta extensão.
+      if (!conteudo && caminho) {
+        try {
+          const r = await fetch("file:///" + caminho.replaceAll(String.fromCharCode(92), "/"));
+          if (r.ok) conteudo = await paraBase64(r);
+          else anotar(`não consegui ler o arquivo salvo: HTTP ${r.status}`);
+        } catch (e) {
+          anotar(`não consegui ler o arquivo salvo (ligue "Permitir acesso a URLs de arquivo"): ${e && e.message || e}`);
+        }
+      }
+    }
+    const oque = job.formato === 'xls' ? 'Planilha' : 'PDF';
+    encerrar(true, caminho ? `${oque} salvo em ${caminho}` : `${oque} salvo como ${job.nomeFinal}`,
+             { caminho, conteudo, formato: job.formato });
   } else if (estado === 'interrupted') {
     const motivo = (delta.error && delta.error.current) || 'motivo desconhecido';
-    encerrar(false, `O download do PDF não terminou (${motivo}). Veja em chrome://downloads.`);
+    encerrar(false, `O download não terminou (${motivo}). Veja em chrome://downloads.`);
   }
 });
+
+/** Corpo da resposta em base64, que é como o conteúdo viaja até a página. */
+async function paraBase64(r) {
+  const buf = new Uint8Array(await r.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+  anotar(`planilha lida: ${buf.length} bytes`);
+  return btoa(bin);
+}
 
 function limparNome(s) {
   return String(s || 'pedido')
@@ -439,5 +493,372 @@ function limparNome(s) {
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (job && tabId === job.tabEbm && job.passo !== 'BAIXANDO') {
     encerrar(false, 'A aba do EBM foi fechada antes de terminar.');
+  }
+});
+
+/* ============================================================
+   DESMEMBRAMENTO — ORQUESTRADOR
+   ============================================================
+   Vive ao lado do trabalho do PDF, sem se misturar com ele: outro job,
+   outro alarme, outras mensagens. O que os dois têm em comum é o
+   desenho — a página do EBM se apresenta, aqui se decide o que ela faz,
+   e o estado mora neste arquivo porque o content script morre a cada
+   postback.
+
+   Esta versão só CONFERE: abre cada pedido mãe da lista, lê os artigos
+   e devolve. Nada é marcado, digitado ou gerado. A conferência é o
+   passo que falta no robô de hoje — lá os problemas só aparecem quando
+   a digitação já está em curso.
+
+   O roteiro, por pedido:
+     RESULTADO/clicar  → marca a linha, dá o postback e clica em manutenção
+     MANUTENCAO/ler    → lê os artigos e volta para a lista
+   ============================================================ */
+
+const DESM_VIGIA = 'cms-desm-vigia';
+const DESM_PRAZO = 10 * 60 * 1000;
+let jobDesm = null;
+
+function desmAnotar(texto, tag = 'info') {
+  const linha = `${new Date().toLocaleTimeString('pt-BR')}  ${texto}`;
+  console.log('[CMS-DESM]', linha);
+  if (!jobDesm) return;
+  jobDesm.log.push({ txt: texto, tag, em: Date.now() });
+  desmAvisar({ tipo: 'log', texto, tag });
+}
+
+function desmAvisar(msg) {
+  if (!jobDesm || jobDesm.tabOrigem == null) return;
+  chrome.tabs.sendMessage(jobDesm.tabOrigem, { de: 'cms-desm', ...msg }).catch(() => {});
+}
+
+function desmEncerrar(ok, texto, extra = {}) {
+  if (!jobDesm) return;
+  desmAnotar((ok ? 'PRONTO: ' : 'PAROU: ') + texto, ok ? 'ok' : 'erro');
+  desmAvisar({ tipo: 'fim', ok, texto, lidos: jobDesm.lidos, log: jobDesm.log, ...extra });
+  chrome.alarms.clear(DESM_VIGIA);
+  jobDesm = null;
+}
+
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name !== DESM_VIGIA) return;
+  if (!jobDesm) { chrome.alarms.clear(DESM_VIGIA); return; }
+  if (Date.now() > jobDesm.prazo) {
+    desmEncerrar(false, `O EBM nao respondeu a tempo (parou em ${jobDesm.etapa}).`);
+  }
+});
+
+/* O gatilho do content script é a tela MUDAR. Quando o roteiro precisa
+   seguir sem que nada mude na tela (um pedido que não abriu, a vez do
+   próximo), é daqui que vem o empurrão. */
+function desmCutucar(ms = 900) {
+  if (!jobDesm) return;
+  const tab = jobDesm.tabEbm;
+  setTimeout(() => {
+    chrome.tabs.sendMessage(tab, { de: 'cms-desm', tipo: 'acorda' }).catch(() => {});
+  }, ms);
+}
+
+/** A aba do EBM que já está aberta. O desmembramento não abre janela
+ *  escondida como o PDF: quem confere quer ver a tela trabalhando, e o
+ *  EBM precisa da sessão que a pessoa já abriu. */
+async function abaDoEbm() {
+  const abas = await chrome.tabs.query({ url: '*://*.vulcabras.com.br/ebm4web/*' });
+  return abas && abas.length ? abas[0] : null;
+}
+
+async function desmIniciar(pacote, tabOrigem, piloto, modo) {
+  const aba = await abaDoEbm();
+  if (!aba) {
+    return { ok: false, codigo: 'sem-ebm',
+             erro: 'Abra o EBM numa aba, entre em Desmembrar Pedido Mae e '
+                 + 'deixe a lista dos pedidos na tela.' };
+  }
+  /* O piloto trabalha UM cliente de UM pedido: é o primeiro contato da
+     extensão com a parte que escreve no EBM, e ninguém quer descobrir um
+     engano depois de dezesseis digitações. */
+  const ebms = piloto && piloto.ebm
+    ? [String(piloto.ebm)]
+    : pacote.pedidos.map(p => String(p.ebm)).filter(Boolean);
+  const id = 'desm_' + Date.now();
+  jobDesm = {
+    id, modo: modo || (piloto ? 'piloto' : 'conferir'), piloto: piloto || null,
+    pacote, ebms, fila: [...ebms], atual: null, etapa: 'inicio',
+    lidos: {}, log: [], tabOrigem, tabEbm: aba.id,
+    prazo: Date.now() + DESM_PRAZO,
+  };
+  chrome.alarms.create(DESM_VIGIA, { periodInMinutes: 0.5 });
+  desmAnotar(piloto
+    ? `piloto: pedido mae ${ebms[0]}, cliente ${piloto.cod} (${piloto.pedidoCliente})`
+    : `conferencia de ${ebms.length} pedido(s) mae: ${ebms.join(', ')}`, 'acao');
+
+  /* A tela pode estar parada há minutos; sem o cutucão ninguém fala. E
+     recarregar a extensão mata os scripts já injetados: a aba do EBM
+     fica com uma versão órfã, que não responde nem avisa. Por isso o
+     silêncio aqui vira instrução, e não espera. */
+  let acordou = false;
+  try {
+    const r = await chrome.tabs.sendMessage(aba.id, { de: 'cms-desm', tipo: 'acorda' });
+    if (r && r.tela) { acordou = true; desmAnotar(`tela do EBM: ${r.tela}`, 'info'); }
+  } catch (e) { /* ninguém do outro lado */ }
+
+  if (!acordou) {
+    desmAnotar('a aba do EBM nao reagiu. De F5 nela e tente de novo - '
+               + 'recarregar a extensao desliga o braco dela nas paginas '
+               + 'que ja estavam abertas.', 'erro');
+  }
+
+  /* Rede de segurança: se em 12 segundos a página do EBM não falou nada,
+     não adianta esperar o prazo de 10 minutos para dizer o óbvio. */
+  setTimeout(() => {
+    if (jobDesm && jobDesm.id === id && jobDesm.etapa === 'inicio') {
+      desmEncerrar(false, 'A aba do EBM nao respondeu. Confira se ela esta na '
+        + 'tela "Desmembrar Pedido Mae" com a LISTA dos pedidos e de F5 nela.',
+        { codigo: 'ebm-mudo' });
+    }
+  }, 12000);
+  return { ok: true };
+}
+
+/** O que a página do EBM deve fazer agora. */
+function desmComando(msg, sender) {
+  if (!jobDesm) return { acao: 'nada' };
+  if (Date.now() > jobDesm.prazo) { desmEncerrar(false, 'Tempo esgotado.'); return { acao: 'nada' }; }
+  // só a aba do trabalho manda; outras janelas do EBM ficam de fora
+  if (sender.tab && sender.tab.id !== jobDesm.tabEbm) return { acao: 'nada' };
+  jobDesm.prazo = Date.now() + DESM_PRAZO;
+
+  if (msg.tela === 'LOGIN') {
+    desmEncerrar(false, 'A sessao do EBM caiu. Entre de novo e repita.',
+                 { codigo: 'precisa-login' });
+    return { acao: 'nada' };
+  }
+
+  if (msg.tela === 'RESULTADO') {
+    // nada em curso: ou acabou, ou é hora do próximo
+    if (!jobDesm.atual) {
+      if (!jobDesm.fila.length) {
+        const n = Object.keys(jobDesm.lidos).length;
+        desmEncerrar(true, `${n} de ${jobDesm.ebms.length} pedido(s) mae conferido(s).`);
+        return { acao: 'nada' };
+      }
+      jobDesm.atual = jobDesm.fila.shift();
+      jobDesm.tentativas = 0;
+      jobDesm.etapa = 'selecionar';
+      desmAnotar(`pedido mae ${jobDesm.atual}: abrindo...`, 'acao');
+      return { acao: 'selecionarLinha', ebm: jobDesm.atual };
+    }
+    // a lista voltou do postback do grid: agora é clicar
+    if (jobDesm.etapa === 'selecionar') {
+      jobDesm.etapa = 'clicar';
+      return { acao: 'clicarManter', ebm: jobDesm.atual };
+    }
+    /* Voltamos para a lista sem a manutenção ter aberto. Acontece quando
+       o EBM não registrou a seleção — o robô também repete nesse caso.
+       Duas tentativas; depois o pedido fica anotado como não aberto e a
+       conferência segue, que é melhor do que travar no primeiro teimoso. */
+    jobDesm.tentativas = (jobDesm.tentativas || 0) + 1;
+    if (jobDesm.tentativas > 2) {
+      desmAnotar(`${jobDesm.atual}: a manutencao nao abriu em 2 tentativas.`, 'erro');
+      jobDesm.lidos[jobDesm.atual] = { erro: 'a manutencao nao abriu' };
+      jobDesm.atual = null;
+      desmCutucar();
+      return { acao: 'nada' };
+    }
+    desmAnotar(`${jobDesm.atual}: o EBM nao registrou a selecao; repetindo `
+               + `(${jobDesm.tentativas}/2)...`, 'warn');
+    jobDesm.etapa = 'selecionar';
+    return { acao: 'selecionarLinha', ebm: jobDesm.atual };
+  }
+
+  if (msg.tela === 'MANUTENCAO') {
+    if (jobDesm.atual && jobDesm.modo === 'raiox') {
+      if (jobDesm.etapa === 'fim') return { acao: 'nada' };
+      jobDesm.etapa = 'fim';
+      return { acao: 'raioX', ebm: jobDesm.atual };
+    }
+    if (jobDesm.atual && jobDesm.modo === 'piloto') {
+      if (jobDesm.etapa === 'preparado' || jobDesm.etapa === 'fim') return { acao: 'nada' };
+      jobDesm.etapa = 'preparando';
+      return { acao: 'prepararCliente', ebm: jobDesm.atual, cliente: jobDesm.piloto };
+    }
+    if (jobDesm.atual) {
+      jobDesm.etapa = 'lendo';
+      return { acao: 'lerPedido', ebm: jobDesm.atual };
+    }
+    // manutenção aberta fora de hora (a pessoa deixou um pedido aberto):
+    // volta para a lista, que é de onde o roteiro sabe andar
+    desmAnotar('havia um pedido aberto na tela; voltando para a lista...', 'warn');
+    return { acao: 'voltar' };
+  }
+
+  return { acao: 'nada' };
+}
+
+/** O que a página relatou (leitura, erro, pedido fora da lista). */
+function desmRelato(msg) {
+  if (!jobDesm) return;
+  if (msg.resultado === 'nao-achou') {
+    desmAnotar(`${msg.ebm}: ${msg.texto}`, 'erro');
+    jobDesm.lidos[msg.ebm] = { erro: msg.texto };
+    jobDesm.atual = null;
+    jobDesm.etapa = 'proximo';
+    return;
+  }
+  if (msg.resultado === 'leitura') {
+    const d = msg.dados || {};
+    jobDesm.lidos[msg.ebm] = d;
+    const art = d.artigos || [];
+    desmAnotar(`${msg.ebm}: ${art.length} artigo(s) na tela`
+      + (d.digitacoesExistentes ? `, ${d.digitacoesExistentes} digitacao(oes) ja salva(s)` : '')
+      + (d.pedidoNaTela && String(d.pedidoNaTela) !== String(msg.ebm)
+          ? ` - ATENCAO: o cabecalho diz ${d.pedidoNaTela}` : ''), 'ok');
+    for (const a of art) {
+      desmAnotar(`   ${a.codigo} ${a.cor} - grade ${a.grade || '?'} `
+        + `a partir do ${a.tamInicial || '?'} - saldo ${a.saldo}`, 'info');
+    }
+    if ((d.mensagens || []).length) desmAnotar('   EBM: ' + d.mensagens.join(' | '), 'warn');
+    desmAvisar({ tipo: 'pedido', ebm: msg.ebm, dados: d });
+    jobDesm.atual = null;
+    jobDesm.etapa = 'proximo';
+    return;
+  }
+  if (msg.resultado === 'limpou') {
+    desmAnotar(`${msg.ebm}: ${msg.texto}`, 'warn');
+    jobDesm.etapa = 'inicio';
+    desmCutucar(2500);
+    return;
+  }
+  if (msg.resultado === 'preparado') {
+    const d = msg.dados || {};
+    jobDesm.etapa = 'preparado';
+    desmAnotar(`${msg.ebm}: cliente ${d.cliente} preenchido como "${d.pedidoCliente}".`, 'ok');
+    for (const l of (d.linhas || [])) {
+      desmAnotar(`   linha ${l.linha + 1}: ${l.caixas} caixa(s)`
+        + (l.total ? `, Qtd. ${l.total} na tela` : '')
+        + (l.okPed ? '' : ' - NAO consegui escrever o Pedido do Cliente')
+        + (l.okCx ? '' : ' - NAO consegui escrever as caixas'), 'info');
+    }
+    if ((d.avisos || []).length) desmAnotar('   EBM avisou: ' + d.avisos.join(' | '), 'warn');
+    if ((d.mensagens || []).length) desmAnotar('   tela: ' + d.mensagens.join(' | '), 'warn');
+    desmAnotar('PARADO antes de salvar. Confira a tela do EBM e decida.', 'acao');
+    desmAvisar({ tipo: 'preparado', ebm: msg.ebm, dados: d });
+    return;
+  }
+  if (msg.resultado === 'salvou') {
+    const d = msg.dados || {};
+    if (msg.ok) {
+      desmAnotar(`${msg.ebm}: desmembramento SALVO`
+        + (d.digitacoes ? ` (a tela mostra ${d.digitacoes} digitacao(oes))` : '') + '.', 'ok');
+    } else {
+      desmAnotar(`${msg.ebm}: o salvar NAO concluiu - a linha continua na tela`
+        + ((d.avisos || []).length ? ' - ' + d.avisos.join(' | ') : '')
+        + ((d.mensagens || []).length ? ' - ' + d.mensagens.join(' | ') : '') + '.', 'erro');
+    }
+    jobDesm.etapa = 'fim';
+    desmAvisar({ tipo: 'salvou', ebm: msg.ebm, ok: !!msg.ok, dados: d });
+    desmEncerrar(!!msg.ok, msg.ok ? 'Digitacao salva no EBM.' : 'O EBM nao salvou.');
+    return;
+  }
+  if (msg.resultado === 'cancelou') {
+    jobDesm.etapa = 'fim';
+    desmEncerrar(true, 'Cancelado na tela do EBM. Nada foi salvo.');
+    return;
+  }
+  if (msg.resultado === 'raiox') {
+    const d = msg.dados || {};
+    desmAnotar('RAIO-X da tela (nada foi alterado):', 'acao');
+    desmAnotar(`   carteira antes=${d.antes.carteira} linha(s), depois do clique=`
+      + `${d.depois.carteira} | grupo antes=${d.antes.grupo}, depois=${d.depois.grupo}`,
+      d.depois.carteira > d.antes.carteira ? 'ok' : 'erro');
+    for (const c of (d.candidatos || [])) {
+      desmAnotar(`   <${c.tag}${c.id ? ' id=' + c.id : ''}> "${c.texto}"`
+        + (c.classe ? ` class=${c.classe}` : '')
+        + (c.href ? ` href=${c.href}` : '')
+        + (c.onclick ? ` onclick=${c.onclick}` : '')
+        + (c.paiOnclick ? ` | pai <${c.paiTag} ${c.paiId}> onclick=${c.paiOnclick}` : ''), 'info');
+    }
+    const cf = (d.diag && d.diag.camposFiltro) || [];
+    if (cf.length) desmAnotar('   campos de filtro visiveis: ' + cf.join(' ; '), 'info');
+    jobDesm.etapa = 'fim';
+    desmEncerrar(true, 'Raio-X concluido. Nada foi alterado no EBM.');
+    return;
+  }
+  if (msg.resultado === 'falhou') {
+    desmAnotar(`${msg.ebm}: ${msg.texto}`, 'erro');
+    if (msg.diag) {
+      const d = msg.diag;
+      desmAnotar(`   tela: carteira=${d.temGradeCarteira ? d.linhasCarteira + ' linha(s)' : 'NAO EXISTE'}`
+        + ` | artigos=${d.temGradeArtigo} | grupo=${d.temGradeGrupo} | desm=${d.temGradeDesm}`, 'warn');
+      if ((d.gradesNaTela || []).length)
+        desmAnotar('   grades: ' + d.gradesNaTela.join(', '), 'info');
+      if ((d.abas || []).length) desmAnotar('   abas/rotulos: ' + d.abas.join(' / '), 'info');
+      if ((d.imagens || []).length) desmAnotar('   icones: ' + d.imagens.join(' ; '), 'info');
+    }
+    jobDesm.etapa = 'fim';
+    desmEncerrar(false, msg.texto || 'Nao consegui preparar a digitacao.');
+    return;
+  }
+  if (msg.erro) desmAnotar(`${msg.tela || ''}: ${msg.erro}`, 'erro');
+}
+
+/** Manda a página do EBM executar algo agora (salvar, cancelar). */
+async function desmExecutar(acao, cmd) {
+  if (!jobDesm) return { ok: false, erro: 'Nao ha trabalho em curso.' };
+  try {
+    await chrome.tabs.sendMessage(jobDesm.tabEbm,
+      { de: 'cms-desm', tipo: 'executar', acao, cmd: cmd || {} });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: 'A aba do EBM nao respondeu. De F5 nela.' };
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, responder) => {
+  if (msg && msg.de === 'cms-desm-pagina') {
+    if (msg.tela && !msg.resultado && !msg.erro) {
+      responder(desmComando(msg, sender));
+    } else {
+      desmRelato(msg);
+      responder({ ok: true });
+    }
+    return true;
+  }
+  if (!msg || msg.de !== 'cms-desm-app') return;
+
+  if (msg.tipo === 'raiox') {
+    if (jobDesm) { responder({ ok: false, erro: 'Ja existe um trabalho em curso.' }); return true; }
+    desmIniciar(msg.pacote, sender.tab && sender.tab.id, msg.cliente, 'raiox').then(responder,
+      (e) => responder({ ok: false, erro: String(e && e.message || e) }));
+    return true;
+  }
+  if (msg.tipo === 'conferir' || msg.tipo === 'piloto') {
+    if (jobDesm) { responder({ ok: false, erro: 'Ja existe um trabalho em curso.' }); return true; }
+    desmIniciar(msg.pacote, sender.tab && sender.tab.id,
+                msg.tipo === 'piloto' ? msg.cliente : null).then(responder,
+      (e) => responder({ ok: false, erro: String(e && e.message || e) }));
+    return true;
+  }
+  if (msg.tipo === 'salvarPiloto' || msg.tipo === 'cancelarPiloto') {
+    if (!jobDesm || jobDesm.etapa !== 'preparado') {
+      responder({ ok: false, erro: 'Nao ha digitacao preparada esperando decisao.' });
+      return true;
+    }
+    desmAnotar(msg.tipo === 'salvarPiloto' ? 'salvando...' : 'cancelando na tela...', 'acao');
+    desmExecutar(msg.tipo === 'salvarPiloto' ? 'salvarCliente' : 'cancelarNaTela',
+                 { ebm: jobDesm.atual }).then(responder);
+    return true;
+  }
+  if (msg.tipo === 'parar') {
+    const tinha = !!jobDesm;
+    if (jobDesm) desmEncerrar(false, 'Parado por voce.');
+    responder({ ok: true, tinha });
+    return true;
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (jobDesm && tabId === jobDesm.tabEbm) {
+    desmEncerrar(false, 'A aba do EBM foi fechada antes de terminar.');
   }
 });

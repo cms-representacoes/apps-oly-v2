@@ -309,3 +309,52 @@
     const t = setInterval(() => { if (marcar() || ++n > 40) clearInterval(t); }, 100);
   }
 })();
+
+/* ============================================================
+   DESMEMBRAMENTO — A VOZ DO EBM
+   ============================================================
+   No PDF os alertas da página são engolidos: lá eles só atrapalham. No
+   desmembramento é o contrário — o TEXTO do alerta é a resposta do EBM.
+   "Cliente inativo", "algumas encomendas não puderam ser geradas": é por
+   essas frases que o robô sabe que não deu certo, e elas não aparecem em
+   lugar nenhum do DOM.
+
+   Então aqui eles são guardados numa fila em vez de mostrados — mas só
+   enquanto um trabalho estiver em curso. Fora disso, o EBM que a pessoa
+   usa na mão continua igual.
+
+   Protocolo (evento no window, payload em texto):
+     cms-desm-main-req  { id, op: 'ligar'|'desligar'|'fila' }
+     cms-desm-main-res  { id, ok, valor }
+   ============================================================ */
+(() => {
+  let ligado = false;
+  const fila = [];
+
+  const alertOriginal = window.alert;
+  const confirmOriginal = window.confirm;
+
+  window.alert = function (m) {
+    if (ligado) { fila.push(String(m == null ? '' : m)); return; }
+    return alertOriginal.apply(this, arguments);
+  };
+  window.confirm = function (m) {
+    if (ligado) { fila.push(String(m == null ? '' : m)); return true; }
+    return confirmOriginal.apply(this, arguments);
+  };
+
+  window.addEventListener('cms-desm-main-req', (ev) => {
+    let p;
+    try { p = JSON.parse(ev.detail); } catch (e) { return; }
+    let valor = null;
+    if (p.op === 'ligar') { ligado = true; fila.length = 0; valor = true; }
+    else if (p.op === 'desligar') { ligado = false; valor = true; }
+    else if (p.op === 'fila') { valor = fila.splice(0, fila.length); }
+    window.dispatchEvent(new CustomEvent('cms-desm-main-res', {
+      detail: JSON.stringify({ id: p.id, ok: true, valor }),
+    }));
+  });
+
+  try { document.documentElement.setAttribute('data-cms-desm-main', '1'); }
+  catch (e) { /* a marca é conveniência; a fila funciona sem ela */ }
+})();
