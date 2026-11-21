@@ -9330,7 +9330,9 @@ const ORDER_EXPORT_DEFAULTS = {
   campaign: "",
   packing: "M: Musical",
   deliveryType: "3: Total Artigo/Cor",
-  dataFirme: "S: Sim",
+  // "N: Nao" desde 21/11/2026, a pedido dele: data firme era a excecao e
+  // abria marcada como regra.
+  dataFirme: "N: Não",
   pedidoMae: "N: Não",
   antecipacao: "N: Não",
   dataDesejada: "",
@@ -9361,6 +9363,11 @@ function loadOrderExportConfig(){
     delete parsed.pedidoCliente;
     // Tab. de preço sempre segue o padrão da marca ativa (editável pelo usuário)
     delete parsed.priceTable;
+    /* Data Firme idem: nasce sempre do padrão (N), e a escolha do momento
+       vale só para aquele pedido. Enquanto era lembrada, quem tivesse
+       mandado um pedido com "S: Sim" continuava vendo S a cada abertura -
+       e atualizar a página não adiantava. */
+    delete parsed.dataFirme;
     return { ...ORDER_EXPORT_DEFAULTS, ...parsed };
   }catch(e){
     return { ...ORDER_EXPORT_DEFAULTS };
@@ -14971,6 +14978,10 @@ function buildPedidoSnapshot(cfg){
     payment: cfg.payment || "",
     priceTable: cfg.priceTable || "",
     campaign: cfg.campaign || "",
+    /* Gravado desde 21/11/2026. Antes o pedido salvo não dizia nada sobre
+       Data Firme, e quem baixasse o Excel de novo recebia o valor fixo que
+       estava no código - não o que o vendedor escolheu. */
+    dataFirme: cfg.dataFirme || ORDER_EXPORT_DEFAULTS.dataFirme,
     dataDesejada: cfg.dataDesejada || "",
     pedidoCliente: cfg.pedidoCliente || "",
     items,
@@ -15031,6 +15042,8 @@ function buildRascunhoSnapshot({ id=null, cfg=null } = {}){
     payment: cfg?.payment || state.lastOrderCfg?.payment || "",
     priceTable: cfg?.priceTable || state.lastOrderCfg?.priceTable || "",
     campaign: cfg?.campaign || state.lastOrderCfg?.campaign || "",
+    dataFirme: cfg?.dataFirme || state.lastOrderCfg?.dataFirme
+               || ORDER_EXPORT_DEFAULTS.dataFirme,
     pedidoCliente: cfg?.pedidoCliente || state.lastOrderCfg?.pedidoCliente || "",
     items,
     totalItens,
@@ -15617,6 +15630,7 @@ function mpEditarRascunho(id){
       payment: r.payment || "",
       priceTable: r.priceTable || "",
       campaign: r.campaign || "",
+      dataFirme: r.dataFirme || ORDER_EXPORT_DEFAULTS.dataFirme,
       pedidoCliente: r.pedidoCliente || ""
     };
     for(const it of (r.items||[])){
@@ -15683,6 +15697,7 @@ function mpFinalizarRascunho(id){
       payment: r.payment || "",
       priceTable: r.priceTable || "",
       campaign: r.campaign || "",
+      dataFirme: r.dataFirme || ORDER_EXPORT_DEFAULTS.dataFirme,
       pedidoCliente: r.pedidoCliente || ""
     };
     for(const it of (r.items||[])){
@@ -16453,7 +16468,9 @@ async function mpBaixarExcel(id){
       campaign: pedido.campaign,
       packing: "M: Musical",
       deliveryType: "3: Total Artigo/Cor",
-      dataFirme: "S: Sim",
+      // o que o pedido guarda manda; só quem é anterior a 21/11/2026 cai no
+      // padrão, que hoje é "N: Não"
+      dataFirme: pedido.dataFirme || ORDER_EXPORT_DEFAULTS.dataFirme,
       pedidoMae: "N: Não",
       antecipacao: "N: Não",
       dataDesejada: pedido.dataDesejada,
