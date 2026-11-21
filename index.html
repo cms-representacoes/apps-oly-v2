@@ -639,6 +639,24 @@
     .badge-cont     {display:inline-flex;align-items:center;background:rgba(100,116,139,.14);color:#475569;border:1px solid rgba(100,116,139,.32);font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em;}
     .dark-mode .badge-novo    { color:#fdba74 !important; background:rgba(249,115,22,.20) !important; }
     .dark-mode .badge-novacor { color:rgb(var(--primary-rgb)) !important; background:rgba(var(--primary-rgb),.22) !important; }
+    .badge-gtm{display:inline-flex;align-items:center;background:#CFFAFE;color:#155E75;border:1px solid #A5F3FC;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em;}
+    .dark-mode .badge-gtm{ background:rgba(8,145,178,.26) !important; color:#67e8f9 !important; border-color:rgba(8,145,178,.4) !important; }
+    /* As composicoes de caixa do GTM, no topo do modal de grade */
+    .gtm-grade{ border:1px solid #A5F3FC; background:#ECFEFF; border-radius:14px;
+      padding:10px 12px; margin-bottom:8px; }
+    .gtm-grade.escolhida{ border-color:#0891b2; box-shadow:0 0 0 2px rgba(8,145,178,.18); }
+    .gtm-grade .gtm-tams{ display:flex; flex-wrap:wrap; gap:4px; margin:7px 0 8px; }
+    .gtm-grade .gtm-tam{ display:inline-flex; flex-direction:column; align-items:center;
+      min-width:34px; border:1px solid #A5F3FC; border-radius:9px; padding:3px 5px;
+      background:#fff; line-height:1.15; }
+    .gtm-grade .gtm-tam b{ font-size:12px; color:#0e7490; }
+    .gtm-grade .gtm-tam span{ font-size:9.5px; color:#64748b; font-weight:700; }
+    .gtm-grade .gtm-usar{ border:0; border-radius:999px; background:#0891b2; color:#fff;
+      font-weight:800; font-size:12px; padding:6px 16px; cursor:pointer; }
+    .gtm-grade .gtm-usar:hover{ background:#0e7490; }
+    .dark-mode .gtm-grade{ background:rgba(8,145,178,.12); border-color:rgba(8,145,178,.35); }
+    .dark-mode .gtm-grade .gtm-tam{ background:rgba(255,255,255,.06); border-color:rgba(8,145,178,.35); }
+    .dark-mode .gtm-grade .gtm-tam b{ color:#67e8f9; }
     .dark-mode .badge-lanc    { color:#6ee7b7 !important; background:rgba(5,150,105,.22) !important; }
     .dark-mode .badge-cont    { color:#cbd5e1 !important; background:rgba(100,116,139,.26) !important; }
 
@@ -729,6 +747,12 @@
       border-color:rgba(249,115,22,.32); }
     .chip-f-cont{ background:rgba(100,116,139,.14); color:#475569;
       border-color:rgba(100,116,139,.32); }
+    /* O ciano e o mesmo do selo do GTM no Showroom: quem ve as duas telas
+       reconhece na hora que e a mesma cota. */
+    .chip-f-gtm{ background:rgba(8,145,178,.14); color:#0e7490;
+      border-color:rgba(8,145,178,.32); }
+    .chip-f-semgtm{ background:rgba(100,116,139,.12); color:#64748b;
+      border-color:rgba(100,116,139,.28); }
 
     .chip-f-novacor.on{ background:rgb(var(--primary-rgb)); color:#fff;
       border-color:rgb(var(--primary-rgb)); box-shadow:0 2px 10px rgba(var(--primary-rgb),.35); }
@@ -738,12 +762,18 @@
       box-shadow:0 2px 10px rgba(249,115,22,.35); }
     .chip-f-cont.on{ background:#475569; color:#fff; border-color:#475569;
       box-shadow:0 2px 10px rgba(100,116,139,.35); }
+    .chip-f-gtm.on{ background:#0891b2; color:#fff; border-color:#0891b2;
+      box-shadow:0 2px 10px rgba(8,145,178,.35); }
+    .chip-f-semgtm.on{ background:#64748b; color:#fff; border-color:#64748b;
+      box-shadow:0 2px 10px rgba(100,116,139,.3); }
     .chip-f.on .chip-f-n{ opacity:.85; }
 
     .dark-mode .chip-f-novacor{ color:rgb(var(--primary-rgb)); background:rgba(var(--primary-rgb),.22); }
     .dark-mode .chip-f-lanc{ color:#6ee7b7; background:rgba(5,150,105,.22); }
     .dark-mode .chip-f-corre{ color:#fdba74; background:rgba(249,115,22,.22); }
     .dark-mode .chip-f-cont{ color:#cbd5e1; background:rgba(100,116,139,.26); }
+    .dark-mode .chip-f-gtm{ color:#67e8f9; background:rgba(8,145,178,.24); }
+    .dark-mode .chip-f-semgtm{ color:#cbd5e1; background:rgba(100,116,139,.22); }
     /* o estado ligado precisa vir depois das cores do tema, senão o fundo
        translúcido do escuro vence e o texto branco fica ilegível */
     .dark-mode .chip-f-novacor.on{ background:rgb(var(--primary-rgb)); color:#fff;
@@ -751,6 +781,8 @@
     .dark-mode .chip-f-lanc.on{ background:#059669; color:#06281f; border-color:#059669; }
     .dark-mode .chip-f-corre.on{ background:#f97316; color:#2a1206; border-color:#f97316; }
     .dark-mode .chip-f-cont.on{ background:#94a3b8; color:#1e293b; border-color:#94a3b8; }
+    .dark-mode .chip-f-gtm.on{ background:#22d3ee; color:#06282f; border-color:#22d3ee; }
+    .dark-mode .chip-f-semgtm.on{ background:#94a3b8; color:#1e293b; border-color:#94a3b8; }
     @media (max-width:480px){
       .chip-f{ font-size:11px; padding:6px 11px; }
     }
@@ -3664,6 +3696,14 @@ html.dark-mode #homeScreen{ background:transparent; }
                   aria-pressed="false">Corre <span class="chip-f-n" data-n></span></button>
           <button type="button" class="chip-f chip-f-cont focus-ring" data-chip="continuidade"
                   aria-pressed="false">Continuidade <span class="chip-f-n" data-n></span></button>
+          <!-- Os dois lados da mesma pergunta: o que sai em caixa fechada e o
+               que o cliente monta. Só aparecem depois que a DISPO chega. -->
+          <button type="button" class="chip-f chip-f-gtm focus-ring" data-chip="gtm"
+                  title="Produtos do GTM - 1S27: saem com a grade que a fábrica montou"
+                  aria-pressed="false">GTM - 1S27 <span class="chip-f-n" data-n></span></button>
+          <button type="button" class="chip-f chip-f-semgtm focus-ring" data-chip="semGtm"
+                  title="Fora do GTM: a grade é montada por quem pede"
+                  aria-pressed="false">Fora do GTM <span class="chip-f-n" data-n></span></button>
         </div>
         <!-- Trilha de categorias - a explicação está em #catRail, no <style>.
              Os botões são .cat-chip: herdam o clique e a sincronização
@@ -4578,6 +4618,9 @@ html.dark-mode #homeScreen{ background:transparent; }
           <!-- Grades já adicionadas (aparece após primeira) -->
           <div id="gradePreviousList" class="hidden px-4 sm:px-5 pt-3 pb-1"></div>
 
+          <!-- As composições de caixa do GTM - 1S27 (ver carregarGtm) -->
+          <div id="gradeGtm" class="hidden px-4 sm:px-5 pt-3 pb-1"></div>
+
           <!-- Lista de tamanhos da grade ATUAL -->
           <div class="px-4 sm:px-5 py-2" id="gradeSizeListWrap">
             <div id="gradeCurrentLabel" class="text-[11px] font-extrabold uppercase tracking-wider text-oly-muted mb-2 hidden">
@@ -4870,7 +4913,8 @@ const state = {
   // resto. categoriaEm: quando o card junta mais de uma categoria (a roupa do
   // CORRE é confecção E acessório).
   filters: { category:"", categoriaEm:null, segment:"", gender:"", q:"", sort:"default", priceMax:Infinity, colecao:"1S27", tier:"",
-             linha:"", novaCor:false, lancamento:false, corre:false, continuidade:false },
+             linha:"", novaCor:false, lancamento:false, corre:false, continuidade:false,
+             gtm:false, semGtm:false },
   pagination: { pageSize: 24, shown: 0 },
   ui: { lastScrollY: 0, view: 'main' },
   productModal: { open:false, item:null, group:null, qty:1, fromCart:false, editKey:null, editing:false },
@@ -5253,6 +5297,10 @@ function renderBadges(item, { cls="", abs=false } = {}){
   if(item.isLanc)     html += `<span class="badge-lanc">LANÇAMENTO</span>`;
   if(item.isNewColor) html += `<span class="badge-novacor">NOVA COR</span>`;
   if(item.isCont)     html += `<span class="badge-cont">CONTINUIDADE</span>`;
+  /* O grupo já vem com a resposta pronta (renderBadgesGroup); a variante é
+     consultada na hora, porque a DISPO chega depois dos cards. */
+  if(item.gtm === true || (item.gtm !== false && ehDoGtm(item)))
+    html += `<span class="badge-gtm">GTM - 1S27</span>`;
   return html ? `<div class="${wrap}">${html}</div>` : "";
 }
 // Versão para grupo: verifica se alguma variante tem o badge
@@ -5263,6 +5311,7 @@ function renderBadgesGroup(group, { cls="", abs=false } = {}){
     isLanc:     items.some(i=>i.isLanc),
     isNewColor: items.some(i=>i.isNewColor),
     isCont:     items.some(i=>i.isCont),
+    gtm:        items.some(ehDoGtm),
   };
   return renderBadges(fake, { cls, abs });
 }
@@ -5877,6 +5926,8 @@ function clearAllFilters(){
   state.filters.lancamento = false;
   state.filters.corre = false;
   state.filters.continuidade = false;
+  state.filters.gtm = false;
+  state.filters.semGtm = false;
   state.filters.tier = "";
   const _sl = $("sliderPrice"); if(_sl){ _sl.value=_sl.max; if(typeof updateSliderLabel==="function") updateSliderLabel(); }
   // o chip e o seletor de categoria seguem a tela, que não se perde aqui:
@@ -6394,6 +6445,10 @@ function pintarChipsFiltro(){
     lancamento: base.filter(p => p.isLanc).length,
     corre:      base.filter(ehDaCorre).length,
     continuidade: base.filter(p => p.isCont).length,
+    /* Sem a DISPO na mão o número é zero e os dois chips ficam escondidos,
+       como qualquer chip vazio - some sozinho e volta quando ela chega. */
+    gtm:        GTM ? base.filter(ehDoGtm).length : 0,
+    semGtm:     GTM ? base.filter(p => !ehDoGtm(p)).length : 0,
   };
   const selo = document.getElementById("seloColecaoNome");
   if(selo) selo.textContent = state.filters.colecao || "Todas";
@@ -6458,6 +6513,11 @@ function refreshView(resetPaging){
   if(state.filters.lancamento) list = list.filter(p => p.isLanc);
   if(state.filters.corre)      list = list.filter(p => ehDaCorre(p));
   if(state.filters.continuidade) list = list.filter(p => p.isCont);
+  /* Um exclui o outro: ligar os dois devolveria lista vazia, e ninguém
+     procura "o que é e não é" ao mesmo tempo. O clique também desliga o
+     irmão - isto aqui é a rede, para link antigo ou estado salvo. */
+  if(state.filters.gtm)         list = list.filter(ehDoGtm);
+  else if(state.filters.semGtm) list = list.filter(p => !ehDoGtm(p));
   if(state.filters.priceMax !== Infinity){
     list = list.filter(p => costFromPrice(toNumberBR(p.precoRaw)) <= state.filters.priceMax);
   }
@@ -6615,6 +6675,8 @@ document.addEventListener("click", ev => {
   if(!btn || !btn.dataset.chip) return;
   const k = btn.dataset.chip;
   state.filters[k] = !state.filters[k];
+  if(k === "gtm" && state.filters.gtm) state.filters.semGtm = false;
+  if(k === "semGtm" && state.filters.semGtm) state.filters.gtm = false;
   state.pagination.shown = 0;
   refreshView(true);
   if(typeof updateFilterBadge === "function") updateFilterBadge();
@@ -11675,6 +11737,100 @@ async function gerarCatalogoPdf(){
    lançamento e cores que são continuidade, e só as primeiras constam. O
    NUVEM, por exemplo, tem três cores na circular e outras três que vêm da
    coleção passada — essas ficam sem a informação, e os chips somem. */
+/* ── GTM - 1S27: o que vem com a grade pronta ──────────────────────────
+   A lista é a mesma do Showroom: os lotes da DISPO com coleção 1S27 (a cota
+   que a fábrica reservou ao escritório). Lida direto do Pages do apps-oly,
+   que serve com CORS aberto - sem passar pelo Worker, e com o cache do
+   navegador fazendo o trabalho nas aberturas seguintes.
+
+   Por que não a coluna COLEÇÃO da planilha: ela marca a coleção do produto
+   (645 linhas em 1S27), não a cota. O GTM são 89 artigo+cor, 22 artigos.
+
+   Do produto guardamos as COMPOSIÇÕES de caixa, não os lotes: o mesmo
+   artigo+cor chega a ter 16 lotes repetindo duas grades em datas
+   diferentes. */
+const GTM_COLECAO = "1S27";
+const GTM_DISPO_URL = "https://cms-representacoes.github.io/apps-oly/data/dispo.json";
+let GTM = null;            // Map "ARTIGO|COR" -> { lotes, grades:[...] }
+let _gtmPromessa = null;
+
+const _gtmChave = (art, cor) =>
+  String(art == null ? "" : art).trim() + "|" +
+  String(cor == null ? "" : cor).toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+/* "37:1-38:2-39:2" — duas caixas com a mesma composição têm a mesma
+   assinatura, mesmo vindo de lotes e datas diferentes. */
+function _gtmAssinatura(g){
+  return Object.keys(g || {})
+    .filter(t => Number(g[t]) > 0)
+    .sort((a, b) => String(a).localeCompare(String(b), "pt-BR", { numeric:true }))
+    .map(t => t + ":" + Number(g[t]))
+    .join("-");
+}
+function _gtmDataISO(d){
+  const m = String(d || "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? m[3] + m[2] + m[1] : String(d || "");
+}
+const _GTM_MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+function _gtmMes(d){
+  const m = String(d || "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? _GTM_MESES[Number(m[2]) - 1] + "/" + m[3].slice(2) : String(d || "");
+}
+
+async function carregarGtm(){
+  if(GTM) return GTM;
+  if(_gtmPromessa) return _gtmPromessa;
+  _gtmPromessa = (async () => {
+    const mapa = new Map();
+    try{
+      const r = await fetch(GTM_DISPO_URL);
+      const linhas = await r.json();
+      for(const l of (Array.isArray(linhas) ? linhas : [])){
+        if(String(l.colecao || "").trim().toUpperCase() !== GTM_COLECAO) continue;
+        const k = _gtmChave(l.codigo, l.cor);
+        if(!mapa.has(k)) mapa.set(k, { lotes:0, grades:new Map() });
+        const reg = mapa.get(k);
+        reg.lotes++;
+        const ass = _gtmAssinatura(l.grade);
+        if(!ass) continue;
+        if(!reg.grades.has(ass)){
+          const tam = {};
+          let pares = 0;
+          for(const t of Object.keys(l.grade || {})){
+            const n = Number(l.grade[t]) || 0;
+            if(n > 0){ tam[String(t)] = n; pares += n; }
+          }
+          reg.grades.set(ass, { tam, pares, lotes:0, datas:new Set() });
+        }
+        const g = reg.grades.get(ass);
+        g.lotes++;
+        if(l.dataEntrega) g.datas.add(String(l.dataEntrega));
+      }
+      for(const reg of mapa.values()){
+        reg.grades = [...reg.grades.values()]
+          .map(g => ({
+            tam: g.tam, pares: g.pares, lotes: g.lotes,
+            datas: [...g.datas].sort((a, b) => _gtmDataISO(a).localeCompare(_gtmDataISO(b)))
+          }))
+          .sort((a, b) => b.lotes - a.lotes);   // a caixa mais comum primeiro
+      }
+    }catch(_){ /* sem a DISPO, os chips não aparecem e nada mais muda */ }
+    GTM = mapa;
+    return GTM;
+  })();
+  return _gtmPromessa;
+}
+function gtmDoItem(it){
+  if(!GTM || !it) return null;
+  return GTM.get(_gtmChave(it.codigo, it.cor)) || null;
+}
+/* A cota é da 1S27: o mesmo artigo+cor existe em coleções anteriores, e
+   marcar o card da 2S26 como GTM diria uma coisa que não é verdade lá. */
+function ehDoGtm(p){
+  if(!p || String(p.colecao || "").trim().toUpperCase() !== GTM_COLECAO) return false;
+  return !!gtmDoItem(p);
+}
+
 let CIRCULAR = null;
 const _chaveCirc = (art, cor) =>
   String(art == null ? "" : art).trim().toUpperCase() + "|" +
@@ -12120,6 +12276,70 @@ async function conferirDataContraDisponibilidade(item, dataISO){
   return usar ? iso : dataISO;
 }
 
+/* As composições de caixa daquele artigo+cor, no topo do modal de grade.
+   Um clique preenche os tamanhos - é o que o vendedor pediu: no GTM a grade
+   já existe, e digitar à mão só criava erro. */
+function pintarGradesGtm(item){
+  const wrap = $("gradeGtm");
+  if(!wrap) return;
+  const reg = gtmDoItem(item);
+  if(!reg || !reg.grades || !reg.grades.length){
+    wrap.classList.add("hidden");
+    wrap.innerHTML = "";
+    return;
+  }
+  const atual = _gtmAssinatura(Object.fromEntries(
+    (gradeState.sizes || []).map(s => [s.tam, s.qty])));
+  wrap.classList.remove("hidden");
+  wrap.innerHTML = `
+    <div class="text-[11px] font-extrabold uppercase tracking-wider mb-2" style="color:#0e7490">
+      <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+      Grade do GTM - 1S27 ${reg.grades.length > 1
+        ? '<span style="font-weight:700;text-transform:none;letter-spacing:0">· '
+          + reg.grades.length + ' composições</span>' : ''}
+    </div>
+    ${reg.grades.map((g, i) => `
+      <div class="gtm-grade${_gtmAssinatura(g.tam) === atual ? ' escolhida' : ''}">
+        <div style="font-size:12px;font-weight:800;color:#0e7490">
+          Caixa de ${g.pares} par${g.pares === 1 ? '' : 'es'}
+          ${reg.grades.length > 1 ? `<span style="color:#64748b;font-weight:700"> · opção ${i + 1}</span>` : ''}
+        </div>
+        <div class="gtm-tams">
+          ${Object.keys(g.tam).sort((a, b) => String(a).localeCompare(String(b), "pt-BR", { numeric:true }))
+            .map(t => `<span class="gtm-tam"><b>${escapeHtml(t)}</b><span>${g.tam[t]}</span></span>`).join("")}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div style="font-size:11px;font-weight:700;color:#64748b">
+            entrega ${g.datas.map(_gtmMes).join(" · ") || "—"}
+          </div>
+          <button type="button" class="gtm-usar" onclick="aplicarGradeGtm(${i})">Usar esta grade</button>
+        </div>
+      </div>`).join("")}`;
+}
+
+/* Preenche a grade da tela com a caixa escolhida. Tamanho que a caixa tem e
+   o produto não (acontece quando a faixa do catálogo é menor) fica de fora,
+   e o aviso diz quantos pares não couberam - em silêncio, o vendedor
+   mandaria uma caixa incompleta sem saber. */
+function aplicarGradeGtm(idx){
+  const reg = gtmDoItem(gradeState.item);
+  const g = reg && reg.grades && reg.grades[idx];
+  if(!g) return;
+  let aplicados = 0;
+  gradeState.sizes = (gradeState.sizes || []).map(s => {
+    const n = Number(g.tam[s.tam] || 0);
+    aplicados += n;
+    return { ...s, qty: n };
+  });
+  renderGradeSizeList();
+  pintarGradesGtm(gradeState.item);
+  if(typeof toast === "function"){
+    toast(aplicados === g.pares
+      ? `Grade do GTM aplicada — ${aplicados} pares ✅`
+      : `Grade aplicada com ${aplicados} de ${g.pares} pares — os outros tamanhos não existem neste produto ⚠️`);
+  }
+}
+
 function openGradeModal(item, opts={}){
   gradeState.item = item;
   gradeState.fromCart = !!opts.fromCart;
@@ -12196,6 +12416,11 @@ function openGradeModal(item, opts={}){
   $("gradeProduto").textContent = item.produto || "Produto";
   $("gradeCor").textContent = `${item.cor || ""}${item.corCodigo ? " · " + item.corCodigo : ""}`;
   pintarGradeDisp(item);
+  // a DISPO pode ainda estar a caminho: pinta agora e de novo quando chegar
+  pintarGradesGtm(item);
+  if(!GTM) carregarGtm().then(() => {
+    if(gradeState.item === item) pintarGradesGtm(item);
+  }).catch(() => {});
 
   // Botão "Repetir última grade": só aparece se houver grade salva na sessão E não estiver editando uma grade existente
   {
@@ -13708,6 +13933,13 @@ function injectHomeCategoryImages(){
     // as fichas entram em paralelo: o catálogo não espera por elas
     if(typeof carregarFichas === "function") carregarFichas();
     if(typeof carregarCircular === "function") carregarCircular();
+    /* A DISPO chega depois dos cards: quando chegar, os chips aparecem e os
+       selos entram nos cards que já estão na tela. */
+    if(typeof carregarGtm === "function"){
+      carregarGtm().then(() => {
+        if(typeof refreshView === "function") refreshView(false);
+      }).catch(() => {});
+    }
     if(typeof carregarMarcados === "function"){ carregarMarcados(); pintarBarraMarcados(); }
   };
 
