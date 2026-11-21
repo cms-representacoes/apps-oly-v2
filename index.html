@@ -6432,23 +6432,89 @@ function ehDaCorre(p){
   return RE_CORRE.test(String(p?.produto || ""));
 }
 
+/* A peneira que NÃO depende dos chips: categoria, linha, segmento, gênero,
+   coleção, tier, preço, busca e favoritos. Virou função em 21/11/2026
+   porque a lista e a conta dos chips tinham cada uma a sua cópia - e a dos
+   chips tinha só categoria e coleção, então o número prometia produtos que
+   a tela não mostrava (o "FORA DO GTM 165" com 150 na tela: os 15 eram da
+   linha CORRE, que sai de cena dentro de uma categoria). */
+function _peneiraSemChips(lista, f){
+  f = f || state.filters;
+  let l = lista;
+  if(state.viewMode === "favs")
+    l = l.filter(p => state.favorites && state.favorites.has(cartKeyFor(p)));
+  if(f.category) l = l.filter(p => p.categoria === f.category);
+  else if(f.categoriaEm && f.categoriaEm.length)
+    l = l.filter(p => f.categoriaEm.includes(p.categoria));
+  /* A linha CORRE tem cards próprios: o de tênis e o de roupa. Nos cards das
+     outras categorias ela sai de cena, porque é produto segmentado e misturar
+     atrapalha quem está montando a oferta. "Ver todos" continua trazendo tudo. */
+  if(f.linha === "corre")     l = l.filter(p => ehDaCorre(p));
+  else if(f.linha === "sem")  l = l.filter(p => !ehDaCorre(p));
+  if(f.segment){
+    const alvo = chaveSegmento(f.segment);
+    l = l.filter(p => chaveSegmento(p.segmento) === alvo);
+  }
+  if(f.gender) l = l.filter(p => p.genero === f.gender);
+  if(f.colecao) l = l.filter(p => p.colecao === f.colecao);
+  if(f.tier) l = l.filter(p => p[f.tier] === true);
+  if(f.priceMax !== Infinity)
+    l = l.filter(p => costFromPrice(toNumberBR(p.precoRaw)) <= f.priceMax);
+  const q = normalizeName(f.q);
+  if(q) l = l.filter(p => normalizeName(
+    [p.produto, p.codigo, p.cor, p.corCodigo, p.genero, p.segmento, p.categoria].join(" ")).includes(q));
+  return l;
+}
+
+/* Os chips, na mesma ordem da lista. Separados da peneira porque a conta de
+   um chip precisa ligar só ele e desligar os irmãos. */
+function _peneiraChips(lista, f){
+  let l = lista;
+  if(f.novaCor)      l = l.filter(p => p.isNewColor);
+  if(f.lancamento)   l = l.filter(p => p.isLanc);
+  if(f.corre)        l = l.filter(p => ehDaCorre(p));
+  if(f.continuidade) l = l.filter(p => p.isCont);
+  if(f.gtm)          l = l.filter(ehDoGtm);
+  else if(f.semGtm)  l = l.filter(p => !ehDoGtm(p));
+  return l;
+}
+
+/* Quantos cards a tela mostraria com este chip ligado. Conta grupo quando a
+   tela agrupa cores, e respeita a classificação "só novidades" - senão o
+   número volta a prometer o que a tela não entrega. */
+function _quantosNoChip(qual){
+  const f = { ...state.filters, novaCor:false, lancamento:false, corre:false,
+              continuidade:false, gtm:false, semGtm:false };
+  if(qual) f[qual] = true;
+  let l = _peneiraChips(_peneiraSemChips(state.productsRaw || [], f), f);
+  const ehNov = p => !!(p.isLanc || p.isNewColor || p.isNew);
+  if(state.groupColors){
+    const chaveG = p => normalizeName(`${p.produto}||${p.codigo}||${p.genero}`);
+    const grupos = new Set(l.map(chaveG));
+    if(f.sort === "only_lanc"){
+      const novos = new Set(l.filter(ehNov).map(chaveG));
+      return [...grupos].filter(g => novos.has(g)).length;
+    }
+    return grupos.size;
+  }
+  if(f.sort === "only_lanc") l = l.filter(ehNov);
+  return l.length;
+}
+
 // Os chips mostram quanto cada um traria dentro do que já está filtrado,
-// então o número muda junto com a coleção e a categoria escolhidas.
+// então o número muda junto com a coleção, a categoria e todo o resto.
 function pintarChipsFiltro(){
   const chips = document.getElementById("filtroChips");
   if(!chips) return;
-  const base = (state.productsRaw || []).filter(p =>
-    (!state.filters.category || p.categoria === state.filters.category) &&
-    (!state.filters.colecao  || p.colecao  === state.filters.colecao));
   const quanto = {
-    novaCor:    base.filter(p => p.isNewColor).length,
-    lancamento: base.filter(p => p.isLanc).length,
-    corre:      base.filter(ehDaCorre).length,
-    continuidade: base.filter(p => p.isCont).length,
+    novaCor:      _quantosNoChip("novaCor"),
+    lancamento:   _quantosNoChip("lancamento"),
+    corre:        _quantosNoChip("corre"),
+    continuidade: _quantosNoChip("continuidade"),
     /* Sem a DISPO na mão o número é zero e os dois chips ficam escondidos,
        como qualquer chip vazio - some sozinho e volta quando ela chega. */
-    gtm:        GTM ? base.filter(ehDoGtm).length : 0,
-    semGtm:     GTM ? base.filter(p => !ehDoGtm(p)).length : 0,
+    gtm:        GTM ? _quantosNoChip("gtm") : 0,
+    semGtm:     GTM ? _quantosNoChip("semGtm") : 0,
   };
   const selo = document.getElementById("seloColecaoNome");
   if(selo) selo.textContent = state.filters.colecao || "Todas";
@@ -6486,48 +6552,12 @@ addEventListener("resize", medirFilaChips);
 function refreshView(resetPaging){
   if(resetPaging) state.pagination.shown = 0;
 
-  const q = normalizeName(state.filters.q);
-  let list = state.productsRaw.slice();
-  // Favoritos: filtra por variante (cor/código/gênero)
-  if(state.viewMode === "favs"){
-    list = list.filter(p => state.favorites && state.favorites.has(cartKeyFor(p)));
-  }
-
-
-  if(state.filters.category) list = list.filter(p => p.categoria === state.filters.category);
-  else if(state.filters.categoriaEm && state.filters.categoriaEm.length)
-    list = list.filter(p => state.filters.categoriaEm.includes(p.categoria));
-  /* A linha CORRE tem cards próprios: o de tênis e o de roupa. Nos cards das
-     outras categorias ela sai de cena, porque é produto segmentado e misturar
-     atrapalha quem está montando a oferta. "Ver todos" continua trazendo tudo. */
-  if(state.filters.linha === "corre")     list = list.filter(p => ehDaCorre(p));
-  else if(state.filters.linha === "sem")  list = list.filter(p => !ehDaCorre(p));
-  if(state.filters.segment){
-    const alvo = chaveSegmento(state.filters.segment);
-    list = list.filter(p => chaveSegmento(p.segmento) === alvo);
-  }
-  if(state.filters.gender) list = list.filter(p => p.genero === state.filters.gender);
-  if(state.filters.colecao) list = list.filter(p => p.colecao === state.filters.colecao);
-  if(state.filters.tier) list = list.filter(p => p[state.filters.tier] === true);
-  if(state.filters.novaCor)    list = list.filter(p => p.isNewColor);
-  if(state.filters.lancamento) list = list.filter(p => p.isLanc);
-  if(state.filters.corre)      list = list.filter(p => ehDaCorre(p));
-  if(state.filters.continuidade) list = list.filter(p => p.isCont);
-  /* Um exclui o outro: ligar os dois devolveria lista vazia, e ninguém
-     procura "o que é e não é" ao mesmo tempo. O clique também desliga o
-     irmão - isto aqui é a rede, para link antigo ou estado salvo. */
-  if(state.filters.gtm)         list = list.filter(ehDoGtm);
-  else if(state.filters.semGtm) list = list.filter(p => !ehDoGtm(p));
-  if(state.filters.priceMax !== Infinity){
-    list = list.filter(p => costFromPrice(toNumberBR(p.precoRaw)) <= state.filters.priceMax);
-  }
-
-  if(q){
-    list = list.filter(p=>{
-      const hay = normalizeName([p.produto, p.codigo, p.cor, p.corCodigo, p.genero, p.segmento, p.categoria].join(" "));
-      return hay.includes(q);
-    });
-  }
+  /* A mesma peneira que conta os chips (ver _peneiraSemChips): uma cópia só,
+     para o número do chip e a lista nunca mais discordarem. Os chips vêm
+     depois porque a conta de cada um precisa ligar só ele.
+     Um exclui o outro no par GTM / Fora do GTM: ligar os dois devolveria
+     lista vazia, e ninguém procura "o que é e não é" ao mesmo tempo. */
+  let list = _peneiraChips(_peneiraSemChips(state.productsRaw.slice()), state.filters);
 
   // ✅ aplica favoritos POR VARIANTE (cor) antes de agrupar
   if(state.viewMode === "favs"){
