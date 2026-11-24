@@ -1844,10 +1844,17 @@ const OPCOES_STATUS = [
   { id: 'CANCELAR', label: 'Cancelar' },
 ];
 
-// Mapeamento de campanhas → sufixo da condição de pagamento
+// Mapeamento de campanhas → sufixo da condição de pagamento.
+// Isto aqui é LEITURA: decodifica a campanha de um pedido que já existe.
+// Por isso os códigos antigos ficam — a Olympikus trocou CO681 por CO692 e
+// CO689 por CO693 em 24/11/2026, e os pedidos feitos antes disso continuam
+// com os antigos. Tirá-los daqui faria a carteira deixar de dizer o prazo
+// deles.
 const CAMPANHA_SUFIXO = {
-  'CO681': '+ 28 DD',
-  'CO689': '+ 56 DD',
+  'CO692': '+ 28 DD',
+  'CO693': '+ 56 DD',
+  'CO681': '+ 28 DD',   // até 24/11/2026
+  'CO689': '+ 56 DD',   // até 24/11/2026
 };
 
 /* ============================================================

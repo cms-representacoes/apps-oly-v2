@@ -4253,8 +4253,8 @@ html.dark-mode #homeScreen{ background:transparent; }
                 <label class="order-field-label" for="oxCampaign">Campanha</label>
                 <select id="oxCampaign" class="order-field-control">
                   <option value="">— Sem campanha —</option>
-                  <option value="CO681 +28DD OLY">CO681 +28DD OLY</option>
-                  <option value="CO689 +56DD OLY">CO689 +56DD OLY</option>
+                  <option value="CO692 +28DD OLY">CO692 +28DD OLY</option>
+                  <option value="CO693 +56DD OLY">CO693 +56DD OLY</option>
                   <option value="CO684 +28DD UA">CO684 +28DD UA</option>
                   <option value="CO690 +56DD UA">CO690 +56DD UA</option>
                 </select>
@@ -16566,6 +16566,17 @@ function _rxAbrir(origem){
   set("rxClientCode", r.clientCode || "");
   set("rxPayment", r.payment || "");
   set("rxPriceTable", r.priceTable || def.priceTable);
+  /* Registro antigo pode trazer CO681/CO689, que sairam da lista em
+     24/11/2026. Sem recoloca-los, o seletor abriria em "Sem campanha" e
+     salvar apagaria a campanha do registro sem ninguem pedir. */
+  (function(){
+    const el = $("rxCampaign"), v = r.campaign || "";
+    if(el && v && ![...el.options].some(o => o.value === v)){
+      const o = document.createElement("option");
+      o.value = v; o.textContent = v + " (campanha antiga)";
+      el.insertBefore(o, el.firstChild ? el.firstChild.nextSibling : null);
+    }
+  })();
   set("rxCampaign", r.campaign || "");
   set("rxPacking", def.packing);
   set("rxDeliveryType", def.deliveryType);
@@ -17139,8 +17150,8 @@ loadCatalog({ cacheBust:false });
                 <label class="order-field-label" for="rxCampaign">Campanha</label>
                 <select id="rxCampaign" class="order-field-control">
                   <option value="">— Sem campanha —</option>
-                  <option value="CO681 +28DD OLY">CO681 +28DD OLY</option>
-                  <option value="CO689 +56DD OLY">CO689 +56DD OLY</option>
+                  <option value="CO692 +28DD OLY">CO692 +28DD OLY</option>
+                  <option value="CO693 +56DD OLY">CO693 +56DD OLY</option>
                   <option value="CO684 +28DD UA">CO684 +28DD UA</option>
                   <option value="CO690 +56DD UA">CO690 +56DD UA</option>
                 </select>

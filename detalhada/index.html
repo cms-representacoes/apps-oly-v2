@@ -9771,7 +9771,7 @@ function renderModalDestino() {
     ].filter(Boolean).join('');
 
     const cond = m.cond[c.cod] || { prazo: '', campanha: '' };
-    const camps = campanhasDaLinha(m.r);
+    const camps = campanhasDaLinha(m.r, cond.campanha);
     const campos = marcado ? `
       <div class="dest-cond" data-cod="${escAttr(c.cod)}">
         <label>
@@ -11429,9 +11429,12 @@ const PRAZOS = [
   'Z35 - 63/91/119 D',
 ];
 
+/* Olympikus trocou os codigos em 24/11/2026: CO681 -> CO692 (+28) e
+   CO689 -> CO693 (+56). As antigas saem da lista porque o EBM nao as
+   aceita mais; as de Under Armour seguem as mesmas. */
 const CAMPANHAS = [
-  { id: 'CO681 +28DD OLY', marca: 'OLY' },
-  { id: 'CO689 +56DD OLY', marca: 'OLY' },
+  { id: 'CO692 +28DD OLY', marca: 'OLY' },
+  { id: 'CO693 +56DD OLY', marca: 'OLY' },
   { id: 'CO684 +28DD UA',  marca: 'UA'  },
   { id: 'CO690 +56DD UA',  marca: 'UA'  },
 ];
@@ -11439,12 +11442,21 @@ const CAMPANHAS = [
 /** Só as campanhas da marca do produto: a lista mistura OLY e UA, e
  *  escolher a campanha da marca errada é erro fácil de cometer e chato de
  *  descobrir depois. Marca desconhecida mostra todas. */
-function campanhasDaLinha(r) {
+function campanhasDaLinha(r, jaEscolhida) {
   const marca = String(APP.dic.marca[r[C.MARCA]] || '').toUpperCase();
   const ua = marca.includes('UA');
   const oly = marca.includes('OLY');
-  if (ua === oly) return CAMPANHAS;                 // nenhuma ou as duas
-  return CAMPANHAS.filter(c => (c.marca === 'UA') === ua);
+  const lista = (ua === oly)                        // nenhuma ou as duas
+    ? CAMPANHAS.slice()
+    : CAMPANHAS.filter(c => (c.marca === 'UA') === ua);
+  /* A campanha que o destino JA TEM entra na lista mesmo se saiu de linha
+     (CO681/CO689, ate 24/11/2026). Sem isto o seletor abriria em "Sem
+     campanha" e salvar apagaria o que estava la. */
+  const v = String(jaEscolhida || '').trim();
+  if (v && !lista.some(c => c.id === v)) {
+    return [{ id: v, marca: '' }, ...lista];
+  }
+  return lista;
 }
 
 const NOME_FILTRO = { cliente: 'Cliente', preposto: 'Preposto', faixa: 'Faixa', marca: 'Marca', fabrica: 'Fábrica', filial: 'Filial', oc: 'OC', mes: 'Mês',
