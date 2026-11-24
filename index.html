@@ -9418,7 +9418,12 @@ const ORDER_EXPORT_DEFAULTS = {
   commission: "",
   clientCode: "",
   payment: "",
-  priceTable: (MARCA_ATUAL.id === "ua" ? "UA037" : "OL026"),
+  /* As tabelas da colecao de agora, desde 24/11/2026: a Olympikus passou a
+     OL029 (1S27) e a Under Armour a UA040 (SS27). Estavam nas anteriores
+     (OL026 e UA037), entao o campo abria preenchido com a tabela velha e o
+     pedido saia nela se ninguem reparasse. As antigas seguem na lista ao
+     lado, para quem ainda digita pedido de colecao passada. */
+  priceTable: (MARCA_ATUAL.id === "ua" ? "UA040" : "OL029"),
   campaign: "",
   packing: "M: Musical",
   deliveryType: "3: Total Artigo/Cor",
